@@ -7,6 +7,7 @@ import { getApprovedEntries } from "@/lib/directory/api";
 import { mapsUrl, osmEntries, type DirectoryEntry } from "@/lib/directory/types";
 import { breadcrumbLd, localBusinessLd, seo, SITE_URL, snippet } from "@/lib/seo";
 import { mediaUrl } from "@/lib/media/types";
+import { ReportButton } from "@/components/report";
 
 export const Route = createFileRoute("/directory/$slug")({
   loader: async ({ params }) => {
@@ -159,6 +160,9 @@ function BusinessPage() {
         </Link>
       ) : null}
       {place.source === "osm" ? <OsmCredit /> : null}
+      {place.source === "owner" ? (
+        <ReportButton type="business" id={place.slug.replace(/^biz-/, "")} />
+      ) : null}
     </Shell>
   );
 }

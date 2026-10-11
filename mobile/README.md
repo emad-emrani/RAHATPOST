@@ -120,3 +120,24 @@ The website code for this lives in `src/lib/auth/native.ts` and `src/routes/app-
 - **5.1.1(v):** in-app **account deletion** if accounts can be created.
 - **1.2 User-generated content:** reader news/ads need report-content, block-user, moderation (admin exists) and published terms.
 - Polish: no dead ends, no unexpected Safari hops, iPad layout if iPad is supported.
+
+## Push notifications in the native app (future work)
+
+The website already sends **Web Push** (VAPID) to browsers and installed PWAs: subscriptions live in
+the `push_subscriptions` table, are sent by `src/lib/push/send.server.ts`, and are shown by
+`public/sw.js`. The Capacitor app loads the site in a WebView, where the Web Push API is **not**
+available (Android WebView has no PushManager; WKWebView on iOS neither), so the native apps get no
+notifications yet.
+
+To add them:
+
+1. Install `@capacitor/push-notifications`; create a Firebase project, add `google-services.json`
+   (Android) and an APNs key uploaded to Firebase (iOS).
+2. In the app, request permission, `register()`, and POST the FCM token + topics to a new server
+   function (e.g. a `native_push_tokens` table, or a `kind` column on `push_subscriptions`).
+3. In `sendToTopic`, also send to those tokens via the FCM HTTP v1 API (service-account JSON as an
+   encrypted Vercel env var) and drop tokens that FCM reports `UNREGISTERED`.
+4. Handle the tap (`pushNotificationActionPerformed`) by navigating the WebView to `data.url`.
+
+Same topics as the web: `alerts` (تنبيهات عاجلة), `news` (أخبار القراء الجديدة), `pharmacy`
+(صيدلية المناوبة).

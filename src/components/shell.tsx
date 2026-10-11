@@ -54,11 +54,32 @@ export function Shell({ children }: { children: ReactNode }) {
         </nav>
       </header>
 
-      <main className="mx-auto w-full max-w-3xl px-4 pt-4 pb-28 md:pb-16">{children}</main>
+      <main className="mx-auto w-full max-w-3xl px-4 pt-4 pb-6">{children}</main>
 
-      <footer className="mx-auto hidden max-w-3xl px-4 pb-8 text-sm font-semibold text-muted md:block">
-        أرقام الطوارئ الوطنية حقيقية. الأخبار والدليل والباصات من مصادر حقيقية مذكورة في كل صفحة،
-        وبقية الإعلانات نماذج.
+      <footer className="mx-auto max-w-3xl px-4 pb-28 text-sm font-semibold text-muted md:pb-10">
+        <nav className="flex flex-wrap gap-x-4 gap-y-1" aria-label="روابط الموقع">
+          <Link
+            to="/privacy"
+            className="inline-flex min-h-10 items-center underline-offset-4 hover:underline"
+          >
+            سياسة الخصوصية
+          </Link>
+          <Link
+            to="/terms"
+            className="inline-flex min-h-10 items-center underline-offset-4 hover:underline"
+          >
+            شروط الاستخدام
+          </Link>
+          <Link
+            to="/app"
+            className="inline-flex min-h-10 items-center underline-offset-4 hover:underline"
+          >
+            التطبيق
+          </Link>
+        </nav>
+        <p className="mt-1">
+          أرقام الطوارئ الوطنية حقيقية. الأخبار والدليل والباصات من مصادر حقيقية مذكورة في كل صفحة.
+        </p>
       </footer>
 
       <nav

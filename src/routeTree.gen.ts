@@ -16,8 +16,10 @@ import { Route as BusesRouteImport } from './routes/buses'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as MyAdsRouteImport } from './routes/my-ads'
 import { Route as MyPostsRouteImport } from './routes/my-posts'
+import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as SubmitRouteImport } from './routes/submit'
+import { Route as TermsRouteImport } from './routes/terms'
 import { Route as TodayRouteImport } from './routes/today'
 import { Route as AdsIndexRouteImport } from './routes/ads.index'
 import { Route as AdsIdRouteImport } from './routes/ads.$id'
@@ -69,6 +71,11 @@ const MyPostsRoute = MyPostsRouteImport.update({
   path: '/my-posts',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
   path: '/sitemap.xml',
@@ -77,6 +84,11 @@ const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
 const SubmitRoute = SubmitRouteImport.update({
   id: '/submit',
   path: '/submit',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
   getParentRoute: () => rootRouteImport,
 } as any)
 const TodayRoute = TodayRouteImport.update({
@@ -163,8 +175,10 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/my-ads': typeof MyAdsRoute
   '/my-posts': typeof MyPostsRoute
+  '/privacy': typeof PrivacyRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/submit': typeof SubmitRoute
+  '/terms': typeof TermsRoute
   '/today': typeof TodayRoute
   '/ads/$id': typeof AdsIdRoute
   '/api/media': typeof ApiMediaRoute
@@ -189,8 +203,10 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/my-ads': typeof MyAdsRoute
   '/my-posts': typeof MyPostsRoute
+  '/privacy': typeof PrivacyRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/submit': typeof SubmitRoute
+  '/terms': typeof TermsRoute
   '/today': typeof TodayRoute
   '/ads/$id': typeof AdsIdRoute
   '/api/media': typeof ApiMediaRoute
@@ -216,8 +232,10 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/my-ads': typeof MyAdsRoute
   '/my-posts': typeof MyPostsRoute
+  '/privacy': typeof PrivacyRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/submit': typeof SubmitRoute
+  '/terms': typeof TermsRoute
   '/today': typeof TodayRoute
   '/ads/$id': typeof AdsIdRoute
   '/api/media': typeof ApiMediaRoute
@@ -244,8 +262,10 @@ export interface FileRouteTypes {
     | '/login'
     | '/my-ads'
     | '/my-posts'
+    | '/privacy'
     | '/sitemap.xml'
     | '/submit'
+    | '/terms'
     | '/today'
     | '/ads/$id'
     | '/api/media'
@@ -270,8 +290,10 @@ export interface FileRouteTypes {
     | '/login'
     | '/my-ads'
     | '/my-posts'
+    | '/privacy'
     | '/sitemap.xml'
     | '/submit'
+    | '/terms'
     | '/today'
     | '/ads/$id'
     | '/api/media'
@@ -296,8 +318,10 @@ export interface FileRouteTypes {
     | '/login'
     | '/my-ads'
     | '/my-posts'
+    | '/privacy'
     | '/sitemap.xml'
     | '/submit'
+    | '/terms'
     | '/today'
     | '/ads/$id'
     | '/api/media'
@@ -323,8 +347,10 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   MyAdsRoute: typeof MyAdsRoute
   MyPostsRoute: typeof MyPostsRoute
+  PrivacyRoute: typeof PrivacyRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   SubmitRoute: typeof SubmitRoute
+  TermsRoute: typeof TermsRoute
   TodayRoute: typeof TodayRoute
   AdsIdRoute: typeof AdsIdRoute
   ApiMediaRoute: typeof ApiMediaRoute
@@ -393,6 +419,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MyPostsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/sitemap.xml': {
       id: '/sitemap.xml'
       path: '/sitemap.xml'
@@ -405,6 +438,13 @@ declare module '@tanstack/react-router' {
       path: '/submit'
       fullPath: '/submit'
       preLoaderRoute: typeof SubmitRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/today': {
@@ -523,8 +563,10 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   MyAdsRoute: MyAdsRoute,
   MyPostsRoute: MyPostsRoute,
+  PrivacyRoute: PrivacyRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   SubmitRoute: SubmitRoute,
+  TermsRoute: TermsRoute,
   TodayRoute: TodayRoute,
   AdsIdRoute: AdsIdRoute,
   ApiMediaRoute: ApiMediaRoute,

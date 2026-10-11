@@ -33,22 +33,6 @@ export const adTypes = [
   "مفقودات",
 ] as const;
 
-export type DutyPharmacy = {
-  name: string;
-  neighborhood: string;
-  hours: string;
-  phone: string;
-  maps: string;
-};
-
-/** Today's duty pharmacy. No real shift data is logged yet, so the UI shows «لم يُحدَّث جدول اليوم». */
-export const duty: DutyPharmacy | null = null;
-
-export type CivicAlert = { title: string; body: string; until: string };
-
-/** Current civic alert (e.g. a planned water cut). Only set from a real, sourced notice; null shows nothing. */
-export const alert: CivicAlert | null = null;
-
 export const emergency = [
   { name: "الشرطة", phone: "100" },
   { name: "الإسعاف", phone: "101" },

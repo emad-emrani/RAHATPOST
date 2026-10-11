@@ -59,6 +59,8 @@ async function entries(): Promise<Entry[]> {
       priority: 0.7,
     },
     { path: "/app", changefreq: "monthly", priority: 0.3 },
+    { path: "/privacy", changefreq: "yearly", priority: 0.2 },
+    { path: "/terms", changefreq: "yearly", priority: 0.2 },
     ...readerNews.map((n) => ({
       path: `/news/reader-${n.id}`,
       lastmod: day(n.updatedAt),

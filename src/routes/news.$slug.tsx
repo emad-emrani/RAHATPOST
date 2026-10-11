@@ -7,6 +7,7 @@ import { getNews } from "@/lib/news/api";
 import { relativeTimeAr, useNow } from "@/lib/news/format";
 import type { NewsItem } from "@/lib/news/types";
 import { breadcrumbLd, newsArticleLd, seo, snippet } from "@/lib/seo";
+import { ReportButton } from "@/components/report";
 
 export const Route = createFileRoute("/news/$slug")({
   loader: async ({ params }) => {
@@ -211,6 +212,7 @@ function ReaderBody({ article }: { article: NewsItem }) {
       <p className="mt-3 text-sm font-semibold text-muted">
         خبر أرسله أحد القرّاء وراجعه فريق رهط بوست قبل النشر. المسؤولية عن المحتوى على ناشره.
       </p>
+      <ReportButton type="news" id={article.slug.replace(/^reader-/, "")} />
     </>
   );
 }

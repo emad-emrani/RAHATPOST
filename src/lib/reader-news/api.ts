@@ -100,7 +100,18 @@ export const adminDecideNews = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     await requireAdmin();
-    const { adminSetStatus } = await import("./store.server");
+    const { adminSetStatus, getMeta } = await import("./store.server");
+    const before = data.action === "approved" ? await getMeta(data.id) : null;
     await adminSetStatus(data.id, data.action);
+    // First approval → «أخبار القراء الجديدة» push to subscribers of that topic.
+    if (before && before.status !== "approved") {
+      const { sendToTopic } = await import("@/lib/push/send.server");
+      await sendToTopic("news", {
+        title: "خبر جديد من القراء",
+        body: before.title,
+        url: `/news/reader-${data.id}`,
+        tag: `news-${data.id}`,
+      });
+    }
     return { ok: true };
   });

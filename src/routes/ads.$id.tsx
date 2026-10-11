@@ -8,6 +8,7 @@ import { AD_ID_RE } from "@/lib/ads/types";
 import { mediaUrl } from "@/lib/media/types";
 import { AdGallery } from "@/components/ad-gallery";
 import { breadcrumbLd, seo, SITE_URL, snippet } from "@/lib/seo";
+import { ReportButton } from "@/components/report";
 
 type ViewAd = {
   id: string;
@@ -117,9 +118,12 @@ function AdPage() {
         )}
       </article>
       {ad.sample ? null : (
-        <p className="mt-4 text-sm font-semibold text-muted">
-          إعلان من مستخدم وليس من رهط بوست. لا تدفع مسبقاً قبل أن ترى الشيء أو تلتقي بصاحبه.
-        </p>
+        <>
+          <p className="mt-4 text-sm font-semibold text-muted">
+            إعلان من مستخدم وليس من رهط بوست. لا تدفع مسبقاً قبل أن ترى الشيء أو تلتقي بصاحبه.
+          </p>
+          {AD_ID_RE.test(ad.id) ? <ReportButton type="ad" id={ad.id} /> : null}
+        </>
       )}
     </Shell>
   );

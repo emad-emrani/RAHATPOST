@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { LogIn, Smartphone, WifiOff } from "lucide-react";
 import { InstallButton } from "@/components/install-app";
+import { NotificationsCard } from "@/components/notify";
 import { Shell } from "@/components/shell";
 import { seo } from "@/lib/seo";
 
@@ -33,6 +34,9 @@ function AppPage() {
           </div>
         </div>
         <InstallButton />
+        <div className="mt-5">
+          <NotificationsCard />
+        </div>
         <ul className="mt-5 flex flex-col gap-3">
           <li className="stamp flex items-center gap-3 p-4">
             <span className="icon-badge shrink-0">

@@ -3,6 +3,7 @@ import { PhotoStrip } from "@/components/photo-picker";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { AdForm } from "@/components/ad-form";
+import { DeleteAccount } from "@/components/delete-account";
 import { Shell } from "@/components/shell";
 import { deleteMyAd, listMyAds, updateMyAd } from "@/lib/ads/api";
 import { deleteMyBusiness, listMyBusinesses } from "@/lib/directory/api";
@@ -263,6 +264,7 @@ function MyPostsPage() {
           ))}
         </ul>
       )}
+      <DeleteAccount />
     </Shell>
   );
 }

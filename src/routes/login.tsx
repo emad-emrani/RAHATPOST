@@ -51,7 +51,16 @@ function LoginPage() {
               initialError={search.error ? "لم يكتمل تسجيل الدخول. حاول مرة أخرى." : ""}
             />
             <p className="text-sm font-semibold text-muted">
-              نستخدم اسمك وصورتك من الحساب لعرضهما مع منشوراتك فقط، ولا ننشر شيئاً على حسابك.
+              نستخدم اسمك وصورتك من الحساب لعرضهما مع منشوراتك فقط، ولا ننشر شيئاً على حسابك. بتسجيل
+              الدخول أنت توافق على{" "}
+              <Link to="/terms" className="font-bold underline">
+                شروط الاستخدام
+              </Link>{" "}
+              و
+              <Link to="/privacy" className="font-bold underline">
+                سياسة الخصوصية
+              </Link>
+              .
             </p>
           </div>
         )}

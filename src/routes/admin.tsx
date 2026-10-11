@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { PhotoStrip } from "@/components/photo-picker";
 import { useCallback, useEffect, useState } from "react";
 import { Shell } from "@/components/shell";
+import { AlertsAdmin, DutyAdmin, PushAdmin, ReportsAdmin } from "@/components/admin/content-admin";
 import { adminDecideAd, adminListAds } from "@/lib/ads/api";
 import type { OwnAd } from "@/lib/ads/types";
 import { adminDecide, adminList, adminLogin, adminLogout } from "@/lib/directory/api";
@@ -22,13 +23,15 @@ const STATUS: Record<BusinessSubmission["status"], string> = {
   rejected: "مرفوض",
 };
 
+type Section = "news" | "ads" | "directory" | "reports" | "duty" | "alerts" | "push";
+
 function AdminPage() {
   const [state, setState] = useState<"loading" | "login" | "ready">("loading");
   const [items, setItems] = useState<BusinessSubmission[]>([]);
   const [error, setError] = useState("");
   const [busyId, setBusyId] = useState("");
   const [tab, setTab] = useState<BusinessSubmission["status"]>("pending");
-  const [section, setSection] = useState<"directory" | "ads" | "news">("news");
+  const [section, setSection] = useState<Section>("news");
 
   const refresh = useCallback(async () => {
     const res = await adminList();
@@ -119,12 +122,16 @@ function AdminPage() {
           خروج
         </button>
       </div>
-      <div className="mb-4 grid grid-cols-3 gap-2" role="tablist" aria-label="القسم">
+      <div className="mb-4 grid grid-cols-3 gap-2 sm:grid-cols-4" role="tablist" aria-label="القسم">
         {(
           [
             ["news", "أخبار القراء"],
             ["ads", "الإعلانات"],
             ["directory", "طلبات الدليل"],
+            ["reports", "البلاغات"],
+            ["duty", "صيدلية المناوبة"],
+            ["alerts", "التنبيهات"],
+            ["push", "الإشعارات"],
           ] as const
         ).map(([key, label]) => (
           <button
@@ -139,7 +146,15 @@ function AdminPage() {
           </button>
         ))}
       </div>
-      {section === "ads" ? (
+      {section === "reports" ? (
+        <ReportsAdmin />
+      ) : section === "duty" ? (
+        <DutyAdmin />
+      ) : section === "alerts" ? (
+        <AlertsAdmin />
+      ) : section === "push" ? (
+        <PushAdmin />
+      ) : section === "ads" ? (
         <AdsAdmin />
       ) : section === "news" ? (
         <NewsAdmin />

@@ -5,11 +5,13 @@ import { CategoryIcon } from "@/components/category-icon";
 import { NewsImage } from "@/components/news-image";
 import { HomeCarousel, HomeTiles } from "@/components/home-parts";
 import { SectionTitle, Shell } from "@/components/shell";
-import { DutyCard } from "@/components/duty";
+import { AlertsBanner, DutyCard } from "@/components/duty";
+import { getBoard } from "@/lib/board/api";
 import { InstallBanner } from "@/components/install-app";
 import { HomeTodayChips } from "@/components/today-cards";
 import { weatherWithin } from "@/lib/weather/api";
 import { mediaUrl } from "@/lib/media/types";
+import { NotifyPrompt } from "@/components/notify";
 import { NewsUnavailable, newestFirst } from "@/components/news";
 import { getApprovedEntries } from "@/lib/directory/api";
 import { osmEntries, type DirectoryEntry } from "@/lib/directory/types";
@@ -18,7 +20,7 @@ import { newsByline, relativeTimeAr, useNow } from "@/lib/news/format";
 import type { IsraelNewsItem, IsraelNewsResult, NewsItem } from "@/lib/news/types";
 import { getIsraelNews } from "@/lib/news/israel-api";
 import { IsraelNewsCredit, IsraelNewsRow, IsraelTitle } from "@/components/israel-news";
-import { alert, emergency } from "@/data/content";
+import { emergency } from "@/data/content";
 import { getPublicAds } from "@/lib/ads/api";
 import { listAds, type ListAd } from "@/lib/ads/display";
 import { organizationLd, seo, websiteLd } from "@/lib/seo";
@@ -37,14 +39,15 @@ export const Route = createFileRoute("/")({
       jsonLd: [organizationLd, websiteLd],
     }),
   loader: async () => {
-    const [news, approved, ads, israel, weather] = await Promise.all([
+    const [news, approved, ads, israel, weather, board] = await Promise.all([
       getNews(),
       getApprovedEntries(),
       getPublicAds(),
       israelNewsForHome(),
       weatherWithin(2_000),
+      getBoard(),
     ]);
-    return { news, approved: approved.entries, ads, israel, weather };
+    return { news, approved: approved.entries, ads, israel, weather, board };
   },
   // New items must show up within a minute or two: short CDN cache, revalidated in the background.
   headers: () => ({ "Cache-Control": HOME_CACHE }),
@@ -72,7 +75,7 @@ async function israelNewsForHome(): Promise<IsraelNewsResult | null> {
 }
 
 function Home() {
-  const { news, approved, ads: adsData, israel, weather } = Route.useLoaderData();
+  const { news, approved, ads: adsData, israel, weather, board } = Route.useLoaderData();
   const israelItems = useMemo(() => israel?.items ?? [], [israel]);
   // Translated headlines first (each group stays newest first), then Hebrew-only ones.
   const israelTop = [
@@ -144,9 +147,11 @@ function Home() {
       ) : (
         <div className="flex flex-col gap-6">
           <h1 className="sr-only">رهط بوست: أخبار وخدمات رهط والنقب</h1>
+          <AlertsBanner alerts={board.alerts} />
           <HomeTodayChips weather={weather} serverNow={news.now} />
           <HomeTiles />
           <InstallBanner />
+          <NotifyPrompt />
           <HomeCarousel lead={top} leadTime={top ? relativeTimeAr(top.publishedAt, now) : ""} />
           {breaking ? (
             <Link
@@ -160,15 +165,6 @@ function Home() {
                 {relativeTimeAr(breaking.publishedAt, now)} · {breaking.source}
               </span>
             </Link>
-          ) : null}
-
-          {alert ? (
-            <section className="alert-card p-4">
-              <p className="chip">تنبيه بلدي</p>
-              <h2 className="mt-2 text-xl font-bold">{alert.title}</h2>
-              <p className="font-semibold">{alert.body}</p>
-              <p className="mt-1 text-sm font-bold">{alert.until}</p>
-            </section>
           ) : null}
 
           <section>
@@ -318,7 +314,7 @@ function Home() {
             </ul>
           </section>
 
-          <DutyCard />
+          <DutyCard duty={board.duty} />
 
           <section>
             <SectionTitle title="أرقام تُحفظ" to="/today" more="كل الأرقام" />

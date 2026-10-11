@@ -88,7 +88,20 @@
     border-radius: var(--radius-card);
   }
 
-  /* Muted amber card for breaking news and civic alerts (stands apart from the yellow UI). */
+  /* Civic (non-urgent) alerts: pale amber card, amber edge, ink text. */
+  .alert-card-civic {
+    background: #fff4e0;
+    color: var(--color-ink);
+    border: 1px solid var(--color-alert);
+    border-inline-start-width: 6px;
+    border-radius: var(--radius-card);
+  }
+  .alert-card-civic .chip {
+    background: var(--color-alert);
+    color: var(--color-paper);
+  }
+
+  /* Muted amber card for breaking news and urgent alerts (stands apart from the yellow UI). */
   .alert-card {
     background: var(--color-alert);
     color: var(--color-paper);
@@ -499,7 +512,12 @@
   .banner-shade {
     position: absolute;
     inset: 0;
-    background: linear-gradient(to top, rgb(16 22 26 / 0.92) 0%, rgb(16 22 26 / 0.6) 45%, rgb(16 22 26 / 0.25) 100%);
+    background: linear-gradient(
+      to top,
+      rgb(16 22 26 / 0.92) 0%,
+      rgb(16 22 26 / 0.6) 45%,
+      rgb(16 22 26 / 0.25) 100%
+    );
   }
 
   .banner .banner-icon {

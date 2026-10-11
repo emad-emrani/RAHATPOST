@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Phone } from "lucide-react";
-import { DutyCard } from "@/components/duty";
+import { AlertsBanner, DutyCard } from "@/components/duty";
+import { getBoard } from "@/lib/board/api";
 import {
   IsraelNewsCredit,
   IsraelNewsLead,
@@ -9,7 +10,7 @@ import {
 } from "@/components/israel-news";
 import { SectionTitle, Shell } from "@/components/shell";
 import { PrayerCard, WeatherCard } from "@/components/today-cards";
-import { alert, emergency } from "@/data/content";
+import { emergency } from "@/data/content";
 import { useNow } from "@/lib/news/format";
 import { getIsraelNews } from "@/lib/news/israel-api";
 import { weatherWithin } from "@/lib/weather/api";
@@ -25,31 +26,32 @@ export const Route = createFileRoute("/today")({
       jsonLd: [breadcrumbLd([{ name: "لوحة اليوم", path: "/today" }])],
     }),
   loader: async () => {
-    const [israel, weather] = await Promise.all([getIsraelNews(), weatherWithin(4_000)]);
-    return { israel, weather, now: Date.now() };
+    const [israel, weather, board] = await Promise.all([
+      getIsraelNews(),
+      weatherWithin(4_000),
+      getBoard(),
+    ]);
+    return { israel, weather, board, now: Date.now() };
   },
-  staleTime: 5 * 60_000,
+  // Alerts and the duty pharmacy change during the day: keep the CDN copy short.
+  headers: () => ({
+    "Cache-Control": "public, max-age=0, s-maxage=60, stale-while-revalidate=300",
+  }),
+  staleTime: 60_000,
   component: TodayPage,
 });
 
 const TODAY_ISRAEL_ITEMS = 7;
 
 function TodayPage() {
-  const { israel, weather, now: loadedAt } = Route.useLoaderData();
+  const { israel, weather, board, now: loadedAt } = Route.useLoaderData();
   const now = useNow(israel.now);
   const [lead, ...rest] = israel.items.slice(0, TODAY_ISRAEL_ITEMS);
   return (
     <Shell>
       <h1 className="mb-4 text-2xl font-bold">لوحة اليوم</h1>
       <div className="flex flex-col gap-4">
-        {alert ? (
-          <section className="alert-card p-4">
-            <p className="chip">تنبيه</p>
-            <h2 className="mt-2 text-xl font-bold">{alert.title}</h2>
-            <p className="font-semibold">{alert.body}</p>
-            <p className="mt-1 text-sm font-bold">{alert.until}</p>
-          </section>
-        ) : null}
+        <AlertsBanner alerts={board.alerts} />
 
         <WeatherCard weather={weather} />
         <PrayerCard serverNow={loadedAt} />
@@ -73,7 +75,7 @@ function TodayPage() {
           )}
         </section>
 
-        <DutyCard label="صيدلية الحراسة" />
+        <DutyCard duty={board.duty} label="صيدلية الحراسة" />
 
         <Link to="/buses" className="stamp press block p-4">
           <p className="text-sm font-bold text-muted">شركة גלים</p>

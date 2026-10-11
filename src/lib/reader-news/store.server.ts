@@ -87,3 +87,13 @@ export async function adminSetStatus(id: string, action: ReaderNewsStatus | "del
   if (action === "delete") await sql`delete from reader_news where id = ${id}`;
   else await sql`update reader_news set status = ${action}, updated_at = now() where id = ${id}`;
 }
+
+/** Title + status, used to notify subscribers when a post is first approved. */
+export async function getMeta(
+  id: string,
+): Promise<{ title: string; status: ReaderNewsStatus } | null> {
+  const sql = await getSql();
+  const rows = await sql<{ title: string; status: ReaderNewsStatus }>`
+    select title, status from reader_news where id = ${id}`;
+  return rows[0] ?? null;
+}

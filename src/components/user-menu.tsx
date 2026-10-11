@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { ListChecks, LogOut, UserRound, Smartphone } from "lucide-react";
+import { ListChecks, LogOut, UserRound, Smartphone, UserX } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { signOut } from "@/lib/auth/client";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
@@ -86,6 +86,15 @@ export function UserMenu() {
             <Smartphone className="size-5 text-primary-ink" aria-hidden />
             تطبيق رهط بوست
           </Link>
+          <a
+            href="/my-posts#delete-account"
+            role="menuitem"
+            className="flex min-h-12 items-center gap-2 rounded-xl px-3 font-bold hover:bg-surface"
+            onClick={() => setOpen(false)}
+          >
+            <UserX className="size-5 text-primary-ink" aria-hidden />
+            حذف حسابي
+          </a>
           <button
             type="button"
             role="menuitem"
