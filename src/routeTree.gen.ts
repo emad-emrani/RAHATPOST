@@ -13,11 +13,11 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdsRouteImport } from './routes/ads'
 import { Route as BusesRouteImport } from './routes/buses'
 import { Route as DirectoryRouteImport } from './routes/directory'
-import { Route as NewsRouteImport } from './routes/news'
 import { Route as SubmitRouteImport } from './routes/submit'
 import { Route as TodayRouteImport } from './routes/today'
 import { Route as AdsIdRouteImport } from './routes/ads.$id'
 import { Route as DirectorySlugRouteImport } from './routes/directory.$slug'
+import { Route as NewsIndexRouteImport } from './routes/news.index'
 import { Route as NewsSlugRouteImport } from './routes/news.$slug'
 
 const IndexRoute = IndexRouteImport.update({
@@ -40,11 +40,6 @@ const DirectoryRoute = DirectoryRouteImport.update({
   path: '/directory',
   getParentRoute: () => rootRouteImport,
 } as any)
-const NewsRoute = NewsRouteImport.update({
-  id: '/news',
-  path: '/news',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const SubmitRoute = SubmitRouteImport.update({
   id: '/submit',
   path: '/submit',
@@ -65,10 +60,15 @@ const DirectorySlugRoute = DirectorySlugRouteImport.update({
   path: '/$slug',
   getParentRoute: () => DirectoryRoute,
 } as any)
+const NewsIndexRoute = NewsIndexRouteImport.update({
+  id: '/news/',
+  path: '/news/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const NewsSlugRoute = NewsSlugRouteImport.update({
-  id: '/$slug',
-  path: '/$slug',
-  getParentRoute: () => NewsRoute,
+  id: '/news/$slug',
+  path: '/news/$slug',
+  getParentRoute: () => rootRouteImport,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -76,24 +76,24 @@ export interface FileRoutesByFullPath {
   '/ads': typeof AdsRouteWithChildren
   '/buses': typeof BusesRoute
   '/directory': typeof DirectoryRouteWithChildren
-  '/news': typeof NewsRouteWithChildren
   '/submit': typeof SubmitRoute
   '/today': typeof TodayRoute
   '/ads/$id': typeof AdsIdRoute
   '/directory/$slug': typeof DirectorySlugRoute
   '/news/$slug': typeof NewsSlugRoute
+  '/news/': typeof NewsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/ads': typeof AdsRouteWithChildren
   '/buses': typeof BusesRoute
   '/directory': typeof DirectoryRouteWithChildren
-  '/news': typeof NewsRouteWithChildren
   '/submit': typeof SubmitRoute
   '/today': typeof TodayRoute
   '/ads/$id': typeof AdsIdRoute
   '/directory/$slug': typeof DirectorySlugRoute
   '/news/$slug': typeof NewsSlugRoute
+  '/news': typeof NewsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -101,12 +101,12 @@ export interface FileRoutesById {
   '/ads': typeof AdsRouteWithChildren
   '/buses': typeof BusesRoute
   '/directory': typeof DirectoryRouteWithChildren
-  '/news': typeof NewsRouteWithChildren
   '/submit': typeof SubmitRoute
   '/today': typeof TodayRoute
   '/ads/$id': typeof AdsIdRoute
   '/directory/$slug': typeof DirectorySlugRoute
   '/news/$slug': typeof NewsSlugRoute
+  '/news/': typeof NewsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -115,36 +115,36 @@ export interface FileRouteTypes {
     | '/ads'
     | '/buses'
     | '/directory'
-    | '/news'
     | '/submit'
     | '/today'
     | '/ads/$id'
     | '/directory/$slug'
     | '/news/$slug'
+    | '/news/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/ads'
     | '/buses'
     | '/directory'
-    | '/news'
     | '/submit'
     | '/today'
     | '/ads/$id'
     | '/directory/$slug'
     | '/news/$slug'
+    | '/news'
   id:
     | '__root__'
     | '/'
     | '/ads'
     | '/buses'
     | '/directory'
-    | '/news'
     | '/submit'
     | '/today'
     | '/ads/$id'
     | '/directory/$slug'
     | '/news/$slug'
+    | '/news/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -152,9 +152,10 @@ export interface RootRouteChildren {
   AdsRoute: typeof AdsRouteWithChildren
   BusesRoute: typeof BusesRoute
   DirectoryRoute: typeof DirectoryRouteWithChildren
-  NewsRoute: typeof NewsRouteWithChildren
   SubmitRoute: typeof SubmitRoute
   TodayRoute: typeof TodayRoute
+  NewsSlugRoute: typeof NewsSlugRoute
+  NewsIndexRoute: typeof NewsIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -187,13 +188,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DirectoryRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/news': {
-      id: '/news'
-      path: '/news'
-      fullPath: '/news'
-      preLoaderRoute: typeof NewsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/submit': {
       id: '/submit'
       path: '/submit'
@@ -222,12 +216,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DirectorySlugRouteImport
       parentRoute: typeof DirectoryRoute
     }
+    '/news/': {
+      id: '/news/'
+      path: '/news'
+      fullPath: '/news/'
+      preLoaderRoute: typeof NewsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/news/$slug': {
       id: '/news/$slug'
-      path: '/$slug'
+      path: '/news/$slug'
       fullPath: '/news/$slug'
       preLoaderRoute: typeof NewsSlugRouteImport
-      parentRoute: typeof NewsRoute
+      parentRoute: typeof rootRouteImport
     }
   }
 }
@@ -254,24 +255,15 @@ const DirectoryRouteWithChildren = DirectoryRoute._addFileChildren(
   DirectoryRouteChildren,
 )
 
-interface NewsRouteChildren {
-  NewsSlugRoute: typeof NewsSlugRoute
-}
-
-const NewsRouteChildren: NewsRouteChildren = {
-  NewsSlugRoute: NewsSlugRoute,
-}
-
-const NewsRouteWithChildren = NewsRoute._addFileChildren(NewsRouteChildren)
-
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdsRoute: AdsRouteWithChildren,
   BusesRoute: BusesRoute,
   DirectoryRoute: DirectoryRouteWithChildren,
-  NewsRoute: NewsRouteWithChildren,
   SubmitRoute: SubmitRoute,
   TodayRoute: TodayRoute,
+  NewsSlugRoute: NewsSlugRoute,
+  NewsIndexRoute: NewsIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

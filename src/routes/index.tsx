@@ -2,32 +2,45 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { MapPin, Phone } from "lucide-react";
 import { useMemo, useState } from "react";
 import { SectionTitle, Shell } from "@/components/shell";
+import { NewsUnavailable, prioritizeLocal } from "@/components/news";
+import { getNews } from "@/lib/news/api";
+import { relativeTimeAr, useNow } from "@/lib/news/format";
+import type { NewsItem } from "@/lib/news/types";
 import {
   alert,
-  articles,
   businesses,
   classifieds,
   duty,
   emergency,
 } from "@/data/content";
 
-export const Route = createFileRoute("/")({ component: Home });
+export const Route = createFileRoute("/")({
+  loader: () => getNews(),
+  staleTime: 5 * 60_000,
+  component: Home,
+});
 
 function Home() {
+  const news = Route.useLoaderData();
+  const now = useNow(news.now);
   const [q, setQ] = useState("");
   const query = q.trim();
-  const lead = articles.find((item) => item.breaking) ?? articles[0];
-  const rest = articles.filter((item) => item.slug !== lead.slug).slice(0, 4);
+  const ranked = prioritizeLocal(news.items);
+  const breaking = news.items.find((item) => item.breaking);
+  const lead = ranked[0];
+  const rest = ranked.slice(1, 5);
 
   const results = useMemo(() => {
     if (!query) return null;
     const hay = (value: string) => value.includes(query);
     return {
-      news: articles.filter((item) => hay(item.title) || hay(item.category)),
+      news: news.items.filter(
+        (item) => hay(item.title) || hay(item.category) || hay(item.source) || hay(item.summary),
+      ),
       places: businesses.filter((item) => hay(item.name) || hay(item.category) || hay(item.neighborhood)),
       ads: classifieds.filter((item) => hay(item.title) || hay(item.type)),
     };
-  }, [query]);
+  }, [query, news.items]);
 
   return (
     <Shell>
@@ -45,11 +58,13 @@ function Home() {
         <SearchResults query={query} results={results} />
       ) : (
         <div className="flex flex-col gap-6">
-          {lead.breaking ? (
-            <Link to="/news/$slug" params={{ slug: lead.slug }} className="stamp press block bg-brand-deep px-4 py-3">
+          {breaking ? (
+            <Link to="/news/$slug" params={{ slug: breaking.slug }} className="stamp press block bg-brand-deep px-4 py-3">
               <span className="chip-ink chip">عاجل</span>
-              <span className="mt-2 block text-lg font-bold">{lead.title}</span>
-              <span className="text-sm font-semibold">{lead.time}</span>
+              <span className="mt-2 block text-lg font-bold">{breaking.title}</span>
+              <span className="text-sm font-semibold">
+                {relativeTimeAr(breaking.publishedAt, now)} · {breaking.source}
+              </span>
             </Link>
           ) : null}
 
@@ -97,24 +112,32 @@ function Home() {
           </section>
 
           <section>
-            <SectionTitle title="الأخبار" to="/news" more="كل الأخبار" />
-            <Link to="/news/$slug" params={{ slug: lead.slug }} className="stamp press mb-3 block p-4">
-              <span className="chip">{lead.category}</span>
-              <span className="mt-2 block text-2xl font-bold">{lead.title}</span>
-              <span className="text-sm font-semibold text-muted">{lead.time} · {lead.source}</span>
-            </Link>
-            <ul className="stack-list">
-              {rest.map((item) => (
-                <li key={item.slug}>
-                  <Link to="/news/$slug" params={{ slug: item.slug }} className="block px-4 py-3">
-                    <span className="text-sm font-bold text-muted">
-                      {item.category} · {item.time}
-                    </span>
-                    <span className="block font-bold">{item.title}</span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
+            <SectionTitle title="آخر الأخبار" to="/news" more="كل الأخبار" />
+            {lead ? (
+              <>
+                <Link to="/news/$slug" params={{ slug: lead.slug }} className="stamp press mb-3 block p-4">
+                  <span className="chip">{lead.category}</span>
+                  <span className="mt-2 block text-2xl font-bold">{lead.title}</span>
+                  <span className="text-sm font-semibold text-muted">
+                    {relativeTimeAr(lead.publishedAt, now)} · {lead.source}
+                  </span>
+                </Link>
+                <ul className="stack-list">
+                  {rest.map((item) => (
+                    <li key={item.slug}>
+                      <Link to="/news/$slug" params={{ slug: item.slug }} className="block px-4 py-3">
+                        <span className="text-sm font-bold text-muted">
+                          {item.category} · {relativeTimeAr(item.publishedAt, now)} · {item.source}
+                        </span>
+                        <span className="block font-bold">{item.title}</span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            ) : (
+              <NewsUnavailable />
+            )}
           </section>
 
           <section className="stamp bg-brand-deep p-4">
@@ -173,7 +196,7 @@ function SearchResults({
 }: {
   query: string;
   results: {
-    news: typeof articles;
+    news: NewsItem[];
     places: typeof businesses;
     ads: typeof classifieds;
   };
