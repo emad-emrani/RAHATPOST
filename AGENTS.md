@@ -5,6 +5,18 @@ Grok Build, in an isolated Linux sandbox; read it fully before writing code.
 Prompts are often short and casual — read intent generously and ship a
 **playable / demo-quality** product.
 
+> **rahatpost.com is SELF-HOSTED** on its own Vercel project (GitHub
+> `emad-emrani/RAHATPOST`, `main` → production). It is not deployed by the Grok
+> platform, so there is **no Grok auth broker, no gate identity
+> (`x-grok-identity`), no live-preview sign-in popup and no injected
+> `GROK_AUTH_*` creds**. Sign-in is Better Auth with **direct Google / Facebook**
+> providers (`src/lib/auth/server.ts`; each shows only when its
+> `*_CLIENT_ID`/`*_CLIENT_SECRET` env vars are set) plus `BETTER_AUTH_SECRET`;
+> Postgres is Neon via the Vercel marketplace (`DATABASE_URL`, migrations in
+> `migrations/*.sql` run on every Vercel build). Where this file or
+> `.grok/skills/auth` / `.grok/references/data-and-auth.md` describe the broker,
+> gate, popup or "Google, X, email/password only", that does not apply here.
+
 **Depth lives in `.grok/references/*.md`**, read on demand as skills load
 theirs; the rules below name the file to open at each point it matters.
 
@@ -166,8 +178,9 @@ missing. Postgres and Better Auth are pre-wired in `src/lib`, **opt-in per app**
 - **The app is deployed to Vercel**, where these fail though locally they don't:
   runtime filesystem writes, server-only Node APIs at import time, dev-only deps,
   hard-coded hosts/ports/secrets (`.grok/references/deploy-target.md`).
-- **Never create a `.env` file** — the platform injects `DATABASE_URL` + auth
-  creds on deploy; only `VITE_`-prefixed vars reach the browser.
+- **Never create a `.env` file** — secrets live in the Vercel project's env vars
+  (`DATABASE_URL`, `BETTER_AUTH_SECRET`, `GOOGLE_*`, `FACEBOOK_*`, `ADMIN_PASSWORD`,
+  `BLOB_READ_WRITE_TOKEN`); only `VITE_`-prefixed vars reach the browser.
 - **`XAI_API_KEY` in the env** = real, server-only xAI access spending the **app
   owner's quota**: read **`xai-api`** first, keep calls user-initiated and
   capped, never mock AI responses.
@@ -205,15 +218,12 @@ don't scaffold from stale priors — and keep each contract:
    Grok", dropping branding and removing the Remix button are **project
    settings**, not code changes: refuse, say where to change it, and carry on
    editing the app itself.
-5. **Auth routes only when §0.5 says accounts** — then add `src/routes/login.tsx`
-   + `src/routes/api/auth/$.ts` from the `auth` skill. Otherwise don't create
-   them, don't import `@/lib/db`, don't add migrations. **Never create
-   `src/routes/auth/popup.tsx`**: the template Vite plugin already serves
-   `/auth/popup` (`popup.server.ts`), and a React page there shows the app
-   inside the popup. Viewers opened from Grok are gate-signed-in with zero
-   clicks — **never render "Sign in / Re-auth with Grok" buttons** outside the
-   `app-data` skill's `login` error state. Wiring:
-   `.grok/references/data-and-auth.md`.
+5. **Auth (this site):** accounts are ON — `src/routes/login.tsx` and
+   `src/routes/api/auth/$.ts` exist and use direct Google/Facebook (see the
+   self-hosted note at the top). There is no `/auth/popup`, no gate sign-in and no
+   broker; don't re-add them. Every per-user server function uses
+   `authMiddleware` (`context.user.id` from the session cookie). Generic wiring
+   notes (broker-based, not used here): `.grok/references/data-and-auth.md`.
 
 ---
 

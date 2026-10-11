@@ -11,6 +11,9 @@ metadata:
 user-invocable: false
 ---
 
+> **Not used by rahatpost.com.** This site is self-hosted on its own Vercel project with Better Auth + direct Google/Facebook providers (see AGENTS.md top note and `src/lib/auth/server.ts`). The broker / gate / popup flow described below does not apply.
+
+
 # Auth
 
 This app runs its **own** [Better Auth](https://better-auth.com) at

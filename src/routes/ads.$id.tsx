@@ -1,20 +1,45 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { UserRound } from "lucide-react";
 import { RevealPhone } from "@/components/phone";
 import { Shell } from "@/components/shell";
 import { getClassified } from "@/data/content";
+import { getPublicAd, getPublicAds } from "@/lib/ads/api";
+import { AD_ID_RE } from "@/lib/ads/types";
+
+type ViewAd = {
+  id: string;
+  type: string;
+  title: string;
+  body: string;
+  neighborhood: string;
+  price?: string | null;
+  phone: string;
+  quiet?: boolean;
+  sample?: boolean;
+  posterName?: string;
+  createdAt?: string;
+};
 
 export const Route = createFileRoute("/ads/$id")({
-  head: ({ params }) => ({
-    meta: [{ title: `${getClassified(params.id)?.title ?? "الإعلان"} · رهط بوست` }],
+  loader: async ({ params }): Promise<{ ad: ViewAd | null }> => {
+    if (AD_ID_RE.test(params.id)) {
+      const ad = await getPublicAd({ data: { id: params.id } });
+      return { ad: ad ? { ...ad, body: ad.description } : null };
+    }
+    const sample = getClassified(params.id);
+    if (!sample) return { ad: null };
+    // Samples are only shown while there are no real approved ads.
+    const { showSamples } = await getPublicAds();
+    return { ad: showSamples ? sample : null };
+  },
+  head: ({ loaderData }) => ({
+    meta: [{ title: `${loaderData?.ad?.title ?? "الإعلان"} · رهط بوست` }],
   }),
   component: AdPage,
 });
 
 function AdPage() {
-  const { id } = Route.useParams();
-  const ad = getClassified(id);
-  const [reported, setReported] = useState(false);
+  const { ad } = Route.useLoaderData();
 
   if (!ad) {
     return (
@@ -28,6 +53,7 @@ function AdPage() {
   }
 
   const digits = ad.phone.replaceAll("-", "");
+  const intl = digits.startsWith("+972") ? digits.slice(1) : `972${digits.replace(/^0/, "")}`;
 
   return (
     <Shell>
@@ -37,7 +63,16 @@ function AdPage() {
         <h1 className="mt-3 text-2xl font-bold">{ad.title}</h1>
         <p className="font-semibold text-muted">{ad.neighborhood}</p>
         {ad.price ? <p className="mt-2 text-xl font-bold">{ad.price}</p> : null}
-        <p className="mt-3 text-lg">{ad.body}</p>
+        <p className="mt-3 text-lg whitespace-pre-line">{ad.body}</p>
+        {ad.posterName ? (
+          <p className="mt-4 flex items-center gap-2 text-sm font-semibold text-muted">
+            <UserRound className="size-4" aria-hidden />
+            نشره: {ad.posterName}
+            {ad.createdAt
+              ? ` · ${new Date(ad.createdAt).toLocaleDateString("ar-u-nu-latn", { timeZone: "Asia/Jerusalem" })}`
+              : ""}
+          </p>
+        ) : null}
         {ad.sample ? (
           <p className="mt-4 rounded-xl bg-surface p-3 text-sm font-semibold text-muted">
             هذا إعلان نموذجي لعرض الشكل فقط، وليس إعلاناً حقيقياً، لذلك لا يوجد رقم للتواصل.
@@ -45,16 +80,21 @@ function AdPage() {
         ) : (
           <div className="mt-4 grid grid-cols-2 gap-2">
             <RevealPhone phone={ad.phone} />
-            <a className="btn btn-ghost" href={`https://wa.me/972${digits.replace(/^0/, "")}`} target="_blank" rel="noreferrer">
+            <a
+              className="btn btn-ghost"
+              href={`https://wa.me/${intl}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
               واتساب
             </a>
           </div>
         )}
       </article>
       {ad.sample ? null : (
-        <button type="button" className="btn btn-ghost mt-4" onClick={() => setReported(true)}>
-          {reported ? "وصل البلاغ للمراقبة" : "إبلاغ"}
-        </button>
+        <p className="mt-4 text-sm font-semibold text-muted">
+          إعلان من مستخدم وليس من رهط بوست. لا تدفع مسبقاً قبل أن ترى الشيء أو تلتقي بصاحبه.
+        </p>
       )}
     </Shell>
   );

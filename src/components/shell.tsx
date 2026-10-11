@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { Bus, ChevronLeft, House, Megaphone, Newspaper, Plus, Siren, Store } from "lucide-react";
 import type { ReactNode } from "react";
 import logoUrl from "@/assets/logo.jpg";
+import { UserMenu } from "@/components/user-menu";
 
 const nav = [
   { to: "/", label: "الرئيسية", icon: House, exact: true },
@@ -24,6 +25,7 @@ export function Shell({ children }: { children: ReactNode }) {
             <p className="truncate text-lg font-bold leading-tight">رهط بوست</p>
             <p className="text-xs font-semibold text-muted">رهط والنقب</p>
           </div>
+          <UserMenu />
           <Link to="/submit" className="btn px-4" aria-label="أضف خبراً أو إعلاناً أو نشاطاً">
             <Plus className="size-4" aria-hidden />
             أضف
@@ -36,7 +38,9 @@ export function Shell({ children }: { children: ReactNode }) {
               to={item.to}
               activeOptions={{ exact: item.exact }}
               className="pill"
-              activeProps={{ className: "bg-primary text-ink shadow-[inset_0_0_0_1px_var(--color-primary-deep)]" }}
+              activeProps={{
+                className: "bg-primary text-ink shadow-[inset_0_0_0_1px_var(--color-primary-deep)]",
+              }}
             >
               {item.label}
             </Link>
@@ -47,7 +51,8 @@ export function Shell({ children }: { children: ReactNode }) {
       <main className="mx-auto w-full max-w-3xl px-4 pt-4 pb-28 md:pb-16">{children}</main>
 
       <footer className="mx-auto hidden max-w-3xl px-4 pb-8 text-sm font-semibold text-muted md:block">
-        أرقام الطوارئ الوطنية حقيقية. الأخبار والدليل والباصات من مصادر حقيقية مذكورة في كل صفحة، وبقية الإعلانات نماذج.
+        أرقام الطوارئ الوطنية حقيقية. الأخبار والدليل والباصات من مصادر حقيقية مذكورة في كل صفحة،
+        وبقية الإعلانات نماذج.
       </footer>
 
       <nav
@@ -58,7 +63,12 @@ export function Shell({ children }: { children: ReactNode }) {
           {nav.map((item) => {
             const Icon = item.icon;
             return (
-              <Link key={item.to} to={item.to} activeOptions={{ exact: item.exact }} className="tabbar-link">
+              <Link
+                key={item.to}
+                to={item.to}
+                activeOptions={{ exact: item.exact }}
+                className="tabbar-link"
+              >
                 <span className="tab-icon">
                   <Icon className="size-6" aria-hidden />
                 </span>

@@ -12,6 +12,8 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as BusesRouteImport } from './routes/buses'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as MyAdsRouteImport } from './routes/my-ads'
 import { Route as SubmitRouteImport } from './routes/submit'
 import { Route as TodayRouteImport } from './routes/today'
 import { Route as AdsIndexRouteImport } from './routes/ads.index'
@@ -20,6 +22,7 @@ import { Route as DirectoryIndexRouteImport } from './routes/directory.index'
 import { Route as DirectorySlugRouteImport } from './routes/directory.$slug'
 import { Route as NewsIndexRouteImport } from './routes/news.index'
 import { Route as NewsSlugRouteImport } from './routes/news.$slug'
+import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -34,6 +37,16 @@ const AdminRoute = AdminRouteImport.update({
 const BusesRoute = BusesRouteImport.update({
   id: '/buses',
   path: '/buses',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MyAdsRoute = MyAdsRouteImport.update({
+  id: '/my-ads',
+  path: '/my-ads',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SubmitRoute = SubmitRouteImport.update({
@@ -76,11 +89,18 @@ const NewsSlugRoute = NewsSlugRouteImport.update({
   path: '/news/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
+  id: '/api/auth/$',
+  path: '/api/auth/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/buses': typeof BusesRoute
+  '/login': typeof LoginRoute
+  '/my-ads': typeof MyAdsRoute
   '/submit': typeof SubmitRoute
   '/today': typeof TodayRoute
   '/ads/$id': typeof AdsIdRoute
@@ -89,11 +109,14 @@ export interface FileRoutesByFullPath {
   '/ads/': typeof AdsIndexRoute
   '/directory/': typeof DirectoryIndexRoute
   '/news/': typeof NewsIndexRoute
+  '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/buses': typeof BusesRoute
+  '/login': typeof LoginRoute
+  '/my-ads': typeof MyAdsRoute
   '/submit': typeof SubmitRoute
   '/today': typeof TodayRoute
   '/ads/$id': typeof AdsIdRoute
@@ -102,12 +125,15 @@ export interface FileRoutesByTo {
   '/ads': typeof AdsIndexRoute
   '/directory': typeof DirectoryIndexRoute
   '/news': typeof NewsIndexRoute
+  '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/buses': typeof BusesRoute
+  '/login': typeof LoginRoute
+  '/my-ads': typeof MyAdsRoute
   '/submit': typeof SubmitRoute
   '/today': typeof TodayRoute
   '/ads/$id': typeof AdsIdRoute
@@ -116,6 +142,7 @@ export interface FileRoutesById {
   '/ads/': typeof AdsIndexRoute
   '/directory/': typeof DirectoryIndexRoute
   '/news/': typeof NewsIndexRoute
+  '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -123,6 +150,8 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/buses'
+    | '/login'
+    | '/my-ads'
     | '/submit'
     | '/today'
     | '/ads/$id'
@@ -131,11 +160,14 @@ export interface FileRouteTypes {
     | '/ads/'
     | '/directory/'
     | '/news/'
+    | '/api/auth/$'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/admin'
     | '/buses'
+    | '/login'
+    | '/my-ads'
     | '/submit'
     | '/today'
     | '/ads/$id'
@@ -144,11 +176,14 @@ export interface FileRouteTypes {
     | '/ads'
     | '/directory'
     | '/news'
+    | '/api/auth/$'
   id:
     | '__root__'
     | '/'
     | '/admin'
     | '/buses'
+    | '/login'
+    | '/my-ads'
     | '/submit'
     | '/today'
     | '/ads/$id'
@@ -157,12 +192,15 @@ export interface FileRouteTypes {
     | '/ads/'
     | '/directory/'
     | '/news/'
+    | '/api/auth/$'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
   BusesRoute: typeof BusesRoute
+  LoginRoute: typeof LoginRoute
+  MyAdsRoute: typeof MyAdsRoute
   SubmitRoute: typeof SubmitRoute
   TodayRoute: typeof TodayRoute
   AdsIdRoute: typeof AdsIdRoute
@@ -171,6 +209,7 @@ export interface RootRouteChildren {
   AdsIndexRoute: typeof AdsIndexRoute
   DirectoryIndexRoute: typeof DirectoryIndexRoute
   NewsIndexRoute: typeof NewsIndexRoute
+  ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -194,6 +233,20 @@ declare module '@tanstack/react-router' {
       path: '/buses'
       fullPath: '/buses'
       preLoaderRoute: typeof BusesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/my-ads': {
+      id: '/my-ads'
+      path: '/my-ads'
+      fullPath: '/my-ads'
+      preLoaderRoute: typeof MyAdsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/submit': {
@@ -252,6 +305,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof NewsSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/auth/$': {
+      id: '/api/auth/$'
+      path: '/api/auth/$'
+      fullPath: '/api/auth/$'
+      preLoaderRoute: typeof ApiAuthSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -259,6 +319,8 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
   BusesRoute: BusesRoute,
+  LoginRoute: LoginRoute,
+  MyAdsRoute: MyAdsRoute,
   SubmitRoute: SubmitRoute,
   TodayRoute: TodayRoute,
   AdsIdRoute: AdsIdRoute,
@@ -267,6 +329,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdsIndexRoute: AdsIndexRoute,
   DirectoryIndexRoute: DirectoryIndexRoute,
   NewsIndexRoute: NewsIndexRoute,
+  ApiAuthSplatRoute: ApiAuthSplatRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -1,6 +1,9 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { AdForm } from "@/components/ad-form";
 import { Shell } from "@/components/shell";
+import { createMyAd } from "@/lib/ads/api";
+import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { submitBusiness } from "@/lib/directory/api";
 import { ownerCategories } from "@/lib/directory/types";
 
@@ -24,6 +27,7 @@ function SubmitPage() {
   const [busy, setBusy] = useState(false);
   const [startedAt, setStartedAt] = useState(0);
   useEffect(() => setStartedAt(Date.now()), [mode]);
+  const { user, isPending } = useCurrentUserState();
 
   return (
     <Shell>
@@ -33,7 +37,11 @@ function SubmitPage() {
           <button
             key={item}
             type="button"
-            className={item === mode ? "chip chip-ink justify-center py-2" : "chip justify-center bg-paper py-2"}
+            className={
+              item === mode
+                ? "chip chip-ink justify-center py-2"
+                : "chip justify-center bg-paper py-2"
+            }
             onClick={() => {
               setMode(item);
               setSent(false);
@@ -45,7 +53,38 @@ function SubmitPage() {
         ))}
       </div>
       {sent ? (
-        <p className="stamp p-4 text-lg font-bold">وصلنا. لن يُنشر قبل المراجعة.</p>
+        <div className="stamp flex flex-col gap-3 p-4">
+          <p className="text-lg font-bold">وصلنا. لن يُنشر قبل المراجعة.</p>
+          {mode === "إعلان" ? (
+            <Link to="/my-ads" className="btn">
+              إعلاناتي
+            </Link>
+          ) : null}
+        </div>
+      ) : mode === "إعلان" ? (
+        isPending ? (
+          <p className="stamp p-4 font-semibold">جاري التحميل…</p>
+        ) : !user ? (
+          <div className="stamp flex flex-col gap-3 p-4">
+            <p className="font-bold">سجّل الدخول لتنشر إعلاناً باسمك.</p>
+            <p className="text-sm font-semibold text-muted">
+              بعد الدخول تستطيع تعديل إعلاناتك أو حذفها من صفحة «إعلاناتي».
+            </p>
+            <Link to="/login" search={{ redirect: "/submit?mode=إعلان" }} className="btn">
+              تسجيل الدخول
+            </Link>
+          </div>
+        ) : (
+          <AdForm
+            submitLabel="إرسال للمراجعة"
+            onSubmit={async (data) => {
+              const res = await createMyAd({ data });
+              if (!res.ok) return res.message ?? "تعذّر الإرسال.";
+              setSent(true);
+              return null;
+            }}
+          />
+        )
       ) : (
         <form
           key={mode}
@@ -75,7 +114,11 @@ function SubmitPage() {
               if (res.ok) setSent(true);
               else setError(res.message ?? "تعذّر الإرسال.");
             } catch (err) {
-              setError(err instanceof Error && /[\u0600-\u06ff]/.test(err.message) ? err.message : "تحقق من الحقول وحاول مرة أخرى.");
+              setError(
+                err instanceof Error && /[\u0600-\u06ff]/.test(err.message)
+                  ? err.message
+                  : "تحقق من الحقول وحاول مرة أخرى.",
+              );
             } finally {
               setBusy(false);
             }
@@ -85,13 +128,6 @@ function SubmitPage() {
             <>
               <Field label="ماذا حدث؟" name="what" />
               <Field label="أين في رهط؟" name="where" />
-            </>
-          ) : null}
-          {mode === "إعلان" ? (
-            <>
-              <Field label="عنوان الإعلان" name="title" />
-              <Field label="التفاصيل" name="body" long />
-              <Field label="الحي" name="area" />
             </>
           ) : null}
           {mode === "نشاط" ? (
@@ -124,7 +160,8 @@ function SubmitPage() {
           <Field label="هاتف للتواصل" name="phone" type="tel" max={20} />
           {mode === "نشاط" ? (
             <p className="text-sm font-semibold text-muted">
-              يظهر النشاط في الدليل بعلامة «موثّق» بعد أن نراجعه ونتأكد منه، مع الرقم الذي تكتبه هنا.
+              يظهر النشاط في الدليل بعلامة «موثّق» بعد أن نراجعه ونتأكد منه، مع الرقم الذي تكتبه
+              هنا.
             </p>
           ) : null}
           {error ? <p className="font-bold text-ink">{error}</p> : null}
@@ -158,7 +195,14 @@ function Field({
       {long ? (
         <textarea name={name} required maxLength={max} className="field mt-1 min-h-28" />
       ) : (
-        <input name={name} type={type} required maxLength={max} defaultValue={defaultValue} className="field mt-1" />
+        <input
+          name={name}
+          type={type}
+          required
+          maxLength={max}
+          defaultValue={defaultValue}
+          className="field mt-1"
+        />
       )}
     </label>
   );

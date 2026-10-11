@@ -12,19 +12,26 @@ import { osmEntries, type DirectoryEntry } from "@/lib/directory/types";
 import { getNews } from "@/lib/news/api";
 import { relativeTimeAr, useNow } from "@/lib/news/format";
 import type { NewsItem } from "@/lib/news/types";
-import { alert, classifieds, emergency } from "@/data/content";
+import { alert, emergency } from "@/data/content";
+import { getPublicAds } from "@/lib/ads/api";
+import { listAds, type ListAd } from "@/lib/ads/display";
 
 export const Route = createFileRoute("/")({
   loader: async () => {
-    const [news, approved] = await Promise.all([getNews(), getApprovedEntries()]);
-    return { news, approved: approved.entries };
+    const [news, approved, ads] = await Promise.all([
+      getNews(),
+      getApprovedEntries(),
+      getPublicAds(),
+    ]);
+    return { news, approved: approved.entries, ads };
   },
   staleTime: 5 * 60_000,
   component: Home,
 });
 
 function Home() {
-  const { news, approved } = Route.useLoaderData();
+  const { news, approved, ads: adsData } = Route.useLoaderData();
+  const classifieds = listAds(adsData);
   const places = useMemo(() => [...approved, ...osmEntries()], [approved]);
   // Verified (owner-approved) first; until there are any, a few real places with details from OSM.
   const featured = [
@@ -59,7 +66,7 @@ function Home() {
       ),
       ads: classifieds.filter((item) => hay(item.title) || hay(item.type)),
     };
-  }, [query, news.items, places]);
+  }, [query, news.items, places, classifieds]);
 
   return (
     <Shell>
@@ -201,7 +208,7 @@ function Home() {
 
           <section>
             <SectionTitle title="آخر الإعلانات" to="/ads" more="كل الإعلانات" />
-            {classifieds.some((item) => item.sample) ? (
+            {adsData.showSamples ? (
               <p className="mb-2 text-sm font-semibold text-muted">
                 إعلانات نموذجية لعرض الشكل فقط، وليست إعلانات حقيقية.
               </p>
@@ -263,7 +270,7 @@ function SearchResults({
   results: {
     news: NewsItem[];
     places: DirectoryEntry[];
-    ads: typeof classifieds;
+    ads: ListAd[];
   };
 }) {
   const empty = results.news.length + results.places.length + results.ads.length === 0;

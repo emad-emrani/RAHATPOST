@@ -1,11 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
 import { Shell } from "@/components/shell";
+import { adminDecideAd, adminListAds } from "@/lib/ads/api";
+import type { OwnAd } from "@/lib/ads/types";
 import { adminDecide, adminList, adminLogin, adminLogout } from "@/lib/directory/api";
 import type { BusinessSubmission } from "@/lib/directory/types";
 
 export const Route = createFileRoute("/admin")({
-  head: () => ({ meta: [{ title: "إدارة · رهط بوست" }, { name: "robots", content: "noindex, nofollow" }] }),
+  head: () => ({
+    meta: [{ title: "إدارة · رهط بوست" }, { name: "robots", content: "noindex, nofollow" }],
+  }),
   component: AdminPage,
 });
 
@@ -21,6 +25,7 @@ function AdminPage() {
   const [error, setError] = useState("");
   const [busyId, setBusyId] = useState("");
   const [tab, setTab] = useState<BusinessSubmission["status"]>("pending");
+  const [section, setSection] = useState<"directory" | "ads">("directory");
 
   const refresh = useCallback(async () => {
     const res = await adminList();
@@ -48,7 +53,7 @@ function AdminPage() {
   if (state === "login") {
     return (
       <Shell>
-        <h1 className="mb-3 text-2xl font-bold">إدارة الدليل</h1>
+        <h1 className="mb-3 text-2xl font-bold">الإدارة</h1>
         <form
           className="stamp flex flex-col gap-3 p-4"
           onSubmit={async (event) => {
@@ -63,7 +68,14 @@ function AdminPage() {
         >
           <label className="block font-bold">
             كلمة المرور
-            <input name="password" type="password" required autoComplete="current-password" className="field mt-1" dir="ltr" />
+            <input
+              name="password"
+              type="password"
+              required
+              autoComplete="current-password"
+              className="field mt-1"
+              dir="ltr"
+            />
           </label>
           {error ? <p className="font-bold">{error}</p> : null}
           <button type="submit" className="btn">
@@ -92,7 +104,7 @@ function AdminPage() {
   return (
     <Shell>
       <div className="mb-3 flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold">إدارة الدليل</h1>
+        <h1 className="text-2xl font-bold">الإدارة</h1>
         <button
           type="button"
           className="btn btn-ghost px-4"
@@ -104,12 +116,142 @@ function AdminPage() {
           خروج
         </button>
       </div>
+      <div className="mb-4 grid grid-cols-2 gap-2" role="tablist" aria-label="القسم">
+        {(
+          [
+            ["directory", "طلبات الدليل"],
+            ["ads", "الإعلانات"],
+          ] as const
+        ).map(([key, label]) => (
+          <button
+            key={key}
+            type="button"
+            role="tab"
+            aria-selected={section === key}
+            className={section === key ? "chip chip-ink justify-center" : "chip justify-center"}
+            onClick={() => setSection(key)}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+      {section === "ads" ? (
+        <AdsAdmin />
+      ) : (
+        <>
+          <div className="scroll-row mb-4">
+            {(Object.keys(STATUS) as BusinessSubmission["status"][]).map((s) => (
+              <button
+                key={s}
+                type="button"
+                className={tab === s ? "chip chip-ink shrink-0" : "chip shrink-0 bg-paper"}
+                onClick={() => setTab(s)}
+              >
+                {STATUS[s]} ({items.filter((i) => i.status === s).length})
+              </button>
+            ))}
+          </div>
+          {error ? <p className="stamp mb-3 p-3 font-bold">{error}</p> : null}
+          {list.length === 0 ? (
+            <p className="stamp p-4 font-semibold">لا طلبات هنا.</p>
+          ) : (
+            <ul className="flex flex-col gap-3">
+              {list.map((item) => (
+                <li key={item.id} className="stamp p-4">
+                  <span className="chip">{item.category}</span>
+                  <h2 className="mt-2 text-xl font-bold">{item.name}</h2>
+                  <p className="font-semibold">{item.area}</p>
+                  <p className="mt-1">{item.about}</p>
+                  <p className="mt-1 font-bold" dir="ltr">
+                    {item.phone}
+                  </p>
+                  <p className="text-sm font-semibold text-muted">
+                    {new Date(item.createdAt).toLocaleString("ar-u-nu-latn", {
+                      timeZone: "Asia/Jerusalem",
+                    })}
+                  </p>
+                  <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
+                    {item.status !== "approved" ? (
+                      <button
+                        type="button"
+                        className="btn"
+                        disabled={busyId === item.id}
+                        onClick={() => act(item.id, "approved")}
+                      >
+                        موافقة
+                      </button>
+                    ) : null}
+                    {item.status !== "rejected" ? (
+                      <button
+                        type="button"
+                        className="btn btn-ghost"
+                        disabled={busyId === item.id}
+                        onClick={() => act(item.id, "rejected")}
+                      >
+                        رفض
+                      </button>
+                    ) : null}
+                    <button
+                      type="button"
+                      className="btn btn-ghost"
+                      disabled={busyId === item.id}
+                      onClick={() => act(item.id, "delete")}
+                    >
+                      حذف
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </>
+      )}
+    </Shell>
+  );
+}
+
+function AdsAdmin() {
+  const [items, setItems] = useState<OwnAd[] | null>(null);
+  const [tab, setTab] = useState<OwnAd["status"]>("pending");
+  const [error, setError] = useState("");
+  const [busyId, setBusyId] = useState("");
+
+  const refresh = useCallback(async () => {
+    const res = await adminListAds();
+    setItems(res.items);
+    setError(
+      !res.authed ? "انتهت الجلسة. سجّل الدخول من جديد." : res.ok ? "" : "تعذّر تحميل الإعلانات.",
+    );
+  }, []);
+
+  useEffect(() => {
+    void refresh();
+  }, [refresh]);
+
+  const act = async (id: string, action: "approved" | "rejected" | "delete") => {
+    if (action === "delete" && !confirm("حذف الإعلان نهائياً؟")) return;
+    setBusyId(id);
+    try {
+      await adminDecideAd({ data: { id, action } });
+      await refresh();
+    } catch {
+      setError("تعذّر تنفيذ العملية.");
+    } finally {
+      setBusyId("");
+    }
+  };
+
+  if (!items) return <p className="stamp p-4 font-semibold">جاري التحميل…</p>;
+  const list = items.filter((i) => i.status === tab);
+
+  return (
+    <>
       <div className="scroll-row mb-4">
-        {(Object.keys(STATUS) as BusinessSubmission["status"][]).map((s) => (
+        {(Object.keys(STATUS) as OwnAd["status"][]).map((s) => (
           <button
             key={s}
             type="button"
-            className={tab === s ? "chip chip-ink shrink-0" : "chip shrink-0 bg-paper"}
+            className={tab === s ? "chip chip-ink shrink-0" : "chip shrink-0"}
             onClick={() => setTab(s)}
           >
             {STATUS[s]} ({items.filter((i) => i.status === s).length})
@@ -118,33 +260,44 @@ function AdminPage() {
       </div>
       {error ? <p className="stamp mb-3 p-3 font-bold">{error}</p> : null}
       {list.length === 0 ? (
-        <p className="stamp p-4 font-semibold">لا طلبات هنا.</p>
+        <p className="stamp p-4 font-semibold">لا إعلانات هنا.</p>
       ) : (
         <ul className="flex flex-col gap-3">
-          {list.map((item) => (
-            <li key={item.id} className="stamp p-4">
-              <span className="chip">{item.category}</span>
-              <h2 className="mt-2 text-xl font-bold">{item.name}</h2>
-              <p className="font-semibold">{item.area}</p>
-              <p className="mt-1">{item.about}</p>
+          {list.map((ad) => (
+            <li key={ad.id} className="stamp p-4">
+              <span className="chip">{ad.type}</span>
+              <h2 className="mt-2 text-xl font-bold">{ad.title}</h2>
+              <p className="font-semibold">
+                {ad.neighborhood}
+                {ad.price ? ` · ${ad.price}` : ""}
+              </p>
+              <p className="mt-1 whitespace-pre-line">{ad.description}</p>
               <p className="mt-1 font-bold" dir="ltr">
-                {item.phone}
+                {ad.phone}
               </p>
               <p className="text-sm font-semibold text-muted">
-                {new Date(item.createdAt).toLocaleString("ar-u-nu-latn", { timeZone: "Asia/Jerusalem" })}
+                {ad.posterName} ·{" "}
+                {new Date(ad.updatedAt).toLocaleString("ar-u-nu-latn", {
+                  timeZone: "Asia/Jerusalem",
+                })}
               </p>
               <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
-                {item.status !== "approved" ? (
-                  <button type="button" className="btn" disabled={busyId === item.id} onClick={() => act(item.id, "approved")}>
+                {ad.status !== "approved" ? (
+                  <button
+                    type="button"
+                    className="btn"
+                    disabled={busyId === ad.id}
+                    onClick={() => act(ad.id, "approved")}
+                  >
                     موافقة
                   </button>
                 ) : null}
-                {item.status !== "rejected" ? (
+                {ad.status !== "rejected" ? (
                   <button
                     type="button"
                     className="btn btn-ghost"
-                    disabled={busyId === item.id}
-                    onClick={() => act(item.id, "rejected")}
+                    disabled={busyId === ad.id}
+                    onClick={() => act(ad.id, "rejected")}
                   >
                     رفض
                   </button>
@@ -152,8 +305,8 @@ function AdminPage() {
                 <button
                   type="button"
                   className="btn btn-ghost"
-                  disabled={busyId === item.id}
-                  onClick={() => act(item.id, "delete")}
+                  disabled={busyId === ad.id}
+                  onClick={() => act(ad.id, "delete")}
                 >
                   حذف
                 </button>
@@ -162,6 +315,6 @@ function AdminPage() {
           ))}
         </ul>
       )}
-    </Shell>
+    </>
   );
 }
