@@ -35,8 +35,9 @@ export const getNews = createServerFn({ method: "GET" }).handler(
   async (): Promise<NewsFeedResult> => {
     const { loadNews } = await import("./feeds.server");
     const { setResponseHeader } = await import("@tanstack/react-start/server");
+    const { withCommentCounts } = await import("@/lib/comments/counts.server");
     const [feed, readers] = await Promise.all([loadNews(), readerNewsItems()]);
-    const result: NewsFeedResult = readers.length
+    const merged: NewsFeedResult = readers.length
       ? {
           ...feed,
           items: [...readers, ...feed.items].sort(
@@ -44,6 +45,10 @@ export const getNews = createServerFn({ method: "GET" }).handler(
           ),
         }
       : feed;
+    const result: NewsFeedResult = {
+      ...merged,
+      items: await withCommentCounts(merged.items, "news"),
+    };
     try {
       setResponseHeader(
         "Cache-Control",

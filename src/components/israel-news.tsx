@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { NewsImage } from "@/components/news-image";
+import { CommentCount } from "@/components/comment-count";
 import { relativeTimeAr } from "@/lib/news/format";
 import type { IsraelNewsItem, IsraelNewsResult } from "@/lib/news/types";
 
@@ -62,6 +63,7 @@ export function IsraelNewsRow({ item, now }: { item: IsraelNewsItem; now: number
             {relativeTimeAr(item.publishedAt, now)} · {item.source}
           </span>
           <TranslationChip item={item} />
+          <CommentCount n={item.comments} />
         </span>
       </span>
     </Link>
@@ -86,6 +88,7 @@ export function IsraelNewsLead({ item, now }: { item: IsraelNewsItem; now: numbe
         <IsraelTitle item={item} className="mt-2 block text-xl font-bold leading-snug" />
         <span className="text-sm font-semibold text-muted">
           {relativeTimeAr(item.publishedAt, now)} · {item.source}
+          <CommentCount n={item.comments} className="ms-2" />
         </span>
       </span>
     </Link>

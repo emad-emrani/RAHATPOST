@@ -1,3 +1,4 @@
+import type { SubscriptionRow } from "./store.server";
 import type { PushPayload, PushTopic, SendResult } from "./types";
 
 /** VAPID config from env (VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY / VAPID_SUBJECT). */
@@ -27,13 +28,32 @@ export function safePushUrl(url: string | undefined): string {
  * gone (404/410) are deleted. Never throws.
  */
 export async function sendToTopic(topic: PushTopic, payload: PushPayload): Promise<SendResult> {
+  const { subscribersFor } = await import("./store.server");
+  return sendTo(() => subscribersFor(topic), topic, payload);
+}
+
+/** Sends to one signed-in user's subscriptions that opted into `topic`. Never throws. */
+export async function sendToUser(
+  userId: string,
+  topic: PushTopic,
+  payload: PushPayload,
+): Promise<SendResult> {
+  const { subscribersForUser } = await import("./store.server");
+  return sendTo(() => subscribersForUser(userId, topic), topic, payload);
+}
+
+async function sendTo(
+  load: () => Promise<SubscriptionRow[]>,
+  topic: PushTopic,
+  payload: PushPayload,
+): Promise<SendResult> {
   const keys = vapid();
   if (!keys)
     return { ok: false, sent: 0, removed: 0, failed: 0, message: "مفاتيح VAPID غير مضبوطة." };
   try {
     const webpush = (await import("web-push")).default;
-    const { subscribersFor, deleteSubscription } = await import("./store.server");
-    const subs = await subscribersFor(topic);
+    const { deleteSubscription } = await import("./store.server");
+    const subs = await load();
     const body = JSON.stringify({ ...payload, url: safePushUrl(payload.url) });
     let sent = 0;
     let removed = 0;

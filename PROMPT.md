@@ -44,7 +44,9 @@ Home, top to bottom, mobile:
 12. Emergency row: horizontal scroll of white cards, large numbers, for 100, 101, 102, 112. Link "كل الأرقام" to /today.
 
 News categories: عاجل، رهط، النقب، بلدية، تعليم، صحة، رياضة، مجتمع، أعمال.
-Article page: the source image (16:9) with caption «الصورة: <المصدر>» when available, category chip, H1, time, source, 3–6 short Arabic paragraphs, share row (Telegram, WhatsApp), 3 related stories. No comments. No like counters.
+Article page: the source image (16:9) with caption «الصورة: <المصدر>» when available, category chip, H1, time, source, 3–6 short Arabic paragraphs, share row (Telegram, WhatsApp), comments (see below), 3 related stories. No like counters.
+
+Comments (every news page: /news/<slug> and /israel-news/<slug>): reading is public; writing needs Google sign-in (session enforced server-side). Each comment shows name, avatar, relative time; one level of replies; newest/oldest toggle; authors can edit within 10 minutes and delete any time. Published immediately after a filter (Arabic/Hebrew/English profanity + spam, max 1 link, 2–800 chars, 5 per 10 min / 20 per day, honeypot + 3-second rule), with «إبلاغ» on every comment (auto-hidden after 3 reports). Admin tab «التعليقات»: filters (all / reported / hidden / pending), hide / restore / delete, block a user from commenting, and a pre-moderation switch (default off). Comment counts appear on news rows (cached aggregate). Optional push «الردود على تعليقاتي» to the author of a comment that gets a reply.
 
 Daily board /today:
 - Right after a real civic alert (if any): «أخبار إسرائيل» — the newest headlines from Hebrew outlets' own RSS (ynet, N12, Maariv, Globes): a lead card with a 16:9 publisher image, then rows with thumbnails (placeholder icon when missing; lazy, no referrer), link «كل الأخبار» to /israel-news. Titles are machine-translated Hebrew → Arabic server-side (cached per item) and chipped «ترجمة آلية»; untranslated items show the Hebrew (lang=he) with chip «بالعبرية». The item page shows the image with «الصورة: <المصدر>», the translated title and excerpt, the original Hebrew title, and «الخبر الأصلي بالعبرية» opening the source in a new tab.
@@ -77,4 +79,4 @@ Quality bar:
 - No horizontal scroll on 390px except the emergency chip row and category chips.
 - Keyboard focus visible.
 - Anything paid or featured must show "إعلان".
-- Do not add comments, chat, checkout, or a marketing landing page. The home page is the product.
+- Do not add chat, checkout, or a marketing landing page (news comments are the only user discussion). The home page is the product.

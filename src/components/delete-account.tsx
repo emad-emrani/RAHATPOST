@@ -19,8 +19,8 @@ export function DeleteAccount() {
     <section ref={ref} id="delete-account" className="stamp mt-8 p-4">
       <h2 className="text-lg font-bold">حذف حسابي</h2>
       <p className="mt-1 font-semibold text-muted">
-        يحذف حسابك وكل ما نشرته: الإعلانات، أخبار القراء، طلبات الدليل (حتى الموافَق عليها)
-        واشتراكات الإشعارات. لا يمكن التراجع.{" "}
+        يحذف حسابك وكل ما نشرته: الإعلانات، أخبار القراء، التعليقات والردود، طلبات الدليل (حتى
+        الموافَق عليها) واشتراكات الإشعارات. لا يمكن التراجع.{" "}
         <Link to="/privacy" className="font-bold underline">
           سياسة الخصوصية
         </Link>

@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { clean, looksLikeBot, rateLimited } from "@/lib/submit-guard";
 import { REPORT_REASONS, TARGET_ID_RE, type ReportGroup, type ReportTarget } from "./types";
 
-const TARGETS: ReportTarget[] = ["news", "ad", "business"];
+const TARGETS: ReportTarget[] = ["news", "ad", "business", "comment"];
 
 type ReportInput = {
   type: ReportTarget;
@@ -13,7 +13,7 @@ type ReportInput = {
   startedAt?: number;
 };
 
-/** Anyone (signed in or not) can report a public reader post, ad or approved business. */
+/** Anyone (signed in or not) can report a public reader post, ad, approved business or comment. */
 export const reportContent = createServerFn({ method: "POST" })
   .inputValidator((input: ReportInput) => {
     if (!TARGETS.includes(input?.type)) throw new Error("bad type");

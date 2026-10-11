@@ -25,7 +25,12 @@ function validSub(input: unknown): SubInput {
 
 function validTopics(input: unknown): PushTopics {
   const t = (input ?? {}) as Partial<Record<PushTopic, unknown>>;
-  return { alerts: t.alerts !== false, news: t.news === true, pharmacy: t.pharmacy === true };
+  return {
+    alerts: t.alerts !== false,
+    news: t.news === true,
+    pharmacy: t.pharmacy === true,
+    replies: t.replies !== false,
+  };
 }
 
 /** Per-IP limit for subscription writes (toggling topics is cheap but shouldn't be abusable). */
@@ -116,7 +121,7 @@ export const adminPushStats = createServerFn({ method: "POST" }).handler(async (
 export const adminSendPush = createServerFn({ method: "POST" })
   .inputValidator((input: { topic: PushTopic; title: string; body: string; url: string }) => {
     const topic = input?.topic;
-    if (!PUSH_TOPICS.some((t) => t.key === topic)) throw new Error("bad topic");
+    if (!PUSH_TOPICS.some((t) => t.key === topic && !t.personal)) throw new Error("bad topic");
     const title = clean(input?.title, 80);
     const body = clean(input?.body, 200);
     if (title.length < 2 || body.length < 2) throw new Error("اكتب عنواناً ونصاً للإشعار.");

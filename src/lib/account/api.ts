@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { authMiddleware } from "@/lib/auth/middleware";
 
 /**
- * Deletes the signed-in user's account and everything they posted: ads, reader news and business
+ * Deletes the signed-in user's account and everything they posted: ads, reader news, comments and business
  * submissions (approved directory entries included), push subscriptions, sessions and linked
  * Google/Facebook accounts. Uploaded photos (Blob files + media_uploads rows) are deleted first. Reports they filed stay,
  * without their user id.
@@ -28,6 +28,8 @@ export const deleteMyAccount = createServerFn({ method: "POST" })
       await sql`delete from business_submissions where user_id = ${userId}`;
       await sql`delete from classifieds where user_id = ${userId}`;
       await sql`delete from reader_news where user_id = ${userId}`;
+      const { deleteAllOfUser } = await import("@/lib/comments/store.server");
+      await deleteAllOfUser(userId); // also cascades from "user"; explicit + clears count cache
       await sql`delete from push_subscriptions where user_id = ${userId}`;
       await sql`delete from "user" where "id" = ${userId}`;
       const { setCookie } = await import("@tanstack/react-start/server");

@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ExternalLink } from "lucide-react";
+import { Comments } from "@/components/comments";
 import { Shell } from "@/components/shell";
 import { NewsImage } from "@/components/news-image";
 import {
@@ -138,6 +139,7 @@ function IsraelArticlePage() {
           </p>
         </div>
       </article>
+      <Comments key={article.slug} articleKey={`israel-news/${article.slug}`} />
       {related.length > 0 ? (
         <>
           <h2 className="mt-8 mb-3 text-xl font-bold">المزيد من أخبار إسرائيل</h2>

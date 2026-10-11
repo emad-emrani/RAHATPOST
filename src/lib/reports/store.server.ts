@@ -6,6 +6,15 @@ const TABLE: Record<ReportTarget, string> = {
   news: "reader_news",
   ad: "classifieds",
   business: "business_submissions",
+  comment: "comments",
+};
+
+/** Status that takes a target off the site (posts go back to the moderation queue). */
+const HIDDEN: Record<ReportTarget, string> = {
+  news: "pending",
+  ad: "pending",
+  business: "pending",
+  comment: "hidden",
 };
 
 const iso = (v: Date | string) => (v instanceof Date ? v.toISOString() : new Date(v).toISOString());
@@ -49,9 +58,13 @@ export async function createReport(r: {
   if (Number(rows[0]?.n ?? 0) >= AUTO_HIDE_AFTER) {
     // Back to the moderation queue (hidden from the public) without touching its dates.
     const hidden = await sql.query(
-      `update ${TABLE[r.type]} set status = 'pending' where id = $1 and status = 'approved' returning id`,
-      [r.id],
+      `update ${TABLE[r.type]} set status = $2 where id = $1 and status = 'approved' returning id`,
+      [r.id, HIDDEN[r.type]],
     );
+    if (hidden.length > 0 && r.type === "comment") {
+      const { invalidateCounts } = await import("@/lib/comments/store.server");
+      invalidateCounts();
+    }
     return hidden.length > 0;
   }
   return false;
@@ -68,6 +81,21 @@ type ReportRow = {
 
 async function describe(type: ReportTarget, id: string): Promise<ReportGroup["target"]> {
   const sql = await getSql();
+  if (type === "comment") {
+    const r = (
+      await sql<{ body: string; status: string; article_key: string; name: string | null }>`
+      select c.body, c.status, c.article_key, u."name" as name from comments c
+      join "user" u on u."id" = c.user_id where c.id = ${id}`
+    )[0];
+    return r
+      ? {
+          title: `تعليق من ${(r.name ?? "").trim() || "قارئ"}`,
+          excerpt: r.body.slice(0, 200),
+          status: r.status === "hidden" ? "pending" : r.status,
+          url: `/${r.article_key}#c-${id}`,
+        }
+      : null;
+  }
   if (type === "news") {
     const r = (
       await sql<{ title: string; body: string; status: string }>`
@@ -138,7 +166,7 @@ export async function resolve(
 ) {
   const sql = await getSql();
   if (action === "hide") {
-    await sql.query(`update ${TABLE[type]} set status = 'pending' where id = $1`, [id]);
+    await sql.query(`update ${TABLE[type]} set status = $2 where id = $1`, [id, HIDDEN[type]]);
   } else if (action === "delete") {
     await sql.query(`delete from ${TABLE[type]} where id = $1`, [id]);
     if (type !== "news") {
@@ -148,9 +176,9 @@ export async function resolve(
   } else {
     // Dismissed reports also restore a post that was auto-hidden.
     await sql.query(
-      `update ${TABLE[type]} set status = 'approved' where id = $1 and status = 'pending'
+      `update ${TABLE[type]} set status = 'approved' where id = $1 and status = $3
       and exists (select 1 from content_reports where target_type = $2 and target_id = $1 and status = 'pending')`,
-      [id, type],
+      [id, type, HIDDEN[type]],
     );
   }
   await sql`update content_reports set status = ${action === "dismiss" ? "dismissed" : "actioned"},

@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { PhotoStrip } from "@/components/photo-picker";
 import { useCallback, useEffect, useState } from "react";
 import { Shell } from "@/components/shell";
+import { CommentsAdmin } from "@/components/admin/comments-admin";
 import { AlertsAdmin, DutyAdmin, PushAdmin, ReportsAdmin } from "@/components/admin/content-admin";
 import { adminDecideAd, adminListAds } from "@/lib/ads/api";
 import type { OwnAd } from "@/lib/ads/types";
@@ -23,7 +24,7 @@ const STATUS: Record<BusinessSubmission["status"], string> = {
   rejected: "مرفوض",
 };
 
-type Section = "news" | "ads" | "directory" | "reports" | "duty" | "alerts" | "push";
+type Section = "news" | "ads" | "directory" | "comments" | "reports" | "duty" | "alerts" | "push";
 
 function AdminPage() {
   const [state, setState] = useState<"loading" | "login" | "ready">("loading");
@@ -128,6 +129,7 @@ function AdminPage() {
             ["news", "أخبار القراء"],
             ["ads", "الإعلانات"],
             ["directory", "طلبات الدليل"],
+            ["comments", "التعليقات"],
             ["reports", "البلاغات"],
             ["duty", "صيدلية المناوبة"],
             ["alerts", "التنبيهات"],
@@ -146,7 +148,9 @@ function AdminPage() {
           </button>
         ))}
       </div>
-      {section === "reports" ? (
+      {section === "comments" ? (
+        <CommentsAdmin />
+      ) : section === "reports" ? (
         <ReportsAdmin />
       ) : section === "duty" ? (
         <DutyAdmin />

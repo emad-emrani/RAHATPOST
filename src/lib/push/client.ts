@@ -1,7 +1,12 @@
 import { deletePushSubscription, getPushConfig, getPushTopics, savePushSubscription } from "./api";
 import type { PushTopics } from "./types";
 
-export const DEFAULT_TOPICS: PushTopics = { alerts: true, news: false, pharmacy: false };
+export const DEFAULT_TOPICS: PushTopics = {
+  alerts: true,
+  news: false,
+  pharmacy: false,
+  replies: true,
+};
 
 export type PushSupport = "supported" | "ios-needs-install" | "unsupported";
 

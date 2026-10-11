@@ -20,6 +20,8 @@ export type NewsItem = {
   reader?: { name: string; neighborhood: string; sourceUrl?: string };
   /** Full text — only reader posts (original content); feed items carry an excerpt only. */
   body?: string;
+  /** Approved comments on the article page (omitted when 0). */
+  comments?: number;
 };
 
 export type NewsFeedResult = {
@@ -57,6 +59,8 @@ export type IsraelNewsItem = {
   /** Machine translation of the title (Hebrew → Arabic); absent until translated. */
   titleAr?: string;
   summaryAr?: string;
+  /** Approved comments on the article page (omitted when 0). */
+  comments?: number;
   image?: string;
   thumb?: string;
 };

@@ -479,9 +479,9 @@ export function ReportsAdmin() {
                 <h2 className="mt-2 text-xl font-bold">{g.target.title}</h2>
                 <p className="mt-1 line-clamp-3">{g.target.excerpt}</p>
                 {g.target.status === "approved" ? (
-                  <Link to={g.target.url} className="mt-1 inline-block text-sm font-bold underline">
+                  <a href={g.target.url} className="mt-1 inline-block text-sm font-bold underline">
                     فتح المنشور
-                  </Link>
+                  </a>
                 ) : null}
               </>
             ) : (
@@ -605,7 +605,7 @@ export function PushAdmin() {
         <label className="block font-bold">
           الموضوع
           <select name="topic" className="field mt-1" defaultValue="alerts">
-            {PUSH_TOPICS.map((t) => (
+            {PUSH_TOPICS.filter((t) => !t.personal).map((t) => (
               <option key={t.key} value={t.key}>
                 {t.label}
               </option>

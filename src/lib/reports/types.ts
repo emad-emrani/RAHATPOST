@@ -1,4 +1,4 @@
-export type ReportTarget = "news" | "ad" | "business";
+export type ReportTarget = "news" | "ad" | "business" | "comment";
 
 export const REPORT_REASONS = [
   "محتوى مسيء أو كراهية",
@@ -18,6 +18,7 @@ export const TARGET_LABEL: Record<ReportTarget, string> = {
   news: "خبر قارئ",
   ad: "إعلان",
   business: "نشاط في الدليل",
+  comment: "تعليق",
 };
 
 export type ReportGroup = {

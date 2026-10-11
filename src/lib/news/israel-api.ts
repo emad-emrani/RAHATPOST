@@ -19,7 +19,9 @@ async function cacheHeaders(ok: boolean) {
 export const getIsraelNews = createServerFn({ method: "GET" }).handler(
   async (): Promise<IsraelNewsResult> => {
     const { loadIsraelNews } = await import("./israel.server");
-    const result = await loadIsraelNews();
+    const { withCommentCounts } = await import("@/lib/comments/counts.server");
+    const loaded = await loadIsraelNews();
+    const result = { ...loaded, items: await withCommentCounts(loaded.items, "israel-news") };
     await cacheHeaders(result.items.length > 0);
     return result;
   },

@@ -1,9 +1,16 @@
-export type PushTopic = "alerts" | "news" | "pharmacy";
+export type PushTopic = "alerts" | "news" | "pharmacy" | "replies";
 
-export const PUSH_TOPICS: { key: PushTopic; label: string; hint: string }[] = [
+/** `personal` topics go to one signed-in user (not broadcast from the admin form). */
+export const PUSH_TOPICS: { key: PushTopic; label: string; hint: string; personal?: true }[] = [
   { key: "alerts", label: "تنبيهات عاجلة", hint: "انقطاع مياه أو كهرباء، طوارئ وإغلاقات" },
   { key: "news", label: "أخبار القراء الجديدة", hint: "عند نشر خبر جديد من أهالي رهط" },
   { key: "pharmacy", label: "صيدلية المناوبة", hint: "عند تحديث صيدلية الحراسة" },
+  {
+    key: "replies",
+    label: "الردود على تعليقاتي",
+    hint: "عندما يرد أحد على تعليقك (عند تسجيل الدخول)",
+    personal: true,
+  },
 ];
 
 export type PushTopics = Record<PushTopic, boolean>;

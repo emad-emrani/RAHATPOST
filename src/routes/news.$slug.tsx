@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ExternalLink } from "lucide-react";
+import { Comments } from "@/components/comments";
 import { Shell } from "@/components/shell";
 import { NewsUnavailable } from "@/components/news";
 import { NewsImage } from "@/components/news-image";
@@ -56,6 +57,7 @@ export const Route = createFileRoute("/news/$slug")({
               datePublished: a.publishedAt,
               authorName: a.reader.name,
               image: a.image,
+              commentCount: a.comments,
             }),
             crumbs,
           ]
@@ -161,6 +163,7 @@ function ArticlePage() {
           واتساب
         </a>
       </div>
+      <Comments key={article.slug} articleKey={`news/${article.slug}`} />
       {related.length > 0 ? (
         <>
           <h2 className="mt-8 mb-3 text-xl font-bold">ذات صلة</h2>

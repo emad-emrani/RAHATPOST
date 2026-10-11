@@ -4,20 +4,30 @@ import { Sheet } from "@/components/sheet";
 import { reportContent } from "@/lib/reports/api";
 import { REPORT_REASONS, type ReportTarget } from "@/lib/reports/types";
 
-/** «إبلاغ» link + sheet for reporting a reader post, ad or business (no sign-in needed). */
-export function ReportButton({ type, id }: { type: ReportTarget; id: string }) {
+/** «إبلاغ» link + sheet for reporting a reader post, ad, business or comment (no sign-in needed). */
+export function ReportButton({
+  type,
+  id,
+  label = "إبلاغ عن مشكلة",
+  compact = false,
+}: {
+  type: ReportTarget;
+  id: string;
+  label?: string;
+  compact?: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const [done, setDone] = useState(false);
   return (
     <>
       <button
         type="button"
-        className="inline-flex min-h-12 items-center gap-1 text-sm font-bold text-muted underline-offset-4 hover:underline"
+        className={`inline-flex ${compact ? "min-h-10" : "min-h-12"} items-center gap-1 text-sm font-bold text-muted underline-offset-4 hover:underline`}
         onClick={() => setOpen(true)}
         disabled={done}
       >
         <Flag className="size-4" aria-hidden />
-        {done ? "تم الإبلاغ" : "إبلاغ عن مشكلة"}
+        {done ? "تم الإبلاغ" : label}
       </button>
       {open ? (
         <ReportSheet

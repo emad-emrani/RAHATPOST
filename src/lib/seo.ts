@@ -139,6 +139,8 @@ export function newsArticleLd(a: {
   datePublished: string;
   authorName?: string;
   image?: string;
+  /** Approved comments (reader posts), omitted when 0. */
+  commentCount?: number;
 }) {
   const image = safeImage(a.image);
   return {
@@ -160,6 +162,7 @@ export function newsArticleLd(a: {
       logo: { "@type": "ImageObject", url: LOGO_URL },
     },
     contentLocation: { "@type": "City", name: "رهط" },
+    ...(a.commentCount ? { commentCount: a.commentCount } : {}),
   };
 }
 

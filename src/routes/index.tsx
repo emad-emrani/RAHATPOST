@@ -3,6 +3,7 @@ import { Bus, ChevronLeft, Search } from "lucide-react";
 import { useMemo, useState } from "react";
 import { CategoryIcon } from "@/components/category-icon";
 import { NewsImage } from "@/components/news-image";
+import { CommentCount } from "@/components/comment-count";
 import { HomeCarousel, HomeTiles } from "@/components/home-parts";
 import { SectionTitle, Shell } from "@/components/shell";
 import { AlertsBanner, DutyCard } from "@/components/duty";
@@ -191,6 +192,7 @@ function Home() {
                     <span className="mt-2 block text-xl font-bold">{lead.title}</span>
                     <span className="text-sm font-semibold text-muted">
                       {relativeTimeAr(lead.publishedAt, now)} · {newsByline(lead)}
+                      <CommentCount n={lead.comments} className="ms-2" />
                     </span>
                   </span>
                 </Link>
@@ -208,6 +210,7 @@ function Home() {
                           <span className="text-sm font-semibold text-muted">
                             {item.category} · {relativeTimeAr(item.publishedAt, now)} ·{" "}
                             {newsByline(item)}
+                            <CommentCount n={item.comments} className="ms-2" />
                           </span>
                         </span>
                       </Link>

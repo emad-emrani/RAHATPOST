@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Shell } from "@/components/shell";
 import { NewsCredit, NewsUnavailable } from "@/components/news";
 import { NewsImage } from "@/components/news-image";
+import { CommentCount } from "@/components/comment-count";
 import { getNews } from "@/lib/news/api";
 import { newsByline, relativeTimeAr, useNow } from "@/lib/news/format";
 import { newsCategories } from "@/lib/news/types";
@@ -72,6 +73,7 @@ function NewsPage() {
                       </span>
                       <span className="text-sm font-semibold text-muted">
                         {relativeTimeAr(item.publishedAt, now)} · {newsByline(item)}
+                        <CommentCount n={item.comments} className="ms-2" />
                       </span>
                     </span>
                   </Link>
