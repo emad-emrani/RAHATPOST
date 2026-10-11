@@ -62,7 +62,10 @@ const SOURCES: FeedSource[] = [
   },
 ];
 
-const TTL_MS = 10 * 60_000;
+/** Feeds are re-checked every 3 minutes so new stories reach the home page quickly. */
+const TTL_MS = 3 * 60_000;
+/** Up to this age a stale copy is served instantly while a refresh runs in the background. */
+const STALE_OK_MS = 15 * 60_000;
 const FEED_TIMEOUT_MS = 8_000;
 const MAX_AGE_MS = 21 * 24 * 60 * 60_000;
 const MAX_ITEMS = 80;
@@ -78,6 +81,10 @@ export async function loadNews(): Promise<NewsFeedResult> {
     inflight = refresh().finally(() => {
       inflight = null;
     });
+  }
+  if (cache && now - cache.at < STALE_OK_MS) {
+    inflight.catch(() => {}); // background refresh; errors are handled inside refresh()
+    return { ...cache.result, now };
   }
   const result = await inflight;
   return { ...result, now: Date.now() };

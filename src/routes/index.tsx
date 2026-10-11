@@ -7,7 +7,7 @@ import { HomeCarousel, HomeTiles } from "@/components/home-parts";
 import { SectionTitle, Shell } from "@/components/shell";
 import { DutyCard } from "@/components/duty";
 import { InstallBanner } from "@/components/install-app";
-import { NewsUnavailable, prioritizeLocal } from "@/components/news";
+import { NewsUnavailable, newestFirst } from "@/components/news";
 import { getApprovedEntries } from "@/lib/directory/api";
 import { osmEntries, type DirectoryEntry } from "@/lib/directory/types";
 import { getNews } from "@/lib/news/api";
@@ -42,9 +42,13 @@ export const Route = createFileRoute("/")({
     ]);
     return { news, approved: approved.entries, ads, israel };
   },
-  staleTime: 5 * 60_000,
+  // New items must show up within a minute or two: short CDN cache, revalidated in the background.
+  headers: () => ({ "Cache-Control": HOME_CACHE }),
+  staleTime: 60_000,
   component: Home,
 });
+
+const HOME_CACHE = "public, max-age=0, s-maxage=60, stale-while-revalidate=300";
 
 /**
  * Israel news is a secondary section: never let a slow or failing Hebrew feed hold up the home
@@ -82,12 +86,13 @@ function Home() {
   const search = Route.useSearch();
   const [q, setQ] = useState(search.q ?? "");
   const query = q.trim();
-  const ranked = prioritizeLocal(news.items);
+  // Strictly newest first (feeds + reader posts) — no local-first or has-photo ranking. The banner
+  // shows the very latest story (a story without a photo gets the yellow banner); the news section
+  // continues with the next ones.
+  const ranked = newestFirst(news.items);
   const breaking = news.items.find((item) => item.breaking);
-  // The banner shows the newest local (Rahat/Negev) story that has a publisher photo, else the top
-  // story; the news section continues with the others.
-  const top = ranked.find((item) => item.local && item.image) ?? ranked[0];
-  const remaining = ranked.filter((item) => item !== top);
+  const top = ranked[0];
+  const remaining = ranked.slice(1);
   const lead = remaining[0] ?? top;
   const rest = remaining.slice(1, 5);
 
