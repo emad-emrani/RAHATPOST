@@ -1,0 +1,49 @@
+name: Update bus schedule
+
+# Daily: download the Ministry of Transport GTFS feed, extract the Galim lines that
+# serve Rahat, and commit src/data/bus-schedule.ts (the push redeploys the site on Vercel).
+on:
+  schedule:
+    - cron: "15 1 * * *" # 01:15 UTC ≈ 04:15 Israel time (after MOT's nightly publish)
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-buses
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Download GTFS
+        run: |
+          curl -fsSL --retry 3 --retry-delay 20 --max-time 900 \
+            -A "Mozilla/5.0 (rahatpost.com bus schedule)" \
+            -o /tmp/israel-public-transportation.zip \
+            https://gtfs.mot.gov.il/gtfsfiles/israel-public-transportation.zip
+          ls -la /tmp/israel-public-transportation.zip
+
+      - name: Regenerate schedule
+        run: python3 scripts/update-bus-schedule.py /tmp/israel-public-transportation.zip
+
+      - name: Commit if changed
+        run: |
+          if git diff --quiet -- src/data/bus-schedule.ts; then
+            echo "No schedule changes."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/data/bus-schedule.ts
+          git commit -m "Update bus schedule from MOT GTFS ($(date -u +%Y-%m-%d))"
+          git push

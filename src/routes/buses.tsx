@@ -1,47 +1,337 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { LocateFixed, RefreshCw } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Shell } from "@/components/shell";
-import { busLines, galimPhone, galimSource, type DayKey } from "@/data/buses";
+import { busSchedule } from "@/data/bus-schedule";
+import { busLines, galimPhone, galimSource } from "@/data/buses";
+import { getArrivals } from "@/lib/buses/api";
+import {
+  departures,
+  israelClock,
+  lineInfo,
+  plannedArrivals,
+  scheduleDates,
+  stopName,
+  toMinutes,
+} from "@/lib/buses/schedule";
+import type { ArrivalsResult } from "@/lib/buses/types";
 
 export const Route = createFileRoute("/buses")({
   head: () => ({ meta: [{ title: "باصات غاليم · رهط بوست" }] }),
+  // Server time as the first render's clock, so SSR and hydration agree.
+  loader: () => ({ now: Date.now() }),
   component: BusesPage,
 });
 
-const days: { key: DayKey; label: string }[] = [
-  { key: "weekday", label: "أحد–خميس" },
-  { key: "friday", label: "جمعة" },
-  { key: "saturday", label: "سبت" },
-];
+const WEEKDAYS = ["الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
+const UPDATED = new Intl.DateTimeFormat("ar-u-nu-latn", {
+  timeZone: "Asia/Jerusalem",
+  day: "numeric",
+  month: "long",
+  hour: "2-digit",
+  minute: "2-digit",
+  hourCycle: "h23",
+}).format(new Date(busSchedule.generatedAt));
 
-function currentDay(): DayKey {
-  const day = new Date().getDay();
-  if (day === 5) return "friday";
-  if (day === 6) return "saturday";
-  return "weekday";
+function dayLabel(date: string, index: number) {
+  if (index === 0) return "اليوم";
+  if (index === 1) return "غداً";
+  const d = new Date(`${date}T12:00:00Z`);
+  return `${WEEKDAYS[d.getUTCDay()]} ${d.getUTCDate()}/${d.getUTCMonth() + 1}`;
+}
+
+function minutesLabel(diff: number) {
+  if (diff <= 0) return "يصل الآن";
+  if (diff === 1) return "بعد دقيقة";
+  if (diff === 2) return "بعد دقيقتين";
+  if (diff <= 10) return `بعد ${diff} دقائق`;
+  if (diff < 60) return `بعد ${diff} دقيقة`;
+  const h = Math.floor(diff / 60);
+  const m = diff % 60;
+  return `بعد ${h === 1 ? "ساعة" : h === 2 ? "ساعتين" : `${h} ساعات`}${m ? ` و${m} د` : ""}`;
 }
 
 function BusesPage() {
-  const [day, setDay] = useState<DayKey>(currentDay);
-  const [scope, setScope] = useState<"city" | "between">("city");
-  const list = useMemo(() => busLines.filter((line) => line.scope === scope), [scope]);
+  const { now: serverNow } = Route.useLoaderData();
+  const [now, setNow] = useState(serverNow);
+  useEffect(() => {
+    setNow(Date.now());
+    const id = setInterval(() => setNow(Date.now()), 30_000);
+    return () => clearInterval(id);
+  }, []);
+
+  const today = israelClock(now).date;
+  const dates = useMemo(() => scheduleDates.filter((d) => d >= today).slice(0, 7), [today]);
 
   return (
     <Shell>
       <h1 className="text-3xl font-bold">باصات غاليم</h1>
       <p className="mt-1 font-semibold text-muted">
-        خطوط مدينة رهط والخطوط الخارجة منها. المواعيد من جدول المشغّل لأسبوع 11–17 تشرين الأول 2026، وليست تتبّعاً حيّاً للباص.
+        خطوط مدينة رهط والخطوط الخارجة منها. المواعيد تتحدّث تلقائياً كل يوم من بيانات وزارة المواصلات، آخر تحديث{" "}
+        {UPDATED}.
       </p>
       <div className="mt-4 grid grid-cols-2 gap-2">
         <a className="btn" href={`tel:${galimPhone.replaceAll("-", "")}`}>
           غاليم {galimPhone}
         </a>
-        <a className="btn btn-ghost" href={galimSource} target="_blank" rel="noreferrer">
-          الجدول الأصلي
+        <a className="btn btn-ghost" href={galimSource} target="_blank" rel="noopener noreferrer">
+          موقع المشغّل
         </a>
       </div>
 
-      <div className="scroll-row mt-4">
+      <LiveArrivals now={now} />
+
+      <Timetable now={now} dates={dates} today={today} />
+    </Shell>
+  );
+}
+
+/* ------------------------------------------------------------------ live */
+
+const STORAGE_KEY = "rp-bus-stop";
+
+function LiveArrivals({ now }: { now: number }) {
+  const [line, setLine] = useState(busSchedule.lines[0]?.number ?? "1");
+  const info = lineInfo(line);
+  const [dir, setDir] = useState(info?.dirs[0]?.dir ?? "1");
+  const dirInfo = info?.dirs.find((d) => d.dir === dir) ?? info?.dirs[0];
+  const [stop, setStop] = useState(dirInfo?.stops[0]?.[0] ?? "");
+  const [result, setResult] = useState<ArrivalsResult | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [geoError, setGeoError] = useState("");
+
+  // Restore the last choice.
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "null") as
+        | { line: string; dir: string; stop: string }
+        | null;
+      const d = saved && lineInfo(saved.line)?.dirs.find((x) => x.dir === saved.dir);
+      if (saved && d && d.stops.some(([c]) => c === saved.stop)) {
+        setLine(saved.line);
+        setDir(saved.dir);
+        setStop(saved.stop);
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ line, dir, stop }));
+    } catch {
+      // ignore
+    }
+  }, [line, dir, stop]);
+
+  const chooseLine = (value: string) => {
+    const next = lineInfo(value);
+    const d = next?.dirs[0];
+    setLine(value);
+    setDir(d?.dir ?? "1");
+    setStop(d?.stops[0]?.[0] ?? "");
+    setResult(null);
+  };
+
+  const chooseDir = (value: string) => {
+    const d = info?.dirs.find((x) => x.dir === value);
+    setDir(value);
+    setStop(d?.stops[0]?.[0] ?? "");
+    setResult(null);
+  };
+
+  const load = useCallback(async () => {
+    if (!stop) return;
+    setLoading(true);
+    try {
+      setResult(await getArrivals({ data: { stop } }));
+    } catch {
+      setResult({ ok: false, now: Date.now(), stop, arrivals: [] });
+    } finally {
+      setLoading(false);
+    }
+  }, [stop]);
+
+  useEffect(() => {
+    void load();
+    const id = setInterval(() => void load(), 30_000);
+    return () => clearInterval(id);
+  }, [load]);
+
+  const nearest = () => {
+    setGeoError("");
+    if (!navigator.geolocation || !dirInfo) {
+      setGeoError("الموقع غير متاح في هذا المتصفح.");
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        let best = "";
+        let bestD = Infinity;
+        for (const [code] of dirInfo.stops) {
+          const s = busSchedule.stops[code];
+          if (!s) continue;
+          const d = (s.lat - pos.coords.latitude) ** 2 + ((s.lon - pos.coords.longitude) * 0.85) ** 2;
+          if (d < bestD) {
+            bestD = d;
+            best = code;
+          }
+        }
+        if (best) setStop(best);
+      },
+      () => setGeoError("لم نتمكن من تحديد موقعك."),
+      { enableHighAccuracy: true, timeout: 10_000 },
+    );
+  };
+
+  const fresh = result && result.stop === stop ? result : null;
+  const isSelected = (a: { line: string; operator: string }) => a.line === line && a.operator === busSchedule.agency;
+  const liveForLine = fresh?.arrivals.filter((a) => isSelected(a) && a.live) ?? [];
+  const otherLive = fresh?.arrivals.filter((a) => !isSelected(a) && a.live) ?? [];
+  const planned = plannedArrivals(now, line, dirInfo?.dir ?? dir, stop);
+  // Planned times already covered by a live bus are dropped (a live bus within ±3 min of the plan).
+  const liveMinutes = liveForLine.map((a) => Math.round((Date.parse(a.eta) - now) / 60_000));
+  const plannedOnly = planned.filter((p) => !liveMinutes.some((m) => Math.abs(m - p) <= 3));
+
+  return (
+    <section className="stamp mt-6 p-4">
+      <h2 className="text-xl font-bold">متى يصل الباص؟</h2>
+      <p className="text-sm font-semibold text-muted">اختر الخط والاتجاه والمحطة.</p>
+
+      <div className="mt-3 grid gap-2 sm:grid-cols-2">
+        <label className="block">
+          <span className="text-sm font-bold">الخط</span>
+          <select className="field mt-1" value={line} onChange={(e) => chooseLine(e.target.value)}>
+            {busSchedule.lines.map((l) => (
+              <option key={l.number} value={l.number}>
+                خط {l.number}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="block">
+          <span className="text-sm font-bold">المحطة</span>
+          <select className="field mt-1" value={stop} onChange={(e) => setStop(e.target.value)}>
+            {dirInfo?.stops.map(([code]) => (
+              <option key={code} value={code}>
+                {stopName(code)} · {code}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+
+      {info && info.dirs.length > 1 ? (
+        <div className="scroll-row mt-3">
+          {info.dirs.map((d) => (
+            <button
+              key={d.dir}
+              type="button"
+              className={d.dir === dirInfo?.dir ? "chip chip-ink shrink-0" : "chip shrink-0 bg-paper"}
+              onClick={() => chooseDir(d.dir)}
+            >
+              إلى {stopName(d.to)}
+            </button>
+          ))}
+        </div>
+      ) : null}
+
+      <div className="mt-3 flex flex-wrap gap-2">
+        <button type="button" className="btn btn-ghost px-3" onClick={nearest}>
+          <LocateFixed className="size-4" aria-hidden />
+          أقرب محطة لي
+        </button>
+        <button type="button" className="btn btn-ghost px-3" onClick={() => void load()} disabled={loading}>
+          <RefreshCw className={loading ? "size-4 animate-spin" : "size-4"} aria-hidden />
+          تحديث
+        </button>
+      </div>
+      {geoError ? <p className="mt-2 text-sm font-semibold">{geoError}</p> : null}
+
+      <ul className="mt-4 flex flex-col gap-2">
+        {liveForLine.map((a) => (
+          <ArrivalRow
+            key={`l-${a.eta}`}
+            line={a.line}
+            dest={a.destination}
+            when={minutesLabel(Math.round((Date.parse(a.eta) - now) / 60_000))}
+            live
+          />
+        ))}
+        {plannedOnly.map((diff) => (
+          <ArrivalRow
+            key={`p-${diff}`}
+            line={line}
+            dest={dirInfo ? stopName(dirInfo.to) : ""}
+            when={minutesLabel(diff)}
+            live={false}
+          />
+        ))}
+      </ul>
+      {liveForLine.length === 0 && plannedOnly.length === 0 ? (
+        <p className="mt-2 font-semibold">لا رحلات أخرى لهذا الخط من هذه المحطة اليوم.</p>
+      ) : null}
+
+      {otherLive.length > 0 ? (
+        <>
+          <p className="mt-4 text-sm font-bold text-muted">خطوط أخرى تصل هذه المحطة الآن</p>
+          <ul className="mt-2 flex flex-col gap-2">
+            {otherLive.slice(0, 4).map((a) => (
+              <ArrivalRow
+                key={`o-${a.line}-${a.eta}`}
+                line={a.line}
+                dest={a.destination}
+                when={minutesLabel(Math.round((Date.parse(a.eta) - now) / 60_000))}
+                live
+              />
+            ))}
+          </ul>
+        </>
+      ) : null}
+
+      <p className="mt-4 text-sm font-semibold text-muted">
+        {fresh === null
+          ? "جاري جلب البيانات المباشرة…"
+          : fresh.ok
+            ? liveForLine.length + otherLive.length > 0
+              ? "«مباشر» يعني أن الباص يرسل موقعه الآن (بيانات وزارة المواصلات عبر curlbus، تتأخر حتى دقيقة تقريباً). «حسب الجدول» وقت مخطط وتقريبي."
+              : "لا يوجد باص يرسل موقعه الآن لهذه المحطة، فالأوقات المعروضة حسب الجدول وتقريبية."
+            : "تعذّر جلب البيانات المباشرة الآن، فالأوقات المعروضة حسب الجدول وتقريبية."}
+      </p>
+    </section>
+  );
+}
+
+function ArrivalRow({ line, dest, when, live }: { line: string; dest: string; when: string; live: boolean }) {
+  return (
+    <li className="flex items-center justify-between gap-3 rounded-xl border-2 border-ink bg-paper px-3 py-2">
+      <span className="min-w-0">
+        <span className="chip chip-ink">خط {line}</span>
+        {dest ? <span className="ms-2 font-bold">إلى {dest}</span> : null}
+      </span>
+      <span className="shrink-0 text-end">
+        <span className="block font-bold">{when}</span>
+        <span className={live ? "chip chip-deep" : "chip"}>{live ? "مباشر" : "حسب الجدول"}</span>
+      </span>
+    </li>
+  );
+}
+
+/* ------------------------------------------------------------- timetable */
+
+function Timetable({ now, dates, today }: { now: number; dates: string[]; today: string }) {
+  const [date, setDate] = useState<string>(dates[0] ?? today);
+  const [scope, setScope] = useState<"city" | "between">("city");
+  const list = useMemo(() => busLines.filter((line) => line.scope === scope), [scope]);
+  const nowMinutes = israelClock(now).minutes;
+  const selected = dates.includes(date) ? date : dates[0];
+
+  return (
+    <section className="mt-8">
+      <h2 className="text-xl font-bold">جدول المواعيد</h2>
+      <p className="text-sm font-semibold text-muted">أوقات الانطلاق من أول محطة في كل اتجاه.</p>
+      <div className="scroll-row mt-3">
         <button
           type="button"
           className={scope === "city" ? "chip chip-ink shrink-0" : "chip shrink-0 bg-paper"}
@@ -56,47 +346,69 @@ function BusesPage() {
         >
           خارج المدينة
         </button>
-        {days.map((item) => (
+      </div>
+      <div className="scroll-row mt-2">
+        {dates.map((d, i) => (
           <button
-            key={item.key}
+            key={d}
             type="button"
-            className={day === item.key ? "chip chip-deep shrink-0" : "chip shrink-0 bg-paper"}
-            onClick={() => setDay(item.key)}
+            className={selected === d ? "chip chip-deep shrink-0" : "chip shrink-0 bg-paper"}
+            onClick={() => setDate(d)}
           >
-            {item.label}
+            {dayLabel(d, i)}
           </button>
         ))}
       </div>
 
-      <ul className="mt-4 flex flex-col gap-3">
-        {list.map((line) => {
-          const directions = line.times[day];
-          const keys = Object.keys(directions);
-          return (
-            <li key={line.number} className="stamp p-4">
-              <div className="flex items-start justify-between gap-3">
-                <span>
-                  <span className="chip chip-ink">خط {line.number}</span>
-                  {line.note ? <p className="mt-2 font-semibold">{line.note}</p> : null}
-                </span>
-              </div>
-              <h2 className="mt-2 text-xl font-bold">
-                {line.from} ↔ {line.to}
-              </h2>
-              {keys.length === 0 ? (
-                <p className="mt-2 font-semibold">لا رحلات في هذا اليوم حسب الجدول.</p>
-              ) : (
-                keys.map((key) => (
-                  <div key={key} className="mt-3">
-                    <p className="text-sm font-bold text-muted">اتجاه {key === "1" ? "أ" : "ب"}</p>
-                    <p className="font-bold leading-7">{directions[key].join(" · ")}</p>
-                  </div>
-                ))
-              )}
-            </li>
-          );
-        })}
-      </ul>
-    </Shell>
+      {!selected ? (
+        <p className="stamp mt-4 p-4 font-semibold">لا تتوفر مواعيد محدّثة حالياً. اتصل بغاليم للتأكد.</p>
+      ) : (
+        <ul className="mt-4 flex flex-col gap-3">
+          {list.map((line) => {
+            const info = lineInfo(line.number);
+            const dirs = (info?.dirs ?? [])
+              .map((d) => ({ ...d, times: departures(selected, line.number, d.dir) }))
+              .filter((d) => d.times.length > 0);
+            return (
+              <li key={line.number} className="stamp p-4">
+                <span className="chip chip-ink">خط {line.number}</span>
+                {line.note ? <p className="mt-2 font-semibold">{line.note}</p> : null}
+                <h3 className="mt-2 text-xl font-bold">
+                  {line.from} ↔ {line.to}
+                </h3>
+                {dirs.length === 0 ? (
+                  <p className="mt-2 font-semibold">لا رحلات في هذا اليوم حسب الجدول.</p>
+                ) : (
+                  dirs.map((d) => {
+                    const mins = toMinutes(d.times);
+                    return (
+                      <div key={d.dir} className="mt-3">
+                        <p className="text-sm font-bold text-muted">
+                          من {stopName(d.from)} إلى {stopName(d.to)}
+                        </p>
+                        <p className="font-bold leading-7">
+                          {d.times.map((t, i) => {
+                            const past = selected === today && mins[i] < nowMinutes;
+                            return (
+                              <span key={`${t}-${i}`} className={past ? "text-ink/40" : undefined}>
+                                {i > 0 ? " · " : ""}
+                                {t}
+                              </span>
+                            );
+                          })}
+                        </p>
+                      </div>
+                    );
+                  })
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      <p className="mt-4 text-sm font-semibold text-ink/70">
+        مصدر المواعيد: بيانات GTFS المفتوحة من وزارة المواصلات، وتُحدَّث يومياً. قد تتغير المواعيد في الأعياد والطوارئ.
+      </p>
+    </section>
   );
 }
