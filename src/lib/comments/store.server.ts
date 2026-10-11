@@ -83,7 +83,7 @@ export async function setSetting(key: string, value: string): Promise<void> {
 }
 
 export async function premodOn(): Promise<boolean> {
-  return (await getSetting("comments_premod")) === "on";
+  return (await getSetting("comments_premod")) !== "off";
 }
 
 export async function isBlocked(userId: string): Promise<boolean> {
