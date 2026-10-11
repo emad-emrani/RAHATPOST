@@ -5,7 +5,8 @@ import { RevealPhone } from "@/components/phone";
 import { Shell } from "@/components/shell";
 import { getApprovedEntries } from "@/lib/directory/api";
 import { mapsUrl, osmEntries, type DirectoryEntry } from "@/lib/directory/types";
-import { breadcrumbLd, localBusinessLd, seo, snippet } from "@/lib/seo";
+import { breadcrumbLd, localBusinessLd, seo, SITE_URL, snippet } from "@/lib/seo";
+import { mediaUrl } from "@/lib/media/types";
 
 export const Route = createFileRoute("/directory/$slug")({
   loader: async ({ params }) => {
@@ -40,6 +41,7 @@ export const Route = createFileRoute("/directory/$slug")({
       title: `${p.name} · ${p.category} في رهط | دليل رهط بوست`,
       description,
       path,
+      image: p.photo ? `${SITE_URL}${mediaUrl(p.photo)}` : undefined,
       jsonLd: [
         localBusinessLd({
           ...p,
@@ -77,6 +79,16 @@ function BusinessPage() {
   return (
     <Shell>
       <article className="stamp p-4">
+        {place.photo ? (
+          <a href={mediaUrl(place.photo)} target="_blank" rel="noopener noreferrer">
+            <img
+              src={mediaUrl(place.photo)}
+              alt={`صورة ${place.name}`}
+              className="-mx-4 -mt-4 mb-4 aspect-[16/9] w-[calc(100%+2rem)] max-w-none rounded-t-[var(--radius-card)] bg-surface object-cover"
+              decoding="async"
+            />
+          </a>
+        ) : null}
         <span className="chip">{place.category}</span>
         {place.verified ? <span className="chip chip-ink ms-2">موثّق</span> : null}
         <h1 className="mt-3 text-2xl font-bold">{place.name}</h1>

@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { authMiddleware } from "@/lib/auth/middleware";
 import { clean, friendly, looksLikeBot, PHONE_RE, rateLimited } from "@/lib/submit-guard";
+import { cleanMediaKeys, MAX_AD_PHOTOS } from "@/lib/media/types";
 import { AD_ID_RE, adPostTypes, type AdInput, type OwnAd, type PublicAd } from "./types";
 
 /* ------------------------------------------------------------ public */
@@ -34,7 +35,11 @@ export const getPublicAd = createServerFn({ method: "GET" })
 
 /* -------------------------------------------------------------- owner */
 
-type FormInput = AdInput & { website?: string; startedAt?: number };
+type FormInput = Omit<AdInput, "photos"> & {
+  photos?: string[];
+  website?: string;
+  startedAt?: number;
+};
 
 /** Validate + normalize; throws an Arabic message the form can show. */
 function validateAd(input: FormInput): AdInput {
@@ -45,6 +50,7 @@ function validateAd(input: FormInput): AdInput {
     price: clean(input?.price, 30),
     neighborhood: clean(input?.neighborhood, 60),
     phone: clean(input?.phone, 20).replace(/[\s-]/g, ""),
+    photos: cleanMediaKeys(input?.photos, MAX_AD_PHOTOS),
   };
   if (!(adPostTypes as string[]).includes(data.type)) throw new Error("اختر نوع الإعلان.");
   if (data.title.length < 3) throw new Error("اكتب عنواناً للإعلان (3 أحرف على الأقل).");

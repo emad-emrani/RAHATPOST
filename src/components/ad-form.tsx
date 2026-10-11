@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
+import { PhotoPicker } from "@/components/photo-picker";
 import { adPostTypes, type AdInput } from "@/lib/ads/types";
+import { MAX_AD_PHOTOS } from "@/lib/media/types";
 
 type Props = {
   initial?: Partial<AdInput>;
@@ -14,6 +16,8 @@ export function AdForm({ initial, submitLabel, onSubmit, onCancel }: Props) {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [startedAt, setStartedAt] = useState(0);
+  const [photos, setPhotos] = useState<string[]>(initial?.photos ?? []);
+  const [uploading, setUploading] = useState(false);
   useEffect(() => setStartedAt(Date.now()), []);
 
   return (
@@ -22,6 +26,10 @@ export function AdForm({ initial, submitLabel, onSubmit, onCancel }: Props) {
       onSubmit={async (event) => {
         event.preventDefault();
         setError("");
+        if (uploading) {
+          setError("انتظر حتى يكتمل رفع الصور.");
+          return;
+        }
         const form = new FormData(event.currentTarget);
         const get = (k: string) => String(form.get(k) ?? "");
         setBusy(true);
@@ -33,6 +41,7 @@ export function AdForm({ initial, submitLabel, onSubmit, onCancel }: Props) {
             price: get("price"),
             neighborhood: get("neighborhood"),
             phone: get("phone"),
+            photos,
             website: get("website"),
             startedAt,
           });
@@ -91,6 +100,15 @@ export function AdForm({ initial, submitLabel, onSubmit, onCancel }: Props) {
         defaultValue={initial?.phone}
         dir="ltr"
       />
+      <PhotoPicker
+        kind="ad"
+        max={MAX_AD_PHOTOS}
+        value={photos}
+        onChange={setPhotos}
+        onBusyChange={setUploading}
+        label="صور (اختياري)"
+        hint={`حتى ${MAX_AD_PHOTOS} صور. نصغّرها ونحذف منها بيانات الموقع قبل الرفع.`}
+      />
       {/* Honeypot: hidden from people, bots tend to fill it. */}
       <div aria-hidden="true" className="absolute -z-10 h-0 w-0 overflow-hidden opacity-0">
         <label>
@@ -107,8 +125,8 @@ export function AdForm({ initial, submitLabel, onSubmit, onCancel }: Props) {
         </p>
       ) : null}
       <div className={onCancel ? "grid grid-cols-2 gap-2" : "grid"}>
-        <button type="submit" className="btn" disabled={busy}>
-          {busy ? "جاري الإرسال…" : submitLabel}
+        <button type="submit" className="btn" disabled={busy || uploading}>
+          {busy ? "جاري الإرسال…" : uploading ? "جاري رفع الصور…" : submitLabel}
         </button>
         {onCancel ? (
           <button type="button" className="btn btn-ghost" onClick={onCancel}>

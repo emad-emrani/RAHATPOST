@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ChevronLeft, Search } from "lucide-react";
 import { useMemo, useState } from "react";
 import { CategoryIcon } from "@/components/category-icon";
+import { mediaUrl } from "@/lib/media/types";
 import { OsmCredit } from "@/components/osm-credit";
 import { Shell } from "@/components/shell";
 import { getApprovedEntries } from "@/lib/directory/api";
@@ -105,9 +106,19 @@ function DirectoryPage() {
                 params={{ slug: item.slug }}
                 className="stamp press flex items-center gap-3 p-3"
               >
-                <span className="icon-badge size-14 rounded-2xl">
-                  <CategoryIcon category={item.category} className="size-7" />
-                </span>
+                {item.photo ? (
+                  <img
+                    src={mediaUrl(item.photo)}
+                    alt=""
+                    className="thumb size-14 rounded-2xl"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                ) : (
+                  <span className="icon-badge size-14 rounded-2xl">
+                    <CategoryIcon category={item.category} className="size-7" />
+                  </span>
+                )}
                 <span className="min-w-0 flex-1">
                   <span className="block text-lg font-bold leading-snug">{item.name}</span>
                   <span className="flex flex-wrap items-center gap-x-2 text-sm font-semibold text-muted">

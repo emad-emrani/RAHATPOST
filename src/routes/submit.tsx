@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { AdForm } from "@/components/ad-form";
 import { NewsForm } from "@/components/news-form";
+import { PhotoPicker } from "@/components/photo-picker";
 import { Shell } from "@/components/shell";
 import { SignInButtons } from "@/components/sign-in";
 import { createMyAd } from "@/lib/ads/api";
@@ -44,6 +45,8 @@ function SubmitPage() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [startedAt, setStartedAt] = useState(0);
+  const [bizPhotos, setBizPhotos] = useState<string[]>([]);
+  const [uploading, setUploading] = useState(false);
   useEffect(() => setStartedAt(Date.now()), [mode]);
   const { user, isPending } = useCurrentUserState();
   const authConfig = Route.useLoaderData();
@@ -124,6 +127,10 @@ function SubmitPage() {
           onSubmit={async (event) => {
             event.preventDefault();
             setError("");
+            if (uploading) {
+              setError("انتظر حتى يكتمل رفع الصورة.");
+              return;
+            }
             const form = new FormData(event.currentTarget);
             const get = (k: string) => String(form.get(k) ?? "");
             setBusy(true);
@@ -135,12 +142,15 @@ function SubmitPage() {
                   area: get("area"),
                   about: get("about"),
                   phone: get("phone"),
+                  photos: bizPhotos,
                   website: get("website"),
                   startedAt,
                 },
               });
-              if (res.ok) setSent(true);
-              else setError(res.message ?? "تعذّر الإرسال.");
+              if (res.ok) {
+                setSent(true);
+                setBizPhotos([]);
+              } else setError(res.message ?? "تعذّر الإرسال.");
             } catch (err) {
               setError(
                 err instanceof Error && /[\u0600-\u06ff]/.test(err.message)
@@ -170,6 +180,15 @@ function SubmitPage() {
               </label>
               <Field label="الحي" name="area" max={60} />
               <Field label="سطر وصف" name="about" max={160} />
+              <PhotoPicker
+                kind="business"
+                max={1}
+                value={bizPhotos}
+                onChange={setBizPhotos}
+                onBusyChange={setUploading}
+                label="شعار أو صورة للمحل (اختياري)"
+                hint="صورة واحدة تظهر في صفحة نشاطك بعد الموافقة."
+              />
               {/* Honeypot: hidden from people, bots tend to fill it. */}
               <div aria-hidden="true" className="absolute -z-10 h-0 w-0 overflow-hidden opacity-0">
                 <label>
@@ -187,8 +206,8 @@ function SubmitPage() {
             </p>
           ) : null}
           {error ? <p className="font-bold text-ink">{error}</p> : null}
-          <button type="submit" className="btn" disabled={busy}>
-            {busy ? "جاري الإرسال…" : "إرسال للمراجعة"}
+          <button type="submit" className="btn" disabled={busy || uploading}>
+            {busy ? "جاري الإرسال…" : uploading ? "جاري رفع الصورة…" : "إرسال للمراجعة"}
           </button>
         </form>
       )}

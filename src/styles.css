@@ -228,6 +228,57 @@
     color: var(--color-success);
   }
 
+  /* Home weather / next-prayer pills under the search bar (links to /today). */
+  .today-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-height: 2.75rem;
+    border-radius: 999px;
+    padding: 0.3rem 0.9rem;
+    background: var(--color-paper);
+    border: 1px solid var(--color-line);
+    box-shadow: var(--shadow-card);
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--color-ink);
+  }
+
+  .today-chip:hover {
+    border-color: var(--color-primary-deep);
+  }
+
+  .today-chip svg {
+    color: var(--color-primary-ink);
+  }
+
+  /* Uploaded photo thumbnails (ad list, forms, admin). */
+  .thumb {
+    display: block;
+    flex-shrink: 0;
+    object-fit: cover;
+    background: var(--color-surface);
+    border-radius: 0.75rem;
+  }
+
+  /* Ad page photo gallery: swipeable, snap per photo. */
+  .gallery {
+    display: flex;
+    gap: 0.5rem;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+  }
+
+  .gallery::-webkit-scrollbar {
+    display: none;
+  }
+
+  .gallery > * {
+    flex: 0 0 100%;
+    scroll-snap-align: center;
+  }
+
   .field {
     width: 100%;
     min-height: 3rem;

@@ -1,5 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { getSql } from "@/lib/db";
+import { deleteOwnerMedia, mediaByOwner, setOwnerMedia } from "@/lib/media/store.server";
 import type { AdInput, AdStatus, OwnAd, PublicAd } from "./types";
 
 type Row = {
@@ -31,7 +32,17 @@ function toOwn(r: Row): OwnAd {
     createdAt: iso(r.created_at),
     updatedAt: iso(r.updated_at),
     status: r.status,
+    photos: [],
   };
+}
+
+/** Attach each ad's photo keys (one query for the whole list). */
+async function withPhotos<T extends { id: string; photos: string[] }>(items: T[]): Promise<T[]> {
+  const map = await mediaByOwner(
+    "ad",
+    items.map((i) => i.id),
+  );
+  return items.map((i) => ({ ...i, photos: map.get(i.id) ?? [] }));
 }
 
 function toPublic(r: Row): PublicAd {
@@ -49,13 +60,13 @@ export async function listApproved(limit = 100): Promise<PublicAd[]> {
     `${SELECT} where c.status = 'approved' order by c.updated_at desc limit $1`,
     [limit],
   );
-  return rows.map(toPublic);
+  return withPhotos(rows.map(toPublic));
 }
 
 export async function getApproved(id: string): Promise<PublicAd | null> {
   const sql = await getSql();
   const rows = await sql.query<Row>(`${SELECT} where c.id = $1 and c.status = 'approved'`, [id]);
-  return rows[0] ? toPublic(rows[0]) : null;
+  return rows[0] ? (await withPhotos([toPublic(rows[0])]))[0] : null;
 }
 
 export async function listByUser(userId: string): Promise<OwnAd[]> {
@@ -64,7 +75,7 @@ export async function listByUser(userId: string): Promise<OwnAd[]> {
     `${SELECT} where c.user_id = $1 order by c.created_at desc limit 50`,
     [userId],
   );
-  return rows.map(toOwn);
+  return withPhotos(rows.map(toOwn));
 }
 
 export async function countPendingByUser(userId: string): Promise<number> {
@@ -93,6 +104,7 @@ export async function createAd(userId: string, input: AdInput): Promise<string> 
       input.phone,
     ],
   );
+  await setOwnerMedia(userId, "ad", id, input.photos);
   return id;
 }
 
@@ -114,6 +126,7 @@ export async function updateOwnAd(userId: string, id: string, input: AdInput): P
       input.phone,
     ],
   );
+  if (rows.length > 0) await setOwnerMedia(userId, "ad", id, input.photos);
   return rows.length > 0;
 }
 
@@ -123,6 +136,7 @@ export async function deleteOwnAd(userId: string, id: string): Promise<boolean> 
     `delete from classifieds where id = $1 and user_id = $2 returning id`,
     [id, userId],
   );
+  if (rows.length > 0) await deleteOwnerMedia("ad", id);
   return rows.length > 0;
 }
 
@@ -131,13 +145,15 @@ export async function deleteOwnAd(userId: string, id: string): Promise<boolean> 
 export async function listAll(): Promise<OwnAd[]> {
   const sql = await getSql();
   const rows = await sql.query<Row>(`${SELECT} order by c.updated_at desc limit 300`);
-  return rows.map(toOwn);
+  return withPhotos(rows.map(toOwn));
 }
 
 export async function adminSetStatus(id: string, status: AdStatus | "delete"): Promise<void> {
   const sql = await getSql();
-  if (status === "delete") await sql.query(`delete from classifieds where id = $1`, [id]);
-  else
+  if (status === "delete") {
+    await sql.query(`delete from classifieds where id = $1`, [id]);
+    await deleteOwnerMedia("ad", id);
+  } else
     await sql.query(`update classifieds set status = $2, updated_at = now() where id = $1`, [
       id,
       status,

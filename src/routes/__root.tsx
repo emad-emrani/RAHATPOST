@@ -2,6 +2,7 @@ import { createRootRoute, HeadContent, Outlet, Scripts } from "@tanstack/react-r
 import { AuthProvider } from "@/lib/auth/provider";
 import { PreviewHostBridge } from "@/components/preview-host-bridge";
 import { ServiceWorkerRegistration } from "@/components/install-app";
+import { SiteAnalytics } from "@/components/analytics";
 import appCss from "../styles.css?url";
 
 export const Route = createRootRoute({
@@ -135,6 +136,7 @@ export const Route = createRootRoute({
         <AuthProvider>
           <Outlet />
         </AuthProvider>
+        <SiteAnalytics />
         <Scripts />
       </body>
     </html>

@@ -21,6 +21,7 @@ import { Route as SubmitRouteImport } from './routes/submit'
 import { Route as TodayRouteImport } from './routes/today'
 import { Route as AdsIndexRouteImport } from './routes/ads.index'
 import { Route as AdsIdRouteImport } from './routes/ads.$id'
+import { Route as ApiMediaRouteImport } from './routes/api/media'
 import { Route as AppAuthDoneRouteImport } from './routes/app-auth.done'
 import { Route as AppAuthFinishRouteImport } from './routes/app-auth.finish'
 import { Route as AppAuthStartRouteImport } from './routes/app-auth.start'
@@ -28,6 +29,7 @@ import { Route as DirectoryIndexRouteImport } from './routes/directory.index'
 import { Route as DirectorySlugRouteImport } from './routes/directory.$slug'
 import { Route as IsraelNewsIndexRouteImport } from './routes/israel-news.index'
 import { Route as IsraelNewsSlugRouteImport } from './routes/israel-news.$slug'
+import { Route as MediaKeyRouteImport } from './routes/media.$key'
 import { Route as NewsIndexRouteImport } from './routes/news.index'
 import { Route as NewsSlugRouteImport } from './routes/news.$slug'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
@@ -92,6 +94,11 @@ const AdsIdRoute = AdsIdRouteImport.update({
   path: '/ads/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiMediaRoute = ApiMediaRouteImport.update({
+  id: '/api/media',
+  path: '/api/media',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AppAuthDoneRoute = AppAuthDoneRouteImport.update({
   id: '/app-auth/done',
   path: '/app-auth/done',
@@ -127,6 +134,11 @@ const IsraelNewsSlugRoute = IsraelNewsSlugRouteImport.update({
   path: '/israel-news/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MediaKeyRoute = MediaKeyRouteImport.update({
+  id: '/media/$key',
+  path: '/media/$key',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const NewsIndexRoute = NewsIndexRouteImport.update({
   id: '/news/',
   path: '/news/',
@@ -155,11 +167,13 @@ export interface FileRoutesByFullPath {
   '/submit': typeof SubmitRoute
   '/today': typeof TodayRoute
   '/ads/$id': typeof AdsIdRoute
+  '/api/media': typeof ApiMediaRoute
   '/app-auth/done': typeof AppAuthDoneRoute
   '/app-auth/finish': typeof AppAuthFinishRoute
   '/app-auth/start': typeof AppAuthStartRoute
   '/directory/$slug': typeof DirectorySlugRoute
   '/israel-news/$slug': typeof IsraelNewsSlugRoute
+  '/media/$key': typeof MediaKeyRoute
   '/news/$slug': typeof NewsSlugRoute
   '/ads/': typeof AdsIndexRoute
   '/directory/': typeof DirectoryIndexRoute
@@ -179,11 +193,13 @@ export interface FileRoutesByTo {
   '/submit': typeof SubmitRoute
   '/today': typeof TodayRoute
   '/ads/$id': typeof AdsIdRoute
+  '/api/media': typeof ApiMediaRoute
   '/app-auth/done': typeof AppAuthDoneRoute
   '/app-auth/finish': typeof AppAuthFinishRoute
   '/app-auth/start': typeof AppAuthStartRoute
   '/directory/$slug': typeof DirectorySlugRoute
   '/israel-news/$slug': typeof IsraelNewsSlugRoute
+  '/media/$key': typeof MediaKeyRoute
   '/news/$slug': typeof NewsSlugRoute
   '/ads': typeof AdsIndexRoute
   '/directory': typeof DirectoryIndexRoute
@@ -204,11 +220,13 @@ export interface FileRoutesById {
   '/submit': typeof SubmitRoute
   '/today': typeof TodayRoute
   '/ads/$id': typeof AdsIdRoute
+  '/api/media': typeof ApiMediaRoute
   '/app-auth/done': typeof AppAuthDoneRoute
   '/app-auth/finish': typeof AppAuthFinishRoute
   '/app-auth/start': typeof AppAuthStartRoute
   '/directory/$slug': typeof DirectorySlugRoute
   '/israel-news/$slug': typeof IsraelNewsSlugRoute
+  '/media/$key': typeof MediaKeyRoute
   '/news/$slug': typeof NewsSlugRoute
   '/ads/': typeof AdsIndexRoute
   '/directory/': typeof DirectoryIndexRoute
@@ -230,11 +248,13 @@ export interface FileRouteTypes {
     | '/submit'
     | '/today'
     | '/ads/$id'
+    | '/api/media'
     | '/app-auth/done'
     | '/app-auth/finish'
     | '/app-auth/start'
     | '/directory/$slug'
     | '/israel-news/$slug'
+    | '/media/$key'
     | '/news/$slug'
     | '/ads/'
     | '/directory/'
@@ -254,11 +274,13 @@ export interface FileRouteTypes {
     | '/submit'
     | '/today'
     | '/ads/$id'
+    | '/api/media'
     | '/app-auth/done'
     | '/app-auth/finish'
     | '/app-auth/start'
     | '/directory/$slug'
     | '/israel-news/$slug'
+    | '/media/$key'
     | '/news/$slug'
     | '/ads'
     | '/directory'
@@ -278,11 +300,13 @@ export interface FileRouteTypes {
     | '/submit'
     | '/today'
     | '/ads/$id'
+    | '/api/media'
     | '/app-auth/done'
     | '/app-auth/finish'
     | '/app-auth/start'
     | '/directory/$slug'
     | '/israel-news/$slug'
+    | '/media/$key'
     | '/news/$slug'
     | '/ads/'
     | '/directory/'
@@ -303,11 +327,13 @@ export interface RootRouteChildren {
   SubmitRoute: typeof SubmitRoute
   TodayRoute: typeof TodayRoute
   AdsIdRoute: typeof AdsIdRoute
+  ApiMediaRoute: typeof ApiMediaRoute
   AppAuthDoneRoute: typeof AppAuthDoneRoute
   AppAuthFinishRoute: typeof AppAuthFinishRoute
   AppAuthStartRoute: typeof AppAuthStartRoute
   DirectorySlugRoute: typeof DirectorySlugRoute
   IsraelNewsSlugRoute: typeof IsraelNewsSlugRoute
+  MediaKeyRoute: typeof MediaKeyRoute
   NewsSlugRoute: typeof NewsSlugRoute
   AdsIndexRoute: typeof AdsIndexRoute
   DirectoryIndexRoute: typeof DirectoryIndexRoute
@@ -402,6 +428,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdsIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/media': {
+      id: '/api/media'
+      path: '/api/media'
+      fullPath: '/api/media'
+      preLoaderRoute: typeof ApiMediaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/app-auth/done': {
       id: '/app-auth/done'
       path: '/app-auth/done'
@@ -451,6 +484,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IsraelNewsSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/media/$key': {
+      id: '/media/$key'
+      path: '/media/$key'
+      fullPath: '/media/$key'
+      preLoaderRoute: typeof MediaKeyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/news/': {
       id: '/news/'
       path: '/news'
@@ -487,11 +527,13 @@ const rootRouteChildren: RootRouteChildren = {
   SubmitRoute: SubmitRoute,
   TodayRoute: TodayRoute,
   AdsIdRoute: AdsIdRoute,
+  ApiMediaRoute: ApiMediaRoute,
   AppAuthDoneRoute: AppAuthDoneRoute,
   AppAuthFinishRoute: AppAuthFinishRoute,
   AppAuthStartRoute: AppAuthStartRoute,
   DirectorySlugRoute: DirectorySlugRoute,
   IsraelNewsSlugRoute: IsraelNewsSlugRoute,
+  MediaKeyRoute: MediaKeyRoute,
   NewsSlugRoute: NewsSlugRoute,
   AdsIndexRoute: AdsIndexRoute,
   DirectoryIndexRoute: DirectoryIndexRoute,

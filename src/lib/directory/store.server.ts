@@ -1,5 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { getSql } from "@/lib/db";
+import { deleteOwnerMedia, mediaByOwner, setOwnerMedia } from "@/lib/media/store.server";
 import type { BusinessSubmission, SubmissionStatus } from "./types";
 
 /**
@@ -41,6 +42,17 @@ function toSubmission(r: Row): BusinessSubmission {
   };
 }
 
+async function withPhoto(items: BusinessSubmission[]): Promise<BusinessSubmission[]> {
+  const map = await mediaByOwner(
+    "business",
+    items.map((i) => i.id),
+  );
+  return items.map((i) => {
+    const photo = map.get(i.id)?.[0];
+    return photo ? { ...i, photo } : i;
+  });
+}
+
 const SELECT = `select b.id, b.user_id, b.name, b.category, b.area, b.about, b.phone, b.status,
   b.legacy, b.created_at, b.decided_at, u."name" as poster_name
   from business_submissions b left join "user" u on u."id" = b.user_id`;
@@ -49,7 +61,7 @@ export async function listSubmissions(): Promise<BusinessSubmission[]> {
   await importLegacyBlob();
   const sql = await getSql();
   const rows = await sql.query<Row>(`${SELECT} order by b.created_at desc limit 500`);
-  return rows.map(toSubmission);
+  return withPhoto(rows.map(toSubmission));
 }
 
 export async function listByUser(userId: string): Promise<BusinessSubmission[]> {
@@ -58,7 +70,7 @@ export async function listByUser(userId: string): Promise<BusinessSubmission[]> 
     `${SELECT} where b.user_id = $1 order by b.created_at desc limit 100`,
     [userId],
   );
-  return rows.map(toSubmission);
+  return withPhoto(rows.map(toSubmission));
 }
 
 export async function countPendingByUser(userId: string): Promise<number> {
@@ -77,13 +89,16 @@ export async function countPending(): Promise<number> {
 
 export async function createSubmission(
   userId: string,
-  input: Pick<BusinessSubmission, "name" | "category" | "area" | "about" | "phone">,
+  input: Pick<BusinessSubmission, "name" | "category" | "area" | "about" | "phone"> & {
+    photos: string[];
+  },
 ): Promise<string> {
   const id = randomBytes(8).toString("hex");
   const sql = await getSql();
   await sql`
     insert into business_submissions (id, user_id, name, category, area, about, phone)
     values (${id}, ${userId}, ${input.name}, ${input.category}, ${input.area}, ${input.about}, ${input.phone})`;
+  await setOwnerMedia(userId, "business", id, input.photos);
   approvedCache = null;
   return id;
 }
@@ -93,6 +108,7 @@ export async function deleteOwnSubmission(userId: string, id: string): Promise<b
   const sql = await getSql();
   const rows = await sql<{ id: string }>`
     delete from business_submissions where id = ${id} and user_id = ${userId} returning id`;
+  if (rows.length > 0) await deleteOwnerMedia("business", id);
   approvedCache = null;
   return rows.length > 0;
 }
@@ -106,7 +122,7 @@ export async function getApproved(): Promise<BusinessSubmission[]> {
   const rows = await sql.query<Row>(
     `${SELECT} where b.status = 'approved' order by b.decided_at desc nulls last limit 500`,
   );
-  const items = rows.map(toSubmission);
+  const items = await withPhoto(rows.map(toSubmission));
   approvedCache = { at: Date.now(), items };
   return items;
 }
@@ -116,6 +132,7 @@ export async function decide(id: string, action: SubmissionStatus | "delete") {
   const sql = await getSql();
   if (action === "delete") {
     await sql`delete from business_submissions where id = ${id}`;
+    await deleteOwnerMedia("business", id);
   } else {
     await sql`
       update business_submissions set status = ${action}, decided_at = now(), updated_at = now()

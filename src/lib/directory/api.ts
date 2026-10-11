@@ -8,6 +8,7 @@ import {
   PHONE_RE,
   rateLimited,
 } from "@/lib/submit-guard";
+import { cleanMediaKeys, MAX_BUSINESS_PHOTOS } from "@/lib/media/types";
 import { ownerCategories, type BusinessSubmission, type DirectoryEntry } from "./types";
 
 /* ------------------------------------------------------------ public */
@@ -32,6 +33,8 @@ type SubmitInput = {
   area: string;
   about: string;
   phone: string;
+  /** Uploaded logo/photo key (from /api/media?kind=business); at most one. */
+  photos?: string[];
   website?: string; // honeypot — must stay empty
   startedAt?: number;
 };
@@ -46,6 +49,7 @@ function validateBusiness(input: SubmitInput) {
     area: clean(input?.area, 60),
     about: clean(input?.about, 160),
     phone: cleanPhone(input?.phone),
+    photos: cleanMediaKeys(input?.photos, MAX_BUSINESS_PHOTOS),
   };
   if (data.name.length < 2) throw new Error("اكتب اسم النشاط.");
   if (!(ownerCategories as readonly string[]).includes(data.category))

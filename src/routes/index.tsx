@@ -7,6 +7,9 @@ import { HomeCarousel, HomeTiles } from "@/components/home-parts";
 import { SectionTitle, Shell } from "@/components/shell";
 import { DutyCard } from "@/components/duty";
 import { InstallBanner } from "@/components/install-app";
+import { HomeTodayChips } from "@/components/today-cards";
+import { weatherWithin } from "@/lib/weather/api";
+import { mediaUrl } from "@/lib/media/types";
 import { NewsUnavailable, newestFirst } from "@/components/news";
 import { getApprovedEntries } from "@/lib/directory/api";
 import { osmEntries, type DirectoryEntry } from "@/lib/directory/types";
@@ -34,13 +37,14 @@ export const Route = createFileRoute("/")({
       jsonLd: [organizationLd, websiteLd],
     }),
   loader: async () => {
-    const [news, approved, ads, israel] = await Promise.all([
+    const [news, approved, ads, israel, weather] = await Promise.all([
       getNews(),
       getApprovedEntries(),
       getPublicAds(),
       israelNewsForHome(),
+      weatherWithin(2_000),
     ]);
-    return { news, approved: approved.entries, ads, israel };
+    return { news, approved: approved.entries, ads, israel, weather };
   },
   // New items must show up within a minute or two: short CDN cache, revalidated in the background.
   headers: () => ({ "Cache-Control": HOME_CACHE }),
@@ -68,7 +72,7 @@ async function israelNewsForHome(): Promise<IsraelNewsResult | null> {
 }
 
 function Home() {
-  const { news, approved, ads: adsData, israel } = Route.useLoaderData();
+  const { news, approved, ads: adsData, israel, weather } = Route.useLoaderData();
   const israelItems = useMemo(() => israel?.items ?? [], [israel]);
   // Translated headlines first (each group stays newest first), then Hebrew-only ones.
   const israelTop = [
@@ -140,6 +144,7 @@ function Home() {
       ) : (
         <div className="flex flex-col gap-6">
           <h1 className="sr-only">رهط بوست: أخبار وخدمات رهط والنقب</h1>
+          <HomeTodayChips weather={weather} serverNow={news.now} />
           <HomeTiles />
           <InstallBanner />
           <HomeCarousel lead={top} leadTime={top ? relativeTimeAr(top.publishedAt, now) : ""} />
@@ -291,7 +296,16 @@ function Home() {
                     params={{ id: item.id }}
                     className="stamp press flex items-center justify-between gap-3 px-4 py-3"
                   >
-                    <span>
+                    {item.photo ? (
+                      <img
+                        src={mediaUrl(item.photo)}
+                        alt=""
+                        className="thumb size-16"
+                        loading="lazy"
+                        decoding="async"
+                      />
+                    ) : null}
+                    <span className="min-w-0 flex-1">
                       <span className={item.quiet ? "chip" : "chip chip-deep"}>{item.type}</span>
                       {item.sample ? <span className="chip ms-1">نموذج</span> : null}
                       <span className="mt-1 block font-bold">{item.title}</span>

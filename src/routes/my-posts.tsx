@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { PhotoStrip } from "@/components/photo-picker";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { AdForm } from "@/components/ad-form";
@@ -131,6 +132,7 @@ function MyPostsPage() {
                   {ad.neighborhood}
                   {ad.price ? ` · ${ad.price}` : ""}
                 </p>
+                <PhotoStrip keys={ad.photos} size="size-16" />
                 <div className="mt-3 grid grid-cols-2 gap-2">
                   <button type="button" className="btn btn-ghost" onClick={() => setEditing(ad.id)}>
                     <Pencil className="size-4" aria-hidden />
@@ -237,6 +239,7 @@ function MyPostsPage() {
                 )}
               </h3>
               <p className="text-sm font-semibold text-muted">{item.area}</p>
+              <PhotoStrip keys={item.photo ? [item.photo] : []} size="size-16" />
               <DeleteButton
                 busy={busyId === item.id}
                 label={

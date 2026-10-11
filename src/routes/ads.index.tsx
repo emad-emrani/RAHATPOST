@@ -4,6 +4,7 @@ import { Shell } from "@/components/shell";
 import { adTypes } from "@/data/content";
 import { getPublicAds } from "@/lib/ads/api";
 import { listAds } from "@/lib/ads/display";
+import { mediaUrl } from "@/lib/media/types";
 import { breadcrumbLd, seo } from "@/lib/seo";
 
 export const Route = createFileRoute("/ads/")({
@@ -63,16 +64,31 @@ function AdsPage() {
               <Link
                 to="/ads/$id"
                 params={{ id: item.id }}
-                className={item.quiet ? "stamp-flat press block p-4" : "stamp press block p-4"}
+                className={
+                  item.quiet
+                    ? "stamp-flat press flex items-start gap-3 p-4"
+                    : "stamp press flex items-start gap-3 p-4"
+                }
               >
-                <span className={item.quiet ? "chip" : "chip chip-deep"}>{item.type}</span>
-                {item.sample ? <span className="chip ms-1">نموذج</span> : null}
-                <span className="mt-2 block text-lg font-bold">{item.title}</span>
-                <span className="font-semibold text-muted">
-                  {item.neighborhood}
-                  {item.posterName ? ` · ${item.posterName}` : ""}
+                <span className="min-w-0 flex-1">
+                  <span className={item.quiet ? "chip" : "chip chip-deep"}>{item.type}</span>
+                  {item.sample ? <span className="chip ms-1">نموذج</span> : null}
+                  <span className="mt-2 block text-lg font-bold">{item.title}</span>
+                  <span className="font-semibold text-muted">
+                    {item.neighborhood}
+                    {item.posterName ? ` · ${item.posterName}` : ""}
+                  </span>
+                  {item.price ? <span className="mt-1 block font-bold">{item.price}</span> : null}
                 </span>
-                {item.price ? <span className="mt-1 block font-bold">{item.price}</span> : null}
+                {item.photo ? (
+                  <img
+                    src={mediaUrl(item.photo)}
+                    alt=""
+                    className="thumb size-24"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                ) : null}
               </Link>
             </li>
           ))}

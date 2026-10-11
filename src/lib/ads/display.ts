@@ -11,9 +11,13 @@ export type ListAd = {
   sample?: boolean;
   quiet?: boolean;
   posterName?: string;
+  /** First photo key, for the list thumbnail. */
+  photo?: string;
 };
 
 /** Real approved ads, or the «نموذج» samples only while there are no real ones. */
 export function listAds(res: { ads: PublicAd[]; showSamples: boolean }): ListAd[] {
-  return res.showSamples ? classifieds : res.ads;
+  return res.showSamples
+    ? classifieds
+    : res.ads.map((ad) => (ad.photos[0] ? { ...ad, photo: ad.photos[0] } : ad));
 }

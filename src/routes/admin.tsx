@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { PhotoStrip } from "@/components/photo-picker";
 import { useCallback, useEffect, useState } from "react";
 import { Shell } from "@/components/shell";
 import { adminDecideAd, adminListAds } from "@/lib/ads/api";
@@ -167,6 +168,7 @@ function AdminPage() {
                   <h2 className="mt-2 text-xl font-bold">{item.name}</h2>
                   <p className="font-semibold">{item.area}</p>
                   <p className="mt-1">{item.about}</p>
+                  <PhotoStrip keys={item.photo ? [item.photo] : []} />
                   <p className="mt-1 font-bold" dir="ltr">
                     {item.phone}
                   </p>
@@ -278,6 +280,7 @@ function AdsAdmin() {
                 {ad.price ? ` · ${ad.price}` : ""}
               </p>
               <p className="mt-1 whitespace-pre-line">{ad.description}</p>
+              <PhotoStrip keys={ad.photos} />
               <p className="mt-1 font-bold" dir="ltr">
                 {ad.phone}
               </p>

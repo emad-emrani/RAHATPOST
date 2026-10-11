@@ -18,6 +18,8 @@ export type PublicAd = {
   phone: string;
   posterName: string;
   createdAt: string;
+  /** Photo keys (see @/lib/media/types → mediaUrl), in display order; up to 3. */
+  photos: string[];
 };
 
 /** The owner's / admin's view of an ad. */
@@ -30,6 +32,8 @@ export type AdInput = {
   price: string;
   neighborhood: string;
   phone: string;
+  /** Uploaded photo keys (from /api/media?kind=ad), in order. */
+  photos: string[];
 };
 
 export const AD_STATUS_LABEL: Record<AdStatus, string> = {

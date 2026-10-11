@@ -8,21 +8,26 @@ import {
   IsraelNewsUnavailable,
 } from "@/components/israel-news";
 import { SectionTitle, Shell } from "@/components/shell";
+import { PrayerCard, WeatherCard } from "@/components/today-cards";
 import { alert, emergency } from "@/data/content";
 import { useNow } from "@/lib/news/format";
 import { getIsraelNews } from "@/lib/news/israel-api";
+import { weatherWithin } from "@/lib/weather/api";
 import { breadcrumbLd, seo } from "@/lib/seo";
 
 export const Route = createFileRoute("/today")({
   head: () =>
     seo({
-      title: "لوحة اليوم في رهط: الطوارئ والصيدلية المناوبة · رهط بوست",
+      title: "لوحة اليوم في رهط: الطقس، أوقات الصلاة، الطوارئ والصيدلية المناوبة · رهط بوست",
       description:
-        "لوحة اليوم في رهط والنقب: صيدلية الحراسة اليوم، أرقام الطوارئ والإسعاف والشرطة، التنبيهات، وأهم أخبار إسرائيل مترجمة إلى العربية.",
+        "لوحة اليوم في رهط والنقب: الطقس الآن، أوقات الصلاة، صيدلية الحراسة اليوم، أرقام الطوارئ والإسعاف والشرطة، التنبيهات، وأهم أخبار إسرائيل مترجمة إلى العربية.",
       path: "/today",
       jsonLd: [breadcrumbLd([{ name: "لوحة اليوم", path: "/today" }])],
     }),
-  loader: () => getIsraelNews(),
+  loader: async () => {
+    const [israel, weather] = await Promise.all([getIsraelNews(), weatherWithin(4_000)]);
+    return { israel, weather, now: Date.now() };
+  },
   staleTime: 5 * 60_000,
   component: TodayPage,
 });
@@ -30,7 +35,7 @@ export const Route = createFileRoute("/today")({
 const TODAY_ISRAEL_ITEMS = 7;
 
 function TodayPage() {
-  const israel = Route.useLoaderData();
+  const { israel, weather, now: loadedAt } = Route.useLoaderData();
   const now = useNow(israel.now);
   const [lead, ...rest] = israel.items.slice(0, TODAY_ISRAEL_ITEMS);
   return (
@@ -45,6 +50,9 @@ function TodayPage() {
             <p className="mt-1 text-sm font-bold">{alert.until}</p>
           </section>
         ) : null}
+
+        <WeatherCard weather={weather} />
+        <PrayerCard serverNow={loadedAt} />
 
         <section>
           <SectionTitle title="أخبار إسرائيل" to="/israel-news" more="كل الأخبار" />

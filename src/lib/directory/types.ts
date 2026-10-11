@@ -18,6 +18,8 @@ export type DirectoryEntry = {
   phone?: string;
   website?: string;
   openingHours?: string;
+  /** Owner-uploaded logo/photo key (approved businesses only). */
+  photo?: string;
 };
 
 export type SubmissionStatus = "pending" | "approved" | "rejected";
@@ -35,6 +37,8 @@ export type BusinessSubmission = {
   /** Signed-in submitter (absent for requests imported from the old Blob store). */
   userId?: string;
   posterName?: string;
+  /** Logo/photo key (see @/lib/media/types → mediaUrl). */
+  photo?: string;
 };
 
 /** Categories offered in the submit form and used for owner entries. */
@@ -83,6 +87,7 @@ export function ownerEntry(s: BusinessSubmission): DirectoryEntry {
     area: s.area,
     description: s.about,
     phone: s.phone,
+    ...(s.photo ? { photo: s.photo } : {}),
   };
 }
 
