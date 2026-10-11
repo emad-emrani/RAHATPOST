@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Shell } from "@/components/shell";
 import { adTypes, classifieds } from "@/data/content";
 
-export const Route = createFileRoute("/ads")({
+export const Route = createFileRoute("/ads/")({
   head: () => ({ meta: [{ title: "الإعلانات · رهط بوست" }] }),
   component: AdsPage,
 });

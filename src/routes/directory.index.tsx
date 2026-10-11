@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import { Shell } from "@/components/shell";
 import { businessCategories, businesses } from "@/data/content";
 
-export const Route = createFileRoute("/directory")({
+export const Route = createFileRoute("/directory/")({
   head: () => ({ meta: [{ title: "الدليل · رهط بوست" }] }),
   component: DirectoryPage,
 });

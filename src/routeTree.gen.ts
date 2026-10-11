@@ -10,12 +10,12 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as AdsRouteImport } from './routes/ads'
 import { Route as BusesRouteImport } from './routes/buses'
-import { Route as DirectoryRouteImport } from './routes/directory'
 import { Route as SubmitRouteImport } from './routes/submit'
 import { Route as TodayRouteImport } from './routes/today'
+import { Route as AdsIndexRouteImport } from './routes/ads.index'
 import { Route as AdsIdRouteImport } from './routes/ads.$id'
+import { Route as DirectoryIndexRouteImport } from './routes/directory.index'
 import { Route as DirectorySlugRouteImport } from './routes/directory.$slug'
 import { Route as NewsIndexRouteImport } from './routes/news.index'
 import { Route as NewsSlugRouteImport } from './routes/news.$slug'
@@ -25,19 +25,9 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AdsRoute = AdsRouteImport.update({
-  id: '/ads',
-  path: '/ads',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const BusesRoute = BusesRouteImport.update({
   id: '/buses',
   path: '/buses',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DirectoryRoute = DirectoryRouteImport.update({
-  id: '/directory',
-  path: '/directory',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SubmitRoute = SubmitRouteImport.update({
@@ -50,15 +40,25 @@ const TodayRoute = TodayRouteImport.update({
   path: '/today',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdsIndexRoute = AdsIndexRouteImport.update({
+  id: '/ads/',
+  path: '/ads/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdsIdRoute = AdsIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => AdsRoute,
+  id: '/ads/$id',
+  path: '/ads/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DirectoryIndexRoute = DirectoryIndexRouteImport.update({
+  id: '/directory/',
+  path: '/directory/',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const DirectorySlugRoute = DirectorySlugRouteImport.update({
-  id: '/$slug',
-  path: '/$slug',
-  getParentRoute: () => DirectoryRoute,
+  id: '/directory/$slug',
+  path: '/directory/$slug',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const NewsIndexRoute = NewsIndexRouteImport.update({
   id: '/news/',
@@ -73,88 +73,90 @@ const NewsSlugRoute = NewsSlugRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/ads': typeof AdsRouteWithChildren
   '/buses': typeof BusesRoute
-  '/directory': typeof DirectoryRouteWithChildren
   '/submit': typeof SubmitRoute
   '/today': typeof TodayRoute
   '/ads/$id': typeof AdsIdRoute
   '/directory/$slug': typeof DirectorySlugRoute
   '/news/$slug': typeof NewsSlugRoute
+  '/ads/': typeof AdsIndexRoute
+  '/directory/': typeof DirectoryIndexRoute
   '/news/': typeof NewsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/ads': typeof AdsRouteWithChildren
   '/buses': typeof BusesRoute
-  '/directory': typeof DirectoryRouteWithChildren
   '/submit': typeof SubmitRoute
   '/today': typeof TodayRoute
   '/ads/$id': typeof AdsIdRoute
   '/directory/$slug': typeof DirectorySlugRoute
   '/news/$slug': typeof NewsSlugRoute
+  '/ads': typeof AdsIndexRoute
+  '/directory': typeof DirectoryIndexRoute
   '/news': typeof NewsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/ads': typeof AdsRouteWithChildren
   '/buses': typeof BusesRoute
-  '/directory': typeof DirectoryRouteWithChildren
   '/submit': typeof SubmitRoute
   '/today': typeof TodayRoute
   '/ads/$id': typeof AdsIdRoute
   '/directory/$slug': typeof DirectorySlugRoute
   '/news/$slug': typeof NewsSlugRoute
+  '/ads/': typeof AdsIndexRoute
+  '/directory/': typeof DirectoryIndexRoute
   '/news/': typeof NewsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/ads'
     | '/buses'
-    | '/directory'
     | '/submit'
     | '/today'
     | '/ads/$id'
     | '/directory/$slug'
     | '/news/$slug'
+    | '/ads/'
+    | '/directory/'
     | '/news/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/ads'
     | '/buses'
-    | '/directory'
     | '/submit'
     | '/today'
     | '/ads/$id'
     | '/directory/$slug'
     | '/news/$slug'
+    | '/ads'
+    | '/directory'
     | '/news'
   id:
     | '__root__'
     | '/'
-    | '/ads'
     | '/buses'
-    | '/directory'
     | '/submit'
     | '/today'
     | '/ads/$id'
     | '/directory/$slug'
     | '/news/$slug'
+    | '/ads/'
+    | '/directory/'
     | '/news/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AdsRoute: typeof AdsRouteWithChildren
   BusesRoute: typeof BusesRoute
-  DirectoryRoute: typeof DirectoryRouteWithChildren
   SubmitRoute: typeof SubmitRoute
   TodayRoute: typeof TodayRoute
+  AdsIdRoute: typeof AdsIdRoute
+  DirectorySlugRoute: typeof DirectorySlugRoute
   NewsSlugRoute: typeof NewsSlugRoute
+  AdsIndexRoute: typeof AdsIndexRoute
+  DirectoryIndexRoute: typeof DirectoryIndexRoute
   NewsIndexRoute: typeof NewsIndexRoute
 }
 
@@ -167,25 +169,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/ads': {
-      id: '/ads'
-      path: '/ads'
-      fullPath: '/ads'
-      preLoaderRoute: typeof AdsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/buses': {
       id: '/buses'
       path: '/buses'
       fullPath: '/buses'
       preLoaderRoute: typeof BusesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/directory': {
-      id: '/directory'
-      path: '/directory'
-      fullPath: '/directory'
-      preLoaderRoute: typeof DirectoryRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/submit': {
@@ -202,19 +190,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TodayRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/ads/': {
+      id: '/ads/'
+      path: '/ads'
+      fullPath: '/ads/'
+      preLoaderRoute: typeof AdsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/ads/$id': {
       id: '/ads/$id'
-      path: '/$id'
+      path: '/ads/$id'
       fullPath: '/ads/$id'
       preLoaderRoute: typeof AdsIdRouteImport
-      parentRoute: typeof AdsRoute
+      parentRoute: typeof rootRouteImport
+    }
+    '/directory/': {
+      id: '/directory/'
+      path: '/directory'
+      fullPath: '/directory/'
+      preLoaderRoute: typeof DirectoryIndexRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/directory/$slug': {
       id: '/directory/$slug'
-      path: '/$slug'
+      path: '/directory/$slug'
       fullPath: '/directory/$slug'
       preLoaderRoute: typeof DirectorySlugRouteImport
-      parentRoute: typeof DirectoryRoute
+      parentRoute: typeof rootRouteImport
     }
     '/news/': {
       id: '/news/'
@@ -233,36 +235,16 @@ declare module '@tanstack/react-router' {
   }
 }
 
-interface AdsRouteChildren {
-  AdsIdRoute: typeof AdsIdRoute
-}
-
-const AdsRouteChildren: AdsRouteChildren = {
-  AdsIdRoute: AdsIdRoute,
-}
-
-const AdsRouteWithChildren = AdsRoute._addFileChildren(AdsRouteChildren)
-
-interface DirectoryRouteChildren {
-  DirectorySlugRoute: typeof DirectorySlugRoute
-}
-
-const DirectoryRouteChildren: DirectoryRouteChildren = {
-  DirectorySlugRoute: DirectorySlugRoute,
-}
-
-const DirectoryRouteWithChildren = DirectoryRoute._addFileChildren(
-  DirectoryRouteChildren,
-)
-
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AdsRoute: AdsRouteWithChildren,
   BusesRoute: BusesRoute,
-  DirectoryRoute: DirectoryRouteWithChildren,
   SubmitRoute: SubmitRoute,
   TodayRoute: TodayRoute,
+  AdsIdRoute: AdsIdRoute,
+  DirectorySlugRoute: DirectorySlugRoute,
   NewsSlugRoute: NewsSlugRoute,
+  AdsIndexRoute: AdsIndexRoute,
+  DirectoryIndexRoute: DirectoryIndexRoute,
   NewsIndexRoute: NewsIndexRoute,
 }
 export const routeTree = rootRouteImport
