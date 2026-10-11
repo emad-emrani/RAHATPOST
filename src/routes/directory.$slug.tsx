@@ -8,6 +8,8 @@ import { mapsUrl, osmEntries, type DirectoryEntry } from "@/lib/directory/types"
 import { breadcrumbLd, localBusinessLd, seo, SITE_URL, snippet } from "@/lib/seo";
 import { mediaUrl } from "@/lib/media/types";
 import { ReportButton } from "@/components/report";
+import { GuideCard } from "@/components/guide";
+import { guidesForPlace } from "@/data/guides";
 
 export const Route = createFileRoute("/directory/$slug")({
   loader: async ({ params }) => {
@@ -154,6 +156,11 @@ function BusinessPage() {
           </a>
         ) : null}
       </article>
+      {guidesForPlace(place.slug).map((g) => (
+        <div key={g.slug} className="mt-4">
+          <GuideCard guide={g} />
+        </div>
+      ))}
       {place.source === "osm" ? (
         <Link to="/submit" search={{ mode: "نشاط", name: place.name }} className="btn mt-4 w-full">
           هذا نشاطي

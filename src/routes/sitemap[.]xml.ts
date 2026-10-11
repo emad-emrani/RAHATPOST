@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { busSchedule } from "@/data/bus-schedule";
+import { guidePath, guides } from "@/data/guides";
 import { osmEntries } from "@/lib/directory/types";
 import { SITE_URL } from "@/lib/seo";
 
@@ -58,6 +59,12 @@ async function entries(): Promise<Entry[]> {
       changefreq: "daily",
       priority: 0.7,
     },
+    ...guides.map((g) => ({
+      path: guidePath(g),
+      lastmod: day(g.checkedAt),
+      changefreq: "monthly",
+      priority: 0.7,
+    })),
     { path: "/app", changefreq: "monthly", priority: 0.3 },
     { path: "/privacy", changefreq: "yearly", priority: 0.2 },
     { path: "/terms", changefreq: "yearly", priority: 0.2 },

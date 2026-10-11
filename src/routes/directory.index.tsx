@@ -2,6 +2,8 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ChevronLeft, Search } from "lucide-react";
 import { useMemo, useState } from "react";
 import { CategoryIcon } from "@/components/category-icon";
+import { GuideCard } from "@/components/guide";
+import { guides } from "@/data/guides";
 import { mediaUrl } from "@/lib/media/types";
 import { OsmCredit } from "@/components/osm-credit";
 import { Shell } from "@/components/shell";
@@ -52,6 +54,13 @@ function DirectoryPage() {
     <Shell>
       <h1 className="mb-1 text-2xl font-bold">الدليل</h1>
       <p className="mb-3 font-semibold text-muted">{all.length} مكاناً ونشاطاً في رهط.</p>
+      <ul className="mb-4 flex flex-col gap-3" aria-label="أدلة الخدمات">
+        {guides.map((g) => (
+          <li key={g.slug}>
+            <GuideCard guide={g} />
+          </li>
+        ))}
+      </ul>
       <label className="search-field mb-4 block">
         <span className="sr-only">بحث في الدليل</span>
         <Search className="size-5" aria-hidden />
