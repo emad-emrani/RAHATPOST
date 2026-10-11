@@ -1,15 +1,3 @@
-export type Business = {
-  slug: string;
-  name: string;
-  category: string;
-  neighborhood: string;
-  hours: string;
-  open: boolean;
-  verified: boolean;
-  phone: string;
-  description: string;
-};
-
 export type Classified = {
   id: string;
   type: string;
@@ -43,23 +31,16 @@ export const adTypes = [
   "مفقودات",
 ] as const;
 
-export const businessCategories = [
-  "الكل",
-  "مطاعم",
-  "بقالات",
-  "صحة",
-  "تعليم",
-  "ورش",
-  "مناسبات",
-] as const;
-
-export const duty = {
-  name: "صيدلية الأمل",
-  neighborhood: "حي 2",
-  hours: "مفتوحة الآن حتى 8:00 صباحاً",
-  phone: "08-000-4510",
-  maps: "https://www.google.com/maps/search/?api=1&query=%D8%B1%D9%87%D8%B7",
+export type DutyPharmacy = {
+  name: string;
+  neighborhood: string;
+  hours: string;
+  phone: string;
+  maps: string;
 };
+
+/** Today's duty pharmacy. No real shift data is logged yet, so the UI shows «لم يُحدَّث جدول اليوم». */
+export const duty: DutyPharmacy | null = null;
 
 export const weather = {
   temp: "31°",
@@ -82,75 +63,6 @@ export const emergency = [
   { name: "الكهرباء", phone: "103" },
   { name: "الجبهة الداخلية", phone: "104" },
   { name: "البلدية", phone: "106" },
-];
-
-export const businesses: Business[] = [
-  {
-    slug: "diwan",
-    name: "مطعم الديوان",
-    category: "مطاعم",
-    neighborhood: "حي 1",
-    hours: "12:00 – 23:00",
-    open: true,
-    verified: true,
-    phone: "050-000-1101",
-    description: "مشاوي ووجبات عائلية. الطلبات قبل العاشرة مساءً، والجلوس في الصالة الداخلية.",
-  },
-  {
-    slug: "bakery",
-    name: "مخبز رهط",
-    category: "بقالات",
-    neighborhood: "حي 4",
-    hours: "5:00 – 20:00",
-    open: true,
-    verified: true,
-    phone: "050-000-1102",
-    description: "خبز صباح ومناقيش حتى الظهر. الجمعة حتى الثانية عشرة.",
-  },
-  {
-    slug: "amal-pharmacy",
-    name: "صيدلية الأمل",
-    category: "صحة",
-    neighborhood: "حي 2",
-    hours: "حراسة اليوم",
-    open: true,
-    verified: true,
-    phone: "08-000-4510",
-    description: "صيدلية الحراسة اليوم. الأدوية المزمنة حسب التوفر، والطوارئ تُخدم أولاً.",
-  },
-  {
-    slug: "noor",
-    name: "مركز النور التعليمي",
-    category: "تعليم",
-    neighborhood: "حي 6",
-    hours: "14:00 – 20:00",
-    open: false,
-    verified: true,
-    phone: "050-000-1104",
-    description: "تقوية للمرحلة الإعدادية والثانوية. التسجيل في بداية كل شهر فقط.",
-  },
-  {
-    slug: "garage",
-    name: "كراج الجنوب",
-    category: "ورش",
-    neighborhood: "حي 8",
-    hours: "8:00 – 17:00",
-    open: false,
-    verified: false,
-    phone: "050-000-1105",
-    description: "ميكانيك وكهرباء سيارات. تقدير السعر قبل بدء العمل.",
-  },
-  {
-    slug: "waha",
-    name: "قاعة الواحة",
-    category: "مناسبات",
-    neighborhood: "حي 3",
-    hours: "حسب الحجز",
-    open: true,
-    verified: true,
-    phone: "050-000-1106",
-    description: "قاعة أفراح تتسع لثلاثمئة مدعو. المعاينة بحجز مسبق عصراً.",
-  },
 ];
 
 export const classifieds: Classified[] = [
@@ -220,10 +132,6 @@ export const events = [
   { time: "19:00", title: "تدريب ناشئين", place: "القاعة الرياضية" },
   { time: "20:00", title: "عيادة الطوارئ الليلية", place: "مبنى العيادات" },
 ];
-
-export function getBusiness(slug: string) {
-  return businesses.find((item) => item.slug === slug);
-}
 
 export function getClassified(id: string) {
   return classifieds.find((item) => item.id === id);

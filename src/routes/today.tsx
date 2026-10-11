@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { MapPin, Phone } from "lucide-react";
+import { DutyCard } from "@/components/duty";
 import { Shell } from "@/components/shell";
-import { alert, duty, emergency, events, weather } from "@/data/content";
+import { alert, emergency, events, weather } from "@/data/content";
 
 export const Route = createFileRoute("/today")({
   head: () => ({ meta: [{ title: "لوحة اليوم · رهط بوست" }] }),
@@ -13,23 +13,7 @@ function TodayPage() {
     <Shell>
       <h1 className="mb-4 text-3xl font-bold">لوحة اليوم</h1>
       <div className="flex flex-col gap-4">
-        <section className="stamp p-4">
-          <p className="text-sm font-bold text-muted">صيدلية الحراسة</p>
-          <h2 className="text-2xl font-bold">{duty.name}</h2>
-          <p className="font-semibold">
-            {duty.neighborhood} · {duty.hours}
-          </p>
-          <div className="mt-3 grid grid-cols-2 gap-2">
-            <a className="btn" href={`tel:${duty.phone.replaceAll("-", "")}`}>
-              <Phone className="size-4" aria-hidden />
-              اتصال
-            </a>
-            <a className="btn btn-ghost" href={duty.maps} target="_blank" rel="noreferrer">
-              <MapPin className="size-4" aria-hidden />
-              الاتجاهات
-            </a>
-          </div>
-        </section>
+        <DutyCard label="صيدلية الحراسة" />
 
         <section className="stamp bg-brand-deep p-4">
           <p className="chip">تنبيه</p>

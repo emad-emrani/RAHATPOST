@@ -1,0 +1,42 @@
+name: Update directory
+
+# Weekly: fetch named places inside Rahat from OpenStreetMap (Overpass API) and commit
+# src/data/directory.ts when it changed (the push redeploys the site on Vercel).
+on:
+  schedule:
+    - cron: "40 2 * * 1" # Mondays 02:40 UTC ≈ 05:40 Israel time
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-directory
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Regenerate directory from OpenStreetMap
+        run: python3 scripts/update-directory.py
+
+      - name: Commit if changed
+        run: |
+          if git diff --quiet -- src/data/directory.ts; then
+            echo "No directory changes."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/data/directory.ts
+          git commit -m "Update directory from OpenStreetMap ($(date -u +%Y-%m-%d))"
+          git pull --rebase
+          git push

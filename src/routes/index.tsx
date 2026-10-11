@@ -1,27 +1,32 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { MapPin, Phone } from "lucide-react";
 import { useMemo, useState } from "react";
 import { SectionTitle, Shell } from "@/components/shell";
+import { DutyCard } from "@/components/duty";
 import { NewsUnavailable, prioritizeLocal } from "@/components/news";
+import { getApprovedEntries } from "@/lib/directory/api";
+import { osmEntries, type DirectoryEntry } from "@/lib/directory/types";
 import { getNews } from "@/lib/news/api";
 import { relativeTimeAr, useNow } from "@/lib/news/format";
 import type { NewsItem } from "@/lib/news/types";
-import {
-  alert,
-  businesses,
-  classifieds,
-  duty,
-  emergency,
-} from "@/data/content";
+import { alert, classifieds, emergency } from "@/data/content";
 
 export const Route = createFileRoute("/")({
-  loader: () => getNews(),
+  loader: async () => {
+    const [news, approved] = await Promise.all([getNews(), getApprovedEntries()]);
+    return { news, approved: approved.entries };
+  },
   staleTime: 5 * 60_000,
   component: Home,
 });
 
 function Home() {
-  const news = Route.useLoaderData();
+  const { news, approved } = Route.useLoaderData();
+  const places = useMemo(() => [...approved, ...osmEntries()], [approved]);
+  // Verified (owner-approved) first; until there are any, a few real places with details from OSM.
+  const featured = [
+    ...approved,
+    ...osmEntries().filter((p) => p.phone || p.openingHours || p.address),
+  ].slice(0, 4);
   const now = useNow(news.now);
   const [q, setQ] = useState("");
   const query = q.trim();
@@ -37,10 +42,12 @@ function Home() {
       news: news.items.filter(
         (item) => hay(item.title) || hay(item.category) || hay(item.source) || hay(item.summary),
       ),
-      places: businesses.filter((item) => hay(item.name) || hay(item.category) || hay(item.neighborhood)),
+      places: places.filter(
+        (item) => hay(item.name) || hay(item.category) || hay(item.altName ?? "") || hay(item.address ?? item.area ?? ""),
+      ),
       ads: classifieds.filter((item) => hay(item.title) || hay(item.type)),
     };
-  }, [query, news.items]);
+  }, [query, news.items, places]);
 
   return (
     <Shell>
@@ -68,23 +75,7 @@ function Home() {
             </Link>
           ) : null}
 
-          <section className="stamp p-4">
-            <p className="text-sm font-bold text-muted">صيدلية الحراسة اليوم</p>
-            <h1 className="mt-1 text-2xl font-bold">{duty.name}</h1>
-            <p className="font-semibold">
-              {duty.neighborhood} · {duty.hours}
-            </p>
-            <div className="mt-3 grid grid-cols-2 gap-2">
-              <a className="btn" href={`tel:${duty.phone.replaceAll("-", "")}`}>
-                <Phone className="size-4" aria-hidden />
-                اتصال
-              </a>
-              <a className="btn btn-ghost" href={duty.maps} target="_blank" rel="noreferrer">
-                <MapPin className="size-4" aria-hidden />
-                الاتجاهات
-              </a>
-            </div>
-          </section>
+          <DutyCard heading="h1" />
 
           <section>
             <SectionTitle title="أرقام تُحفظ" to="/today" more="كل الأرقام" />
@@ -150,13 +141,15 @@ function Home() {
           <section>
             <SectionTitle title="من الدليل" to="/directory" more="كل الدليل" />
             <ul className="grid gap-3 sm:grid-cols-2">
-              {businesses.filter((item) => item.verified).slice(0, 4).map((item) => (
+              {featured.map((item) => (
                 <li key={item.slug}>
                   <Link to="/directory/$slug" params={{ slug: item.slug }} className="stamp press block h-full p-4">
                     <span className="chip">{item.category}</span>
                     {item.verified ? <span className="chip chip-ink ms-2">موثّق</span> : null}
                     <span className="mt-2 block text-lg font-bold">{item.name}</span>
-                    <span className="text-sm font-semibold text-muted">{item.neighborhood}</span>
+                    {item.address || item.area ? (
+                      <span className="text-sm font-semibold text-muted">{item.address || item.area}</span>
+                    ) : null}
                   </Link>
                 </li>
               ))}
@@ -197,7 +190,7 @@ function SearchResults({
   query: string;
   results: {
     news: NewsItem[];
-    places: typeof businesses;
+    places: DirectoryEntry[];
     ads: typeof classifieds;
   };
 }) {
