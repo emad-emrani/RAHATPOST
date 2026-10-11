@@ -5,6 +5,7 @@ import { NewsUnavailable } from "@/components/news";
 import { NewsImage } from "@/components/news-image";
 import { getNews } from "@/lib/news/api";
 import { relativeTimeAr, useNow } from "@/lib/news/format";
+import type { NewsItem } from "@/lib/news/types";
 
 export const Route = createFileRoute("/news/$slug")({
   loader: async ({ params }) => {
@@ -71,26 +72,34 @@ function ArticlePage() {
         ) : null}
         <div className="p-4">
           <span className={article.breaking ? "chip chip-alert" : "chip chip-deep"}>
-            {article.breaking ? "عاجل" : article.category}
+            {article.breaking ? "عاجل" : article.reader ? "من القراء" : article.category}
           </span>
           <h1 className="mt-3 text-2xl font-bold">{article.title}</h1>
           <p className="mt-1 font-semibold text-muted">
             <time dateTime={article.publishedAt}>{relativeTimeAr(article.publishedAt, now)}</time> ·{" "}
-            {article.source}
+            {article.reader
+              ? `نشره: ${article.reader.name} · ${article.reader.neighborhood}`
+              : article.source}
           </p>
-          {article.summary ? <p className="mt-4 text-lg">{article.summary}</p> : null}
-          <a
-            className="btn mt-5 w-full"
-            href={article.link}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            اقرأ الخبر كاملاً في المصدر
-            <ExternalLink className="size-4" aria-hidden />
-          </a>
-          <p className="mt-3 text-sm font-semibold text-muted">
-            مقتطف قصير من موقع {article.source}. الخبر الكامل وحقوقه لدى المصدر.
-          </p>
+          {article.reader ? (
+            <ReaderBody article={article} />
+          ) : (
+            <>
+              {article.summary ? <p className="mt-4 text-lg">{article.summary}</p> : null}
+              <a
+                className="btn mt-5 w-full"
+                href={article.link}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                اقرأ الخبر كاملاً في المصدر
+                <ExternalLink className="size-4" aria-hidden />
+              </a>
+              <p className="mt-3 text-sm font-semibold text-muted">
+                مقتطف قصير من موقع {article.source}. الخبر الكامل وحقوقه لدى المصدر.
+              </p>
+            </>
+          )}
         </div>
       </article>
       <div className="mt-4 grid grid-cols-2 gap-2">
@@ -131,5 +140,37 @@ function ArticlePage() {
         </>
       ) : null}
     </Shell>
+  );
+}
+
+function ReaderBody({ article }: { article: NewsItem }) {
+  const source = article.reader?.sourceUrl;
+  return (
+    <>
+      <div className="mt-4 flex flex-col gap-3 text-lg">
+        {(article.body ?? article.summary)
+          .split(/\n{2,}/)
+          .filter(Boolean)
+          .map((para, i) => (
+            <p key={i} className="whitespace-pre-line">
+              {para}
+            </p>
+          ))}
+      </div>
+      {source ? (
+        <a
+          className="btn btn-ghost mt-5 w-full"
+          href={source}
+          target="_blank"
+          rel="noopener noreferrer nofollow ugc"
+        >
+          المصدر الذي أرفقه الناشر
+          <ExternalLink className="size-4" aria-hidden />
+        </a>
+      ) : null}
+      <p className="mt-3 text-sm font-semibold text-muted">
+        خبر أرسله أحد القرّاء وراجعه فريق رهط بوست قبل النشر. المسؤولية عن المحتوى على ناشره.
+      </p>
+    </>
   );
 }

@@ -1,4 +1,13 @@
 import { createServerFn } from "@tanstack/react-start";
+import { authMiddleware } from "@/lib/auth/middleware";
+import {
+  clean,
+  cleanPhone,
+  friendly,
+  looksLikeBot,
+  PHONE_RE,
+  rateLimited,
+} from "@/lib/submit-guard";
 import { ownerCategories, type BusinessSubmission, type DirectoryEntry } from "./types";
 
 /* ------------------------------------------------------------ public */
@@ -23,74 +32,72 @@ type SubmitInput = {
   area: string;
   about: string;
   phone: string;
-  website: string; // honeypot — must stay empty
-  startedAt: number;
+  website?: string; // honeypot — must stay empty
+  startedAt?: number;
 };
 
-const clean = (v: unknown, max: number) =>
-  String(v ?? "")
-    .replace(/[\u0000-\u001f\u007f<>]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, max);
-
-const hits = new Map<string, number[]>();
-const WINDOW_MS = 10 * 60_000;
-const MAX_PER_WINDOW = 3;
 const MAX_PENDING = 100;
+const MAX_PENDING_PER_USER = 3;
 
+function validateBusiness(input: SubmitInput) {
+  const data = {
+    name: clean(input?.name, 80),
+    category: clean(input?.category, 40),
+    area: clean(input?.area, 60),
+    about: clean(input?.about, 160),
+    phone: cleanPhone(input?.phone),
+  };
+  if (data.name.length < 2) throw new Error("اكتب اسم النشاط.");
+  if (!(ownerCategories as readonly string[]).includes(data.category))
+    throw new Error("اختر تصنيفاً من القائمة.");
+  if (data.area.length < 2) throw new Error("اكتب الحي.");
+  if (data.about.length < 5) throw new Error("اكتب سطر وصف قصير.");
+  if (!PHONE_RE.test(data.phone)) throw new Error("رقم الهاتف غير صحيح.");
+  return data;
+}
+
+/** Signed-in users only; the request is stored with the session user's id (never a client id). */
 export const submitBusiness = createServerFn({ method: "POST" })
-  .inputValidator((input: SubmitInput): SubmitInput => {
-    const data = {
-      name: clean(input?.name, 80),
-      category: clean(input?.category, 40),
-      area: clean(input?.area, 60),
-      about: clean(input?.about, 160),
-      phone: clean(input?.phone, 20),
-      website: String(input?.website ?? ""),
-      startedAt: Number(input?.startedAt) || 0,
-    };
-    if (data.name.length < 2) throw new Error("اكتب اسم النشاط.");
-    if (!(ownerCategories as readonly string[]).includes(data.category)) throw new Error("اختر تصنيفاً من القائمة.");
-    if (data.area.length < 2) throw new Error("اكتب الحي.");
-    if (data.about.length < 5) throw new Error("اكتب سطر وصف قصير.");
-    const digits = data.phone.replace(/[\s-]/g, "");
-    if (!/^(0\d{8,9}|\+972\d{8,9})$/.test(digits)) throw new Error("رقم الهاتف غير صحيح.");
-    data.phone = digits;
-    return data;
-  })
-  .handler(async ({ data }): Promise<{ ok: boolean; message?: string }> => {
-    // Bots: filled honeypot or submitted faster than a human could type → pretend success, store nothing.
-    if (data.website || Date.now() - data.startedAt < 3000) return { ok: true };
-
-    const { getRequestIP } = await import("@tanstack/react-start/server");
-    const ip = getRequestIP({ xForwardedFor: true }) ?? "unknown";
-    const now = Date.now();
-    const recent = (hits.get(ip) ?? []).filter((t) => now - t < WINDOW_MS);
-    if (recent.length >= MAX_PER_WINDOW) {
-      return { ok: false, message: "أرسلت عدة طلبات للتو. حاول بعد قليل." };
-    }
-    recent.push(now);
-    hits.set(ip, recent);
-    if (hits.size > 5000) hits.clear();
-
+  .middleware([authMiddleware])
+  .inputValidator((input: SubmitInput) => input)
+  .handler(async ({ data, context }): Promise<{ ok: boolean; message?: string }> => {
+    if (looksLikeBot(data)) return { ok: true };
+    let business: ReturnType<typeof validateBusiness>;
     try {
-      const { countPending, createSubmission } = await import("./store.server");
-      if ((await countPending()) >= MAX_PENDING) {
+      business = validateBusiness(data);
+    } catch (error) {
+      return { ok: false, message: friendly(error, "تحقق من الحقول.") };
+    }
+    if (await rateLimited("business", context.user.id))
+      return { ok: false, message: "أرسلت عدة طلبات للتو. حاول بعد قليل." };
+    try {
+      const { countPending, countPendingByUser, createSubmission } = await import("./store.server");
+      if ((await countPendingByUser(context.user.id)) >= MAX_PENDING_PER_USER)
+        return { ok: false, message: "لديك طلبات بانتظار المراجعة. انتظر مراجعتها أولاً." };
+      if ((await countPending()) >= MAX_PENDING)
         return { ok: false, message: "قائمة المراجعة ممتلئة الآن. حاول لاحقاً." };
-      }
-      await createSubmission({
-        name: data.name,
-        category: data.category,
-        area: data.area,
-        about: data.about,
-        phone: data.phone,
-      });
+      await createSubmission(context.user.id, business);
       return { ok: true };
     } catch (error) {
       console.error("[directory] submit failed", error);
       return { ok: false, message: "تعذّر الحفظ الآن. حاول مرة أخرى." };
     }
+  });
+
+export const listMyBusinesses = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .handler(async ({ context }): Promise<BusinessSubmission[]> => {
+    const { listByUser } = await import("./store.server");
+    return listByUser(context.user.id);
+  });
+
+export const deleteMyBusiness = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .inputValidator((input: { id: string }) => ({ id: String(input?.id ?? "") }))
+  .handler(async ({ data, context }): Promise<{ ok: boolean }> => {
+    if (!/^[a-f0-9]{16}$/.test(data.id)) return { ok: false };
+    const { deleteOwnSubmission } = await import("./store.server");
+    return { ok: await deleteOwnSubmission(context.user.id, data.id) };
   });
 
 /* ------------------------------------------------------------- admin */
@@ -104,10 +111,13 @@ async function requireAdmin() {
 const loginHits = new Map<string, number[]>();
 
 export const adminLogin = createServerFn({ method: "POST" })
-  .inputValidator((input: { password: string }) => ({ password: String(input?.password ?? "").slice(0, 200) }))
+  .inputValidator((input: { password: string }) => ({
+    password: String(input?.password ?? "").slice(0, 200),
+  }))
   .handler(async ({ data }): Promise<{ ok: boolean; message?: string }> => {
     const { getRequestIP, setCookie } = await import("@tanstack/react-start/server");
-    const { ADMIN_COOKIE, checkPassword, issueSession, sessionMaxAge } = await import("./auth.server");
+    const { ADMIN_COOKIE, checkPassword, issueSession, sessionMaxAge } =
+      await import("./auth.server");
     const ip = getRequestIP({ xForwardedFor: true }) ?? "unknown";
     const now = Date.now();
     const recent = (loginHits.get(ip) ?? []).filter((t) => now - t < 15 * 60_000);
@@ -152,13 +162,16 @@ export const adminList = createServerFn({ method: "POST" }).handler(
 );
 
 export const adminDecide = createServerFn({ method: "POST" })
-  .inputValidator((input: { id: string; action: "approved" | "rejected" | "pending" | "delete" }) => {
-    const id = String(input?.id ?? "");
-    const action = input?.action;
-    if (!/^[a-f0-9]{16}$/.test(id)) throw new Error("bad id");
-    if (!["approved", "rejected", "pending", "delete"].includes(action)) throw new Error("bad action");
-    return { id, action };
-  })
+  .inputValidator(
+    (input: { id: string; action: "approved" | "rejected" | "pending" | "delete" }) => {
+      const id = String(input?.id ?? "");
+      const action = input?.action;
+      if (!/^[a-f0-9]{16}$/.test(id)) throw new Error("bad id");
+      if (!["approved", "rejected", "pending", "delete"].includes(action))
+        throw new Error("bad action");
+      return { id, action };
+    },
+  )
   .handler(async ({ data }) => {
     await requireAdmin();
     const { decide } = await import("./store.server");

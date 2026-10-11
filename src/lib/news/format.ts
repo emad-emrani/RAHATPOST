@@ -35,3 +35,8 @@ export function useNow(serverNow: number): number {
   }, []);
   return now;
 }
+
+/** "Source" line for a news item: the publisher, or «من القراء · <poster>» for reader posts. */
+export function newsByline(item: { source: string; reader?: { name: string } }): string {
+  return item.reader ? `من القراء · ${item.reader.name}` : item.source;
+}

@@ -1,8 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { AdForm } from "@/components/ad-form";
+import { NewsForm } from "@/components/news-form";
 import { Shell } from "@/components/shell";
+import { SignInButtons } from "@/components/sign-in";
 import { createMyAd } from "@/lib/ads/api";
+import { getAuthConfig } from "@/lib/auth/api";
+import { createMyNews } from "@/lib/reader-news/api";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { submitBusiness } from "@/lib/directory/api";
 import { ownerCategories } from "@/lib/directory/types";
@@ -10,12 +14,19 @@ import { ownerCategories } from "@/lib/directory/types";
 const modes = ["خبر", "إعلان", "نشاط"] as const;
 type Mode = (typeof modes)[number];
 
+const SIGN_IN_TITLE: Record<Mode, string> = {
+  خبر: "سجّل الدخول لترسل خبراً باسمك.",
+  إعلان: "سجّل الدخول لتنشر إعلاناً باسمك.",
+  نشاط: "سجّل الدخول لتضيف نشاطك إلى الدليل.",
+};
+
 export const Route = createFileRoute("/submit")({
   head: () => ({ meta: [{ title: "أضف · رهط بوست" }] }),
   validateSearch: (search: Record<string, unknown>): { mode?: Mode; name?: string } => ({
     mode: modes.includes(search.mode as Mode) ? (search.mode as Mode) : undefined,
     name: typeof search.name === "string" ? search.name.slice(0, 80) : undefined,
   }),
+  loader: () => getAuthConfig(),
   component: SubmitPage,
 });
 
@@ -28,6 +39,12 @@ function SubmitPage() {
   const [startedAt, setStartedAt] = useState(0);
   useEffect(() => setStartedAt(Date.now()), [mode]);
   const { user, isPending } = useCurrentUserState();
+  const authConfig = Route.useLoaderData();
+  // Come back to the same mode (and prefilled business name) after signing in.
+  const back = `/submit?${new URLSearchParams({
+    mode,
+    ...(search.name ? { name: search.name } : {}),
+  })}`;
 
   return (
     <Shell>
@@ -55,36 +72,44 @@ function SubmitPage() {
       {sent ? (
         <div className="stamp flex flex-col gap-3 p-4">
           <p className="text-lg font-bold">وصلنا. لن يُنشر قبل المراجعة.</p>
-          {mode === "إعلان" ? (
-            <Link to="/my-ads" className="btn">
-              إعلاناتي
-            </Link>
-          ) : null}
+          <p className="font-semibold text-muted">تتابع حالته من صفحة «منشوراتي».</p>
+          <Link to="/my-posts" className="btn">
+            منشوراتي
+          </Link>
         </div>
+      ) : isPending ? (
+        <p className="stamp p-4 font-semibold">جاري التحميل…</p>
+      ) : !user ? (
+        <div className="stamp flex flex-col gap-3 p-4">
+          <p className="text-lg font-bold">{SIGN_IN_TITLE[mode]}</p>
+          <p className="font-semibold text-muted">
+            لا نقبل منشورات بلا حساب، حتى نعرف من نشر ونمنع الرسائل المزعجة. بعد الدخول تعود إلى هذه
+            الصفحة مباشرة، وتتابع ما أرسلته وحالته من «منشوراتي».
+          </p>
+          <SignInButtons config={authConfig} redirect={back} />
+          <p className="text-sm font-semibold text-muted">
+            نعرض اسمك من الحساب مع ما تنشره فقط، ولا ننشر شيئاً على حسابك.
+          </p>
+        </div>
+      ) : mode === "خبر" ? (
+        <NewsForm
+          onSubmit={async (data) => {
+            const res = await createMyNews({ data });
+            if (!res.ok) return res.message ?? "تعذّر الإرسال.";
+            setSent(true);
+            return null;
+          }}
+        />
       ) : mode === "إعلان" ? (
-        isPending ? (
-          <p className="stamp p-4 font-semibold">جاري التحميل…</p>
-        ) : !user ? (
-          <div className="stamp flex flex-col gap-3 p-4">
-            <p className="font-bold">سجّل الدخول لتنشر إعلاناً باسمك.</p>
-            <p className="text-sm font-semibold text-muted">
-              بعد الدخول تستطيع تعديل إعلاناتك أو حذفها من صفحة «إعلاناتي».
-            </p>
-            <Link to="/login" search={{ redirect: "/submit?mode=إعلان" }} className="btn">
-              تسجيل الدخول
-            </Link>
-          </div>
-        ) : (
-          <AdForm
-            submitLabel="إرسال للمراجعة"
-            onSubmit={async (data) => {
-              const res = await createMyAd({ data });
-              if (!res.ok) return res.message ?? "تعذّر الإرسال.";
-              setSent(true);
-              return null;
-            }}
-          />
-        )
+        <AdForm
+          submitLabel="إرسال للمراجعة"
+          onSubmit={async (data) => {
+            const res = await createMyAd({ data });
+            if (!res.ok) return res.message ?? "تعذّر الإرسال.";
+            setSent(true);
+            return null;
+          }}
+        />
       ) : (
         <form
           key={mode}
@@ -92,10 +117,6 @@ function SubmitPage() {
           onSubmit={async (event) => {
             event.preventDefault();
             setError("");
-            if (mode !== "نشاط") {
-              setSent(true);
-              return;
-            }
             const form = new FormData(event.currentTarget);
             const get = (k: string) => String(form.get(k) ?? "");
             setBusy(true);
@@ -124,12 +145,6 @@ function SubmitPage() {
             }
           }}
         >
-          {mode === "خبر" ? (
-            <>
-              <Field label="ماذا حدث؟" name="what" />
-              <Field label="أين في رهط؟" name="where" />
-            </>
-          ) : null}
           {mode === "نشاط" ? (
             <>
               <Field label="اسم النشاط" name="name" max={80} defaultValue={search.name} />

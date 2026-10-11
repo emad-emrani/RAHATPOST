@@ -4,7 +4,7 @@ import { Shell } from "@/components/shell";
 import { NewsCredit, NewsUnavailable } from "@/components/news";
 import { NewsImage } from "@/components/news-image";
 import { getNews } from "@/lib/news/api";
-import { relativeTimeAr, useNow } from "@/lib/news/format";
+import { newsByline, relativeTimeAr, useNow } from "@/lib/news/format";
 import { newsCategories } from "@/lib/news/types";
 
 export const Route = createFileRoute("/news/")({
@@ -57,13 +57,13 @@ function NewsPage() {
                     <NewsImage item={item} className="size-22 rounded-xl" iconClassName="size-7" />
                     <span className="min-w-0 flex-1">
                       <span className={item.breaking ? "chip chip-alert" : "chip chip-deep"}>
-                        {item.breaking ? "عاجل" : item.category}
+                        {item.breaking ? "عاجل" : item.reader ? "من القراء" : item.category}
                       </span>
                       <span className="mt-1 line-clamp-3 block font-bold leading-snug">
                         {item.title}
                       </span>
                       <span className="text-sm font-semibold text-muted">
-                        {relativeTimeAr(item.publishedAt, now)} · {item.source}
+                        {relativeTimeAr(item.publishedAt, now)} · {newsByline(item)}
                       </span>
                     </span>
                   </Link>

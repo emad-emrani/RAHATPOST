@@ -10,7 +10,7 @@ import { NewsUnavailable, prioritizeLocal } from "@/components/news";
 import { getApprovedEntries } from "@/lib/directory/api";
 import { osmEntries, type DirectoryEntry } from "@/lib/directory/types";
 import { getNews } from "@/lib/news/api";
-import { relativeTimeAr, useNow } from "@/lib/news/format";
+import { newsByline, relativeTimeAr, useNow } from "@/lib/news/format";
 import type { IsraelNewsItem, IsraelNewsResult, NewsItem } from "@/lib/news/types";
 import { getIsraelNews } from "@/lib/news/israel-api";
 import { IsraelNewsCredit, IsraelNewsRow, IsraelTitle } from "@/components/israel-news";
@@ -163,10 +163,12 @@ function Home() {
                     />
                   ) : null}
                   <span className="block p-4">
-                    <span className="chip chip-deep">{lead.category}</span>
+                    <span className="chip chip-deep">
+                      {lead.reader ? "من القراء" : lead.category}
+                    </span>
                     <span className="mt-2 block text-xl font-bold">{lead.title}</span>
                     <span className="text-sm font-semibold text-muted">
-                      {relativeTimeAr(lead.publishedAt, now)} · {lead.source}
+                      {relativeTimeAr(lead.publishedAt, now)} · {newsByline(lead)}
                     </span>
                   </span>
                 </Link>
@@ -183,7 +185,7 @@ function Home() {
                           <span className="block font-bold leading-snug">{item.title}</span>
                           <span className="text-sm font-semibold text-muted">
                             {item.category} · {relativeTimeAr(item.publishedAt, now)} ·{" "}
-                            {item.source}
+                            {newsByline(item)}
                           </span>
                         </span>
                       </Link>

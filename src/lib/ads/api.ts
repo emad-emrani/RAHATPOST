@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { authMiddleware } from "@/lib/auth/middleware";
+import { clean, friendly, looksLikeBot, PHONE_RE, rateLimited } from "@/lib/submit-guard";
 import { AD_ID_RE, adPostTypes, type AdInput, type OwnAd, type PublicAd } from "./types";
 
 /* ------------------------------------------------------------ public */
@@ -35,17 +36,6 @@ export const getPublicAd = createServerFn({ method: "GET" })
 
 type FormInput = AdInput & { website?: string; startedAt?: number };
 
-const clean = (v: unknown, max: number, multiline = false) => {
-  let s = String(v ?? "").replace(/[<>]/g, " ");
-  s = multiline
-    ? s
-        .replace(/[\u0000-\u0009\u000b-\u001f\u007f]/g, " ")
-        .replace(/[ \t]+/g, " ")
-        .replace(/\n{3,}/g, "\n\n")
-    : s.replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ");
-  return s.trim().slice(0, max);
-};
-
 /** Validate + normalize; throws an Arabic message the form can show. */
 function validateAd(input: FormInput): AdInput {
   const data: AdInput = {
@@ -60,50 +50,25 @@ function validateAd(input: FormInput): AdInput {
   if (data.title.length < 3) throw new Error("اكتب عنواناً للإعلان (3 أحرف على الأقل).");
   if (data.description.length < 10) throw new Error("اكتب تفاصيل الإعلان (10 أحرف على الأقل).");
   if (data.neighborhood.length < 2) throw new Error("اكتب الحي.");
-  if (!/^(0\d{8,9}|\+972\d{8,9})$/.test(data.phone)) throw new Error("رقم الهاتف غير صحيح.");
+  if (!PHONE_RE.test(data.phone)) throw new Error("رقم الهاتف غير صحيح.");
   return data;
 }
 
-const hits = new Map<string, number[]>();
-const WINDOW_MS = 10 * 60_000;
-const MAX_PER_USER = 3; // creates + edits per user per 10 minutes
-const MAX_PER_IP = 10; // shared mobile / household IPs
 const MAX_PENDING_PER_USER = 5;
-
-async function rateLimited(userId: string): Promise<boolean> {
-  const { getRequestIP } = await import("@tanstack/react-start/server");
-  const ip = getRequestIP({ xForwardedFor: true }) ?? "unknown";
-  const now = Date.now();
-  let limited = false;
-  for (const [key, max] of [
-    [`u:${userId}`, MAX_PER_USER],
-    [`ip:${ip}`, MAX_PER_IP],
-  ] as const) {
-    const recent = (hits.get(key) ?? []).filter((t) => now - t < WINDOW_MS);
-    if (recent.length >= max) limited = true;
-    recent.push(now);
-    hits.set(key, recent);
-  }
-  if (hits.size > 5000) hits.clear();
-  return limited;
-}
-
-const friendly = (error: unknown, fallback: string) =>
-  error instanceof Error && /[\u0600-\u06ff]/.test(error.message) ? error.message : fallback;
 
 export const createMyAd = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .inputValidator((input: FormInput) => input)
   .handler(async ({ data, context }): Promise<{ ok: boolean; message?: string }> => {
     // Bots: filled honeypot or impossibly fast submit → pretend success, store nothing.
-    if (data.website || Date.now() - (Number(data.startedAt) || 0) < 3000) return { ok: true };
+    if (looksLikeBot(data)) return { ok: true };
     let ad: AdInput;
     try {
       ad = validateAd(data);
     } catch (error) {
       return { ok: false, message: friendly(error, "تحقق من الحقول.") };
     }
-    if (await rateLimited(context.user.id))
+    if (await rateLimited("ad", context.user.id))
       return { ok: false, message: "أرسلت عدة إعلانات للتو. حاول بعد قليل." };
     try {
       const { countPendingByUser, createAd } = await import("./store.server");
@@ -137,7 +102,7 @@ export const updateMyAd = createServerFn({ method: "POST" })
     } catch (error) {
       return { ok: false, message: friendly(error, "تحقق من الحقول.") };
     }
-    if (await rateLimited(context.user.id))
+    if (await rateLimited("ad", context.user.id))
       return { ok: false, message: "عدّلت عدة مرات للتو. حاول بعد قليل." };
     const { updateOwnAd } = await import("./store.server");
     const ok = await updateOwnAd(context.user.id, id, ad);

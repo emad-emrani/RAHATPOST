@@ -14,6 +14,7 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as BusesRouteImport } from './routes/buses'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as MyAdsRouteImport } from './routes/my-ads'
+import { Route as MyPostsRouteImport } from './routes/my-posts'
 import { Route as SubmitRouteImport } from './routes/submit'
 import { Route as TodayRouteImport } from './routes/today'
 import { Route as AdsIndexRouteImport } from './routes/ads.index'
@@ -49,6 +50,11 @@ const LoginRoute = LoginRouteImport.update({
 const MyAdsRoute = MyAdsRouteImport.update({
   id: '/my-ads',
   path: '/my-ads',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MyPostsRoute = MyPostsRouteImport.update({
+  id: '/my-posts',
+  path: '/my-posts',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SubmitRoute = SubmitRouteImport.update({
@@ -113,6 +119,7 @@ export interface FileRoutesByFullPath {
   '/buses': typeof BusesRoute
   '/login': typeof LoginRoute
   '/my-ads': typeof MyAdsRoute
+  '/my-posts': typeof MyPostsRoute
   '/submit': typeof SubmitRoute
   '/today': typeof TodayRoute
   '/ads/$id': typeof AdsIdRoute
@@ -131,6 +138,7 @@ export interface FileRoutesByTo {
   '/buses': typeof BusesRoute
   '/login': typeof LoginRoute
   '/my-ads': typeof MyAdsRoute
+  '/my-posts': typeof MyPostsRoute
   '/submit': typeof SubmitRoute
   '/today': typeof TodayRoute
   '/ads/$id': typeof AdsIdRoute
@@ -150,6 +158,7 @@ export interface FileRoutesById {
   '/buses': typeof BusesRoute
   '/login': typeof LoginRoute
   '/my-ads': typeof MyAdsRoute
+  '/my-posts': typeof MyPostsRoute
   '/submit': typeof SubmitRoute
   '/today': typeof TodayRoute
   '/ads/$id': typeof AdsIdRoute
@@ -170,6 +179,7 @@ export interface FileRouteTypes {
     | '/buses'
     | '/login'
     | '/my-ads'
+    | '/my-posts'
     | '/submit'
     | '/today'
     | '/ads/$id'
@@ -188,6 +198,7 @@ export interface FileRouteTypes {
     | '/buses'
     | '/login'
     | '/my-ads'
+    | '/my-posts'
     | '/submit'
     | '/today'
     | '/ads/$id'
@@ -206,6 +217,7 @@ export interface FileRouteTypes {
     | '/buses'
     | '/login'
     | '/my-ads'
+    | '/my-posts'
     | '/submit'
     | '/today'
     | '/ads/$id'
@@ -225,6 +237,7 @@ export interface RootRouteChildren {
   BusesRoute: typeof BusesRoute
   LoginRoute: typeof LoginRoute
   MyAdsRoute: typeof MyAdsRoute
+  MyPostsRoute: typeof MyPostsRoute
   SubmitRoute: typeof SubmitRoute
   TodayRoute: typeof TodayRoute
   AdsIdRoute: typeof AdsIdRoute
@@ -273,6 +286,13 @@ declare module '@tanstack/react-router' {
       path: '/my-ads'
       fullPath: '/my-ads'
       preLoaderRoute: typeof MyAdsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/my-posts': {
+      id: '/my-posts'
+      path: '/my-posts'
+      fullPath: '/my-posts'
+      preLoaderRoute: typeof MyPostsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/submit': {
@@ -361,6 +381,7 @@ const rootRouteChildren: RootRouteChildren = {
   BusesRoute: BusesRoute,
   LoginRoute: LoginRoute,
   MyAdsRoute: MyAdsRoute,
+  MyPostsRoute: MyPostsRoute,
   SubmitRoute: SubmitRoute,
   TodayRoute: TodayRoute,
   AdsIdRoute: AdsIdRoute,

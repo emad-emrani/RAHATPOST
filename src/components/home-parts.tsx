@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { Bus, Megaphone, Newspaper, Phone, Plus, Siren, Store, Timer } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { NewsImage } from "@/components/news-image";
+import { newsByline } from "@/lib/news/format";
 import type { NewsItem } from "@/lib/news/types";
 
 const tiles = [
@@ -58,7 +59,7 @@ export function HomeCarousel({ lead, leadTime }: { lead?: NewsItem; leadTime: st
                 </span>
                 <span className="banner-shade" aria-hidden />
                 <span className="relative chip w-fit bg-white/20 text-white">
-                  آخر خبر · {lead.source}
+                  آخر خبر · {newsByline(lead)}
                 </span>
                 <span className="relative line-clamp-3 text-xl font-bold leading-snug">
                   {lead.title}
@@ -71,7 +72,7 @@ export function HomeCarousel({ lead, leadTime }: { lead?: NewsItem; leadTime: st
                 params={{ slug: lead.slug }}
                 className="flex h-full flex-col justify-between gap-3"
               >
-                <span className="chip w-fit bg-ink/10">آخر خبر · {lead.source}</span>
+                <span className="chip w-fit bg-ink/10">آخر خبر · {newsByline(lead)}</span>
                 <span className="line-clamp-3 text-xl font-bold leading-snug">{lead.title}</span>
                 <span className="text-sm font-semibold">{leadTime}</span>
                 <Newspaper className="banner-icon size-36" aria-hidden />

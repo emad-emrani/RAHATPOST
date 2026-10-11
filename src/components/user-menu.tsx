@@ -67,13 +67,13 @@ export function UserMenu() {
         >
           <p className="truncate px-3 py-2 text-sm font-bold">{user.displayName}</p>
           <Link
-            to="/my-ads"
+            to="/my-posts"
             role="menuitem"
             className="flex min-h-12 items-center gap-2 rounded-xl px-3 font-bold hover:bg-surface"
             onClick={() => setOpen(false)}
           >
             <ListChecks className="size-5 text-primary-ink" aria-hidden />
-            إعلاناتي
+            منشوراتي
           </Link>
           <button
             type="button"

@@ -65,11 +65,12 @@ Classifieds:
 - Occasion samples must be labeled نماذج, including one quiet condolence sample with no price and no colour. Do not invent a real death notice.
 - Phone appears only after "إظهار الرقم". WhatsApp uses wa.me. "إبلاغ" confirms "وصل البلاغ للمراقبة".
 
-Submit, one screen, large fields:
-- خبر: what happened, where, phone.
-- إعلان: title, body, neighborhood, phone.
+Submit, one screen, large fields — every mode requires sign-in (Google). Signed-out visitors see a short Arabic explanation and the sign-in button, and return to the same mode after login. The server rejects submissions without a session and stores the user id with each one.
+- خبر: title, text, place, optional source link → pending reader news; once approved it appears in /news and home latest news marked «من القراء» with the poster's name, with its own page showing the full text.
+- إعلان: type, title, body, price (optional), neighborhood, phone.
 - نشاط: name, category, neighborhood, one-line description, phone.
-- Success: "وصلنا. لن يُنشر قبل المراجعة."
+- Success: "وصلنا. لن يُنشر قبل المراجعة." with a link to «منشوراتي» (/my-posts): the user's ads, news and business requests with status, edit (ads) and delete.
+- /admin tabs: أخبار القراء، الإعلانات، طلبات الدليل (approve / reject / delete).
 
 Quality bar:
 - All visible UI strings in Arabic.

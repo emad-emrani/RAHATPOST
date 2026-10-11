@@ -32,6 +32,9 @@ export type BusinessSubmission = {
   status: SubmissionStatus;
   createdAt: string;
   decidedAt?: string;
+  /** Signed-in submitter (absent for requests imported from the old Blob store). */
+  userId?: string;
+  posterName?: string;
 };
 
 /** Categories offered in the submit form and used for owner entries. */

@@ -16,6 +16,10 @@ export type NewsItem = {
   image?: string;
   /** A smaller rendition of `image` for list thumbnails, when the feed offers one. */
   thumb?: string;
+  /** Set for original posts by signed-in readers ("من القراء"), approved by the admin. */
+  reader?: { name: string; neighborhood: string; sourceUrl?: string };
+  /** Full text — only reader posts (original content); feed items carry an excerpt only. */
+  body?: string;
 };
 
 export type NewsFeedResult = {

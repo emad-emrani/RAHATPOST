@@ -5,6 +5,8 @@ import { adminDecideAd, adminListAds } from "@/lib/ads/api";
 import type { OwnAd } from "@/lib/ads/types";
 import { adminDecide, adminList, adminLogin, adminLogout } from "@/lib/directory/api";
 import type { BusinessSubmission } from "@/lib/directory/types";
+import { adminDecideNews, adminListNews } from "@/lib/reader-news/api";
+import type { OwnReaderNews } from "@/lib/reader-news/types";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({
@@ -25,7 +27,7 @@ function AdminPage() {
   const [error, setError] = useState("");
   const [busyId, setBusyId] = useState("");
   const [tab, setTab] = useState<BusinessSubmission["status"]>("pending");
-  const [section, setSection] = useState<"directory" | "ads">("directory");
+  const [section, setSection] = useState<"directory" | "ads" | "news">("news");
 
   const refresh = useCallback(async () => {
     const res = await adminList();
@@ -116,11 +118,12 @@ function AdminPage() {
           خروج
         </button>
       </div>
-      <div className="mb-4 grid grid-cols-2 gap-2" role="tablist" aria-label="القسم">
+      <div className="mb-4 grid grid-cols-3 gap-2" role="tablist" aria-label="القسم">
         {(
           [
-            ["directory", "طلبات الدليل"],
+            ["news", "أخبار القراء"],
             ["ads", "الإعلانات"],
+            ["directory", "طلبات الدليل"],
           ] as const
         ).map(([key, label]) => (
           <button
@@ -137,6 +140,8 @@ function AdminPage() {
       </div>
       {section === "ads" ? (
         <AdsAdmin />
+      ) : section === "news" ? (
+        <NewsAdmin />
       ) : (
         <>
           <div className="scroll-row mb-4">
@@ -166,6 +171,7 @@ function AdminPage() {
                     {item.phone}
                   </p>
                   <p className="text-sm font-semibold text-muted">
+                    {item.posterName ? `${item.posterName} · ` : ""}
                     {new Date(item.createdAt).toLocaleString("ar-u-nu-latn", {
                       timeZone: "Asia/Jerusalem",
                     })}
@@ -307,6 +313,119 @@ function AdsAdmin() {
                   className="btn btn-ghost"
                   disabled={busyId === ad.id}
                   onClick={() => act(ad.id, "delete")}
+                >
+                  حذف
+                </button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </>
+  );
+}
+
+function NewsAdmin() {
+  const [items, setItems] = useState<OwnReaderNews[] | null>(null);
+  const [tab, setTab] = useState<OwnReaderNews["status"]>("pending");
+  const [error, setError] = useState("");
+  const [busyId, setBusyId] = useState("");
+
+  const refresh = useCallback(async () => {
+    const res = await adminListNews();
+    setItems(res.items);
+    setError(
+      !res.authed ? "انتهت الجلسة. سجّل الدخول من جديد." : res.ok ? "" : "تعذّر تحميل الأخبار.",
+    );
+  }, []);
+
+  useEffect(() => {
+    void refresh();
+  }, [refresh]);
+
+  const act = async (id: string, action: "approved" | "rejected" | "delete") => {
+    if (action === "delete" && !confirm("حذف الخبر نهائياً؟")) return;
+    setBusyId(id);
+    try {
+      await adminDecideNews({ data: { id, action } });
+      await refresh();
+    } catch {
+      setError("تعذّر تنفيذ العملية.");
+    } finally {
+      setBusyId("");
+    }
+  };
+
+  if (!items) return <p className="stamp p-4 font-semibold">جاري التحميل…</p>;
+  const list = items.filter((i) => i.status === tab);
+
+  return (
+    <>
+      <div className="scroll-row mb-4">
+        {(Object.keys(STATUS) as OwnReaderNews["status"][]).map((s) => (
+          <button
+            key={s}
+            type="button"
+            className={tab === s ? "chip chip-ink shrink-0" : "chip shrink-0"}
+            onClick={() => setTab(s)}
+          >
+            {STATUS[s]} ({items.filter((i) => i.status === s).length})
+          </button>
+        ))}
+      </div>
+      {error ? <p className="stamp mb-3 p-3 font-bold">{error}</p> : null}
+      {list.length === 0 ? (
+        <p className="stamp p-4 font-semibold">لا أخبار هنا.</p>
+      ) : (
+        <ul className="flex flex-col gap-3">
+          {list.map((item) => (
+            <li key={item.id} className="stamp p-4">
+              <span className="chip">{item.neighborhood}</span>
+              <h2 className="mt-2 text-xl font-bold">{item.title}</h2>
+              <p className="mt-1 whitespace-pre-line">{item.body}</p>
+              {item.sourceUrl ? (
+                <a
+                  href={item.sourceUrl}
+                  target="_blank"
+                  rel="noopener noreferrer nofollow"
+                  className="mt-1 block break-all text-sm font-bold underline"
+                  dir="ltr"
+                >
+                  {item.sourceUrl}
+                </a>
+              ) : null}
+              <p className="mt-1 text-sm font-semibold text-muted">
+                {item.posterName} ·{" "}
+                {new Date(item.updatedAt).toLocaleString("ar-u-nu-latn", {
+                  timeZone: "Asia/Jerusalem",
+                })}
+              </p>
+              <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
+                {item.status !== "approved" ? (
+                  <button
+                    type="button"
+                    className="btn"
+                    disabled={busyId === item.id}
+                    onClick={() => act(item.id, "approved")}
+                  >
+                    موافقة
+                  </button>
+                ) : null}
+                {item.status !== "rejected" ? (
+                  <button
+                    type="button"
+                    className="btn btn-ghost"
+                    disabled={busyId === item.id}
+                    onClick={() => act(item.id, "rejected")}
+                  >
+                    رفض
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  className="btn btn-ghost"
+                  disabled={busyId === item.id}
+                  onClick={() => act(item.id, "delete")}
                 >
                   حذف
                 </button>
