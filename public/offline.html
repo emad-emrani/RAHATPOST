@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#F2C94C">
+<title>لا يوجد اتصال · رهط بوست</title>
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 24px;
+    background: #f1f2f4; color: #263238;
+    font-family: system-ui, -apple-system, "Segoe UI", Tahoma, "Noto Sans Arabic", sans-serif; }
+  main { width: 100%; max-width: 420px; background: #fff; border: 1px solid #e4e6ea; border-radius: 20px;
+    padding: 24px; text-align: center; box-shadow: 0 1px 2px rgba(0,0,0,.04); }
+  img { width: 88px; height: 88px; border-radius: 22px; }
+  h1 { font-size: 1.4rem; margin: 16px 0 8px; }
+  p { margin: 0 0 16px; font-weight: 600; color: #5e6670; line-height: 1.7; }
+  a, button { display: block; width: 100%; min-height: 48px; border-radius: 14px; border: 1px solid #d9a92a;
+    background: #f2c94c; color: #263238; font: inherit; font-weight: 700; cursor: pointer;
+    text-decoration: none; line-height: 46px; margin-top: 8px; }
+  a.ghost { background: #fff; border-color: #e4e6ea; }
+  .tel { direction: ltr; unicode-bidi: embed; }
+</style>
+</head>
+<body>
+<main>
+  <img src="/icons/icon-192.png" alt="رهط بوست">
+  <h1>لا يوجد اتصال بالإنترنت</h1>
+  <p>تعذّر تحميل الصفحة. تحقق من الاتصال وحاول مرة أخرى. الصفحات التي فتحتها مؤخراً قد تعمل بدون اتصال.</p>
+  <button type="button" onclick="location.reload()">إعادة المحاولة</button>
+  <a class="ghost" href="tel:101">طوارئ — نجمة داود الحمراء <span class="tel">101</span></a>
+  <a class="ghost" href="tel:100">الشرطة <span class="tel">100</span></a>
+</main>
+</body>
+</html>

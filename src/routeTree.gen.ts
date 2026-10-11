@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminRouteImport } from './routes/admin'
+import { Route as AppRouteImport } from './routes/app'
 import { Route as BusesRouteImport } from './routes/buses'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as MyAdsRouteImport } from './routes/my-ads'
@@ -19,6 +20,9 @@ import { Route as SubmitRouteImport } from './routes/submit'
 import { Route as TodayRouteImport } from './routes/today'
 import { Route as AdsIndexRouteImport } from './routes/ads.index'
 import { Route as AdsIdRouteImport } from './routes/ads.$id'
+import { Route as AppAuthDoneRouteImport } from './routes/app-auth.done'
+import { Route as AppAuthFinishRouteImport } from './routes/app-auth.finish'
+import { Route as AppAuthStartRouteImport } from './routes/app-auth.start'
 import { Route as DirectoryIndexRouteImport } from './routes/directory.index'
 import { Route as DirectorySlugRouteImport } from './routes/directory.$slug'
 import { Route as IsraelNewsIndexRouteImport } from './routes/israel-news.index'
@@ -35,6 +39,11 @@ const IndexRoute = IndexRouteImport.update({
 const AdminRoute = AdminRouteImport.update({
   id: '/admin',
   path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppRoute = AppRouteImport.update({
+  id: '/app',
+  path: '/app',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BusesRoute = BusesRouteImport.update({
@@ -77,6 +86,21 @@ const AdsIdRoute = AdsIdRouteImport.update({
   path: '/ads/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppAuthDoneRoute = AppAuthDoneRouteImport.update({
+  id: '/app-auth/done',
+  path: '/app-auth/done',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppAuthFinishRoute = AppAuthFinishRouteImport.update({
+  id: '/app-auth/finish',
+  path: '/app-auth/finish',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppAuthStartRoute = AppAuthStartRouteImport.update({
+  id: '/app-auth/start',
+  path: '/app-auth/start',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DirectoryIndexRoute = DirectoryIndexRouteImport.update({
   id: '/directory/',
   path: '/directory/',
@@ -116,6 +140,7 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/app': typeof AppRoute
   '/buses': typeof BusesRoute
   '/login': typeof LoginRoute
   '/my-ads': typeof MyAdsRoute
@@ -123,6 +148,9 @@ export interface FileRoutesByFullPath {
   '/submit': typeof SubmitRoute
   '/today': typeof TodayRoute
   '/ads/$id': typeof AdsIdRoute
+  '/app-auth/done': typeof AppAuthDoneRoute
+  '/app-auth/finish': typeof AppAuthFinishRoute
+  '/app-auth/start': typeof AppAuthStartRoute
   '/directory/$slug': typeof DirectorySlugRoute
   '/israel-news/$slug': typeof IsraelNewsSlugRoute
   '/news/$slug': typeof NewsSlugRoute
@@ -135,6 +163,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/app': typeof AppRoute
   '/buses': typeof BusesRoute
   '/login': typeof LoginRoute
   '/my-ads': typeof MyAdsRoute
@@ -142,6 +171,9 @@ export interface FileRoutesByTo {
   '/submit': typeof SubmitRoute
   '/today': typeof TodayRoute
   '/ads/$id': typeof AdsIdRoute
+  '/app-auth/done': typeof AppAuthDoneRoute
+  '/app-auth/finish': typeof AppAuthFinishRoute
+  '/app-auth/start': typeof AppAuthStartRoute
   '/directory/$slug': typeof DirectorySlugRoute
   '/israel-news/$slug': typeof IsraelNewsSlugRoute
   '/news/$slug': typeof NewsSlugRoute
@@ -155,6 +187,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/app': typeof AppRoute
   '/buses': typeof BusesRoute
   '/login': typeof LoginRoute
   '/my-ads': typeof MyAdsRoute
@@ -162,6 +195,9 @@ export interface FileRoutesById {
   '/submit': typeof SubmitRoute
   '/today': typeof TodayRoute
   '/ads/$id': typeof AdsIdRoute
+  '/app-auth/done': typeof AppAuthDoneRoute
+  '/app-auth/finish': typeof AppAuthFinishRoute
+  '/app-auth/start': typeof AppAuthStartRoute
   '/directory/$slug': typeof DirectorySlugRoute
   '/israel-news/$slug': typeof IsraelNewsSlugRoute
   '/news/$slug': typeof NewsSlugRoute
@@ -176,6 +212,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/admin'
+    | '/app'
     | '/buses'
     | '/login'
     | '/my-ads'
@@ -183,6 +220,9 @@ export interface FileRouteTypes {
     | '/submit'
     | '/today'
     | '/ads/$id'
+    | '/app-auth/done'
+    | '/app-auth/finish'
+    | '/app-auth/start'
     | '/directory/$slug'
     | '/israel-news/$slug'
     | '/news/$slug'
@@ -195,6 +235,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/admin'
+    | '/app'
     | '/buses'
     | '/login'
     | '/my-ads'
@@ -202,6 +243,9 @@ export interface FileRouteTypes {
     | '/submit'
     | '/today'
     | '/ads/$id'
+    | '/app-auth/done'
+    | '/app-auth/finish'
+    | '/app-auth/start'
     | '/directory/$slug'
     | '/israel-news/$slug'
     | '/news/$slug'
@@ -214,6 +258,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/admin'
+    | '/app'
     | '/buses'
     | '/login'
     | '/my-ads'
@@ -221,6 +266,9 @@ export interface FileRouteTypes {
     | '/submit'
     | '/today'
     | '/ads/$id'
+    | '/app-auth/done'
+    | '/app-auth/finish'
+    | '/app-auth/start'
     | '/directory/$slug'
     | '/israel-news/$slug'
     | '/news/$slug'
@@ -234,6 +282,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
+  AppRoute: typeof AppRoute
   BusesRoute: typeof BusesRoute
   LoginRoute: typeof LoginRoute
   MyAdsRoute: typeof MyAdsRoute
@@ -241,6 +290,9 @@ export interface RootRouteChildren {
   SubmitRoute: typeof SubmitRoute
   TodayRoute: typeof TodayRoute
   AdsIdRoute: typeof AdsIdRoute
+  AppAuthDoneRoute: typeof AppAuthDoneRoute
+  AppAuthFinishRoute: typeof AppAuthFinishRoute
+  AppAuthStartRoute: typeof AppAuthStartRoute
   DirectorySlugRoute: typeof DirectorySlugRoute
   IsraelNewsSlugRoute: typeof IsraelNewsSlugRoute
   NewsSlugRoute: typeof NewsSlugRoute
@@ -265,6 +317,13 @@ declare module '@tanstack/react-router' {
       path: '/admin'
       fullPath: '/admin'
       preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/app': {
+      id: '/app'
+      path: '/app'
+      fullPath: '/app'
+      preLoaderRoute: typeof AppRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/buses': {
@@ -323,6 +382,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdsIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/app-auth/done': {
+      id: '/app-auth/done'
+      path: '/app-auth/done'
+      fullPath: '/app-auth/done'
+      preLoaderRoute: typeof AppAuthDoneRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/app-auth/finish': {
+      id: '/app-auth/finish'
+      path: '/app-auth/finish'
+      fullPath: '/app-auth/finish'
+      preLoaderRoute: typeof AppAuthFinishRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/app-auth/start': {
+      id: '/app-auth/start'
+      path: '/app-auth/start'
+      fullPath: '/app-auth/start'
+      preLoaderRoute: typeof AppAuthStartRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/directory/': {
       id: '/directory/'
       path: '/directory'
@@ -378,6 +458,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
+  AppRoute: AppRoute,
   BusesRoute: BusesRoute,
   LoginRoute: LoginRoute,
   MyAdsRoute: MyAdsRoute,
@@ -385,6 +466,9 @@ const rootRouteChildren: RootRouteChildren = {
   SubmitRoute: SubmitRoute,
   TodayRoute: TodayRoute,
   AdsIdRoute: AdsIdRoute,
+  AppAuthDoneRoute: AppAuthDoneRoute,
+  AppAuthFinishRoute: AppAuthFinishRoute,
+  AppAuthStartRoute: AppAuthStartRoute,
   DirectorySlugRoute: DirectorySlugRoute,
   IsraelNewsSlugRoute: IsraelNewsSlugRoute,
   NewsSlugRoute: NewsSlugRoute,

@@ -6,6 +6,7 @@ import { NewsImage } from "@/components/news-image";
 import { HomeCarousel, HomeTiles } from "@/components/home-parts";
 import { SectionTitle, Shell } from "@/components/shell";
 import { DutyCard } from "@/components/duty";
+import { InstallBanner } from "@/components/install-app";
 import { NewsUnavailable, prioritizeLocal } from "@/components/news";
 import { getApprovedEntries } from "@/lib/directory/api";
 import { osmEntries, type DirectoryEntry } from "@/lib/directory/types";
@@ -121,6 +122,7 @@ function Home() {
         <div className="flex flex-col gap-6">
           <h1 className="sr-only">رهط بوست: أخبار وخدمات رهط والنقب</h1>
           <HomeTiles />
+          <InstallBanner />
           <HomeCarousel lead={top} leadTime={top ? relativeTimeAr(top.publishedAt, now) : ""} />
           {breaking ? (
             <Link

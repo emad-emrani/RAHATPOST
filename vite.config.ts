@@ -82,6 +82,28 @@ export default defineConfig(({ command, isPreview }) => ({
             // manifest + head-tag middleware). Nitro v3 defaults serverDir to
             // false, so removing this silently unwires /?install=1 on deploys.
             serverDir: "./server",
+            // rahatpost.com is self-hosted: the platform's generic /__grok/ manifest ("Grok App",
+            // black) and placeholder icon would win over ours if anything still links them, so
+            // point those URLs at our own manifest/icon. The service worker must never be cached.
+            routeRules: {
+              "/__grok/manifest.webmanifest": {
+                redirect: { to: "/manifest.webmanifest", status: 307 },
+              },
+              "/__grok/manifest.json": { redirect: { to: "/manifest.webmanifest", status: 307 } },
+              "/__grok/icon-180.png": { redirect: { to: "/apple-touch-icon.png", status: 307 } },
+              "/sw.js": {
+                headers: {
+                  "cache-control": "no-cache, no-store, must-revalidate",
+                  "service-worker-allowed": "/",
+                },
+              },
+              "/manifest.webmanifest": {
+                headers: {
+                  "content-type": "application/manifest+json; charset=utf-8",
+                  "cache-control": "public, max-age=3600",
+                },
+              },
+            },
           }),
         ]
       : []),

@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { ListChecks, LogOut, UserRound } from "lucide-react";
+import { ListChecks, LogOut, UserRound, Smartphone } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { signOut } from "@/lib/auth/client";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
@@ -74,6 +74,15 @@ export function UserMenu() {
           >
             <ListChecks className="size-5 text-primary-ink" aria-hidden />
             منشوراتي
+          </Link>
+          <Link
+            to="/app"
+            role="menuitem"
+            className="flex min-h-12 items-center gap-2 rounded-xl px-3 font-bold hover:bg-surface"
+            onClick={() => setOpen(false)}
+          >
+            <Smartphone className="size-5 text-primary-ink" aria-hidden />
+            تطبيق رهط بوست
           </Link>
           <button
             type="button"
