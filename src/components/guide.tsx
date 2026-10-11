@@ -253,3 +253,64 @@ export function BranchCard({ branch }: { branch: GuideBranch }) {
     </Accordion>
   );
 }
+
+/**
+ * Home «خدمة البريد» card: what the post office guide covers, each row jumping to its section,
+ * plus a button to the whole guide. Wording stays generic; the facts live in the guide itself.
+ */
+export function HomePostCard({ guide }: { guide: Guide }) {
+  const rows: { section: string; icon: GuideSection["icon"]; title: string; text: string }[] = [
+    {
+      section: "pay",
+      icon: "receipt",
+      title: "ادفع في البريد",
+      text: "فواتير، أرنونا، مخالفات وضرائب — في الفرع أو أونلاين",
+    },
+    {
+      section: "branches",
+      icon: "map-pin",
+      title: "فروع البريد في رهط",
+      text: "العناوين وساعات الدوام والاتجاهات",
+    },
+    {
+      section: "bank",
+      icon: "landmark",
+      title: "بنك البريد",
+      text: "مخصصات، تحويل أموال، صرف شيكات وعملات",
+    },
+  ];
+  const present = new Set(guide.sections.map((s) => s.id));
+  return (
+    <div className="stamp overflow-hidden border-2 border-primary bg-primary-soft">
+      <ul className="flex flex-col">
+        {rows
+          .filter((row) => present.has(row.section))
+          .map((row) => (
+            <li key={row.section} className="border-b border-line last:border-b-0">
+              <Link
+                to="/directory/guide/$guide"
+                params={{ guide: guide.slug }}
+                hash={row.section}
+                className="press flex items-center gap-3 px-4 py-3"
+              >
+                <span className="icon-badge size-12 shrink-0 rounded-2xl bg-paper">
+                  <GuideIcon icon={row.icon} className="size-6" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block font-bold leading-snug">{row.title}</span>
+                  <span className="block text-sm font-semibold text-muted">{row.text}</span>
+                </span>
+                <ChevronLeft className="size-5 shrink-0 text-muted" aria-hidden />
+              </Link>
+            </li>
+          ))}
+      </ul>
+      <div className="px-4 pb-4 pt-1">
+        <Link to="/directory/guide/$guide" params={{ guide: guide.slug }} className="btn w-full">
+          <BookOpen className="size-5" aria-hidden />
+          افتح دليل البريد
+        </Link>
+      </div>
+    </div>
+  );
+}

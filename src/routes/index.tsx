@@ -3,6 +3,8 @@ import { Bus, ChevronLeft, Search } from "lucide-react";
 import { useMemo, useState } from "react";
 import { CategoryIcon } from "@/components/category-icon";
 import { NewsImage } from "@/components/news-image";
+import { HomePostCard } from "@/components/guide";
+import { getGuide } from "@/data/guides";
 import { CommentCount } from "@/components/comment-count";
 import { HomeCarousel, HomeTiles } from "@/components/home-parts";
 import { SectionTitle, Shell } from "@/components/shell";
@@ -56,6 +58,8 @@ export const Route = createFileRoute("/")({
   component: Home,
 });
 
+const postGuide = getGuide("post");
+
 const HOME_CACHE = "public, max-age=0, s-maxage=60, stale-while-revalidate=300";
 
 /**
@@ -94,15 +98,14 @@ function Home() {
   const search = Route.useSearch();
   const [q, setQ] = useState(search.q ?? "");
   const query = q.trim();
-  // Strictly newest first (feeds + reader posts) — no local-first or has-photo ranking. The banner
-  // shows the very latest story (a story without a photo gets the yellow banner); the news section
-  // continues with the next ones.
+  // Strictly newest first (feeds + reader posts) — no local-first or has-photo ranking. The news
+  // section now sits right under the tiles, so it leads with the very latest story; the banner
+  // carousel further down repeats it as its first slide (no photo → the yellow banner).
   const ranked = newestFirst(news.items);
   const breaking = news.items.find((item) => item.breaking);
   const top = ranked[0];
-  const remaining = ranked.slice(1);
-  const lead = remaining[0] ?? top;
-  const rest = remaining.slice(1, 5);
+  const lead = top;
+  const rest = ranked.slice(1, 5);
 
   const results = useMemo(() => {
     if (!query) return null;
@@ -149,11 +152,8 @@ function Home() {
         <div className="flex flex-col gap-6">
           <h1 className="sr-only">رهط بوست: أخبار وخدمات رهط والنقب</h1>
           <AlertsBanner alerts={board.alerts} />
-          <HomeTodayChips weather={weather} serverNow={news.now} />
           <HomeTiles />
-          <InstallBanner />
-          <NotifyPrompt />
-          <HomeCarousel lead={top} leadTime={top ? relativeTimeAr(top.publishedAt, now) : ""} />
+          {/* First after search + tiles: latest news, Israel news, then the post office service. */}
           {breaking ? (
             <Link
               to="/news/$slug"
@@ -236,6 +236,18 @@ function Home() {
               <IsraelNewsCredit data={israel} />
             </section>
           ) : null}
+
+          {postGuide ? (
+            <section>
+              <SectionTitle title="خدمة البريد" />
+              <HomePostCard guide={postGuide} />
+            </section>
+          ) : null}
+
+          <HomeTodayChips weather={weather} serverNow={news.now} />
+          <InstallBanner />
+          <NotifyPrompt />
+          <HomeCarousel lead={top} leadTime={top ? relativeTimeAr(top.publishedAt, now) : ""} />
 
           <section>
             <SectionTitle title="باصات غاليم" to="/buses" more="كل المواعيد" />
