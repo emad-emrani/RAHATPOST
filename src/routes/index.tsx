@@ -85,12 +85,14 @@ function Home() {
             </Link>
           ) : null}
 
-          <section className="alert-card p-4">
-            <p className="chip">تنبيه بلدي</p>
-            <h2 className="mt-2 text-xl font-bold">{alert.title}</h2>
-            <p className="font-semibold">{alert.body}</p>
-            <p className="mt-1 text-sm font-bold">{alert.until}</p>
-          </section>
+          {alert ? (
+            <section className="alert-card p-4">
+              <p className="chip">تنبيه بلدي</p>
+              <h2 className="mt-2 text-xl font-bold">{alert.title}</h2>
+              <p className="font-semibold">{alert.body}</p>
+              <p className="mt-1 text-sm font-bold">{alert.until}</p>
+            </section>
+          ) : null}
 
           <section>
             <SectionTitle title="آخر الأخبار" to="/news" more="كل الأخبار" />
@@ -163,12 +165,16 @@ function Home() {
 
           <section>
             <SectionTitle title="آخر الإعلانات" to="/ads" more="كل الإعلانات" />
+            {classifieds.some((item) => item.sample) ? (
+              <p className="mb-2 text-sm font-semibold text-muted">إعلانات نموذجية لعرض الشكل فقط، وليست إعلانات حقيقية.</p>
+            ) : null}
             <ul className="flex flex-col gap-3">
               {classifieds.slice(0, 4).map((item) => (
                 <li key={item.id}>
                   <Link to="/ads/$id" params={{ id: item.id }} className="stamp press flex items-center justify-between gap-3 px-4 py-3">
                     <span>
                       <span className={item.quiet ? "chip" : "chip chip-deep"}>{item.type}</span>
+                      {item.sample ? <span className="chip ms-1">نموذج</span> : null}
                       <span className="mt-1 block font-bold">{item.title}</span>
                       <span className="text-sm font-semibold text-muted">{item.neighborhood}</span>
                     </span>
@@ -237,6 +243,7 @@ function SearchResults({
       {results.ads.map((item) => (
         <Link key={item.id} to="/ads/$id" params={{ id: item.id }} className="stamp press block p-4">
           <span className="chip">{item.type}</span>
+          {item.sample ? <span className="chip ms-1">نموذج</span> : null}
           <span className="mt-1 block font-bold">{item.title}</span>
         </Link>
       ))}

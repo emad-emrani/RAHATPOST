@@ -14,7 +14,15 @@ function AdsPage() {
 
   return (
     <Shell>
-      <h1 className="mb-3 text-2xl font-bold">الإعلانات</h1>
+      <h1 className="mb-1 text-2xl font-bold">الإعلانات</h1>
+      {classifieds.some((item) => item.sample) ? (
+        <p className="mb-3 font-semibold text-muted">
+          الإعلانات المعروضة الآن نماذج لعرض الشكل فقط، وليست إعلانات حقيقية.{" "}
+          <Link to="/submit" className="font-bold text-primary-ink underline">
+            أضف إعلانك
+          </Link>
+        </p>
+      ) : null}
       <div className="scroll-row mb-4">
         {adTypes.map((item) => (
           <button
@@ -36,6 +44,7 @@ function AdsPage() {
               className={item.quiet ? "stamp-flat press block p-4" : "stamp press block p-4"}
             >
               <span className={item.quiet ? "chip" : "chip chip-deep"}>{item.type}</span>
+              {item.sample ? <span className="chip ms-1">نموذج</span> : null}
               <span className="mt-2 block text-xl font-bold">{item.title}</span>
               <span className="font-semibold text-muted">{item.neighborhood}</span>
               {item.price ? <span className="mt-1 block font-bold">{item.price}</span> : null}

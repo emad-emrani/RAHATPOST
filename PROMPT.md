@@ -47,9 +47,9 @@ Article page: category chip, H1, time, source, 3–6 short Arabic paragraphs, sh
 Daily board /today:
 - Today's duty pharmacy (call + maps).
 - Full emergency list. Each row is a tel: link with the number in large type.
-- Civic alerts with expiry.
-- Today's community events.
-- Weather block for Rahat. A static sample is acceptable without an API key: temperature, wind, one Arabic condition line.
+- Civic alerts with expiry — only real, sourced notices; no alert is shown when none exists.
+- Today's community events — only real, sourced events; show nothing rather than invented ones.
+- Weather block for Rahat only from a real weather source; never a static fake reading.
 
 Directory:
 - Search, category chips, "موثّق فقط" toggle.
