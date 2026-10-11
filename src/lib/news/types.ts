@@ -36,3 +36,32 @@ export const newsCategories = [
   "مجتمع",
   "أعمال",
 ] as const;
+
+/** A headline from a major Hebrew news site, with a cached machine translation into Arabic when available. */
+export type IsraelNewsItem = {
+  slug: string;
+  /** Arabic name of the outlet, e.g. «واي نت». */
+  source: string;
+  /** The outlet's own (Hebrew/Latin) name, e.g. «ynet». */
+  sourceHe: string;
+  sourceUrl: string;
+  link: string;
+  publishedAt: string; // ISO 8601
+  category: string;
+  titleHe: string;
+  summaryHe: string;
+  /** Machine translation of the title (Hebrew → Arabic); absent until translated. */
+  titleAr?: string;
+  summaryAr?: string;
+  image?: string;
+  thumb?: string;
+};
+
+export type IsraelNewsResult = {
+  items: IsraelNewsItem[];
+  now: number;
+  fetchedAt: number | null;
+  failedSources: string[];
+  /** "on": translating; "paused": the translation service's daily quota is used up; "off": disabled. */
+  translation: "on" | "paused" | "off";
+};

@@ -88,7 +88,7 @@ export function SectionTitle({
   more,
 }: {
   title: string;
-  to?: "/" | "/news" | "/today" | "/buses" | "/directory" | "/ads";
+  to?: "/" | "/news" | "/israel-news" | "/today" | "/buses" | "/directory" | "/ads";
   more?: string;
 }) {
   return (

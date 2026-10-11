@@ -16,7 +16,7 @@ type FeedSource = {
   ogImage?: boolean;
 };
 
-type RawItem = {
+export type RawItem = {
   title: string;
   link: string;
   date: string;
@@ -66,7 +66,7 @@ const TTL_MS = 10 * 60_000;
 const FEED_TIMEOUT_MS = 8_000;
 const MAX_AGE_MS = 21 * 24 * 60 * 60_000;
 const MAX_ITEMS = 80;
-const USER_AGENT = "Mozilla/5.0 (compatible; RahatPostBot/1.0; +https://rahatpost.com)";
+export const USER_AGENT = "Mozilla/5.0 (compatible; RahatPostBot/1.0; +https://rahatpost.com)";
 
 let cache: { result: NewsFeedResult; at: number } | null = null;
 let inflight: Promise<NewsFeedResult> | null = null;
@@ -114,7 +114,7 @@ async function refresh(): Promise<NewsFeedResult> {
     })
     .slice(0, MAX_ITEMS);
 
-  await fillOgImages(items);
+  await fillOgImages(items, ogSources);
 
   if (items.length === 0 && cache) {
     // Every feed failed this round: keep serving the last good copy for a bit.
@@ -145,8 +145,11 @@ const ogCache = new Map<string, string>();
 const ogSources = new Set(SOURCES.filter((s) => s.ogImage).map((s) => s.name));
 
 /** Fill missing images from article og:image, for sources that allow it, within a small time budget. */
-async function fillOgImages(items: NewsItem[]): Promise<void> {
-  const todo = items.filter((item) => !item.image && ogSources.has(item.source));
+export async function fillOgImages(
+  items: Pick<NewsItem, "image" | "source" | "link">[],
+  sources: Set<string>,
+): Promise<void> {
+  const todo = items.filter((item) => !item.image && sources.has(item.source));
   const apply = () => {
     for (const item of todo) {
       const src = ogCache.get(item.link);
@@ -201,7 +204,7 @@ async function fetchOgImage(url: string): Promise<string | undefined> {
   }
 }
 
-async function fetchText(url: string): Promise<string> {
+export async function fetchText(url: string): Promise<string> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), FEED_TIMEOUT_MS);
   try {
@@ -224,7 +227,7 @@ async function fetchText(url: string): Promise<string> {
 
 /* ---------------------------------------------------------------- parsing */
 
-function parseFeed(xml: string): RawItem[] {
+export function parseFeed(xml: string, opts: { smallImages?: boolean } = {}): RawItem[] {
   const blocks =
     xml.match(/<item\b[\s\S]*?<\/item>/gi) ?? xml.match(/<entry\b[\s\S]*?<\/entry>/gi) ?? [];
   return blocks.map((block) => {
@@ -244,7 +247,7 @@ function parseFeed(xml: string): RawItem[] {
       categories: [...block.matchAll(/<category\b[^>]*>([\s\S]*?)<\/category>/gi)].map((m) =>
         cleanText(m[1]),
       ),
-      image: findImage(block),
+      image: findImage(block, opts.smallImages),
     };
   });
 }
@@ -255,7 +258,10 @@ function parseFeed(xml: string): RawItem[] {
  * The item's own image: media:content / media:thumbnail, an image enclosure, or the first real
  * <img> in content:encoded / description. Returns https URLs only (http is upgraded).
  */
-function findImage(block: string): { src: string; thumb?: string } | undefined {
+function findImage(
+  block: string,
+  smallImages = false,
+): { src: string; thumb?: string } | undefined {
   const attr = (el: string, name: string) =>
     decodeEntities(el.match(new RegExp(`\\s${name}=["']([^"']+)["']`, "i"))?.[1] ?? "").trim();
 
@@ -280,7 +286,8 @@ function findImage(block: string): { src: string; thumb?: string } | undefined {
     for (const el of html.match(/<img\b[^>]*>/gi) ?? []) {
       const width = Number(attr(el, "width")) || 0;
       const height = Number(attr(el, "height")) || 0;
-      if ((width && width < 120) || (height && height < 80)) continue; // icons, pixels, emoji
+      // Icons, pixels, emoji. Some feeds (ynet, Maariv) declare a tiny display size for a large image.
+      if (!smallImages && ((width && width < 120) || (height && height < 80))) continue;
       const src = safeImageUrl(attr(el, "data-src") || attr(el, "src"));
       if (
         !src ||
@@ -352,14 +359,14 @@ function decodeEntities(value: string): string {
   });
 }
 
-function cleanText(value: string): string {
+export function cleanText(value: string): string {
   return decodeEntities(unwrap(value).replace(/<[^>]+>/g, " "))
     .replace(/[*_]{2,}/g, "")
     .replace(/\s+/g, " ")
     .trim();
 }
 
-function excerpt(description: string): string {
+export function excerpt(description: string): string {
   let html = unwrap(description);
   if (!/<[a-z]/i.test(html)) html = decodeEntities(html); // escaped HTML without CDATA
   html = html
@@ -436,7 +443,7 @@ function normalize(source: FeedSource, raw: RawItem): NewsItem | null {
 }
 
 /** RFC 822 / ISO dates, plus "dd/mm/yyyy - HH:MM" and "yyyy/mm/dd HH:MM:SS" in Israel time. */
-function parseDate(value: string): number | null {
+export function parseDate(value: string): number | null {
   if (!value) return null;
   let m = value.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s*-?\s*(\d{1,2}):(\d{2})(?::(\d{2}))?/);
   if (m) return israelTime(+m[3], +m[2], +m[1], +m[4], +m[5], +(m[6] ?? 0));
@@ -470,7 +477,7 @@ function israelTime(y: number, mo: number, d: number, h: number, mi: number, s: 
   return guess - (asIfUtc - guess);
 }
 
-function hash(value: string): string {
+export function hash(value: string): string {
   let a = 0x811c9dc5;
   let b = 0x01000193 ^ 0x5bd1e995;
   for (let i = 0; i < value.length; i++) {

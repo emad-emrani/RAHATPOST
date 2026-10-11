@@ -1,21 +1,34 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Phone } from "lucide-react";
 import { DutyCard } from "@/components/duty";
-import { Shell } from "@/components/shell";
+import {
+  IsraelNewsCredit,
+  IsraelNewsLead,
+  IsraelNewsRow,
+  IsraelNewsUnavailable,
+} from "@/components/israel-news";
+import { SectionTitle, Shell } from "@/components/shell";
 import { alert, emergency } from "@/data/content";
+import { useNow } from "@/lib/news/format";
+import { getIsraelNews } from "@/lib/news/israel-api";
 
 export const Route = createFileRoute("/today")({
   head: () => ({ meta: [{ title: "لوحة اليوم · رهط بوست" }] }),
+  loader: () => getIsraelNews(),
+  staleTime: 5 * 60_000,
   component: TodayPage,
 });
 
+const TODAY_ISRAEL_ITEMS = 7;
+
 function TodayPage() {
+  const israel = Route.useLoaderData();
+  const now = useNow(israel.now);
+  const [lead, ...rest] = israel.items.slice(0, TODAY_ISRAEL_ITEMS);
   return (
     <Shell>
       <h1 className="mb-4 text-2xl font-bold">لوحة اليوم</h1>
       <div className="flex flex-col gap-4">
-        <DutyCard label="صيدلية الحراسة" />
-
         {alert ? (
           <section className="alert-card p-4">
             <p className="chip">تنبيه</p>
@@ -24,6 +37,27 @@ function TodayPage() {
             <p className="mt-1 text-sm font-bold">{alert.until}</p>
           </section>
         ) : null}
+
+        <section>
+          <SectionTitle title="أخبار إسرائيل" to="/israel-news" more="كل الأخبار" />
+          {lead ? (
+            <>
+              <IsraelNewsLead item={lead} now={now} />
+              <ul className="stack-list">
+                {rest.map((item) => (
+                  <li key={item.slug}>
+                    <IsraelNewsRow item={item} now={now} />
+                  </li>
+                ))}
+              </ul>
+              <IsraelNewsCredit data={israel} />
+            </>
+          ) : (
+            <IsraelNewsUnavailable />
+          )}
+        </section>
+
+        <DutyCard label="صيدلية الحراسة" />
 
         <Link to="/buses" className="stamp press block p-4">
           <p className="text-sm font-bold text-muted">شركة גלים</p>
@@ -36,7 +70,10 @@ function TodayPage() {
           <ul className="flex flex-col gap-2">
             {emergency.map((item) => (
               <li key={item.phone}>
-                <a href={`tel:${item.phone}`} className="stamp press flex items-center gap-3 px-3 py-3">
+                <a
+                  href={`tel:${item.phone}`}
+                  className="stamp press flex items-center gap-3 px-3 py-3"
+                >
                   <span className="icon-badge">
                     <Phone className="size-5" aria-hidden />
                   </span>
@@ -47,8 +84,6 @@ function TodayPage() {
             ))}
           </ul>
         </section>
-
-
       </div>
     </Shell>
   );

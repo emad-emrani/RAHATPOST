@@ -21,6 +21,7 @@ Information architecture and routes:
 - / Home
 - /news and /news/[slug]
 - /today Daily board
+- /israel-news and /israel-news/[slug] (Israel news from Hebrew outlets, machine-translated)
 - /directory and /directory/[slug]
 - /ads and /ads/[id]
 - /submit with three modes: news tip, classified, business
@@ -45,6 +46,7 @@ News categories: عاجل، رهط، النقب، بلدية، تعليم، صح
 Article page: the source image (16:9) with caption «الصورة: <المصدر>» when available, category chip, H1, time, source, 3–6 short Arabic paragraphs, share row (Telegram, WhatsApp), 3 related stories. No comments. No like counters.
 
 Daily board /today:
+- Right after a real civic alert (if any): «أخبار إسرائيل» — the newest headlines from Hebrew outlets' own RSS (ynet, N12, Maariv, Globes): a lead card with a 16:9 publisher image, then rows with thumbnails (placeholder icon when missing; lazy, no referrer), link «كل الأخبار» to /israel-news. Titles are machine-translated Hebrew → Arabic server-side (cached per item) and chipped «ترجمة آلية»; untranslated items show the Hebrew (lang=he) with chip «بالعبرية». The item page shows the image with «الصورة: <المصدر>», the translated title and excerpt, the original Hebrew title, and «الخبر الأصلي بالعبرية» opening the source in a new tab.
 - Today's duty pharmacy (call + maps).
 - Full emergency list. Each row is a tel: link with the number in large type.
 - Civic alerts with expiry — only real, sourced notices; no alert is shown when none exists.
