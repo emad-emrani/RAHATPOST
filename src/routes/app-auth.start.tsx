@@ -10,7 +10,7 @@ export const Route = createFileRoute("/app-auth/start")({
     meta: [{ title: "تسجيل الدخول · رهط بوست" }, { name: "robots", content: "noindex" }],
   }),
   validateSearch: (s: Record<string, unknown>): { provider?: string; redirect?: string } => ({
-    provider: s.provider === "facebook" ? "facebook" : "google",
+    provider: s.provider === "facebook" || s.provider === "apple" ? s.provider : "google",
     redirect: typeof s.redirect === "string" ? s.redirect.slice(0, 200) : undefined,
   }),
   component: Start,

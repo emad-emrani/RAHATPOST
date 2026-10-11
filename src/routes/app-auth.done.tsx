@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Shell } from "@/components/shell";
-import { APP_SCHEME, safeAppRedirect } from "@/lib/auth/native";
+import { appReturnUrl, safeAppRedirect } from "@/lib/auth/native";
 
 /**
  * Store app sign-in, step 2 — still in the system browser, now signed in: get a single-use token
@@ -28,7 +28,10 @@ function Done() {
         if (!res.ok) throw new Error(String(res.status));
         const { token } = (await res.json()) as { token?: string };
         if (!token) throw new Error("no token");
-        const deep = `${APP_SCHEME}://auth?${new URLSearchParams({ token, redirect: safeAppRedirect(redirect) })}`;
+        const deep = appReturnUrl(
+          new URLSearchParams({ token, redirect: safeAppRedirect(redirect) }),
+          navigator.userAgent,
+        );
         setLink(deep);
         // Let the fallback button paint first, then try opening the app automatically.
         setTimeout(() => {

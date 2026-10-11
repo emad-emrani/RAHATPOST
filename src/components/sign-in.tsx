@@ -1,7 +1,12 @@
 import { useState } from "react";
 import { authClient, signInWith, type SocialProvider } from "@/lib/auth/client";
 
-export type AuthConfig = { google: boolean; facebook: boolean; devLogin: boolean };
+export type AuthConfig = {
+  google: boolean;
+  facebook: boolean;
+  apple?: boolean;
+  devLogin: boolean;
+};
 
 function GoogleMark() {
   return (
@@ -34,6 +39,14 @@ function FacebookMark() {
   );
 }
 
+function AppleMark() {
+  return (
+    <svg viewBox="0 0 24 24" className="size-5" aria-hidden fill="currentColor">
+      <path d="M16.4 12.6c0-2.6 2.1-3.8 2.2-3.9a4.8 4.8 0 0 0-3.8-2c-1.6-.2-3.1.9-3.9.9-.8 0-2-.9-3.4-.9a5 5 0 0 0-4.2 2.6c-1.8 3.1-.5 7.7 1.3 10.2.8 1.2 1.8 2.6 3.1 2.5 1.2 0 1.7-.8 3.2-.8s1.9.8 3.2.8c1.3 0 2.2-1.2 3-2.4a10 10 0 0 0 1.4-2.8 4.3 4.3 0 0 1-2.1-4.2ZM13.9 5a4.4 4.4 0 0 0 1-3.2 4.5 4.5 0 0 0-2.9 1.5 4.2 4.2 0 0 0-1 3.1A3.7 3.7 0 0 0 13.9 5Z" />
+    </svg>
+  );
+}
+
 /**
  * The sign-in buttons (only providers that are configured), returning to `redirect` afterwards.
  * Used on /login and inline wherever posting needs an account (/submit).
@@ -61,9 +74,21 @@ export function SignInButtons({
     }
   };
 
-  const none = !config.google && !config.facebook && !config.devLogin;
+  const none = !config.google && !config.facebook && !config.apple && !config.devLogin;
   return (
     <>
+      {config.apple ? (
+        // Apple's guidelines: a black button of equal prominence to the other providers.
+        <button
+          type="button"
+          className="btn border-black bg-black text-white hover:bg-black"
+          disabled={Boolean(busy)}
+          onClick={() => go("apple")}
+        >
+          <AppleMark />
+          {busy === "apple" ? "جاري التحويل…" : "المتابعة باستخدام Apple"}
+        </button>
+      ) : null}
       {config.google ? (
         <button
           type="button"

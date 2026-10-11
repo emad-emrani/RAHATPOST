@@ -16,7 +16,14 @@ const config: CapacitorConfig = {
     allowNavigation: ["rahatpost.com", "*.rahatpost.com"],
   },
   backgroundColor: "#FDB700",
-  android: { allowMixedContent: false },
+  // Lets the site recognise the store app (e.g. hide "install the app" prompts).
+  appendUserAgent: "RahatPostApp/1.0.0",
+  android: {
+    allowMixedContent: false,
+    // targetSdk 35+ forces edge-to-edge; keep the WebView below the status bar / above the nav bar.
+    adjustMarginsForEdgeToEdge: "auto",
+    webContentsDebuggingEnabled: false,
+  },
   ios: { contentInset: "automatic" },
   plugins: {
     SplashScreen: {

@@ -6,7 +6,8 @@
  *     (Custom Tab / SFSafariViewController) via the Capacitor Browser plugin.
  *  2. The browser does the normal Google sign-in and lands on /app-auth/done, which asks our
  *     server for a single-use token (Better Auth one-time-token plugin: hashed, 3 minutes) and
- *     opens the app's deep link  com.rahatpost.app://auth?token=…&redirect=…
+ *     opens the app's deep link  com.rahatpost.app://auth?token=…&redirect=…  — on Android as an
+ *     intent:// URL pinned to package com.rahatpost.app, so no other installed app can catch it.
  *  3. The app receives the link (App plugin "appUrlOpen"), closes the browser and loads
  *     /app-auth/finish in its WebView, which redeems the token → session cookie in the WebView.
  *
@@ -15,6 +16,20 @@
  */
 
 export const APP_SCHEME = "com.rahatpost.app";
+export const APP_PACKAGE = "com.rahatpost.app";
+const SITE_HOSTS = new Set(["rahatpost.com", "www.rahatpost.com"]);
+
+/**
+ * The sign-in hand-back link for the system browser. Android gets an intent:// URL with an explicit
+ * package (only our signed app can receive it); iOS gets the custom scheme.
+ */
+export function appReturnUrl(params: URLSearchParams, userAgent: string): string {
+  const query = params.toString();
+  if (/Android/i.test(userAgent)) {
+    return `intent://auth?${query}#Intent;scheme=${APP_SCHEME};package=${APP_PACKAGE};end`;
+  }
+  return `${APP_SCHEME}://auth?${query}`;
+}
 
 type CapacitorGlobal = {
   isNativePlatform?: () => boolean;
@@ -22,7 +37,10 @@ type CapacitorGlobal = {
   Plugins?: {
     Browser?: { open: (o: { url: string }) => Promise<void>; close: () => Promise<void> };
     App?: {
-      addListener: (event: "appUrlOpen", cb: (e: { url: string }) => void) => unknown;
+      addListener: ((event: "appUrlOpen", cb: (e: { url: string }) => void) => unknown) &
+        ((event: "backButton", cb: (e: { canGoBack: boolean }) => void) => unknown);
+      getLaunchUrl?: () => Promise<{ url?: string } | undefined>;
+      minimizeApp?: () => Promise<void>;
     };
   };
 };
@@ -54,20 +72,27 @@ export async function nativeSignIn(provider: string, redirect: string): Promise<
 
 let listening = false;
 
-/** In the app: turn the deep link from the system browser into a signed-in WebView. */
-export function listenForNativeAuth(): void {
-  if (listening || !isNativeApp()) return;
-  const app = cap()?.Plugins?.App;
-  if (!app) return;
-  listening = true;
-  app.addListener("appUrlOpen", ({ url }) => {
-    let link: URL;
-    try {
-      link = new URL(url);
-    } catch {
-      return;
-    }
-    if (link.protocol !== `${APP_SCHEME}:`) return;
+/** Verified App Link / Universal Link (https://rahatpost.com/…) → same-site path, else null. */
+export function sitePathFromLink(url: string): string | null {
+  let link: URL;
+  try {
+    link = new URL(url);
+  } catch {
+    return null;
+  }
+  if (link.protocol !== "https:" || !SITE_HOSTS.has(link.hostname)) return null;
+  const path = `${link.pathname}${link.search}${link.hash}`;
+  return safeAppRedirect(link.pathname) === link.pathname ? path : null;
+}
+
+function handleLink(url: string): void {
+  let link: URL;
+  try {
+    link = new URL(url);
+  } catch {
+    return;
+  }
+  if (link.protocol === `${APP_SCHEME}:`) {
     const token = link.searchParams.get("token") ?? "";
     if (!/^[A-Za-z0-9_-]{16,128}$/.test(token)) return;
     const redirect = safeAppRedirect(link.searchParams.get("redirect"));
@@ -75,5 +100,46 @@ export function listenForNativeAuth(): void {
       ?.Plugins?.Browser?.close()
       .catch(() => {});
     window.location.href = `/app-auth/finish?${new URLSearchParams({ token, redirect })}`;
+    return;
+  }
+  // A rahatpost.com link opened from WhatsApp / SMS / search: show that page in the app.
+  const path = sitePathFromLink(url);
+  if (
+    path &&
+    path !== `${window.location.pathname}${window.location.search}${window.location.hash}`
+  ) {
+    window.location.href = path;
+  }
+}
+
+/**
+ * In the app: sign-in deep link → signed-in WebView; rahatpost.com links → that page; Android back
+ * button → previous page, or send the app to the background on the first page (instead of doing
+ * nothing). Lives on the website so it can change without a store release.
+ */
+export function listenForNativeAuth(): void {
+  if (listening || !isNativeApp()) return;
+  const app = cap()?.Plugins?.App;
+  if (!app) return;
+  listening = true;
+  app.addListener("appUrlOpen", ({ url }) => handleLink(url));
+  app.addListener("backButton", ({ canGoBack }) => {
+    if (canGoBack) window.history.back();
+    else void app.minimizeApp?.().catch(() => {});
   });
+  // Cold start from a link: Capacitor always loads the home page first.
+  const LAUNCH_KEY = "rp-launch-link-handled";
+  try {
+    if (!sessionStorage.getItem(LAUNCH_KEY)) {
+      sessionStorage.setItem(LAUNCH_KEY, "1");
+      void app
+        .getLaunchUrl?.()
+        .then((r) => {
+          if (r?.url) handleLink(r.url);
+        })
+        .catch(() => {});
+    }
+  } catch {
+    // sessionStorage unavailable: skip cold-start links rather than loop.
+  }
 }

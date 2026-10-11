@@ -2,6 +2,8 @@
 
 > **العربية أولاً، ثم English بالأسفل.**
 
+> **الإصدار 1.0.0 جاهز للمتاجر** — خطوات النشر والبنود المطلوبة منك: [`STORE-RELEASE.md`](./STORE-RELEASE.md). بناء iOS والرفع إلى TestFlight عبر Codemagic: [`../codemagic.yaml`](../codemagic.yaml).
+
 ## ما هذا؟
 
 هذا المجلد هو مشروع [Capacitor 7](https://capacitorjs.com) يغلّف الموقع الحي **https://rahatpost.com** داخل تطبيق Android وتطبيق iOS حقيقيين:
@@ -19,7 +21,7 @@
 | `npm run android:release` | بناء AAB للنشر (يحتاج مفتاح توقيع، انظر بالأسفل)                      |
 | `npx cap open ios`        | فتح مشروع iOS في Xcode (على Mac فقط)                                  |
 
-متطلبات البناء على Linux لـ Android: JDK 21 و Android SDK (platform 35, build-tools 35). مشروع iOS موجود في `ios/` لكن **لا يمكن بناؤه على Linux** — يحتاج Mac عليه Xcode و CocoaPods (`cd ios/App && pod install`)، أو خدمة بناء سحابية مثل Codemagic.
+متطلبات البناء على Linux لـ Android: JDK 21 و Android SDK (platform 36, build-tools 36). Google Play يطلب targetSdk 36 للتطبيقات الجديدة منذ 31 أغسطس 2026. مشروع iOS موجود في `ios/` لكن **لا يمكن بناؤه على Linux** — يحتاج Mac عليه Xcode و CocoaPods (`cd ios/App && pod install`)، أو خدمة بناء سحابية مثل Codemagic.
 
 ## تسجيل الدخول بحساب Google داخل التطبيق
 
@@ -31,11 +33,7 @@ Google تمنع تسجيل الدخول من داخل WebView مضمّن (خطأ
 
 الرمز يُستخدم مرة واحدة فقط (تم اختباره: إعادة استخدامه تفشل).
 
-**قبل الإصدار للعامة (مُستحسن):** الرابط المخصص `com.rahatpost.app://` يمكن أن يسجّله تطبيق آخر نظرياً. للإصدار النهائي استخدم:
-
-- **Android App Links:** انشر `https://rahatpost.com/.well-known/assetlinks.json` ببصمة SHA-256 لمفتاح توقيع Play، ثم فعّل الـ intent-filter المعلّق في `AndroidManifest.xml`.
-- **iOS Universal Links:** انشر `https://rahatpost.com/.well-known/apple-app-site-association` وأضف Associated Domains `applinks:rahatpost.com` في Xcode.
-  ثم غيّر رابط العودة في `src/routes/app-auth.done.tsx` إلى رابط https.
+**الأمان في الإصدار 1.0.0:** على Android تفتح صفحة `/app-auth/done` الرابط كـ `intent://…;package=com.rahatpost.app` فلا يستطيع أي تطبيق آخر التقاط الرمز. على iOS يبقى الرابط المخصص (الرمز صالح 3 دقائق ولمرة واحدة). روابط rahatpost.com العادية تفتح التطبيق عبر **Android App Links** (`/.well-known/assetlinks.json`) و**iOS Universal Links** (`/.well-known/apple-app-site-association`)، مع استثناء مسارات الدخول (`/api`, `/login`, `/app-auth`) حتى يبقى OAuth في المتصفح.
 
 أيضاً يجب إضافة نطاق الموقع في Google Cloud Console (Authorized redirect URI هو نفس رابط الموقع الحالي `https://rahatpost.com/api/auth/callback/google`، لا شيء جديد مطلوب لأن الدخول يتم في المتصفح على نفس النطاق).
 
@@ -82,7 +80,7 @@ Apple ترفض التطبيقات التي هي "موقع ويب فقط داخل
 
 This folder is a **Capacitor 7** project that wraps the live site **https://rahatpost.com** (`server.url`) as native Android and iOS apps. App id `com.rahatpost.app`, name `رهط بوست`. Every site deploy updates the app instantly; `www/` only holds an Arabic offline fallback page. Icons/splash are generated from the logo on brand yellow `#FDB700` (`assets/`, `npm run assets`).
 
-- **Android:** builds on Linux with JDK 21 + Android SDK 35: `npm run android:debug` → `android/app/build/outputs/apk/debug/app-debug.apk`.
+- **Android:** builds on Linux with JDK 21 + Android SDK 36 (Play requires targetSdk 36 for new apps since 31 Aug 2026): `npm run android:debug` → `android/app/build/outputs/apk/debug/app-debug.apk`.
 - **iOS:** the `ios/` Xcode project was generated on Linux (`npx cap add ios` works), but `pod install` and building require **macOS + Xcode + CocoaPods**, or a cloud build (Codemagic, GitHub Actions macOS runner, Ionic Appflow).
 
 ### Google sign-in in the app
@@ -95,7 +93,7 @@ Google blocks OAuth inside embedded WebViews (`disallowed_useragent`). The app t
 
 The website code for this lives in `src/lib/auth/native.ts` and `src/routes/app-auth.*.tsx`; it talks to the plugins through the injected `window.Capacitor` bridge, so the website needs no Capacitor packages.
 
-**Before public release:** custom schemes can be claimed by other apps. Switch the hand-back to **Android App Links** (`/.well-known/assetlinks.json` with the Play app-signing SHA-256; uncomment the `autoVerify` intent-filter) and **iOS Universal Links** (`/.well-known/apple-app-site-association` + Associated Domains `applinks:rahatpost.com`), then change the return URL in `app-auth.done.tsx` to https. No change is needed in Google Cloud Console: the OAuth redirect still happens on `https://rahatpost.com/api/auth/callback/google` in the browser.
+**Release 1.0.0:** on Android `/app-auth/done` hands the token back as `intent://auth?…#Intent;scheme=com.rahatpost.app;package=com.rahatpost.app;end`, so only our signed app can receive it; iOS keeps the custom scheme (token: single use, 3 minutes). Ordinary rahatpost.com links open the app through verified **Android App Links** (`/.well-known/assetlinks.json`, fingerprints = upload key + `ASSETLINKS_SHA256` env var) and **iOS Universal Links** (`/.well-known/apple-app-site-association`, needs `APPLE_TEAM_ID`). Sign-in paths (`/api`, `/login`, `/app-auth`) are excluded so OAuth stays in the browser.
 
 ### Google Play ($25 one-time)
 

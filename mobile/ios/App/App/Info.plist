@@ -5,7 +5,12 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>ar</string>
 	<key>CFBundleDisplayName</key>
-        <string>رهط بوست</string>
+	<string>رهط بوست</string>
+	<key>CFBundleLocalizations</key>
+	<array>
+		<string>ar</string>
+		<string>en</string>
+	</array>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -28,13 +33,11 @@
 	<string>Main</string>
 	<key>UIRequiredDeviceCapabilities</key>
 	<array>
-		<string>armv7</string>
+		<string>arm64</string>
 	</array>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
-		<string>UIInterfaceOrientationLandscapeLeft</string>
-		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
 	<key>UISupportedInterfaceOrientations~ipad</key>
 	<array>
@@ -45,6 +48,16 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<!-- No custom encryption: only HTTPS through the system (exempt). Skips the export question on every upload. -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+	<!-- Permission prompts (Arabic first, then English: the app UI is Arabic). -->
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>نستخدم موقعك فقط لإيجاد أقرب محطة باص عندما تضغط «أقرب محطة لي». لا نحفظه ولا نتتبعك. — Your location is used only to find the nearest bus stop when you tap it. It is not stored or tracked.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>لاختيار صور تضيفها إلى إعلانك أو خبرك أو نشاطك. — To pick photos for your ad, news post or business listing.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>لتصوير صورة تضيفها إلى إعلانك أو خبرك أو نشاطك. — To take a photo for your ad, news post or business listing.</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>

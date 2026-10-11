@@ -8,12 +8,13 @@
  *
  *   GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET
  *   FACEBOOK_CLIENT_ID / FACEBOOK_CLIENT_SECRET
+ *   APPLE_CLIENT_ID / APPLE_TEAM_ID / APPLE_KEY_ID / APPLE_PRIVATE_KEY  (Sign in with Apple)
  *   BETTER_AUTH_SECRET   (required on Vercel)
  *   BETTER_AUTH_URL      (optional; defaults to https://rahatpost.com on Vercel)
  *   DATABASE_URL         (Neon; local runs fall back to embedded PGLite)
  *
  * OAuth redirect URIs: `${baseURL}/api/auth/callback/google` and
- * `${baseURL}/api/auth/callback/facebook`.
+ * `${baseURL}/api/auth/callback/facebook`, `${baseURL}/api/auth/callback/apple`.
  *
  * Local testing only: `RP_DEV_LOGIN=1` turns on email/password sign-in, and only
  * when not on Vercel and with no DATABASE_URL (i.e. the throwaway PGLite DB).
@@ -26,6 +27,7 @@ import { randomBytes } from "node:crypto";
 import { Pool } from "pg";
 import { ensureDbReady, getPglite } from "../db";
 import { pgliteDialect } from "./pglite-dialect";
+import { appleProvider } from "./apple.server";
 
 const env = (key: string): string | undefined => {
   const value = process.env[key]?.trim();
@@ -37,10 +39,13 @@ const databaseUrl = env("DATABASE_URL");
 
 export const SITE_URL = "https://rahatpost.com";
 
+const apple = appleProvider();
+
 /** Which sign-in methods are live (safe to send to the browser). */
 export const authProviders = {
   google: Boolean(env("GOOGLE_CLIENT_ID") && env("GOOGLE_CLIENT_SECRET")),
   facebook: Boolean(env("FACEBOOK_CLIENT_ID") && env("FACEBOOK_CLIENT_SECRET")),
+  apple: Boolean(apple),
   devLogin: !onVercel && !databaseUrl && env("RP_DEV_LOGIN") === "1",
 };
 
@@ -64,9 +69,15 @@ const baseURL =
         fallback: "http://localhost:8080",
       });
 
+// Apple posts the sign-in result back (response_mode=form_post) from appleid.apple.com.
+const APPLE_ORIGIN = "https://appleid.apple.com";
 const trustedOrigins = onVercel
-  ? [explicitBaseURL ?? SITE_URL, "https://www.rahatpost.com"]
-  : [...(explicitBaseURL ? [explicitBaseURL] : []), ...LOCAL_ORIGINS];
+  ? [explicitBaseURL ?? SITE_URL, "https://www.rahatpost.com", ...(apple ? [APPLE_ORIGIN] : [])]
+  : [
+      ...(explicitBaseURL ? [explicitBaseURL] : []),
+      ...LOCAL_ORIGINS,
+      ...(apple ? [APPLE_ORIGIN] : []),
+    ];
 
 const globalRef = globalThis as typeof globalThis & { __rpLocalAuthSecret__?: string };
 function secret(): string {
@@ -106,11 +117,12 @@ export const auth = betterAuth({
           },
         }
       : {}),
+    ...(apple ? { apple } : {}),
   },
   account: {
     encryptOAuthTokens: true,
-    // Same verified email from Google and Facebook = same person.
-    accountLinking: { enabled: true, trustedProviders: ["google", "facebook"] },
+    // Same verified email from Google, Facebook and Apple = same person.
+    accountLinking: { enabled: true, trustedProviders: ["google", "facebook", "apple"] },
   },
   ...(authProviders.devLogin ? { emailAndPassword: { enabled: true } } : {}),
   // No cookieCache: sign-in then sets a single cookie (session_token). When a server

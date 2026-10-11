@@ -4,9 +4,9 @@ import { isNativeApp, nativeSignIn } from "./native";
 /** Browser-side Better Auth client for this site's own `/api/auth/*`. */
 export const authClient = createAuthClient();
 
-export type SocialProvider = "google" | "facebook";
+export type SocialProvider = "google" | "facebook" | "apple";
 
-/** Full-page redirect to Google / Facebook, returning to `callbackURL` afterwards. */
+/** Full-page redirect to Google / Facebook / Apple, returning to `callbackURL` afterwards. */
 export async function signInWith(provider: SocialProvider, callbackURL = "/"): Promise<void> {
   // Store app: Google blocks OAuth in WebViews — sign in through the system browser instead.
   if (isNativeApp()) return nativeSignIn(provider, callbackURL);

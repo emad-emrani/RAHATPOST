@@ -1,10 +1,58 @@
 {
   "images": [
     {
-      "idiom": "universal",
+      "idiom": "iphone",
+      "size": "20x20",
+      "scale": "2x",
+      "filename": "AppIcon-20@2x.png"
+    },
+    {
+      "idiom": "iphone",
+      "size": "20x20",
+      "scale": "3x",
+      "filename": "AppIcon-20@3x.png"
+    },
+    {
+      "idiom": "iphone",
+      "size": "29x29",
+      "scale": "2x",
+      "filename": "AppIcon-29@2x.png"
+    },
+    {
+      "idiom": "iphone",
+      "size": "29x29",
+      "scale": "3x",
+      "filename": "AppIcon-29@3x.png"
+    },
+    {
+      "idiom": "iphone",
+      "size": "40x40",
+      "scale": "2x",
+      "filename": "AppIcon-40@2x.png"
+    },
+    {
+      "idiom": "iphone",
+      "size": "40x40",
+      "scale": "3x",
+      "filename": "AppIcon-40@3x.png"
+    },
+    {
+      "idiom": "iphone",
+      "size": "60x60",
+      "scale": "2x",
+      "filename": "AppIcon-60@2x.png"
+    },
+    {
+      "idiom": "iphone",
+      "size": "60x60",
+      "scale": "3x",
+      "filename": "AppIcon-60@3x.png"
+    },
+    {
+      "idiom": "ios-marketing",
       "size": "1024x1024",
-      "filename": "AppIcon-512@2x.png",
-      "platform": "ios"
+      "scale": "1x",
+      "filename": "AppIcon-512@2x.png"
     }
   ],
   "info": {

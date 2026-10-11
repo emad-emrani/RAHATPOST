@@ -1,0 +1,91 @@
+# Codemagic CI for the store apps in mobile/ (Capacitor). See mobile/STORE-RELEASE.md.
+#
+# One-time setup in https://codemagic.io (free tier includes macOS build minutes):
+#  1. Add this GitHub repo as an app (it picks up this file).
+#  2. Teams → Integrations → Developer Portal → add an App Store Connect API key
+#     (App Store Connect → Users and Access → Integrations → Keys, role "App Manager").
+#     Name it exactly:  rahatpost-asc
+#  3. Code signing identities → iOS → let Codemagic generate/fetch an "App Store" distribution
+#     certificate + profile for com.rahatpost.app (the App ID must have Associated Domains on).
+#  4. (Android, optional) Code signing identities → Android keystores → upload
+#     rahatpost-upload.jks with reference name  rahatpost_upload
+#  5. Start the "iOS → TestFlight" workflow.
+
+workflows:
+  ios-testflight:
+    name: iOS → TestFlight
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    integrations:
+      app_store_connect: rahatpost-asc
+    environment:
+      node: 20
+      xcode: latest
+      cocoapods: default
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.rahatpost.app
+      vars:
+        XCODE_WORKSPACE: mobile/ios/App/App.xcworkspace
+        XCODE_SCHEME: App
+        APP_STORE_APPLE_ID: "" # numeric Apple ID of the app (App Store Connect → App Information); optional
+    triggering:
+      events: [] # manual runs only
+    scripts:
+      - name: Install Capacitor
+        script: cd mobile && npm ci
+      - name: Sync web config + plugins into the iOS project
+        script: cd mobile && npx cap sync ios
+      - name: CocoaPods
+        script: cd mobile/ios/App && pod install
+      - name: Use the App Store provisioning profile
+        script: xcode-project use-profiles
+      - name: Build number = latest TestFlight build + 1 (or Codemagic's counter)
+        script: |
+          NEXT="$BUILD_NUMBER"
+          if [ -n "$APP_STORE_APPLE_ID" ]; then
+            LATEST=$(app-store-connect get-latest-testflight-build-number "$APP_STORE_APPLE_ID" || echo 0)
+            NEXT=$((LATEST + 1))
+          fi
+          cd mobile/ios/App && agvtool new-version -all "$NEXT"
+      - name: Build IPA
+        script: |
+          xcode-project build-ipa \
+            --workspace "$XCODE_WORKSPACE" \
+            --scheme "$XCODE_SCHEME"
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
+        # submit_to_app_store: true   # turn on once TestFlight looks good
+
+  android-release:
+    name: Android → signed AAB
+    max_build_duration: 30
+    instance_type: linux_x2
+    environment:
+      node: 20
+      java: 21
+      android_signing:
+        - rahatpost_upload
+    triggering:
+      events: []
+    scripts:
+      - name: Install Capacitor + sync
+        script: cd mobile && npm ci && npx cap sync android
+      - name: Keystore properties for Gradle
+        script: |
+          cat > "$CM_BUILD_DIR/keystore.properties" <<PROPS
+          storeFile=$CM_KEYSTORE_PATH
+          storePassword=$CM_KEYSTORE_PASSWORD
+          keyAlias=$CM_KEY_ALIAS
+          keyPassword=$CM_KEY_PASSWORD
+          PROPS
+          echo "RAHATPOST_KEYSTORE_PROPERTIES=$CM_BUILD_DIR/keystore.properties" >> "$CM_ENV"
+      - name: Build AAB
+        script: cd mobile/android && ./gradlew bundleRelease
+    artifacts:
+      - mobile/android/app/build/outputs/bundle/release/*.aab

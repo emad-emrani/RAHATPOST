@@ -1,5 +1,17 @@
 apply plugin: 'com.android.application'
 
+/*
+ * Release signing. The upload keystore and its passwords live OUTSIDE the repo. Point
+ * RAHATPOST_KEYSTORE_PROPERTIES (env var or -P gradle property) at a properties file with
+ * storeFile, storePassword, keyAlias, keyPassword. Without it, release builds are unsigned.
+ */
+def keystorePropsPath = System.getenv('RAHATPOST_KEYSTORE_PROPERTIES') ?: (project.findProperty('RAHATPOST_KEYSTORE_PROPERTIES') ?: '')
+def keystoreProps = new Properties()
+def keystorePropsFile = keystorePropsPath ? file(keystorePropsPath) : null
+if (keystorePropsFile != null && keystorePropsFile.exists()) {
+    keystorePropsFile.withInputStream { keystoreProps.load(it) }
+}
+
 android {
     namespace "com.rahatpost.app"
     compileSdk rootProject.ext.compileSdkVersion
@@ -8,7 +20,7 @@ android {
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
-        versionName "1.0"
+        versionName "1.0.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -16,8 +28,21 @@ android {
             ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        release {
+            if (keystoreProps['storeFile']) {
+                storeFile file(keystoreProps['storeFile'])
+                storePassword keystoreProps['storePassword']
+                keyAlias keystoreProps['keyAlias']
+                keyPassword keystoreProps['keyPassword']
+            }
+        }
+    }
     buildTypes {
         release {
+            if (keystoreProps['storeFile']) {
+                signingConfig signingConfigs.release
+            }
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }

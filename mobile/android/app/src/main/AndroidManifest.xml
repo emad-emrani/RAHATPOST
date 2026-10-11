@@ -6,6 +6,7 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
+        android:usesCleartextTraffic="false"
         android:theme="@style/AppTheme">
         <activity
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode|navigation"
@@ -18,22 +19,36 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-            <!-- Sign-in hand-back from the system browser: com.rahatpost.app://auth?token=… -->
+            <!-- Sign-in hand-back from the system browser. On Android the site opens it as an
+                 intent:// URL pinned to package com.rahatpost.app, so no other app can catch the token. -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="com.rahatpost.app" android:host="auth" />
             </intent-filter>
-            <!-- Release builds: verified App Links (needs https://rahatpost.com/.well-known/assetlinks.json
-                 with the Play signing SHA-256). Uncomment once assetlinks.json is published.
+            <!-- Verified Android App Links: rahatpost.com links (WhatsApp, SMS, Google) open in the app.
+                 Verified against https://rahatpost.com/.well-known/assetlinks.json. Sign-in paths
+                 (/api, /login, /app-auth) are deliberately NOT listed so OAuth stays in the browser. -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="https" android:host="rahatpost.com" />
+                <data android:scheme="https" />
+                <data android:host="rahatpost.com" />
+                <data android:path="/" />
+                <data android:pathPrefix="/news" />
+                <data android:pathPrefix="/ads" />
+                <data android:pathPrefix="/directory" />
+                <data android:pathPrefix="/buses" />
+                <data android:pathPrefix="/today" />
+                <data android:pathPrefix="/israel-news" />
+                <data android:pathPrefix="/submit" />
+                <data android:pathPrefix="/my-posts" />
+                <data android:pathPrefix="/my-ads" />
+                <data android:pathPrefix="/privacy" />
+                <data android:pathPrefix="/terms" />
             </intent-filter>
-            -->
         </activity>
 
         <provider
@@ -48,4 +63,10 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- "أقرب محطة لي" (nearest bus stop) on /buses asks for the location only when the user taps
+         it; the WebView prompt is bridged to the Android runtime permission. Never in background. -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-feature android:name="android.hardware.location.gps" android:required="false" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
 </manifest>
