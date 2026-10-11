@@ -43,9 +43,10 @@ export function HomeCarousel({ lead, leadTime }: { lead?: NewsItem; leadTime: st
             className: "banner",
             content: (
               <Link to="/news/$slug" params={{ slug: lead.slug }} className="flex h-full flex-col justify-between gap-3">
-                <span className="chip w-fit bg-white/20 text-white">آخر خبر · {lead.source}</span>
+                <span className="chip w-fit bg-ink/10">آخر خبر · {lead.source}</span>
                 <span className="line-clamp-3 text-xl font-bold leading-snug">{lead.title}</span>
-                <span className="text-sm font-semibold text-white/85">{leadTime}</span>
+                <span className="text-sm font-semibold">{leadTime}</span>
+                <Newspaper className="banner-icon size-36" aria-hidden />
               </Link>
             ),
           },
@@ -65,7 +66,7 @@ export function HomeCarousel({ lead, leadTime }: { lead?: NewsItem; leadTime: st
     },
     {
       key: "submit",
-      className: "banner banner-yellow",
+      className: "banner banner-soft",
       content: (
         <Link to="/submit" search={{ mode: "نشاط" }} className="flex h-full flex-col justify-between gap-3">
           <span className="chip w-fit bg-ink/10">الدليل</span>
@@ -80,9 +81,9 @@ export function HomeCarousel({ lead, leadTime }: { lead?: NewsItem; leadTime: st
       className: "banner",
       content: (
         <Link to="/today" className="flex h-full flex-col justify-between gap-3">
-          <span className="chip w-fit bg-white/20 text-white">لوحة اليوم</span>
+          <span className="chip w-fit bg-ink/10">لوحة اليوم</span>
           <span className="text-2xl font-bold leading-snug">أرقام الطوارئ وصيدلية الحراسة</span>
-          <span className="text-sm font-semibold text-white/85">الشرطة 100 · الإسعاف 101 · الإطفاء 102</span>
+          <span className="text-sm font-semibold">الشرطة 100 · الإسعاف 101 · الإطفاء 102</span>
           <Phone className="banner-icon size-36" aria-hidden />
         </Link>
       ),
@@ -144,7 +145,7 @@ export function HomeCarousel({ lead, leadTime }: { lead?: NewsItem; leadTime: st
             onClick={() => go(i)}
           >
             <span
-              className={i === index ? "h-2 w-5 rounded-full bg-primary" : "size-2 rounded-full bg-ink/25"}
+              className={i === index ? "h-2 w-5 rounded-full bg-ink" : "size-2 rounded-full bg-ink/25"}
             />
           </button>
         ))}

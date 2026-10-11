@@ -36,7 +36,7 @@ export function Shell({ children }: { children: ReactNode }) {
               to={item.to}
               activeOptions={{ exact: item.exact }}
               className="pill"
-              activeProps={{ className: "bg-primary-soft text-primary-deep" }}
+              activeProps={{ className: "bg-primary text-ink shadow-[inset_0_0_0_1px_var(--color-primary-deep)]" }}
             >
               {item.label}
             </Link>
@@ -59,7 +59,9 @@ export function Shell({ children }: { children: ReactNode }) {
             const Icon = item.icon;
             return (
               <Link key={item.to} to={item.to} activeOptions={{ exact: item.exact }} className="tabbar-link">
-                <Icon className="size-6" aria-hidden />
+                <span className="tab-icon">
+                  <Icon className="size-6" aria-hidden />
+                </span>
                 {item.label}
               </Link>
             );

@@ -72,11 +72,12 @@ function Home() {
         <SearchResults query={query} results={results} />
       ) : (
         <div className="flex flex-col gap-6">
+          <h1 className="sr-only">رهط بوست: أخبار وخدمات رهط والنقب</h1>
           <HomeTiles />
           <HomeCarousel lead={top} leadTime={top ? relativeTimeAr(top.publishedAt, now) : ""} />
           {breaking ? (
             <Link to="/news/$slug" params={{ slug: breaking.slug }} className="alert-card press block px-4 py-3">
-              <span className="chip">عاجل</span>
+              <span className="chip bg-white/20 text-white">عاجل</span>
               <span className="mt-2 block text-lg font-bold">{breaking.title}</span>
               <span className="text-sm font-semibold">
                 {relativeTimeAr(breaking.publishedAt, now)} · {breaking.source}
@@ -84,36 +85,11 @@ function Home() {
             </Link>
           ) : null}
 
-          <DutyCard heading="h1" />
-
-          <section>
-            <SectionTitle title="أرقام تُحفظ" to="/today" more="كل الأرقام" />
-            <div className="scroll-row">
-              {emergency.slice(0, 4).map((item) => (
-                <a
-                  key={item.phone}
-                  href={`tel:${item.phone}`}
-                  className="stamp press flex w-28 shrink-0 flex-col items-center px-3 py-3 text-center"
-                >
-                  <span className="text-2xl font-bold leading-none">{item.phone}</span>
-                  <span className="mt-1 text-sm font-bold">{item.name}</span>
-                </a>
-              ))}
-            </div>
-          </section>
-
-          <section>
-            <SectionTitle title="باصات غاليم" to="/buses" more="كل المواعيد" />
-            <Link to="/buses" className="stamp press flex items-center gap-3 p-4">
-              <span className="icon-badge">
-                <Bus className="size-6" aria-hidden />
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block font-bold">خطوط المدينة 1 حتى 6، وبئر السبع وما حولها</span>
-                <span className="text-sm font-semibold text-muted">شركة גלים · أوقات مباشرة وجدول اليوم</span>
-              </span>
-              <ChevronLeft className="size-5 text-muted" aria-hidden />
-            </Link>
+          <section className="alert-card p-4">
+            <p className="chip">تنبيه بلدي</p>
+            <h2 className="mt-2 text-xl font-bold">{alert.title}</h2>
+            <p className="font-semibold">{alert.body}</p>
+            <p className="mt-1 text-sm font-bold">{alert.until}</p>
           </section>
 
           <section>
@@ -150,11 +126,18 @@ function Home() {
             )}
           </section>
 
-          <section className="alert-card p-4">
-            <p className="chip">تنبيه بلدي</p>
-            <h2 className="mt-2 text-xl font-bold">{alert.title}</h2>
-            <p className="font-semibold">{alert.body}</p>
-            <p className="mt-1 text-sm font-bold">{alert.until}</p>
+          <section>
+            <SectionTitle title="باصات غاليم" to="/buses" more="كل المواعيد" />
+            <Link to="/buses" className="stamp press flex items-center gap-3 p-4">
+              <span className="icon-badge">
+                <Bus className="size-6" aria-hidden />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block font-bold">خطوط المدينة 1 حتى 6، وبئر السبع وما حولها</span>
+                <span className="text-sm font-semibold text-muted">شركة גלים · أوقات مباشرة وجدول اليوم</span>
+              </span>
+              <ChevronLeft className="size-5 text-muted" aria-hidden />
+            </Link>
           </section>
 
           <section>
@@ -194,6 +177,24 @@ function Home() {
                 </li>
               ))}
             </ul>
+          </section>
+
+          <DutyCard />
+
+          <section>
+            <SectionTitle title="أرقام تُحفظ" to="/today" more="كل الأرقام" />
+            <div className="scroll-row">
+              {emergency.slice(0, 4).map((item) => (
+                <a
+                  key={item.phone}
+                  href={`tel:${item.phone}`}
+                  className="stamp press flex w-28 shrink-0 flex-col items-center px-3 py-3 text-center"
+                >
+                  <span className="text-2xl font-bold leading-none">{item.phone}</span>
+                  <span className="mt-1 text-sm font-bold">{item.name}</span>
+                </a>
+              ))}
+            </div>
           </section>
 
           <p className="text-sm font-semibold text-muted md:hidden">

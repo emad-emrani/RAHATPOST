@@ -49,7 +49,7 @@ function NewsPage() {
               {list.map((item) => (
                 <li key={item.slug}>
                   <Link to="/news/$slug" params={{ slug: item.slug }} className="stamp press block p-4">
-                    <span className={item.breaking ? "chip chip-ink" : "chip chip-deep"}>
+                    <span className={item.breaking ? "chip chip-alert" : "chip chip-deep"}>
                       {item.breaking ? "عاجل" : item.category}
                     </span>
                     <span className="mt-2 block text-lg font-bold leading-snug">{item.title}</span>

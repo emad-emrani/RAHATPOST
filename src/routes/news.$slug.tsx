@@ -49,7 +49,7 @@ function ArticlePage() {
   return (
     <Shell>
       <article className="stamp p-4">
-        <span className={article.breaking ? "chip chip-deep" : "chip"}>
+        <span className={article.breaking ? "chip chip-alert" : "chip chip-deep"}>
           {article.breaking ? "عاجل" : article.category}
         </span>
         <h1 className="mt-3 text-2xl font-bold">{article.title}</h1>
