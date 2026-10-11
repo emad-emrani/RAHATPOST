@@ -6,9 +6,17 @@ import { NewsImage } from "@/components/news-image";
 import { getNews } from "@/lib/news/api";
 import { newsByline, relativeTimeAr, useNow } from "@/lib/news/format";
 import { newsCategories } from "@/lib/news/types";
+import { breadcrumbLd, seo } from "@/lib/seo";
 
 export const Route = createFileRoute("/news/")({
-  head: () => ({ meta: [{ title: "الأخبار · رهط بوست" }] }),
+  head: () =>
+    seo({
+      title: "أخبار رهط والنقب اليوم · رهط بوست",
+      description:
+        "آخر أخبار رهط والنقب على مدار اليوم: بلدية رهط، التعليم، الصحة، الرياضة والمجتمع من المواقع العربية المحلية، وأخبار يكتبها أهالي رهط في «من القراء».",
+      path: "/news",
+      jsonLd: [breadcrumbLd([{ name: "أخبار رهط", path: "/news" }])],
+    }),
   loader: () => getNews(),
   staleTime: 5 * 60_000,
   component: NewsPage,

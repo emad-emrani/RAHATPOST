@@ -18,8 +18,21 @@ import { IsraelNewsCredit, IsraelNewsRow, IsraelTitle } from "@/components/israe
 import { alert, emergency } from "@/data/content";
 import { getPublicAds } from "@/lib/ads/api";
 import { listAds, type ListAd } from "@/lib/ads/display";
+import { organizationLd, seo, websiteLd } from "@/lib/seo";
 
 export const Route = createFileRoute("/")({
+  // ?q= opens the page with the search filled in (WebSite SearchAction target).
+  validateSearch: (search: Record<string, unknown>): { q?: string } => ({
+    q: typeof search.q === "string" && search.q.trim() ? search.q.trim().slice(0, 80) : undefined,
+  }),
+  head: () =>
+    seo({
+      title: "رهط بوست | أخبار رهط والنقب، باصات رهط، دليل وإعلانات",
+      description:
+        "رهط بوست: آخر أخبار رهط والنقب، مواعيد باصات رهط، دليل محلات وخدمات رهط، إعلانات مبوبة، صيدلية الحراسة وأرقام الطوارئ — كل ما تحتاجه في مدينة رهط في مكان واحد.",
+      path: "/",
+      jsonLd: [organizationLd, websiteLd],
+    }),
   loader: async () => {
     const [news, approved, ads, israel] = await Promise.all([
       getNews(),
@@ -66,7 +79,8 @@ function Home() {
     ...osmEntries().filter((p) => p.phone || p.openingHours || p.address),
   ].slice(0, 4);
   const now = useNow(news.now);
-  const [q, setQ] = useState("");
+  const search = Route.useSearch();
+  const [q, setQ] = useState(search.q ?? "");
   const query = q.trim();
   const ranked = prioritizeLocal(news.items);
   const breaking = news.items.find((item) => item.breaking);

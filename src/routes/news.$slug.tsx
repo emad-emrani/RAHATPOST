@@ -6,6 +6,7 @@ import { NewsImage } from "@/components/news-image";
 import { getNews } from "@/lib/news/api";
 import { relativeTimeAr, useNow } from "@/lib/news/format";
 import type { NewsItem } from "@/lib/news/types";
+import { breadcrumbLd, newsArticleLd, seo, snippet } from "@/lib/seo";
 
 export const Route = createFileRoute("/news/$slug")({
   loader: async ({ params }) => {
@@ -18,9 +19,48 @@ export const Route = createFileRoute("/news/$slug")({
     };
   },
   staleTime: 5 * 60_000,
-  head: ({ loaderData }) => ({
-    meta: [{ title: `${loaderData?.article?.title ?? "الخبر"} · رهط بوست` }],
-  }),
+  head: ({ loaderData, params }) => {
+    const a = loaderData?.article;
+    const path = `/news/${params.slug}`;
+    if (!a) {
+      return seo({
+        title: "الخبر غير متوفر · رهط بوست",
+        description: "هذا الخبر لم يعد ضمن آخر أخبار رهط والنقب.",
+        path,
+        robots: "noindex",
+      });
+    }
+    const description = snippet(a.summary) || `${a.title} — أخبار رهط والنقب.`;
+    const crumbs = breadcrumbLd([
+      { name: "أخبار رهط", path: "/news" },
+      { name: snippet(a.title, 80), path },
+    ]);
+    return seo({
+      title: `${a.title} · رهط بوست`,
+      description,
+      path,
+      type: "article",
+      image: a.image,
+      publishedTime: a.publishedAt,
+      // Feed items are a headline + excerpt linking to the publisher (the original is the
+      // canonical source), so keep them out of the index but let crawlers follow the links.
+      // Reader posts are original content and are indexed with NewsArticle markup.
+      robots: a.reader ? "index" : "noindex",
+      jsonLd: a.reader
+        ? [
+            newsArticleLd({
+              path,
+              headline: a.title,
+              description,
+              datePublished: a.publishedAt,
+              authorName: a.reader.name,
+              image: a.image,
+            }),
+            crumbs,
+          ]
+        : [crumbs],
+    });
+  },
   component: ArticlePage,
 });
 

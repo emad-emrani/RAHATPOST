@@ -5,6 +5,7 @@ import { RevealPhone } from "@/components/phone";
 import { Shell } from "@/components/shell";
 import { getApprovedEntries } from "@/lib/directory/api";
 import { mapsUrl, osmEntries, type DirectoryEntry } from "@/lib/directory/types";
+import { breadcrumbLd, localBusinessLd, seo, snippet } from "@/lib/seo";
 
 export const Route = createFileRoute("/directory/$slug")({
   loader: async ({ params }) => {
@@ -18,9 +19,41 @@ export const Route = createFileRoute("/directory/$slug")({
     return { place: place ?? null };
   },
   staleTime: 60_000,
-  head: ({ loaderData }) => ({
-    meta: [{ title: `${loaderData?.place?.name ?? "النشاط"} · رهط بوست` }],
-  }),
+  head: ({ loaderData, params }) => {
+    const p = loaderData?.place;
+    const path = `/directory/${params.slug}`;
+    if (!p) {
+      return seo({
+        title: "النشاط غير موجود · دليل رهط",
+        description: "هذا النشاط غير موجود في دليل رهط.",
+        path,
+        robots: "noindex",
+      });
+    }
+    const where = p.address ?? p.area;
+    const description =
+      snippet(p.description) ||
+      snippet(
+        `${p.name}: ${p.category} في رهط${where ? ` (${where})` : ""}. الموقع على الخريطة${p.phone ? " ورقم الهاتف" : ""}${p.openingHours ? " وساعات العمل" : ""} في دليل رهط بوست.`,
+      );
+    return seo({
+      title: `${p.name} · ${p.category} في رهط | دليل رهط بوست`,
+      description,
+      path,
+      jsonLd: [
+        localBusinessLd({
+          ...p,
+          path,
+          // Owner phones are shown on request only; don't publish them in markup.
+          phone: p.source === "osm" ? p.phone : undefined,
+        }),
+        breadcrumbLd([
+          { name: "دليل رهط", path: "/directory" },
+          { name: p.name, path },
+        ]),
+      ],
+    });
+  },
   component: BusinessPage,
 });
 
@@ -48,7 +81,9 @@ function BusinessPage() {
         {place.verified ? <span className="chip chip-ink ms-2">موثّق</span> : null}
         <h1 className="mt-3 text-2xl font-bold">{place.name}</h1>
         {place.altName ? <p className="font-semibold text-muted">{place.altName}</p> : null}
-        {place.address || place.area ? <p className="mt-1 font-semibold">{place.address || place.area}</p> : null}
+        {place.address || place.area ? (
+          <p className="mt-1 font-semibold">{place.address || place.area}</p>
+        ) : null}
         {place.description ? <p className="mt-3 text-lg">{place.description}</p> : null}
         {place.openingHours ? (
           <p className="mt-3 font-bold">
@@ -74,12 +109,22 @@ function BusinessPage() {
           <p className="mt-4 font-semibold text-muted">لا يوجد رقم هاتف مسجّل لهذا المكان.</p>
         )}
 
-        <a className="btn btn-ghost mt-2 w-full" href={mapsUrl(place)} target="_blank" rel="noopener noreferrer">
+        <a
+          className="btn btn-ghost mt-2 w-full"
+          href={mapsUrl(place)}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
           <MapPin className="size-4" aria-hidden />
           الاتجاهات
         </a>
         {place.website ? (
-          <a className="btn btn-ghost mt-2 w-full" href={place.website} target="_blank" rel="noopener noreferrer">
+          <a
+            className="btn btn-ghost mt-2 w-full"
+            href={place.website}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
             <Globe className="size-4" aria-hidden />
             الموقع الإلكتروني
           </a>

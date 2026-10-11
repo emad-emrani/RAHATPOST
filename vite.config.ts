@@ -12,6 +12,11 @@ import { grokPwaPlugin } from "./scripts/grok-pwa-plugin.mjs";
 import { appEnvPlugin } from "./scripts/app-env-plugin.mjs";
 import { isMigrationFile } from "./scripts/migration-plan.mjs";
 
+/** Search-engine site verification tokens (build-time env), sanitized to token characters. */
+function verificationToken(value: string | undefined): string {
+  return /^[A-Za-z0-9_-]{8,100}$/.test(value?.trim() ?? "") ? value!.trim() : "";
+}
+
 /** The files `src/lib/db.ts` globs — same directory, same non-recursive scope. */
 function hasGlobbedMigrations(root: string): boolean {
   try {
@@ -66,6 +71,14 @@ export default defineConfig(({ command, isPreview }) => ({
     strictPort: true,
   },
   resolve: { tsconfigPaths: true },
+  // Google Search Console / Bing Webmaster HTML-tag verification: set GOOGLE_SITE_VERIFICATION /
+  // BING_SITE_VERIFICATION in the Vercel env and redeploy (see SEO.md).
+  define: {
+    __SITE_VERIFICATION__: JSON.stringify({
+      google: verificationToken(process.env.GOOGLE_SITE_VERIFICATION),
+      bing: verificationToken(process.env.BING_SITE_VERIFICATION),
+    }),
+  },
   plugins: [
     pgliteBootstrapPlugin(),
     // Dev-only /__app-env, read by scripts/check-auth-invariant.mjs.

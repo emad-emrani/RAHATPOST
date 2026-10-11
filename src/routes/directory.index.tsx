@@ -6,9 +6,17 @@ import { OsmCredit } from "@/components/osm-credit";
 import { Shell } from "@/components/shell";
 import { getApprovedEntries } from "@/lib/directory/api";
 import { categoryOrder, osmEntries } from "@/lib/directory/types";
+import { breadcrumbLd, seo } from "@/lib/seo";
 
 export const Route = createFileRoute("/directory/")({
-  head: () => ({ meta: [{ title: "الدليل · رهط بوست" }] }),
+  head: () =>
+    seo({
+      title: "دليل رهط: محلات ومطاعم وخدمات في رهط · رهط بوست",
+      description:
+        "دليل رهط للأعمال والخدمات: مطاعم ومقاهي، بقالات، عيادات وصحة، مدارس، مساجد، ورش وسيارات وغيرها في مدينة رهط بالنقب، مع العنوان والخريطة.",
+      path: "/directory",
+      jsonLd: [breadcrumbLd([{ name: "دليل رهط", path: "/directory" }])],
+    }),
   loader: () => getApprovedEntries(),
   staleTime: 60_000,
   component: DirectoryPage,
@@ -28,7 +36,9 @@ function DirectoryPage() {
   const list = useMemo(() => {
     const query = q.trim();
     return all.filter((item) => {
-      const hay = [item.name, item.altName, item.category, item.address, item.area].filter(Boolean).join(" ");
+      const hay = [item.name, item.altName, item.category, item.address, item.area]
+        .filter(Boolean)
+        .join(" ");
       return (
         (!query || hay.includes(query)) &&
         (cat === "الكل" || item.category === cat) &&
@@ -90,7 +100,11 @@ function DirectoryPage() {
         <ul className="flex flex-col gap-3">
           {list.map((item) => (
             <li key={item.slug}>
-              <Link to="/directory/$slug" params={{ slug: item.slug }} className="stamp press flex items-center gap-3 p-3">
+              <Link
+                to="/directory/$slug"
+                params={{ slug: item.slug }}
+                className="stamp press flex items-center gap-3 p-3"
+              >
                 <span className="icon-badge size-14 rounded-2xl">
                   <CategoryIcon category={item.category} className="size-7" />
                 </span>

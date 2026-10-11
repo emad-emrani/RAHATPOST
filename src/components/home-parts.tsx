@@ -55,6 +55,7 @@ export function HomeCarousel({ lead, leadTime }: { lead?: NewsItem; leadTime: st
                     size="full"
                     className="size-full"
                     iconClassName="size-16"
+                    eager
                   />
                 </span>
                 <span className="banner-shade" aria-hidden />

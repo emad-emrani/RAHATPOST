@@ -111,7 +111,13 @@ export function InstallBanner() {
     <>
       <section className="stamp p-3" aria-label="تثبيت التطبيق">
         <div className="flex items-center gap-3">
-          <img src="/icons/icon-192.png" alt="" className="size-12 shrink-0 rounded-xl" />
+          <img
+            src="/icons/icon-192.png"
+            alt=""
+            width={48}
+            height={48}
+            className="size-12 shrink-0 rounded-xl"
+          />
           <div className="min-w-0 flex-1">
             <p className="font-bold leading-snug">رهط بوست على شاشتك الرئيسية</p>
             <p className="text-sm font-semibold text-muted">افتحه كتطبيق بلمسة، بدون متجر.</p>

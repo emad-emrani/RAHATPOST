@@ -10,6 +10,7 @@ import {
 } from "@/components/israel-news";
 import { getIsraelNewsItem } from "@/lib/news/israel-api";
 import { relativeTimeAr, useNow } from "@/lib/news/format";
+import { breadcrumbLd, seo, snippet } from "@/lib/seo";
 
 export const Route = createFileRoute("/israel-news/$slug")({
   loader: async ({ params }) => {
@@ -22,13 +23,33 @@ export const Route = createFileRoute("/israel-news/$slug")({
     };
   },
   staleTime: 5 * 60_000,
-  head: ({ loaderData }) => ({
-    meta: [
-      {
-        title: `${loaderData?.article?.titleAr ?? loaderData?.article?.titleHe ?? "خبر"} · رهط بوست`,
-      },
-    ],
-  }),
+  head: ({ loaderData, params }) => {
+    const a = loaderData?.article;
+    const path = `/israel-news/${params.slug}`;
+    const title = a?.titleAr ?? a?.titleHe ?? "خبر";
+    return seo({
+      title: `${title} · رهط بوست`,
+      description: a
+        ? snippet(a.summaryAr) ||
+          `ترجمة آلية إلى العربية لخبر من ${a.source}: ${snippet(title, 100)}`
+        : "هذا الخبر لم يعد ضمن آخر أخبار إسرائيل.",
+      path,
+      type: "article",
+      image: a?.image,
+      publishedTime: a?.publishedAt,
+      // Machine-translated headline + excerpt of another outlet's story: not indexed (thin /
+      // duplicate), links followed. The /israel-news list stays indexable.
+      robots: "noindex",
+      jsonLd: a
+        ? [
+            breadcrumbLd([
+              { name: "أخبار إسرائيل", path: "/israel-news" },
+              { name: snippet(title, 80), path },
+            ]),
+          ]
+        : [],
+    });
+  },
   component: IsraelArticlePage,
 });
 

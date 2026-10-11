@@ -43,6 +43,7 @@ export function NewsImage({
           src={src}
           alt={item.title}
           loading={eager ? "eager" : "lazy"}
+          fetchPriority={eager ? "high" : "auto"}
           decoding="async"
           referrerPolicy="no-referrer"
           className="absolute inset-0 size-full object-cover"

@@ -4,9 +4,17 @@ import { Shell } from "@/components/shell";
 import { adTypes } from "@/data/content";
 import { getPublicAds } from "@/lib/ads/api";
 import { listAds } from "@/lib/ads/display";
+import { breadcrumbLd, seo } from "@/lib/seo";
 
 export const Route = createFileRoute("/ads/")({
-  head: () => ({ meta: [{ title: "الإعلانات · رهط بوست" }] }),
+  head: () =>
+    seo({
+      title: "إعلانات رهط المبوبة: وظائف، سيارات، عقارات وخدمات · رهط بوست",
+      description:
+        "إعلانات مبوبة في رهط والنقب: وظائف، سيارات للبيع، عقارات وشقق، مناسبات، خدمات ومفقودات. أضف إعلانك مجاناً بعد تسجيل الدخول.",
+      path: "/ads",
+      jsonLd: [breadcrumbLd([{ name: "إعلانات رهط", path: "/ads" }])],
+    }),
   loader: () => getPublicAds(),
   staleTime: 30_000,
   component: AdsPage,

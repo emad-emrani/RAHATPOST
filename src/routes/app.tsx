@@ -2,9 +2,16 @@ import { createFileRoute } from "@tanstack/react-router";
 import { LogIn, Smartphone, WifiOff } from "lucide-react";
 import { InstallButton } from "@/components/install-app";
 import { Shell } from "@/components/shell";
+import { seo } from "@/lib/seo";
 
 export const Route = createFileRoute("/app")({
-  head: () => ({ meta: [{ title: "تطبيق رهط بوست" }] }),
+  head: () =>
+    seo({
+      title: "تطبيق رهط بوست: ثبّته على هاتفك",
+      description:
+        "ثبّت تطبيق رهط بوست على هاتفك (أندرويد وآيفون) بضغطة واحدة: أخبار رهط والنقب، باصات رهط، الدليل والإعلانات، ويعمل حتى بدون اتصال.",
+      path: "/app",
+    }),
   component: AppPage,
 });
 
@@ -13,7 +20,13 @@ function AppPage() {
     <Shell>
       <div className="mx-auto max-w-md">
         <div className="mb-4 flex items-center gap-3">
-          <img src="/icons/icon-192.png" alt="" className="size-16 rounded-2xl" />
+          <img
+            src="/icons/icon-192.png"
+            alt=""
+            width={64}
+            height={64}
+            className="size-16 rounded-2xl"
+          />
           <div>
             <h1 className="text-2xl font-bold">تطبيق رهط بوست</h1>
             <p className="font-semibold text-muted">مجاني، بدون متجر، ويتحدّث تلقائياً</p>

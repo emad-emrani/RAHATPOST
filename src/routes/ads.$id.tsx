@@ -5,6 +5,7 @@ import { Shell } from "@/components/shell";
 import { getClassified } from "@/data/content";
 import { getPublicAd, getPublicAds } from "@/lib/ads/api";
 import { AD_ID_RE } from "@/lib/ads/types";
+import { breadcrumbLd, seo, snippet } from "@/lib/seo";
 
 type ViewAd = {
   id: string;
@@ -32,9 +33,27 @@ export const Route = createFileRoute("/ads/$id")({
     const { showSamples } = await getPublicAds();
     return { ad: showSamples ? sample : null };
   },
-  head: ({ loaderData }) => ({
-    meta: [{ title: `${loaderData?.ad?.title ?? "الإعلان"} · رهط بوست` }],
-  }),
+  head: ({ loaderData, params }) => {
+    const ad = loaderData?.ad;
+    const path = `/ads/${params.id}`;
+    return seo({
+      title: `${ad?.title ?? "الإعلان غير متوفر"} · إعلانات رهط | رهط بوست`,
+      description: ad
+        ? snippet(`${ad.type} في رهط${ad.neighborhood ? ` (${ad.neighborhood})` : ""}: ${ad.body}`)
+        : "هذا الإعلان غير متوفر.",
+      path,
+      // Real approved ads are indexed; placeholder samples and missing ads are not.
+      robots: ad && !ad.sample ? "index" : "noindex",
+      jsonLd: ad
+        ? [
+            breadcrumbLd([
+              { name: "إعلانات رهط", path: "/ads" },
+              { name: snippet(ad.title, 80), path },
+            ]),
+          ]
+        : [],
+    });
+  },
   component: AdPage,
 });
 

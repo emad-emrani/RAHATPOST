@@ -8,9 +8,17 @@ import {
 } from "@/components/israel-news";
 import { getIsraelNews } from "@/lib/news/israel-api";
 import { useNow } from "@/lib/news/format";
+import { breadcrumbLd, seo } from "@/lib/seo";
 
 export const Route = createFileRoute("/israel-news/")({
-  head: () => ({ meta: [{ title: "أخبار إسرائيل · رهط بوست" }] }),
+  head: () =>
+    seo({
+      title: "أخبار إسرائيل بالعربية اليوم · رهط بوست",
+      description:
+        "أهم عناوين أخبار إسرائيل من واي نت والقناة 12 ومعاريف وغلوبس، مترجمة آلياً إلى العربية لأهالي رهط والنقب، مع رابط الخبر الأصلي بالعبرية.",
+      path: "/israel-news",
+      jsonLd: [breadcrumbLd([{ name: "أخبار إسرائيل", path: "/israel-news" }])],
+    }),
   loader: () => getIsraelNews(),
   staleTime: 5 * 60_000,
   component: IsraelNewsPage,

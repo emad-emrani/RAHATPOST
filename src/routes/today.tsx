@@ -11,9 +11,17 @@ import { SectionTitle, Shell } from "@/components/shell";
 import { alert, emergency } from "@/data/content";
 import { useNow } from "@/lib/news/format";
 import { getIsraelNews } from "@/lib/news/israel-api";
+import { breadcrumbLd, seo } from "@/lib/seo";
 
 export const Route = createFileRoute("/today")({
-  head: () => ({ meta: [{ title: "لوحة اليوم · رهط بوست" }] }),
+  head: () =>
+    seo({
+      title: "لوحة اليوم في رهط: الطوارئ والصيدلية المناوبة · رهط بوست",
+      description:
+        "لوحة اليوم في رهط والنقب: صيدلية الحراسة اليوم، أرقام الطوارئ والإسعاف والشرطة، التنبيهات، وأهم أخبار إسرائيل مترجمة إلى العربية.",
+      path: "/today",
+      jsonLd: [breadcrumbLd([{ name: "لوحة اليوم", path: "/today" }])],
+    }),
   loader: () => getIsraelNews(),
   staleTime: 5 * 60_000,
   component: TodayPage,

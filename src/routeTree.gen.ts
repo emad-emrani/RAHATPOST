@@ -16,6 +16,7 @@ import { Route as BusesRouteImport } from './routes/buses'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as MyAdsRouteImport } from './routes/my-ads'
 import { Route as MyPostsRouteImport } from './routes/my-posts'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as SubmitRouteImport } from './routes/submit'
 import { Route as TodayRouteImport } from './routes/today'
 import { Route as AdsIndexRouteImport } from './routes/ads.index'
@@ -64,6 +65,11 @@ const MyAdsRoute = MyAdsRouteImport.update({
 const MyPostsRoute = MyPostsRouteImport.update({
   id: '/my-posts',
   path: '/my-posts',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SubmitRoute = SubmitRouteImport.update({
@@ -145,6 +151,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/my-ads': typeof MyAdsRoute
   '/my-posts': typeof MyPostsRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/submit': typeof SubmitRoute
   '/today': typeof TodayRoute
   '/ads/$id': typeof AdsIdRoute
@@ -168,6 +175,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/my-ads': typeof MyAdsRoute
   '/my-posts': typeof MyPostsRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/submit': typeof SubmitRoute
   '/today': typeof TodayRoute
   '/ads/$id': typeof AdsIdRoute
@@ -192,6 +200,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/my-ads': typeof MyAdsRoute
   '/my-posts': typeof MyPostsRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/submit': typeof SubmitRoute
   '/today': typeof TodayRoute
   '/ads/$id': typeof AdsIdRoute
@@ -217,6 +226,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/my-ads'
     | '/my-posts'
+    | '/sitemap.xml'
     | '/submit'
     | '/today'
     | '/ads/$id'
@@ -240,6 +250,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/my-ads'
     | '/my-posts'
+    | '/sitemap.xml'
     | '/submit'
     | '/today'
     | '/ads/$id'
@@ -263,6 +274,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/my-ads'
     | '/my-posts'
+    | '/sitemap.xml'
     | '/submit'
     | '/today'
     | '/ads/$id'
@@ -287,6 +299,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   MyAdsRoute: typeof MyAdsRoute
   MyPostsRoute: typeof MyPostsRoute
+  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   SubmitRoute: typeof SubmitRoute
   TodayRoute: typeof TodayRoute
   AdsIdRoute: typeof AdsIdRoute
@@ -352,6 +365,13 @@ declare module '@tanstack/react-router' {
       path: '/my-posts'
       fullPath: '/my-posts'
       preLoaderRoute: typeof MyPostsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/submit': {
@@ -463,6 +483,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   MyAdsRoute: MyAdsRoute,
   MyPostsRoute: MyPostsRoute,
+  SitemapDotxmlRoute: SitemapDotxmlRoute,
   SubmitRoute: SubmitRoute,
   TodayRoute: TodayRoute,
   AdsIdRoute: AdsIdRoute,

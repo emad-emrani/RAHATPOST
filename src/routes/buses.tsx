@@ -15,9 +15,17 @@ import {
   toMinutes,
 } from "@/lib/buses/schedule";
 import type { ArrivalsResult } from "@/lib/buses/types";
+import { breadcrumbLd, seo } from "@/lib/seo";
 
 export const Route = createFileRoute("/buses")({
-  head: () => ({ meta: [{ title: "باصات غاليم · رهط بوست" }] }),
+  head: () =>
+    seo({
+      title: "باصات رهط: مواعيد خطوط غاليم ووصول الباص المباشر · رهط بوست",
+      description:
+        "مواعيد باصات رهط لحظة بلحظة: خطوط شركة غاليم داخل رهط وإلى تل السبع وكسيفة وعرعرة النقب، وصول الباص إلى المحطة مباشرة وجدول رحلات اليوم.",
+      path: "/buses",
+      jsonLd: [breadcrumbLd([{ name: "باصات رهط", path: "/buses" }])],
+    }),
   // Server time as the first render's clock, so SSR and hydration agree.
   loader: () => ({ now: Date.now() }),
   component: BusesPage,
@@ -67,8 +75,8 @@ function BusesPage() {
     <Shell>
       <h1 className="text-2xl font-bold">باصات غاليم</h1>
       <p className="mt-1 font-semibold text-muted">
-        خطوط مدينة رهط والخطوط الخارجة منها. المواعيد تتحدّث تلقائياً كل يوم من بيانات وزارة المواصلات، آخر تحديث{" "}
-        {UPDATED}.
+        خطوط مدينة رهط والخطوط الخارجة منها. المواعيد تتحدّث تلقائياً كل يوم من بيانات وزارة
+        المواصلات، آخر تحديث {UPDATED}.
       </p>
       <div className="mt-4 grid grid-cols-2 gap-2">
         <a className="btn" href={`tel:${galimPhone.replaceAll("-", "")}`}>
@@ -103,9 +111,11 @@ function LiveArrivals({ now }: { now: number }) {
   // Restore the last choice.
   useEffect(() => {
     try {
-      const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "null") as
-        | { line: string; dir: string; stop: string }
-        | null;
+      const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "null") as {
+        line: string;
+        dir: string;
+        stop: string;
+      } | null;
       const d = saved && lineInfo(saved.line)?.dirs.find((x) => x.dir === saved.dir);
       if (saved && d && d.stops.some(([c]) => c === saved.stop)) {
         setLine(saved.line);
@@ -172,7 +182,8 @@ function LiveArrivals({ now }: { now: number }) {
         for (const [code] of dirInfo.stops) {
           const s = busSchedule.stops[code];
           if (!s) continue;
-          const d = (s.lat - pos.coords.latitude) ** 2 + ((s.lon - pos.coords.longitude) * 0.85) ** 2;
+          const d =
+            (s.lat - pos.coords.latitude) ** 2 + ((s.lon - pos.coords.longitude) * 0.85) ** 2;
           if (d < bestD) {
             bestD = d;
             best = code;
@@ -186,7 +197,8 @@ function LiveArrivals({ now }: { now: number }) {
   };
 
   const fresh = result && result.stop === stop ? result : null;
-  const isSelected = (a: { line: string; operator: string }) => a.line === line && a.operator === busSchedule.agency;
+  const isSelected = (a: { line: string; operator: string }) =>
+    a.line === line && a.operator === busSchedule.agency;
   const liveForLine = fresh?.arrivals.filter((a) => isSelected(a) && a.live) ?? [];
   const otherLive = fresh?.arrivals.filter((a) => !isSelected(a) && a.live) ?? [];
   const planned = plannedArrivals(now, line, dirInfo?.dir ?? dir, stop);
@@ -228,7 +240,9 @@ function LiveArrivals({ now }: { now: number }) {
             <button
               key={d.dir}
               type="button"
-              className={d.dir === dirInfo?.dir ? "chip chip-ink shrink-0" : "chip shrink-0 bg-paper"}
+              className={
+                d.dir === dirInfo?.dir ? "chip chip-ink shrink-0" : "chip shrink-0 bg-paper"
+              }
               onClick={() => chooseDir(d.dir)}
             >
               إلى {stopName(d.to)}
@@ -242,7 +256,12 @@ function LiveArrivals({ now }: { now: number }) {
           <LocateFixed className="size-4" aria-hidden />
           أقرب محطة لي
         </button>
-        <button type="button" className="btn btn-ghost px-3" onClick={() => void load()} disabled={loading}>
+        <button
+          type="button"
+          className="btn btn-ghost px-3"
+          onClick={() => void load()}
+          disabled={loading}
+        >
           <RefreshCw className={loading ? "size-4 animate-spin" : "size-4"} aria-hidden />
           تحديث
         </button>
@@ -303,7 +322,17 @@ function LiveArrivals({ now }: { now: number }) {
   );
 }
 
-function ArrivalRow({ line, dest, when, live }: { line: string; dest: string; when: string; live: boolean }) {
+function ArrivalRow({
+  line,
+  dest,
+  when,
+  live,
+}: {
+  line: string;
+  dest: string;
+  when: string;
+  live: boolean;
+}) {
   return (
     <li className="flex items-center justify-between gap-3 rounded-xl border border-line bg-paper px-3 py-2">
       <span className="min-w-0">
@@ -361,7 +390,9 @@ function Timetable({ now, dates, today }: { now: number; dates: string[]; today:
       </div>
 
       {!selected ? (
-        <p className="stamp mt-4 p-4 font-semibold">لا تتوفر مواعيد محدّثة حالياً. اتصل بغاليم للتأكد.</p>
+        <p className="stamp mt-4 p-4 font-semibold">
+          لا تتوفر مواعيد محدّثة حالياً. اتصل بغاليم للتأكد.
+        </p>
       ) : (
         <ul className="mt-4 flex flex-col gap-3">
           {list.map((line) => {
@@ -407,7 +438,8 @@ function Timetable({ now, dates, today }: { now: number; dates: string[]; today:
         </ul>
       )}
       <p className="mt-4 text-sm font-semibold text-muted">
-        مصدر المواعيد: بيانات GTFS المفتوحة من وزارة المواصلات، وتُحدَّث يومياً. قد تتغير المواعيد في الأعياد والطوارئ.
+        مصدر المواعيد: بيانات GTFS المفتوحة من وزارة المواصلات، وتُحدَّث يومياً. قد تتغير المواعيد
+        في الأعياد والطوارئ.
       </p>
     </section>
   );

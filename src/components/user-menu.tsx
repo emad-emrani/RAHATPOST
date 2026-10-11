@@ -51,6 +51,8 @@ export function UserMenu() {
           <img
             src={user.image}
             alt=""
+            width={40}
+            height={40}
             referrerPolicy="no-referrer"
             className="size-10 rounded-full border border-primary-deep object-cover"
           />

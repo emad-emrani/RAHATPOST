@@ -10,6 +10,7 @@ import { createMyNews } from "@/lib/reader-news/api";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { submitBusiness } from "@/lib/directory/api";
 import { ownerCategories } from "@/lib/directory/types";
+import { seo } from "@/lib/seo";
 
 const modes = ["خبر", "إعلان", "نشاط"] as const;
 type Mode = (typeof modes)[number];
@@ -21,7 +22,13 @@ const SIGN_IN_TITLE: Record<Mode, string> = {
 };
 
 export const Route = createFileRoute("/submit")({
-  head: () => ({ meta: [{ title: "أضف · رهط بوست" }] }),
+  head: () =>
+    seo({
+      title: "أضف خبراً أو إعلاناً أو نشاطاً · رهط بوست",
+      description: "أرسل خبراً من رهط، أو إعلاناً مبوباً، أو أضف نشاطك التجاري إلى دليل رهط.",
+      path: "/submit",
+      robots: "noindex",
+    }),
   validateSearch: (search: Record<string, unknown>): { mode?: Mode; name?: string } => ({
     mode: modes.includes(search.mode as Mode) ? (search.mode as Mode) : undefined,
     name: typeof search.name === "string" ? search.name.slice(0, 80) : undefined,
