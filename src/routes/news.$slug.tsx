@@ -52,7 +52,7 @@ function ArticlePage() {
         <span className={article.breaking ? "chip chip-deep" : "chip"}>
           {article.breaking ? "عاجل" : article.category}
         </span>
-        <h1 className="mt-3 text-3xl font-bold">{article.title}</h1>
+        <h1 className="mt-3 text-2xl font-bold">{article.title}</h1>
         <p className="mt-1 font-semibold text-muted">
           <time dateTime={article.publishedAt}>{relativeTimeAr(article.publishedAt, now)}</time> ·{" "}
           {article.source}

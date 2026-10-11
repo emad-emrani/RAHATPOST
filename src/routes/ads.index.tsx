@@ -14,7 +14,7 @@ function AdsPage() {
 
   return (
     <Shell>
-      <h1 className="mb-3 text-3xl font-bold">الإعلانات</h1>
+      <h1 className="mb-3 text-2xl font-bold">الإعلانات</h1>
       <div className="scroll-row mb-4">
         {adTypes.map((item) => (
           <button

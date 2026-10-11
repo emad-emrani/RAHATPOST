@@ -1,5 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { Bus, ChevronLeft, Search } from "lucide-react";
 import { useMemo, useState } from "react";
+import { CategoryIcon } from "@/components/category-icon";
+import { HomeCarousel, HomeTiles } from "@/components/home-parts";
 import { SectionTitle, Shell } from "@/components/shell";
 import { DutyCard } from "@/components/duty";
 import { NewsUnavailable, prioritizeLocal } from "@/components/news";
@@ -32,8 +35,10 @@ function Home() {
   const query = q.trim();
   const ranked = prioritizeLocal(news.items);
   const breaking = news.items.find((item) => item.breaking);
-  const lead = ranked[0];
-  const rest = ranked.slice(1, 5);
+  // The newest local story leads the banner carousel; the news section continues from the next one.
+  const top = ranked[0];
+  const lead = ranked[1] ?? ranked[0];
+  const rest = ranked.slice(2, 6);
 
   const results = useMemo(() => {
     if (!query) return null;
@@ -51,9 +56,11 @@ function Home() {
 
   return (
     <Shell>
-      <label className="mb-4 block">
+      <label className="search-field mb-4 block">
         <span className="sr-only">بحث</span>
+        <Search className="size-5" aria-hidden />
         <input
+          type="search"
           className="field"
           value={q}
           onChange={(event) => setQ(event.target.value)}
@@ -65,9 +72,11 @@ function Home() {
         <SearchResults query={query} results={results} />
       ) : (
         <div className="flex flex-col gap-6">
+          <HomeTiles />
+          <HomeCarousel lead={top} leadTime={top ? relativeTimeAr(top.publishedAt, now) : ""} />
           {breaking ? (
-            <Link to="/news/$slug" params={{ slug: breaking.slug }} className="stamp press block bg-brand-deep px-4 py-3">
-              <span className="chip-ink chip">عاجل</span>
+            <Link to="/news/$slug" params={{ slug: breaking.slug }} className="alert-card press block px-4 py-3">
+              <span className="chip">عاجل</span>
               <span className="mt-2 block text-lg font-bold">{breaking.title}</span>
               <span className="text-sm font-semibold">
                 {relativeTimeAr(breaking.publishedAt, now)} · {breaking.source}
@@ -95,10 +104,15 @@ function Home() {
 
           <section>
             <SectionTitle title="باصات غاليم" to="/buses" more="كل المواعيد" />
-            <Link to="/buses" className="stamp press block p-4">
-              <span className="chip">شركة גלים</span>
-              <span className="mt-2 block text-xl font-bold">خطوط المدينة 1 حتى 6، وبئر السبع وما حولها</span>
-              <span className="font-semibold">أحد–خميس: خط 1 من 05:30 حتى 22:00</span>
+            <Link to="/buses" className="stamp press flex items-center gap-3 p-4">
+              <span className="icon-badge">
+                <Bus className="size-6" aria-hidden />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block font-bold">خطوط المدينة 1 حتى 6، وبئر السبع وما حولها</span>
+                <span className="text-sm font-semibold text-muted">شركة גלים · أوقات مباشرة وجدول اليوم</span>
+              </span>
+              <ChevronLeft className="size-5 text-muted" aria-hidden />
             </Link>
           </section>
 
@@ -107,8 +121,8 @@ function Home() {
             {lead ? (
               <>
                 <Link to="/news/$slug" params={{ slug: lead.slug }} className="stamp press mb-3 block p-4">
-                  <span className="chip">{lead.category}</span>
-                  <span className="mt-2 block text-2xl font-bold">{lead.title}</span>
+                  <span className="chip chip-deep">{lead.category}</span>
+                  <span className="mt-2 block text-xl font-bold">{lead.title}</span>
                   <span className="text-sm font-semibold text-muted">
                     {relativeTimeAr(lead.publishedAt, now)} · {lead.source}
                   </span>
@@ -116,11 +130,16 @@ function Home() {
                 <ul className="stack-list">
                   {rest.map((item) => (
                     <li key={item.slug}>
-                      <Link to="/news/$slug" params={{ slug: item.slug }} className="block px-4 py-3">
-                        <span className="text-sm font-bold text-muted">
-                          {item.category} · {relativeTimeAr(item.publishedAt, now)} · {item.source}
+                      <Link to="/news/$slug" params={{ slug: item.slug }} className="flex items-center gap-3 px-4 py-3">
+                        <span className="icon-badge">
+                          <CategoryIcon category={item.category} className="size-5" />
                         </span>
-                        <span className="block font-bold">{item.title}</span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block font-bold leading-snug">{item.title}</span>
+                          <span className="text-sm font-semibold text-muted">
+                            {item.category} · {relativeTimeAr(item.publishedAt, now)} · {item.source}
+                          </span>
+                        </span>
                       </Link>
                     </li>
                   ))}
@@ -131,7 +150,7 @@ function Home() {
             )}
           </section>
 
-          <section className="stamp bg-brand-deep p-4">
+          <section className="alert-card p-4">
             <p className="chip">تنبيه بلدي</p>
             <h2 className="mt-2 text-xl font-bold">{alert.title}</h2>
             <p className="font-semibold">{alert.body}</p>
@@ -140,13 +159,16 @@ function Home() {
 
           <section>
             <SectionTitle title="من الدليل" to="/directory" more="كل الدليل" />
-            <ul className="grid gap-3 sm:grid-cols-2">
+            <ul className="scroll-row -mx-4 px-4 pb-2">
               {featured.map((item) => (
-                <li key={item.slug}>
-                  <Link to="/directory/$slug" params={{ slug: item.slug }} className="stamp press block h-full p-4">
-                    <span className="chip">{item.category}</span>
-                    {item.verified ? <span className="chip chip-ink ms-2">موثّق</span> : null}
-                    <span className="mt-2 block text-lg font-bold">{item.name}</span>
+                <li key={item.slug} className="w-44 shrink-0">
+                  <Link to="/directory/$slug" params={{ slug: item.slug }} className="stamp press flex h-full flex-col p-3">
+                    <span className="icon-badge size-14 rounded-2xl">
+                      <CategoryIcon category={item.category} className="size-7" />
+                    </span>
+                    <span className="mt-2 block font-bold leading-snug">{item.name}</span>
+                    <span className="text-xs font-semibold text-muted">{item.category}</span>
+                    {item.verified ? <span className="chip chip-ink mt-1 w-fit">موثّق</span> : null}
                     {item.address || item.area ? (
                       <span className="text-sm font-semibold text-muted">{item.address || item.area}</span>
                     ) : null}
@@ -174,8 +196,8 @@ function Home() {
             </ul>
           </section>
 
-          <p className="text-sm font-semibold text-ink/70 md:hidden">
-            نسخة عرض بألوان الشعار. أرقام الطوارئ الوطنية حقيقية، وبقية الأرقام نماذج.
+          <p className="text-sm font-semibold text-muted md:hidden">
+            أرقام الطوارئ الوطنية حقيقية. الأخبار والدليل والباصات من مصادر حقيقية، وبقية الإعلانات نماذج.
           </p>
         </div>
       )}

@@ -18,7 +18,7 @@ export function NewsUnavailable() {
 
 export function NewsCredit() {
   return (
-    <p className="mt-6 text-sm font-semibold text-ink/70">
+    <p className="mt-6 text-sm font-semibold text-muted">
       الأخبار من مواقع: {NEWS_SOURCES.join("، ")}. العناوين والمقتطفات لأصحابها، والخبر الكامل في موقع المصدر.
     </p>
   );

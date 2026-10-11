@@ -27,7 +27,7 @@ function SubmitPage() {
 
   return (
     <Shell>
-      <h1 className="mb-3 text-3xl font-bold">أضف</h1>
+      <h1 className="mb-3 text-2xl font-bold">أضف</h1>
       <div className="mb-4 grid grid-cols-3 gap-2">
         {modes.map((item) => (
           <button

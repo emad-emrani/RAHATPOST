@@ -1,6 +1,6 @@
 export function OsmCredit() {
   return (
-    <p className="mt-6 text-sm font-semibold text-ink/70">
+    <p className="mt-6 text-sm font-semibold text-muted">
       البيانات ©{" "}
       <a
         className="underline decoration-2 underline-offset-4"

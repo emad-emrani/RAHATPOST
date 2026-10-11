@@ -33,7 +33,7 @@ function AdPage() {
     <Shell>
       <article className={ad.quiet ? "stamp-flat p-4" : "stamp p-4"}>
         <span className={ad.quiet ? "chip" : "chip chip-deep"}>{ad.type}</span>
-        <h1 className="mt-3 text-3xl font-bold">{ad.title}</h1>
+        <h1 className="mt-3 text-2xl font-bold">{ad.title}</h1>
         <p className="font-semibold text-muted">{ad.neighborhood}</p>
         {ad.price ? <p className="mt-2 text-xl font-bold">{ad.price}</p> : null}
         <p className="mt-3 text-lg">{ad.body}</p>

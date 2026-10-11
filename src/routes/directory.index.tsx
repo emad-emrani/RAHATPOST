@@ -1,5 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { ChevronLeft, Search } from "lucide-react";
 import { useMemo, useState } from "react";
+import { CategoryIcon } from "@/components/category-icon";
 import { OsmCredit } from "@/components/osm-credit";
 import { Shell } from "@/components/shell";
 import { getApprovedEntries } from "@/lib/directory/api";
@@ -37,22 +39,31 @@ function DirectoryPage() {
 
   return (
     <Shell>
-      <h1 className="mb-1 text-3xl font-bold">الدليل</h1>
+      <h1 className="mb-1 text-2xl font-bold">الدليل</h1>
       <p className="mb-3 font-semibold text-muted">{all.length} مكاناً ونشاطاً في رهط.</p>
-      <input
-        className="field mb-3"
-        value={q}
-        onChange={(event) => setQ(event.target.value)}
-        placeholder="اسم النشاط أو الشارع أو الحي"
-      />
-      <div className="scroll-row mb-3">
+      <label className="search-field mb-4 block">
+        <span className="sr-only">بحث في الدليل</span>
+        <Search className="size-5" aria-hidden />
+        <input
+          type="search"
+          className="field"
+          value={q}
+          onChange={(event) => setQ(event.target.value)}
+          placeholder="اسم النشاط أو الشارع أو الحي"
+        />
+      </label>
+      <div className="scroll-row -mx-4 mb-3 px-4 pb-1" role="group" aria-label="التصنيفات">
         {cats.map((item) => (
           <button
             key={item}
             type="button"
-            className={item === cat ? "chip chip-ink shrink-0" : "chip shrink-0 bg-paper"}
+            className="tile"
+            aria-pressed={item === cat}
             onClick={() => setCat(item)}
           >
+            <span className="tile-icon">
+              <CategoryIcon category={item} className="size-7" />
+            </span>
             {item}
           </button>
         ))}
@@ -60,12 +71,12 @@ function DirectoryPage() {
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <button
           type="button"
-          className={verifiedOnly ? "chip chip-ink" : "chip bg-paper"}
+          className={verifiedOnly ? "chip chip-ink" : "chip"}
           onClick={() => setVerifiedOnly((value) => !value)}
         >
           موثّق فقط
         </button>
-        <Link to="/submit" search={{ mode: "نشاط" }} className="chip bg-paper">
+        <Link to="/submit" search={{ mode: "نشاط" }} className="chip chip-deep">
           أضف نشاطك
         </Link>
       </div>
@@ -79,15 +90,23 @@ function DirectoryPage() {
         <ul className="flex flex-col gap-3">
           {list.map((item) => (
             <li key={item.slug}>
-              <Link to="/directory/$slug" params={{ slug: item.slug }} className="stamp press block p-4">
-                <span className="chip">{item.category}</span>
-                {item.verified ? <span className="chip chip-ink ms-2">موثّق</span> : null}
-                <span className="mt-2 block text-xl font-bold">{item.name}</span>
-                {item.address || item.area || item.openingHours ? (
-                  <span className="font-semibold text-muted">
-                    {[item.address || item.area, item.openingHours].filter(Boolean).join(" · ")}
+              <Link to="/directory/$slug" params={{ slug: item.slug }} className="stamp press flex items-center gap-3 p-3">
+                <span className="icon-badge size-14 rounded-2xl">
+                  <CategoryIcon category={item.category} className="size-7" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-lg font-bold leading-snug">{item.name}</span>
+                  <span className="flex flex-wrap items-center gap-x-2 text-sm font-semibold text-muted">
+                    {item.category}
+                    {item.verified ? <span className="chip chip-ink">موثّق</span> : null}
                   </span>
-                ) : null}
+                  {item.address || item.area || item.openingHours ? (
+                    <span className="block text-sm font-semibold text-muted">
+                      {[item.address || item.area, item.openingHours].filter(Boolean).join(" · ")}
+                    </span>
+                  ) : null}
+                </span>
+                <ChevronLeft className="size-5 shrink-0 text-muted" aria-hidden />
               </Link>
             </li>
           ))}

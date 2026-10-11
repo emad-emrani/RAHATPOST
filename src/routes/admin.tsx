@@ -48,7 +48,7 @@ function AdminPage() {
   if (state === "login") {
     return (
       <Shell>
-        <h1 className="mb-3 text-3xl font-bold">إدارة الدليل</h1>
+        <h1 className="mb-3 text-2xl font-bold">إدارة الدليل</h1>
         <form
           className="stamp flex flex-col gap-3 p-4"
           onSubmit={async (event) => {
@@ -92,7 +92,7 @@ function AdminPage() {
   return (
     <Shell>
       <div className="mb-3 flex items-center justify-between gap-3">
-        <h1 className="text-3xl font-bold">إدارة الدليل</h1>
+        <h1 className="text-2xl font-bold">إدارة الدليل</h1>
         <button
           type="button"
           className="btn btn-ghost px-4"

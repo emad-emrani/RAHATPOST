@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { Phone } from "lucide-react";
 import { DutyCard } from "@/components/duty";
 import { Shell } from "@/components/shell";
 import { alert, emergency, events, weather } from "@/data/content";
@@ -11,11 +12,11 @@ export const Route = createFileRoute("/today")({
 function TodayPage() {
   return (
     <Shell>
-      <h1 className="mb-4 text-3xl font-bold">لوحة اليوم</h1>
+      <h1 className="mb-4 text-2xl font-bold">لوحة اليوم</h1>
       <div className="flex flex-col gap-4">
         <DutyCard label="صيدلية الحراسة" />
 
-        <section className="stamp bg-brand-deep p-4">
+        <section className="alert-card p-4">
           <p className="chip">تنبيه</p>
           <h2 className="mt-2 text-xl font-bold">{alert.title}</h2>
           <p className="font-semibold">{alert.body}</p>
@@ -33,8 +34,11 @@ function TodayPage() {
           <ul className="flex flex-col gap-2">
             {emergency.map((item) => (
               <li key={item.phone}>
-                <a href={`tel:${item.phone}`} className="stamp press flex items-center justify-between px-4 py-3">
-                  <span className="font-bold">{item.name}</span>
+                <a href={`tel:${item.phone}`} className="stamp press flex items-center gap-3 px-3 py-3">
+                  <span className="icon-badge">
+                    <Phone className="size-5" aria-hidden />
+                  </span>
+                  <span className="flex-1 font-bold">{item.name}</span>
                   <span className="text-2xl font-bold leading-none">{item.phone}</span>
                 </a>
               </li>
@@ -44,7 +48,7 @@ function TodayPage() {
 
         <section className="stamp p-4">
           <h2 className="text-xl font-bold">فعاليات اليوم</h2>
-          <ul className="mt-2 divide-y-2 divide-ink/15">
+          <ul className="mt-2 divide-y divide-line">
             {events.map((item) => (
               <li key={item.title} className="flex items-baseline justify-between gap-3 py-2">
                 <span>

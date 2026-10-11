@@ -25,17 +25,17 @@ function NewsPage() {
 
   return (
     <Shell>
-      <h1 className="mb-3 text-3xl font-bold">الأخبار</h1>
+      <h1 className="mb-3 text-2xl font-bold">الأخبار</h1>
       {data.items.length === 0 ? (
         <NewsUnavailable />
       ) : (
         <>
-          <div className="scroll-row mb-4">
+          <div className="scroll-row -mx-4 mb-4 px-4">
             {["الكل", LOCAL, ...newsCategories].map((item) => (
               <button
                 key={item}
                 type="button"
-                className={item === cat ? "chip chip-ink shrink-0" : "chip shrink-0 bg-paper"}
+                className={item === cat ? "chip chip-ink shrink-0" : "chip shrink-0"}
                 onClick={() => setCat(item)}
               >
                 {item}
@@ -49,10 +49,10 @@ function NewsPage() {
               {list.map((item) => (
                 <li key={item.slug}>
                   <Link to="/news/$slug" params={{ slug: item.slug }} className="stamp press block p-4">
-                    <span className={item.breaking ? "chip chip-deep" : "chip"}>
+                    <span className={item.breaking ? "chip chip-ink" : "chip chip-deep"}>
                       {item.breaking ? "عاجل" : item.category}
                     </span>
-                    <span className="mt-2 block text-xl font-bold">{item.title}</span>
+                    <span className="mt-2 block text-lg font-bold leading-snug">{item.title}</span>
                     <span className="text-sm font-semibold text-muted">
                       {relativeTimeAr(item.publishedAt, now)} · {item.source}
                     </span>

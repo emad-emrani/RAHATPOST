@@ -1,4 +1,4 @@
-import { MapPin, Phone } from "lucide-react";
+import { MapPin, Phone, Pill } from "lucide-react";
 import { duty } from "@/data/content";
 
 /** Duty pharmacy card. Without a logged shift it says so instead of showing a fake pharmacy. */
@@ -6,10 +6,15 @@ export function DutyCard({ label = "صيدلية الحراسة اليوم", hea
   const H = heading;
   if (!duty) {
     return (
-      <section className="stamp bg-brand-deep p-4">
-        <p className="text-sm font-bold">{label}</p>
-        <H className="mt-1 text-2xl font-bold">لم يُحدَّث جدول اليوم</H>
-        <p className="font-semibold">اتصل بصيدليتك أو بنجمة داود الحمراء 101 للاستفسار.</p>
+      <section className="stamp flex items-start gap-3 p-4">
+        <span className="icon-badge">
+          <Pill className="size-6" aria-hidden />
+        </span>
+        <div className="min-w-0">
+          <p className="text-sm font-bold text-muted">{label}</p>
+          <H className="text-xl font-bold">لم يُحدَّث جدول اليوم</H>
+          <p className="text-sm font-semibold text-muted">اتصل بصيدليتك أو بنجمة داود الحمراء 101 للاستفسار.</p>
+        </div>
       </section>
     );
   }

@@ -46,7 +46,7 @@ function BusinessPage() {
       <article className="stamp p-4">
         <span className="chip">{place.category}</span>
         {place.verified ? <span className="chip chip-ink ms-2">موثّق</span> : null}
-        <h1 className="mt-3 text-3xl font-bold">{place.name}</h1>
+        <h1 className="mt-3 text-2xl font-bold">{place.name}</h1>
         {place.altName ? <p className="font-semibold text-muted">{place.altName}</p> : null}
         {place.address || place.area ? <p className="mt-1 font-semibold">{place.address || place.area}</p> : null}
         {place.description ? <p className="mt-3 text-lg">{place.description}</p> : null}

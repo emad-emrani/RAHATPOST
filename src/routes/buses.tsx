@@ -65,7 +65,7 @@ function BusesPage() {
 
   return (
     <Shell>
-      <h1 className="text-3xl font-bold">باصات غاليم</h1>
+      <h1 className="text-2xl font-bold">باصات غاليم</h1>
       <p className="mt-1 font-semibold text-muted">
         خطوط مدينة رهط والخطوط الخارجة منها. المواعيد تتحدّث تلقائياً كل يوم من بيانات وزارة المواصلات، آخر تحديث{" "}
         {UPDATED}.
@@ -305,14 +305,14 @@ function LiveArrivals({ now }: { now: number }) {
 
 function ArrivalRow({ line, dest, when, live }: { line: string; dest: string; when: string; live: boolean }) {
   return (
-    <li className="flex items-center justify-between gap-3 rounded-xl border-2 border-ink bg-paper px-3 py-2">
+    <li className="flex items-center justify-between gap-3 rounded-xl border border-line bg-paper px-3 py-2">
       <span className="min-w-0">
         <span className="chip chip-ink">خط {line}</span>
         {dest ? <span className="ms-2 font-bold">إلى {dest}</span> : null}
       </span>
       <span className="shrink-0 text-end">
         <span className="block font-bold">{when}</span>
-        <span className={live ? "chip chip-deep" : "chip"}>{live ? "مباشر" : "حسب الجدول"}</span>
+        <span className={live ? "chip chip-ok" : "chip"}>{live ? "مباشر" : "حسب الجدول"}</span>
       </span>
     </li>
   );
@@ -406,7 +406,7 @@ function Timetable({ now, dates, today }: { now: number; dates: string[]; today:
           })}
         </ul>
       )}
-      <p className="mt-4 text-sm font-semibold text-ink/70">
+      <p className="mt-4 text-sm font-semibold text-muted">
         مصدر المواعيد: بيانات GTFS المفتوحة من وزارة المواصلات، وتُحدَّث يومياً. قد تتغير المواعيد في الأعياد والطوارئ.
       </p>
     </section>

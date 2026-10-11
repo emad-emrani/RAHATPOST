@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Bus, House, Megaphone, Newspaper, Siren, Store } from "lucide-react";
+import { Bus, ChevronLeft, House, Megaphone, Newspaper, Plus, Siren, Store } from "lucide-react";
 import type { ReactNode } from "react";
 import logoUrl from "@/assets/logo.jpg";
 
@@ -14,28 +14,29 @@ const nav = [
 
 export function Shell({ children }: { children: ReactNode }) {
   return (
-    <div className="min-h-screen bg-brand text-ink">
-      <header className="edge-b sticky top-0 z-30 bg-brand">
+    <div className="min-h-screen bg-surface text-ink">
+      <header className="edge-b sticky top-0 z-30 bg-paper">
         <div className="mx-auto flex max-w-3xl items-center gap-3 px-4 py-2">
-          <Link to="/" className="shrink-0 rounded-lg">
-            <img src={logoUrl} alt="" className="h-16 w-16 object-cover" />
+          <Link to="/" className="shrink-0 rounded-2xl" aria-label="رهط بوست، الرئيسية">
+            <img src={logoUrl} alt="" className="h-12 w-12 rounded-2xl object-cover" />
           </Link>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-xl font-bold leading-none">رهط بوست</p>
-            <p className="text-sm font-semibold text-ink/70">رهط والنقب</p>
+            <p className="truncate text-lg font-bold leading-tight">رهط بوست</p>
+            <p className="text-xs font-semibold text-muted">رهط والنقب</p>
           </div>
-          <Link to="/submit" className="btn px-4">
+          <Link to="/submit" className="btn px-4" aria-label="أضف خبراً أو إعلاناً أو نشاطاً">
+            <Plus className="size-4" aria-hidden />
             أضف
           </Link>
         </div>
-        <nav className="mx-auto hidden max-w-3xl gap-2 px-4 pb-3 md:flex">
+        <nav className="mx-auto hidden max-w-3xl gap-1 px-3 pb-2 md:flex" aria-label="الأقسام">
           {nav.map((item) => (
             <Link
               key={item.to}
               to={item.to}
               activeOptions={{ exact: item.exact }}
               className="pill"
-              activeProps={{ className: "bg-ink text-brand" }}
+              activeProps={{ className: "bg-primary-soft text-primary-deep" }}
             >
               {item.label}
             </Link>
@@ -45,24 +46,20 @@ export function Shell({ children }: { children: ReactNode }) {
 
       <main className="mx-auto w-full max-w-3xl px-4 pt-4 pb-28 md:pb-16">{children}</main>
 
-      <footer className="mx-auto hidden max-w-3xl px-4 pb-8 text-sm font-semibold text-ink/70 md:block">
-        نسخة عرض بألوان الشعار. أرقام الطوارئ الوطنية حقيقية، وبقية الأرقام نماذج.
+      <footer className="mx-auto hidden max-w-3xl px-4 pb-8 text-sm font-semibold text-muted md:block">
+        أرقام الطوارئ الوطنية حقيقية. الأخبار والدليل والباصات من مصادر حقيقية مذكورة في كل صفحة، وبقية الإعلانات نماذج.
       </footer>
 
-      <nav className="edge-t fixed inset-x-0 bottom-0 z-30 bg-brand md:hidden">
+      <nav
+        className="edge-t fixed inset-x-0 bottom-0 z-30 bg-paper pb-[env(safe-area-inset-bottom)] md:hidden"
+        aria-label="التنقل"
+      >
         <div className="mx-auto flex max-w-3xl">
           {nav.map((item) => {
             const Icon = item.icon;
             return (
-              <Link
-                key={item.to}
-                to={item.to}
-                activeOptions={{ exact: item.exact }}
-                className="flex flex-1 flex-col items-center gap-1 py-2 text-xs font-bold"
-                activeProps={{ className: "bg-ink text-brand" }}
-                inactiveProps={{ className: "text-ink" }}
-              >
-                <Icon className="size-5" aria-hidden />
+              <Link key={item.to} to={item.to} activeOptions={{ exact: item.exact }} className="tabbar-link">
+                <Icon className="size-6" aria-hidden />
                 {item.label}
               </Link>
             );
@@ -83,11 +80,12 @@ export function SectionTitle({
   more?: string;
 }) {
   return (
-    <div className="mb-3 flex items-end justify-between gap-3">
-      <h2 className="text-xl font-bold">{title}</h2>
+    <div className="mb-3 flex items-center justify-between gap-3">
+      <h2 className="text-lg font-bold">{title}</h2>
       {to && more ? (
-        <Link to={to} className="text-sm font-bold underline decoration-2 underline-offset-4">
+        <Link to={to} className="see-all">
           {more}
+          <ChevronLeft className="size-4" aria-hidden />
         </Link>
       ) : null}
     </div>
