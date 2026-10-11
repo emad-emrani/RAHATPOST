@@ -12,6 +12,10 @@ export type NewsItem = {
   breaking: boolean;
   /** Mentions Rahat or the Negev. */
   local: boolean;
+  /** The publisher's own image for this story, taken from the feed item (https), if any. */
+  image?: string;
+  /** A smaller rendition of `image` for list thumbnails, when the feed offers one. */
+  thumb?: string;
 };
 
 export type NewsFeedResult = {

@@ -12,6 +12,8 @@ type FeedSource = {
   /** Keep an item from this feed? (local-to-Rahat/Negev items are always kept) */
   keep?: (item: RawItem) => boolean;
   fixLink?: (link: string) => string;
+  /** Article pages carry a usable og:image and load fast: fill missing feed images from it. */
+  ogImage?: boolean;
 };
 
 type RawItem = {
@@ -20,6 +22,7 @@ type RawItem = {
   date: string;
   description: string;
   categories: string[];
+  image?: { src: string; thumb?: string };
 };
 
 const SOURCES: FeedSource[] = [
@@ -55,6 +58,7 @@ const SOURCES: FeedSource[] = [
     name: "حيفا نت",
     home: "https://www.haifanet.co.il",
     urls: ["https://www.haifanet.co.il/feed/"],
+    ogImage: true,
   },
 ];
 
@@ -110,6 +114,8 @@ async function refresh(): Promise<NewsFeedResult> {
     })
     .slice(0, MAX_ITEMS);
 
+  await fillOgImages(items);
+
   if (items.length === 0 && cache) {
     // Every feed failed this round: keep serving the last good copy for a bit.
     const stale = { ...cache.result, failedSources };
@@ -128,6 +134,73 @@ async function refresh(): Promise<NewsFeedResult> {
   return result;
 }
 
+/* -------------------------------------------------------- og:image fallback */
+
+const OG_TIMEOUT_MS = 3_000;
+const OG_BUDGET_MS = 4_000;
+const OG_CONCURRENCY = 4;
+const OG_MAX_BYTES = 150_000;
+/** link → image URL ("" = page has none). Survives news refreshes. */
+const ogCache = new Map<string, string>();
+const ogSources = new Set(SOURCES.filter((s) => s.ogImage).map((s) => s.name));
+
+/** Fill missing images from article og:image, for sources that allow it, within a small time budget. */
+async function fillOgImages(items: NewsItem[]): Promise<void> {
+  const todo = items.filter((item) => !item.image && ogSources.has(item.source));
+  const apply = () => {
+    for (const item of todo) {
+      const src = ogCache.get(item.link);
+      if (src) item.image = src;
+    }
+  };
+  const pending = todo.filter((item) => !ogCache.has(item.link));
+  if (pending.length > 0) {
+    let next = 0;
+    const worker = async () => {
+      while (next < pending.length) {
+        const item = pending[next++];
+        ogCache.set(item.link, (await fetchOgImage(item.link).catch(() => undefined)) ?? "");
+      }
+    };
+    const work = Promise.all(Array.from({ length: OG_CONCURRENCY }, worker));
+    // Whatever isn't done within the budget finishes in the background for the next refresh.
+    await Promise.race([work, new Promise((resolve) => setTimeout(resolve, OG_BUDGET_MS))]);
+    if (ogCache.size > 500)
+      for (const key of [...ogCache.keys()].slice(0, ogCache.size - 400)) ogCache.delete(key);
+  }
+  apply();
+}
+
+async function fetchOgImage(url: string): Promise<string | undefined> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), OG_TIMEOUT_MS);
+  try {
+    const res = await fetch(url, {
+      signal: controller.signal,
+      headers: { "user-agent": USER_AGENT, accept: "text/html" },
+    });
+    if (!res.ok || !res.body) return undefined;
+    // Only the <head> matters: read the first chunk and stop.
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let html = "";
+    while (html.length < OG_MAX_BYTES) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      html += decoder.decode(value, { stream: true });
+      if (/<\/head>/i.test(html)) break;
+    }
+    reader.cancel().catch(() => {});
+    const meta =
+      html.match(/<meta[^>]+property=["']og:image(?::secure_url)?["'][^>]*>/i)?.[0] ??
+      html.match(/<meta[^>]+name=["']twitter:image["'][^>]*>/i)?.[0];
+    const content = meta?.match(/content=["']([^"']+)["']/i)?.[1];
+    return content ? safeImageUrl(decodeEntities(content)) : undefined;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function fetchText(url: string): Promise<string> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), FEED_TIMEOUT_MS);
@@ -136,7 +209,8 @@ async function fetchText(url: string): Promise<string> {
       signal: controller.signal,
       headers: {
         "user-agent": USER_AGENT,
-        accept: "application/rss+xml, application/atom+xml, application/xml, text/xml;q=0.9, */*;q=0.5",
+        accept:
+          "application/rss+xml, application/atom+xml, application/xml, text/xml;q=0.9, */*;q=0.5",
       },
     });
     if (!res.ok) throw new Error(`${url} → HTTP ${res.status}`);
@@ -151,7 +225,8 @@ async function fetchText(url: string): Promise<string> {
 /* ---------------------------------------------------------------- parsing */
 
 function parseFeed(xml: string): RawItem[] {
-  const blocks = xml.match(/<item\b[\s\S]*?<\/item>/gi) ?? xml.match(/<entry\b[\s\S]*?<\/entry>/gi) ?? [];
+  const blocks =
+    xml.match(/<item\b[\s\S]*?<\/item>/gi) ?? xml.match(/<entry\b[\s\S]*?<\/entry>/gi) ?? [];
   return blocks.map((block) => {
     const atomLink =
       block.match(/<link\b[^>]*rel=["']alternate["'][^>]*href=["']([^"']+)["']/i)?.[1] ??
@@ -159,13 +234,81 @@ function parseFeed(xml: string): RawItem[] {
     return {
       title: cleanText(tag(block, "title")),
       link: decodeEntities(unwrap(tag(block, "link"))).trim() || atomLink || "",
-      date: unwrap(tag(block, "pubDate") || tag(block, "published") || tag(block, "updated") || tag(block, "dc:date")).trim(),
+      date: unwrap(
+        tag(block, "pubDate") ||
+          tag(block, "published") ||
+          tag(block, "updated") ||
+          tag(block, "dc:date"),
+      ).trim(),
       description: tag(block, "description") || tag(block, "summary"),
       categories: [...block.matchAll(/<category\b[^>]*>([\s\S]*?)<\/category>/gi)].map((m) =>
         cleanText(m[1]),
       ),
+      image: findImage(block),
     };
   });
+}
+
+/* ----------------------------------------------------------------- images */
+
+/**
+ * The item's own image: media:content / media:thumbnail, an image enclosure, or the first real
+ * <img> in content:encoded / description. Returns https URLs only (http is upgraded).
+ */
+function findImage(block: string): { src: string; thumb?: string } | undefined {
+  const attr = (el: string, name: string) =>
+    decodeEntities(el.match(new RegExp(`\\s${name}=["']([^"']+)["']`, "i"))?.[1] ?? "").trim();
+
+  const media = block.match(/<media:(?:content|thumbnail)\b[^>]*>/gi) ?? [];
+  for (const el of media) {
+    const medium = attr(el, "medium");
+    const type = attr(el, "type");
+    if ((medium && medium !== "image") || (type && !type.startsWith("image/"))) continue;
+    const src = safeImageUrl(attr(el, "url"));
+    if (src) return { src };
+  }
+
+  for (const el of block.match(/<enclosure\b[^>]*>/gi) ?? []) {
+    if (!/^image\//i.test(attr(el, "type"))) continue;
+    const src = safeImageUrl(attr(el, "url"));
+    if (src) return { src };
+  }
+
+  for (const name of ["content:encoded", "description"]) {
+    let html = unwrap(tag(block, name));
+    if (!/<img/i.test(html) && /&lt;img/i.test(html)) html = decodeEntities(html);
+    for (const el of html.match(/<img\b[^>]*>/gi) ?? []) {
+      const width = Number(attr(el, "width")) || 0;
+      const height = Number(attr(el, "height")) || 0;
+      if ((width && width < 120) || (height && height < 80)) continue; // icons, pixels, emoji
+      const src = safeImageUrl(attr(el, "data-src") || attr(el, "src"));
+      if (
+        !src ||
+        /s\.w\.org\/images\/core\/emoji|gravatar\.com|feeds\.feedburner|\/pixel/i.test(src)
+      )
+        continue;
+      return { src, thumb: pickThumb(attr(el, "srcset")) };
+    }
+  }
+  return undefined;
+}
+
+/** Smallest srcset candidate that is still ≥ 280px wide (good for a 2× ~80px thumb). */
+function pickThumb(srcset: string): string | undefined {
+  const candidates = srcset
+    .split(",")
+    .map((part) => part.trim().split(/\s+/))
+    .map(([url, size]) => ({ url: safeImageUrl(url ?? ""), w: parseInt(size ?? "", 10) || 0 }))
+    .filter((c): c is { url: string; w: number } => Boolean(c.url) && c.w >= 280)
+    .sort((a, b) => a.w - b.w);
+  return candidates[0]?.url;
+}
+
+function safeImageUrl(value: string): string | undefined {
+  if (!value) return undefined;
+  const url = value.replace(/^\/\//, "https://").replace(/^http:\/\//i, "https://");
+  if (!/^https:\/\/[^\s"'<>]+$/i.test(url)) return undefined;
+  return url;
 }
 
 function tag(block: string, name: string): string {
@@ -178,14 +321,31 @@ function unwrap(value: string): string {
 }
 
 const NAMED: Record<string, string> = {
-  amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: " ", hellip: "…", ndash: "–",
-  mdash: "—", laquo: "«", raquo: "»", lsquo: "‘", rsquo: "’", ldquo: "“", rdquo: "”", shy: "",
+  amp: "&",
+  lt: "<",
+  gt: ">",
+  quot: '"',
+  apos: "'",
+  nbsp: " ",
+  hellip: "…",
+  ndash: "–",
+  mdash: "—",
+  laquo: "«",
+  raquo: "»",
+  lsquo: "‘",
+  rsquo: "’",
+  ldquo: "“",
+  rdquo: "”",
+  shy: "",
 };
 
 function decodeEntities(value: string): string {
   return value.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (whole, code: string) => {
     if (code[0] === "#") {
-      const n = code[1] === "x" || code[1] === "X" ? parseInt(code.slice(2), 16) : parseInt(code.slice(1), 10);
+      const n =
+        code[1] === "x" || code[1] === "X"
+          ? parseInt(code.slice(2), 16)
+          : parseInt(code.slice(1), 10);
       return Number.isFinite(n) && n > 0 && n < 0x110000 ? String.fromCodePoint(n) : "";
     }
     return NAMED[code.toLowerCase()] ?? whole;
@@ -248,10 +408,14 @@ function normalize(source: FeedSource, raw: RawItem): NewsItem | null {
 
   if (/^(?:إعلان|اعلان)\s|إعلان ممول|اعلان ممول|مقال ممول/.test(raw.title)) return null;
   let summary = excerpt(raw.description);
-  if (summary.startsWith(raw.title)) summary = summary.slice(raw.title.length).replace(/^[\s:،.\-–—]+/, "");
+  if (summary.startsWith(raw.title))
+    summary = summary.slice(raw.title.length).replace(/^[\s:،.\-–—]+/, "");
   if (summary.length < 25 || /^[0-9a-f-]{20,}$/i.test(summary)) summary = "";
   const text = `${raw.title} ${summary}`;
-  const local = RAHAT.test(text) || NEGEV.test(text) || raw.categories.some((c) => RAHAT.test(c) || NEGEV.test(c));
+  const local =
+    RAHAT.test(text) ||
+    NEGEV.test(text) ||
+    raw.categories.some((c) => RAHAT.test(c) || NEGEV.test(c));
   if (!local && source.keep && !source.keep({ ...raw, link })) return null;
 
   return {
@@ -265,6 +429,9 @@ function normalize(source: FeedSource, raw: RawItem): NewsItem | null {
     summary,
     breaking: false,
     local,
+    ...(raw.image
+      ? { image: raw.image.src, ...(raw.image.thumb ? { thumb: raw.image.thumb } : {}) }
+      : {}),
   };
 }
 
@@ -292,7 +459,14 @@ function israelTime(y: number, mo: number, d: number, h: number, mi: number, s: 
     second: "numeric",
   }).formatToParts(new Date(guess));
   const get = (type: string) => Number(parts.find((p) => p.type === type)?.value ?? 0);
-  const asIfUtc = Date.UTC(get("year"), get("month") - 1, get("day"), get("hour"), get("minute"), get("second"));
+  const asIfUtc = Date.UTC(
+    get("year"),
+    get("month") - 1,
+    get("day"),
+    get("hour"),
+    get("minute"),
+    get("second"),
+  );
   return guess - (asIfUtc - guess);
 }
 

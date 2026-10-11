@@ -438,6 +438,19 @@
     color: var(--color-ink);
   }
 
+  /* Banner over a publisher photo: dark gradient keeps white text legible (AA). */
+  .banner-photo {
+    background: var(--color-ink);
+    color: var(--color-paper);
+    min-height: 12rem;
+  }
+
+  .banner-shade {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgb(16 22 26 / 0.92) 0%, rgb(16 22 26 / 0.6) 45%, rgb(16 22 26 / 0.25) 100%);
+  }
+
   .banner .banner-icon {
     position: absolute;
     inset-inline-end: -0.75rem;

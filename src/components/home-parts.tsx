@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { Bus, Megaphone, Newspaper, Phone, Plus, Siren, Store, Timer } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { NewsImage } from "@/components/news-image";
 import type { NewsItem } from "@/lib/news/types";
 
 const tiles = [
@@ -40,9 +41,36 @@ export function HomeCarousel({ lead, leadTime }: { lead?: NewsItem; leadTime: st
       ? [
           {
             key: "news",
-            className: "banner",
-            content: (
-              <Link to="/news/$slug" params={{ slug: lead.slug }} className="flex h-full flex-col justify-between gap-3">
+            className: lead.image ? "banner banner-photo" : "banner",
+            content: lead.image ? (
+              <Link
+                to="/news/$slug"
+                params={{ slug: lead.slug }}
+                className="flex h-full flex-col justify-between gap-3"
+              >
+                <span className="absolute inset-0" aria-hidden>
+                  <NewsImage
+                    item={{ ...lead, title: "" }}
+                    size="full"
+                    className="size-full"
+                    iconClassName="size-16"
+                  />
+                </span>
+                <span className="banner-shade" aria-hidden />
+                <span className="relative chip w-fit bg-white/20 text-white">
+                  آخر خبر · {lead.source}
+                </span>
+                <span className="relative line-clamp-3 text-xl font-bold leading-snug">
+                  {lead.title}
+                </span>
+                <span className="relative text-sm font-semibold text-white/90">{leadTime}</span>
+              </Link>
+            ) : (
+              <Link
+                to="/news/$slug"
+                params={{ slug: lead.slug }}
+                className="flex h-full flex-col justify-between gap-3"
+              >
                 <span className="chip w-fit bg-ink/10">آخر خبر · {lead.source}</span>
                 <span className="line-clamp-3 text-xl font-bold leading-snug">{lead.title}</span>
                 <span className="text-sm font-semibold">{leadTime}</span>
@@ -59,7 +87,9 @@ export function HomeCarousel({ lead, leadTime }: { lead?: NewsItem; leadTime: st
         <Link to="/buses" className="flex h-full flex-col justify-between gap-3">
           <span className="chip w-fit bg-white/15 text-white">باصات رهط</span>
           <span className="text-2xl font-bold leading-snug">متى يصل الباص؟</span>
-          <span className="text-sm font-semibold text-white/85">أوقات مباشرة وجدول محدّث يومياً</span>
+          <span className="text-sm font-semibold text-white/85">
+            أوقات مباشرة وجدول محدّث يومياً
+          </span>
           <Timer className="banner-icon size-36" aria-hidden />
         </Link>
       ),
@@ -68,7 +98,11 @@ export function HomeCarousel({ lead, leadTime }: { lead?: NewsItem; leadTime: st
       key: "submit",
       className: "banner banner-soft",
       content: (
-        <Link to="/submit" search={{ mode: "نشاط" }} className="flex h-full flex-col justify-between gap-3">
+        <Link
+          to="/submit"
+          search={{ mode: "نشاط" }}
+          className="flex h-full flex-col justify-between gap-3"
+        >
           <span className="chip w-fit bg-ink/10">الدليل</span>
           <span className="text-2xl font-bold leading-snug">أضف نشاطك في دليل رهط</span>
           <span className="text-sm font-semibold">يظهر بعلامة «موثّق» بعد المراجعة</span>
@@ -129,7 +163,12 @@ export function HomeCarousel({ lead, leadTime }: { lead?: NewsItem; leadTime: st
     >
       <div ref={ref} className="carousel">
         {slides.map((s, i) => (
-          <div key={s.key} className={s.className} aria-roledescription="slide" aria-label={`${i + 1} من ${slides.length}`}>
+          <div
+            key={s.key}
+            className={s.className}
+            aria-roledescription="slide"
+            aria-label={`${i + 1} من ${slides.length}`}
+          >
             {s.content}
           </div>
         ))}
@@ -145,7 +184,9 @@ export function HomeCarousel({ lead, leadTime }: { lead?: NewsItem; leadTime: st
             onClick={() => go(i)}
           >
             <span
-              className={i === index ? "h-2 w-5 rounded-full bg-ink" : "size-2 rounded-full bg-ink/25"}
+              className={
+                i === index ? "h-2 w-5 rounded-full bg-ink" : "size-2 rounded-full bg-ink/25"
+              }
             />
           </button>
         ))}

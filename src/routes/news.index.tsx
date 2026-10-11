@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { Shell } from "@/components/shell";
 import { NewsCredit, NewsUnavailable } from "@/components/news";
+import { NewsImage } from "@/components/news-image";
 import { getNews } from "@/lib/news/api";
 import { relativeTimeAr, useNow } from "@/lib/news/format";
 import { newsCategories } from "@/lib/news/types";
@@ -48,13 +49,22 @@ function NewsPage() {
             <ul className="flex flex-col gap-3">
               {list.map((item) => (
                 <li key={item.slug}>
-                  <Link to="/news/$slug" params={{ slug: item.slug }} className="stamp press block p-4">
-                    <span className={item.breaking ? "chip chip-alert" : "chip chip-deep"}>
-                      {item.breaking ? "عاجل" : item.category}
-                    </span>
-                    <span className="mt-2 block text-lg font-bold leading-snug">{item.title}</span>
-                    <span className="text-sm font-semibold text-muted">
-                      {relativeTimeAr(item.publishedAt, now)} · {item.source}
+                  <Link
+                    to="/news/$slug"
+                    params={{ slug: item.slug }}
+                    className="stamp press flex items-start gap-3 p-3"
+                  >
+                    <NewsImage item={item} className="size-22 rounded-xl" iconClassName="size-7" />
+                    <span className="min-w-0 flex-1">
+                      <span className={item.breaking ? "chip chip-alert" : "chip chip-deep"}>
+                        {item.breaking ? "عاجل" : item.category}
+                      </span>
+                      <span className="mt-1 line-clamp-3 block font-bold leading-snug">
+                        {item.title}
+                      </span>
+                      <span className="text-sm font-semibold text-muted">
+                        {relativeTimeAr(item.publishedAt, now)} · {item.source}
+                      </span>
                     </span>
                   </Link>
                 </li>

@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Bus, ChevronLeft, Search } from "lucide-react";
 import { useMemo, useState } from "react";
 import { CategoryIcon } from "@/components/category-icon";
+import { NewsImage } from "@/components/news-image";
 import { HomeCarousel, HomeTiles } from "@/components/home-parts";
 import { SectionTitle, Shell } from "@/components/shell";
 import { DutyCard } from "@/components/duty";
@@ -35,10 +36,12 @@ function Home() {
   const query = q.trim();
   const ranked = prioritizeLocal(news.items);
   const breaking = news.items.find((item) => item.breaking);
-  // The newest local story leads the banner carousel; the news section continues from the next one.
-  const top = ranked[0];
-  const lead = ranked[1] ?? ranked[0];
-  const rest = ranked.slice(2, 6);
+  // The banner shows the newest local (Rahat/Negev) story that has a publisher photo, else the top
+  // story; the news section continues with the others.
+  const top = ranked.find((item) => item.local && item.image) ?? ranked[0];
+  const remaining = ranked.filter((item) => item !== top);
+  const lead = remaining[0] ?? top;
+  const rest = remaining.slice(1, 5);
 
   const results = useMemo(() => {
     if (!query) return null;
@@ -48,7 +51,11 @@ function Home() {
         (item) => hay(item.title) || hay(item.category) || hay(item.source) || hay(item.summary),
       ),
       places: places.filter(
-        (item) => hay(item.name) || hay(item.category) || hay(item.altName ?? "") || hay(item.address ?? item.area ?? ""),
+        (item) =>
+          hay(item.name) ||
+          hay(item.category) ||
+          hay(item.altName ?? "") ||
+          hay(item.address ?? item.area ?? ""),
       ),
       ads: classifieds.filter((item) => hay(item.title) || hay(item.type)),
     };
@@ -76,7 +83,11 @@ function Home() {
           <HomeTiles />
           <HomeCarousel lead={top} leadTime={top ? relativeTimeAr(top.publishedAt, now) : ""} />
           {breaking ? (
-            <Link to="/news/$slug" params={{ slug: breaking.slug }} className="alert-card press block px-4 py-3">
+            <Link
+              to="/news/$slug"
+              params={{ slug: breaking.slug }}
+              className="alert-card press block px-4 py-3"
+            >
               <span className="chip bg-white/20 text-white">عاجل</span>
               <span className="mt-2 block text-lg font-bold">{breaking.title}</span>
               <span className="text-sm font-semibold">
@@ -98,24 +109,41 @@ function Home() {
             <SectionTitle title="آخر الأخبار" to="/news" more="كل الأخبار" />
             {lead ? (
               <>
-                <Link to="/news/$slug" params={{ slug: lead.slug }} className="stamp press mb-3 block p-4">
-                  <span className="chip chip-deep">{lead.category}</span>
-                  <span className="mt-2 block text-xl font-bold">{lead.title}</span>
-                  <span className="text-sm font-semibold text-muted">
-                    {relativeTimeAr(lead.publishedAt, now)} · {lead.source}
+                <Link
+                  to="/news/$slug"
+                  params={{ slug: lead.slug }}
+                  className="stamp press mb-3 block overflow-hidden"
+                >
+                  {lead.image ? (
+                    <NewsImage
+                      item={lead}
+                      size="full"
+                      className="aspect-[16/9] w-full"
+                      iconClassName="size-10"
+                    />
+                  ) : null}
+                  <span className="block p-4">
+                    <span className="chip chip-deep">{lead.category}</span>
+                    <span className="mt-2 block text-xl font-bold">{lead.title}</span>
+                    <span className="text-sm font-semibold text-muted">
+                      {relativeTimeAr(lead.publishedAt, now)} · {lead.source}
+                    </span>
                   </span>
                 </Link>
                 <ul className="stack-list">
                   {rest.map((item) => (
                     <li key={item.slug}>
-                      <Link to="/news/$slug" params={{ slug: item.slug }} className="flex items-center gap-3 px-4 py-3">
-                        <span className="icon-badge">
-                          <CategoryIcon category={item.category} className="size-5" />
-                        </span>
+                      <Link
+                        to="/news/$slug"
+                        params={{ slug: item.slug }}
+                        className="flex items-center gap-3 px-4 py-3"
+                      >
+                        <NewsImage item={item} className="size-16 rounded-xl" />
                         <span className="min-w-0 flex-1">
                           <span className="block font-bold leading-snug">{item.title}</span>
                           <span className="text-sm font-semibold text-muted">
-                            {item.category} · {relativeTimeAr(item.publishedAt, now)} · {item.source}
+                            {item.category} · {relativeTimeAr(item.publishedAt, now)} ·{" "}
+                            {item.source}
                           </span>
                         </span>
                       </Link>
@@ -136,7 +164,9 @@ function Home() {
               </span>
               <span className="min-w-0 flex-1">
                 <span className="block font-bold">خطوط المدينة 1 حتى 6، وبئر السبع وما حولها</span>
-                <span className="text-sm font-semibold text-muted">شركة גלים · أوقات مباشرة وجدول اليوم</span>
+                <span className="text-sm font-semibold text-muted">
+                  شركة גלים · أوقات مباشرة وجدول اليوم
+                </span>
               </span>
               <ChevronLeft className="size-5 text-muted" aria-hidden />
             </Link>
@@ -147,7 +177,11 @@ function Home() {
             <ul className="scroll-row -mx-4 px-4 pb-2">
               {featured.map((item) => (
                 <li key={item.slug} className="w-44 shrink-0">
-                  <Link to="/directory/$slug" params={{ slug: item.slug }} className="stamp press flex h-full flex-col p-3">
+                  <Link
+                    to="/directory/$slug"
+                    params={{ slug: item.slug }}
+                    className="stamp press flex h-full flex-col p-3"
+                  >
                     <span className="icon-badge size-14 rounded-2xl">
                       <CategoryIcon category={item.category} className="size-7" />
                     </span>
@@ -155,7 +189,9 @@ function Home() {
                     <span className="text-xs font-semibold text-muted">{item.category}</span>
                     {item.verified ? <span className="chip chip-ink mt-1 w-fit">موثّق</span> : null}
                     {item.address || item.area ? (
-                      <span className="text-sm font-semibold text-muted">{item.address || item.area}</span>
+                      <span className="text-sm font-semibold text-muted">
+                        {item.address || item.area}
+                      </span>
                     ) : null}
                   </Link>
                 </li>
@@ -166,12 +202,18 @@ function Home() {
           <section>
             <SectionTitle title="آخر الإعلانات" to="/ads" more="كل الإعلانات" />
             {classifieds.some((item) => item.sample) ? (
-              <p className="mb-2 text-sm font-semibold text-muted">إعلانات نموذجية لعرض الشكل فقط، وليست إعلانات حقيقية.</p>
+              <p className="mb-2 text-sm font-semibold text-muted">
+                إعلانات نموذجية لعرض الشكل فقط، وليست إعلانات حقيقية.
+              </p>
             ) : null}
             <ul className="flex flex-col gap-3">
               {classifieds.slice(0, 4).map((item) => (
                 <li key={item.id}>
-                  <Link to="/ads/$id" params={{ id: item.id }} className="stamp press flex items-center justify-between gap-3 px-4 py-3">
+                  <Link
+                    to="/ads/$id"
+                    params={{ id: item.id }}
+                    className="stamp press flex items-center justify-between gap-3 px-4 py-3"
+                  >
                     <span>
                       <span className={item.quiet ? "chip" : "chip chip-deep"}>{item.type}</span>
                       {item.sample ? <span className="chip ms-1">نموذج</span> : null}
@@ -204,7 +246,8 @@ function Home() {
           </section>
 
           <p className="text-sm font-semibold text-muted md:hidden">
-            أرقام الطوارئ الوطنية حقيقية. الأخبار والدليل والباصات من مصادر حقيقية، وبقية الإعلانات نماذج.
+            أرقام الطوارئ الوطنية حقيقية. الأخبار والدليل والباصات من مصادر حقيقية، وبقية الإعلانات
+            نماذج.
           </p>
         </div>
       )}
@@ -227,21 +270,38 @@ function SearchResults({
   return (
     <div className="flex flex-col gap-4">
       <h1 className="text-2xl font-bold">نتائج «{query}»</h1>
-      {empty ? <p className="stamp p-4 font-semibold">لا توجد نتيجة. جرّب اسماً أو حياً أو تصنيفاً.</p> : null}
+      {empty ? (
+        <p className="stamp p-4 font-semibold">لا توجد نتيجة. جرّب اسماً أو حياً أو تصنيفاً.</p>
+      ) : null}
       {results.news.map((item) => (
-        <Link key={item.slug} to="/news/$slug" params={{ slug: item.slug }} className="stamp press block p-4">
+        <Link
+          key={item.slug}
+          to="/news/$slug"
+          params={{ slug: item.slug }}
+          className="stamp press block p-4"
+        >
           <span className="chip">{item.category}</span>
           <span className="mt-1 block font-bold">{item.title}</span>
         </Link>
       ))}
       {results.places.map((item) => (
-        <Link key={item.slug} to="/directory/$slug" params={{ slug: item.slug }} className="stamp press block p-4">
+        <Link
+          key={item.slug}
+          to="/directory/$slug"
+          params={{ slug: item.slug }}
+          className="stamp press block p-4"
+        >
           <span className="chip">{item.category}</span>
           <span className="mt-1 block font-bold">{item.name}</span>
         </Link>
       ))}
       {results.ads.map((item) => (
-        <Link key={item.id} to="/ads/$id" params={{ id: item.id }} className="stamp press block p-4">
+        <Link
+          key={item.id}
+          to="/ads/$id"
+          params={{ id: item.id }}
+          className="stamp press block p-4"
+        >
           <span className="chip">{item.type}</span>
           {item.sample ? <span className="chip ms-1">نموذج</span> : null}
           <span className="mt-1 block font-bold">{item.title}</span>

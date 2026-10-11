@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ExternalLink } from "lucide-react";
 import { Shell } from "@/components/shell";
 import { NewsUnavailable } from "@/components/news";
+import { NewsImage } from "@/components/news-image";
 import { getNews } from "@/lib/news/api";
 import { relativeTimeAr, useNow } from "@/lib/news/format";
 
@@ -41,28 +42,56 @@ function ArticlePage() {
     );
   }
 
-  const sameCategory = items.filter((item) => item.slug !== article.slug && item.category === article.category);
-  const related = [...sameCategory, ...items.filter((item) => item.slug !== article.slug && item.category !== article.category)].slice(0, 3);
+  const sameCategory = items.filter(
+    (item) => item.slug !== article.slug && item.category === article.category,
+  );
+  const related = [
+    ...sameCategory,
+    ...items.filter((item) => item.slug !== article.slug && item.category !== article.category),
+  ].slice(0, 3);
   const share = encodeURIComponent(`${article.title}\nرهط بوست`);
   const url = `https://rahatpost.com/news/${article.slug}`;
 
   return (
     <Shell>
-      <article className="stamp p-4">
-        <span className={article.breaking ? "chip chip-alert" : "chip chip-deep"}>
-          {article.breaking ? "عاجل" : article.category}
-        </span>
-        <h1 className="mt-3 text-2xl font-bold">{article.title}</h1>
-        <p className="mt-1 font-semibold text-muted">
-          <time dateTime={article.publishedAt}>{relativeTimeAr(article.publishedAt, now)}</time> ·{" "}
-          {article.source}
-        </p>
-        {article.summary ? <p className="mt-4 text-lg">{article.summary}</p> : null}
-        <a className="btn mt-5 w-full" href={article.link} target="_blank" rel="noopener noreferrer">
-          اقرأ الخبر كاملاً في المصدر
-          <ExternalLink className="size-4" aria-hidden />
-        </a>
-        <p className="mt-3 text-sm font-semibold text-muted">مقتطف قصير من موقع {article.source}. الخبر الكامل وحقوقه لدى المصدر.</p>
+      <article className="stamp overflow-hidden">
+        {article.image ? (
+          <figure className="m-0">
+            <NewsImage
+              item={article}
+              size="full"
+              eager
+              className="aspect-[16/9] w-full"
+              iconClassName="size-12"
+            />
+            <figcaption className="px-4 pt-2 text-xs font-semibold text-muted">
+              الصورة: {article.source}
+            </figcaption>
+          </figure>
+        ) : null}
+        <div className="p-4">
+          <span className={article.breaking ? "chip chip-alert" : "chip chip-deep"}>
+            {article.breaking ? "عاجل" : article.category}
+          </span>
+          <h1 className="mt-3 text-2xl font-bold">{article.title}</h1>
+          <p className="mt-1 font-semibold text-muted">
+            <time dateTime={article.publishedAt}>{relativeTimeAr(article.publishedAt, now)}</time> ·{" "}
+            {article.source}
+          </p>
+          {article.summary ? <p className="mt-4 text-lg">{article.summary}</p> : null}
+          <a
+            className="btn mt-5 w-full"
+            href={article.link}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            اقرأ الخبر كاملاً في المصدر
+            <ExternalLink className="size-4" aria-hidden />
+          </a>
+          <p className="mt-3 text-sm font-semibold text-muted">
+            مقتطف قصير من موقع {article.source}. الخبر الكامل وحقوقه لدى المصدر.
+          </p>
+        </div>
       </article>
       <div className="mt-4 grid grid-cols-2 gap-2">
         <a
@@ -88,8 +117,13 @@ function ArticlePage() {
           <ul className="flex flex-col gap-3">
             {related.map((item) => (
               <li key={item.slug}>
-                <Link to="/news/$slug" params={{ slug: item.slug }} className="stamp press block px-4 py-3 font-bold">
-                  {item.title}
+                <Link
+                  to="/news/$slug"
+                  params={{ slug: item.slug }}
+                  className="stamp press flex items-center gap-3 p-3 font-bold"
+                >
+                  <NewsImage item={item} className="size-16 rounded-xl" />
+                  <span className="min-w-0 flex-1 leading-snug">{item.title}</span>
                 </Link>
               </li>
             ))}
