@@ -11,26 +11,52 @@ import { getApprovedEntries } from "@/lib/directory/api";
 import { osmEntries, type DirectoryEntry } from "@/lib/directory/types";
 import { getNews } from "@/lib/news/api";
 import { relativeTimeAr, useNow } from "@/lib/news/format";
-import type { NewsItem } from "@/lib/news/types";
+import type { IsraelNewsItem, IsraelNewsResult, NewsItem } from "@/lib/news/types";
+import { getIsraelNews } from "@/lib/news/israel-api";
+import { IsraelNewsCredit, IsraelNewsRow, IsraelTitle } from "@/components/israel-news";
 import { alert, emergency } from "@/data/content";
 import { getPublicAds } from "@/lib/ads/api";
 import { listAds, type ListAd } from "@/lib/ads/display";
 
 export const Route = createFileRoute("/")({
   loader: async () => {
-    const [news, approved, ads] = await Promise.all([
+    const [news, approved, ads, israel] = await Promise.all([
       getNews(),
       getApprovedEntries(),
       getPublicAds(),
+      israelNewsForHome(),
     ]);
-    return { news, approved: approved.entries, ads };
+    return { news, approved: approved.entries, ads, israel };
   },
   staleTime: 5 * 60_000,
   component: Home,
 });
 
+/**
+ * Israel news is a secondary section: never let a slow or failing Hebrew feed hold up the home
+ * page. On a cold cache we give up after a short wait (the server keeps warming its cache for the
+ * next visit) and simply hide the section.
+ */
+const ISRAEL_HOME_WAIT_MS = 2_500;
+async function israelNewsForHome(): Promise<IsraelNewsResult | null> {
+  try {
+    return await Promise.race([
+      getIsraelNews(),
+      new Promise<null>((resolve) => setTimeout(() => resolve(null), ISRAEL_HOME_WAIT_MS)),
+    ]);
+  } catch {
+    return null;
+  }
+}
+
 function Home() {
-  const { news, approved, ads: adsData } = Route.useLoaderData();
+  const { news, approved, ads: adsData, israel } = Route.useLoaderData();
+  const israelItems = useMemo(() => israel?.items ?? [], [israel]);
+  // Translated headlines first (each group stays newest first), then Hebrew-only ones.
+  const israelTop = [
+    ...israelItems.filter((item) => item.titleAr),
+    ...israelItems.filter((item) => !item.titleAr),
+  ].slice(0, 4);
   const classifieds = listAds(adsData);
   const places = useMemo(() => [...approved, ...osmEntries()], [approved]);
   // Verified (owner-approved) first; until there are any, a few real places with details from OSM.
@@ -65,8 +91,15 @@ function Home() {
           hay(item.address ?? item.area ?? ""),
       ),
       ads: classifieds.filter((item) => hay(item.title) || hay(item.type)),
+      israel: israelItems.filter(
+        (item) =>
+          hay(item.titleAr ?? "") ||
+          hay(item.titleHe) ||
+          hay(item.summaryAr ?? "") ||
+          hay(item.source),
+      ),
     };
-  }, [query, news.items, places, classifieds]);
+  }, [query, news.items, places, classifieds, israelItems]);
 
   return (
     <Shell>
@@ -162,6 +195,20 @@ function Home() {
               <NewsUnavailable />
             )}
           </section>
+
+          {israelTop.length > 0 && israel ? (
+            <section>
+              <SectionTitle title="أخبار إسرائيل" to="/israel-news" more="عرض الكل" />
+              <ul className="stack-list">
+                {israelTop.map((item) => (
+                  <li key={item.slug}>
+                    <IsraelNewsRow item={item} now={now} />
+                  </li>
+                ))}
+              </ul>
+              <IsraelNewsCredit data={israel} />
+            </section>
+          ) : null}
 
           <section>
             <SectionTitle title="باصات غاليم" to="/buses" more="كل المواعيد" />
@@ -271,9 +318,11 @@ function SearchResults({
     news: NewsItem[];
     places: DirectoryEntry[];
     ads: ListAd[];
+    israel: IsraelNewsItem[];
   };
 }) {
-  const empty = results.news.length + results.places.length + results.ads.length === 0;
+  const empty =
+    results.news.length + results.places.length + results.ads.length + results.israel.length === 0;
   return (
     <div className="flex flex-col gap-4">
       <h1 className="text-2xl font-bold">نتائج «{query}»</h1>
@@ -289,6 +338,17 @@ function SearchResults({
         >
           <span className="chip">{item.category}</span>
           <span className="mt-1 block font-bold">{item.title}</span>
+        </Link>
+      ))}
+      {results.israel.map((item) => (
+        <Link
+          key={item.slug}
+          to="/israel-news/$slug"
+          params={{ slug: item.slug }}
+          className="stamp press block p-4"
+        >
+          <span className="chip">أخبار إسرائيل</span>
+          <IsraelTitle item={item} className="mt-1 block font-bold" />
         </Link>
       ))}
       {results.places.map((item) => (

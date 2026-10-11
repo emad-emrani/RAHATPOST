@@ -36,11 +36,12 @@ Home, top to bottom, mobile:
 4. Banner carousel (latest news, buses, add your business, today) with dots.
 5. Breaking banner in amber (chip "عاجل", headline, relative time) and the civic alert banner in amber, each only if one exists and is unexpired.
 6. Latest news: one lead card, then a stacked list of 4 rows (category, time, title). Each row shows the publisher's own thumbnail from the feed (or the article's og:image), hotlinked with no referrer, lazy, fixed aspect ratio, alt = headline; when there is none or it fails to load, a neutral category icon on the pale tint. No author avatars and never stock or invented photos.
-7. Buses: a compact card linking to /buses.
-8. "من الدليل": up to 4 places (verified first), category, name, address.
-9. "آخر الإعلانات": 4 rows, type chip, title, neighborhood, price if any. Condolence rows stay visually quiet (no colour, no price).
-10. Duty pharmacy card: "صيدلية الحراسة اليوم", name, neighborhood, hours, buttons "اتصال" and "الاتجاهات". If no shift is logged, show "لم يُحدَّث جدول اليوم", not a fake pharmacy.
-11. Emergency row: horizontal scroll of white cards, large numbers, for 100, 101, 102, 112. Link "كل الأرقام" to /today.
+7. "أخبار إسرائيل": 4 rows from /israel-news data (Hebrew outlets, machine-translated; translated items first), thumbnail, title, time · source, chip «ترجمة آلية» or «بالعبرية», credit line, link «عرض الكل» to /israel-news. Loaded in parallel with the rest of the home; hidden if the Hebrew feeds are slow (>2.5 s cold) or fail. Home search also matches these headlines (Arabic or Hebrew).
+8. Buses: a compact card linking to /buses.
+9. "من الدليل": up to 4 places (verified first), category, name, address.
+10. "آخر الإعلانات": 4 rows, type chip, title, neighborhood, price if any. Condolence rows stay visually quiet (no colour, no price).
+11. Duty pharmacy card: "صيدلية الحراسة اليوم", name, neighborhood, hours, buttons "اتصال" and "الاتجاهات". If no shift is logged, show "لم يُحدَّث جدول اليوم", not a fake pharmacy.
+12. Emergency row: horizontal scroll of white cards, large numbers, for 100, 101, 102, 112. Link "كل الأرقام" to /today.
 
 News categories: عاجل، رهط، النقب، بلدية، تعليم، صحة، رياضة، مجتمع، أعمال.
 Article page: the source image (16:9) with caption «الصورة: <المصدر>» when available, category chip, H1, time, source, 3–6 short Arabic paragraphs, share row (Telegram, WhatsApp), 3 related stories. No comments. No like counters.
