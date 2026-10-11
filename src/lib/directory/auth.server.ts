@@ -4,15 +4,25 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 export const ADMIN_COOKIE = "rp_admin";
 const SESSION_MS = 12 * 60 * 60_000;
 
+/** Shortest ADMIN_PASSWORD accepted (shorter values disable admin login entirely). */
+const MIN_PASSWORD_LENGTH = 8;
+
 function secret(): string | null {
-  const pw = process.env.ADMIN_PASSWORD;
-  if (pw && pw.length >= 12) return pw;
+  const pw = process.env.ADMIN_PASSWORD?.trim();
+  if (pw && pw.length >= MIN_PASSWORD_LENGTH) return pw;
+  if (pw)
+    console.error(
+      `[admin] ADMIN_PASSWORD is shorter than ${MIN_PASSWORD_LENGTH} characters; admin login disabled`,
+    );
   // Local preview only, so the admin page can be exercised without the real secret.
   return process.env.VERCEL ? null : "local-preview-admin";
 }
 
 function sign(value: string, key: string) {
-  return createHmac("sha256", `rp-admin:${key}`).update(value).digest("base64url");
+  // Mix in the server secret (when set) so session cookies can't be forged by guessing a short
+  // password; changing either value signs everyone out.
+  const pepper = process.env.BETTER_AUTH_SECRET ?? "";
+  return createHmac("sha256", `rp-admin:${key}:${pepper}`).update(value).digest("base64url");
 }
 
 function safeEqual(a: string, b: string) {
