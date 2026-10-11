@@ -1,0 +1,215 @@
+@import "tailwindcss";
+@import "@fontsource/ibm-plex-sans-arabic/arabic-400.css";
+@import "@fontsource/ibm-plex-sans-arabic/arabic-600.css";
+@import "@fontsource/ibm-plex-sans-arabic/arabic-700.css";
+
+@theme {
+  --font-sans: "IBM Plex Sans Arabic", "Segoe UI", Tahoma, sans-serif;
+  --color-brand: #fdb700;
+  --color-brand-deep: #e69b02;
+  --color-ink: #121212;
+  --color-paper: #ffffff;
+  --color-muted: #3a3120;
+  --radius-stamp: 1.15rem;
+}
+
+@layer base {
+  html {
+    background: var(--color-brand);
+    color: var(--color-ink);
+  }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--color-brand);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    line-height: 1.6;
+  }
+
+  h1,
+  h2,
+  h3 {
+    line-height: 1.35;
+    text-wrap: balance;
+  }
+
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+
+  :focus-visible {
+    outline: 3px solid var(--color-ink);
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background: var(--color-ink);
+    color: var(--color-brand);
+  }
+}
+
+@layer components {
+  .stamp {
+    background: var(--color-paper);
+    color: var(--color-ink);
+    border: 3px solid var(--color-ink);
+    border-radius: var(--radius-stamp);
+    box-shadow: 4px 4px 0 0 var(--color-ink);
+  }
+
+  .stamp-flat {
+    background: var(--color-paper);
+    color: var(--color-ink);
+    border: 3px solid var(--color-ink);
+    border-radius: var(--radius-stamp);
+  }
+
+  .press {
+    transition:
+      transform 160ms ease,
+      box-shadow 160ms ease;
+  }
+
+  .press:hover {
+    transform: translate(1px, 1px);
+    box-shadow: 3px 3px 0 0 var(--color-ink);
+  }
+
+  .press:active {
+    transform: translate(4px, 4px);
+    box-shadow: 0 0 0 0 var(--color-ink);
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    min-height: 3rem;
+    padding: 0.45rem 1rem;
+    border-radius: 999px;
+    border: 3px solid var(--color-ink);
+    background: var(--color-ink);
+    color: var(--color-brand);
+    font-weight: 700;
+    line-height: 1.2;
+    box-shadow: 3px 3px 0 0 var(--color-brand-deep);
+    transition:
+      transform 160ms ease,
+      box-shadow 160ms ease;
+  }
+
+  .btn:hover {
+    transform: translate(1px, 1px);
+    box-shadow: 2px 2px 0 0 var(--color-brand-deep);
+  }
+
+  .btn:active {
+    transform: translate(3px, 3px);
+    box-shadow: 0 0 0 0 var(--color-brand-deep);
+  }
+
+  .btn-ghost {
+    background: var(--color-paper);
+    color: var(--color-ink);
+    box-shadow: 3px 3px 0 0 var(--color-ink);
+  }
+
+  .btn-ghost:hover {
+    box-shadow: 2px 2px 0 0 var(--color-ink);
+  }
+
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.75rem;
+    border: 2px solid var(--color-ink);
+    border-radius: 999px;
+    padding: 0.35rem 0.85rem;
+    background: var(--color-brand);
+    font-size: 0.8rem;
+    font-weight: 700;
+    line-height: 1.4;
+  }
+
+  .chip-deep {
+    background: var(--color-brand-deep);
+  }
+
+  .chip-ink {
+    background: var(--color-ink);
+    color: var(--color-brand);
+  }
+
+  .field {
+    width: 100%;
+    min-height: 3rem;
+    border: 3px solid var(--color-ink);
+    border-radius: 0.9rem;
+    background: var(--color-paper);
+    color: var(--color-ink);
+    padding: 0.55rem 0.8rem;
+    font: inherit;
+  }
+
+  .scroll-row {
+    display: flex;
+    gap: 0.6rem;
+    overflow-x: auto;
+    padding-bottom: 0.25rem;
+    scrollbar-width: none;
+  }
+
+  .scroll-row::-webkit-scrollbar {
+    display: none;
+  }
+
+  .pill {
+    border: 3px solid transparent;
+    border-radius: 999px;
+    padding: 0.25rem 0.8rem;
+    font-size: 0.875rem;
+    font-weight: 700;
+  }
+
+  .pill:hover,
+  .bg-ink.pill {
+    border-color: var(--color-ink);
+  }
+
+  .edge-b {
+    border-bottom: 3px solid var(--color-ink);
+  }
+
+  .edge-t {
+    border-top: 3px solid var(--color-ink);
+  }
+
+  .stack-list {
+    background: var(--color-paper);
+    color: var(--color-ink);
+    border: 3px solid var(--color-ink);
+    border-radius: var(--radius-stamp);
+    overflow: hidden;
+  }
+
+  .stack-list > * + * {
+    border-top: 3px solid var(--color-ink);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .press,
+  .btn,
+  .press:hover,
+  .btn:hover,
+  .press:active,
+  .btn:active {
+    transition: none;
+    transform: none;
+  }
+}
+

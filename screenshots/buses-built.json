@@ -1,0 +1,38 @@
+{
+  "url": "http://127.0.0.1:8081/buses",
+  "viewports": {
+    "desktop": {
+      "width": 1280,
+      "height": 800,
+      "status": 200,
+      "title": "باصات غاليم · رهط بوست",
+      "hasCanvas": false,
+      "bodyTextLen": 1697,
+      "bodyTextHash": "c1a14a9cfaa21a41ad9857fa6bbac9da8e9fcb1a98fb8754941bfad92a618d43",
+      "bodyTextPrefix": "رهط بوست رهط والنقب أضف الرئيسية الأخبار اليوم باصات الدليل الإع",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshot": "/workspace/screenshots/buses-built.png"
+    },
+    "mobile": {
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "title": "باصات غاليم · رهط بوست",
+      "hasCanvas": false,
+      "bodyTextLen": 1622,
+      "bodyTextHash": "8b3338cfd640db154d4634406530ecce78c7d7d58cea96431f7e0ccb377bd066",
+      "bodyTextPrefix": "رهط بوست رهط والنقب أضف باصات غاليم خطوط مدينة رهط والخطوط الخار",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshot": "/workspace/screenshots/buses-built-mobile.png"
+    }
+  },
+  "brandWarnings": [],
+  "authWarnings": [],
+  "verdictFile": "/workspace/screenshots/buses-built.json",
+  "divergesFromBaseline": false,
+  "baselineReasons": []
+}

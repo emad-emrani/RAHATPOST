@@ -1,0 +1,38 @@
+{
+  "url": "http://127.0.0.1:8081/",
+  "viewports": {
+    "desktop": {
+      "width": 1280,
+      "height": 800,
+      "status": 200,
+      "title": "رهط بوست",
+      "hasCanvas": false,
+      "bodyTextLen": 1173,
+      "bodyTextHash": "67309c4d3abb89798f65c6580deda9fa40918f9b27debe706e3739ba1436d4d7",
+      "bodyTextPrefix": "رهط بوست رهط والنقب أضف الرئيسية الأخبار اليوم الدليل الإعلانات ",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshot": "/workspace/screenshots/app-builder-built.png"
+    },
+    "mobile": {
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "title": "رهط بوست",
+      "hasCanvas": false,
+      "bodyTextLen": 1173,
+      "bodyTextHash": "fad7f5ba77a65135a19d719765a0ed2bb7c6d381ca25df2e3a8aeeb9c8f9e364",
+      "bodyTextPrefix": "رهط بوست رهط والنقب أضف بحث عاجل انقطاع مياه عن حي 7 وحي 9 حتى ا",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshot": "/workspace/screenshots/app-builder-built-mobile.png"
+    }
+  },
+  "brandWarnings": [],
+  "authWarnings": [],
+  "verdictFile": "/workspace/screenshots/app-builder-built.json",
+  "divergesFromBaseline": false,
+  "baselineReasons": []
+}

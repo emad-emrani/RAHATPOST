@@ -1,0 +1,36 @@
+{
+  "url": "http://127.0.0.1:8080/",
+  "viewports": {
+    "desktop": {
+      "width": 1280,
+      "height": 800,
+      "status": 200,
+      "title": "رهط بوست",
+      "hasCanvas": false,
+      "bodyTextLen": 1290,
+      "bodyTextHash": "2266fa067ba3e08f927e4c8032ec1fe87651e2171ce2923f9c0a52cf618d039f",
+      "bodyTextPrefix": "رهط بوست رهط والنقب أضف الرئيسية الأخبار اليوم باصات الدليل الإع",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshot": "/workspace/screenshots/app-builder-preview.png"
+    },
+    "mobile": {
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "title": "رهط بوست",
+      "hasCanvas": false,
+      "bodyTextLen": 1290,
+      "bodyTextHash": "c2c3527322ebad977d23226c8d767caa85cd8df0e09470dbb5731cb460bc3fbf",
+      "bodyTextPrefix": "رهط بوست رهط والنقب أضف بحث عاجل انقطاع مياه عن حي 7 وحي 9 حتى ا",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshot": "/workspace/screenshots/app-builder-preview-mobile.png"
+    }
+  },
+  "brandWarnings": [],
+  "authWarnings": [],
+  "verdictFile": "/workspace/screenshots/app-builder-preview.json"
+}
