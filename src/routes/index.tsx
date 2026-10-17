@@ -87,7 +87,7 @@ function Home() {
     ...israelItems.filter((item) => item.pinned),
     ...israelItems.filter((item) => item.titleAr && !item.pinned),
     ...israelItems.filter((item) => !item.titleAr && !item.pinned),
-  ].slice(0, 4);
+  ].slice(0, 5);
   const classifieds = listAds(adsData);
   const places = useMemo(() => [...approved, ...osmEntries()], [approved]);
   // Verified (owner-approved) first; until there are any, a few real places with details from OSM.
@@ -245,8 +245,9 @@ function Home() {
             {israelTop.length > 0 && israel ? (
               <section>
                 <SectionTitle title="أخبار إسرائيل" to="/israel-news" more="عرض الكل" />
+                <IsraelLead item={israelTop[0]} now={now} />
                 <ul className="stack-list">
-                  {israelTop.map((item) => (
+                  {israelTop.slice(1).map((item) => (
                     <li key={item.slug}>
                       <IsraelNewsRow item={item} now={now} />
                     </li>
@@ -447,5 +448,42 @@ function SearchResults({
         </Link>
       ))}
     </div>
+  );
+}
+
+/** First Israel headline as a big card (same look as the latest-news lead). */
+function IsraelLead({ item, now }: { item: IsraelNewsItem; now: number }) {
+  const title = item.titleAr ?? item.titleHe;
+  return (
+    <Link
+      to="/israel-news/$slug"
+      params={{ slug: item.slug }}
+      className="stamp press mb-3 block overflow-hidden"
+    >
+      {item.image ? (
+        <NewsImage
+          item={{ image: item.image, thumb: item.thumb, title, category: item.category }}
+          size="full"
+          className="aspect-[16/9] w-full"
+          iconClassName="size-10"
+        />
+      ) : null}
+      <span className="block p-4">
+        <span className="flex flex-wrap gap-2">
+          {item.breaking ? <span className="chip chip-alert">عاجل</span> : null}
+          <span className="chip chip-deep">{item.category}</span>
+        </span>
+        <span
+          className="mt-2 block text-xl font-bold"
+          {...(item.titleAr ? {} : { dir: "rtl", lang: "he" })}
+        >
+          {title}
+        </span>
+        <span className="text-sm font-semibold text-muted">
+          {relativeTimeAr(item.publishedAt, now)} · {item.source}
+          <CommentCount n={item.comments} className="ms-2" />
+        </span>
+      </span>
+    </Link>
   );
 }
