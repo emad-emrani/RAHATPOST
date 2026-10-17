@@ -18,6 +18,10 @@ export type NewsItem = {
   thumb?: string;
   /** Set for original posts by signed-in readers ("من القراء"), approved by the admin. */
   reader?: { name: string; neighborhood: string; sourceUrl?: string };
+  /** Written by the رهط بوست team in /admin (full text in `body`). */
+  staff?: boolean;
+  /** Writer of a staff article (team member), when not the owner. */
+  author?: string;
   /** Full text — only reader posts (original content); feed items carry an excerpt only. */
   body?: string;
   /** Approved comments on the article page (omitted when 0). */

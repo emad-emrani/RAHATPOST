@@ -30,13 +30,46 @@ async function readerNewsItems(): Promise<NewsItem[]> {
   }
 }
 
+/** Articles published by the team from /admin; [] if the database is unavailable. */
+async function staffNewsItems(): Promise<NewsItem[]> {
+  try {
+    const { listStaffNews } = await import("@/lib/staff-news/store.server");
+    const { STAFF_SLUG_PREFIX, STAFF_SOURCE } = await import("@/lib/staff-news/types");
+    const { mediaUrl } = await import("@/lib/media/types");
+    return (await listStaffNews(30)).map((n) => ({
+      slug: `${STAFF_SLUG_PREFIX}${n.id}`,
+      title: n.title,
+      source: STAFF_SOURCE,
+      sourceUrl: "",
+      link: "",
+      publishedAt: n.createdAt,
+      category: n.category,
+      summary: n.body.length > 220 ? `${n.body.slice(0, 200).replace(/\s+\S*$/, "")}…` : n.body,
+      breaking: n.breaking,
+      local: true,
+      staff: true,
+      ...(n.authorName ? { author: n.authorName } : {}),
+      ...(n.imageKey ? { image: mediaUrl(n.imageKey) } : {}),
+      body: n.body,
+    }));
+  } catch (error) {
+    console.error("[news] staff news failed", error);
+    return [];
+  }
+}
+
 /** Real news from publisher RSS feeds (cached on the server, ~10 min) plus approved reader posts. */
 export const getNews = createServerFn({ method: "GET" }).handler(
   async (): Promise<NewsFeedResult> => {
     const { loadNews } = await import("./feeds.server");
     const { setResponseHeader } = await import("@tanstack/react-start/server");
     const { withCommentCounts } = await import("@/lib/comments/counts.server");
-    const [feed, readers] = await Promise.all([loadNews(), readerNewsItems()]);
+    const [feed, readerOnly, staff] = await Promise.all([
+      loadNews(),
+      readerNewsItems(),
+      staffNewsItems(),
+    ]);
+    const readers = [...staff, ...readerOnly];
     const merged: NewsFeedResult = readers.length
       ? {
           ...feed,

@@ -16,12 +16,17 @@ export const Route = createFileRoute("/media/$key")({
         if (!MEDIA_KEY_RE.test(key)) return notFound();
         try {
           const { mediaAccess } = await import("@/lib/media/store.server");
-          const access = await mediaAccess(key);
+          let access = await mediaAccess(key);
+          if (!access) {
+            // Photos of articles the team published from /admin are always public.
+            const { staffImageType } = await import("@/lib/staff-news/store.server");
+            const type = await staffImageType(key);
+            if (type) access = { contentType: type, isPublic: true, userId: "" };
+          }
           if (!access) return notFound();
           if (!access.isPublic) {
-            const { getCookie } = await import("@tanstack/react-start/server");
-            const { ADMIN_COOKIE, verifySession } = await import("@/lib/directory/auth.server");
-            let allowed = verifySession(getCookie(ADMIN_COOKIE));
+            const { isAdmin } = await import("@/lib/admin-auth");
+            let allowed = await isAdmin();
             if (!allowed) {
               const { getSessionUser } = await import("@/lib/auth/verify.server");
               allowed = (await getSessionUser())?.id === access.userId;

@@ -35,10 +35,46 @@ async function sessionUser() {
   return getSessionUser();
 }
 
+/** Photo for an article published from /admin (admin cookie only; no media_uploads row). */
+async function staffUpload(request: Request): Promise<Response> {
+  const { assertSameSiteRequest } = await import("@/lib/auth/isolation.server");
+  const { getAdminAccess } = await import("@/lib/admin-auth");
+  try {
+    assertSameSiteRequest();
+  } catch {
+    return json(403, { ok: false, message: "طلب غير صحيح." });
+  }
+  if (!(await getAdminAccess()))
+    return json(401, { ok: false, message: "سجّل دخول الإدارة أولاً." });
+  if (Number(request.headers.get("content-length") ?? 0) > MAX_MEDIA_BYTES)
+    return json(413, { ok: false, message: "الصورة كبيرة جداً (الحد 3 ميغابايت)." });
+  const raw = new Uint8Array(await request.arrayBuffer());
+  if (raw.length === 0 || raw.length > MAX_MEDIA_BYTES)
+    return json(413, { ok: false, message: "حجم الصورة غير مقبول." });
+  const { checkImage } = await import("@/lib/media/image-check");
+  let image: ReturnType<typeof checkImage>;
+  try {
+    image = checkImage(raw);
+  } catch {
+    return json(415, { ok: false, message: "نقبل صور JPG أو WebP فقط." });
+  }
+  try {
+    const { randomBytes } = await import("node:crypto");
+    const { putMedia } = await import("@/lib/media/storage.server");
+    const key = `${randomBytes(16).toString("hex")}.${image.ext}`;
+    await putMedia(key, image.bytes, image.contentType);
+    return json(200, { ok: true, key });
+  } catch (error) {
+    console.error("[media] staff upload failed", error);
+    return json(500, { ok: false, message: "تعذّر رفع الصورة الآن." });
+  }
+}
+
 export const Route = createFileRoute("/api/media")({
   server: {
     handlers: {
       POST: async ({ request }) => {
+        if (new URL(request.url).searchParams.get("kind") === "staff") return staffUpload(request);
         const user = await sessionUser();
         if (!user) return json(401, { ok: false, message: "سجّل الدخول أولاً." });
         const kind = new URL(request.url).searchParams.get("kind");

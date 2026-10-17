@@ -47,7 +47,7 @@ export const Route = createFileRoute("/news/$slug")({
       // Feed items are a headline + excerpt linking to the publisher (the original is the
       // canonical source), so keep them out of the index but let crawlers follow the links.
       // Reader posts are original content and are indexed with NewsArticle markup.
-      robots: a.reader ? "index" : "noindex",
+      robots: a.reader || a.staff ? "index" : "noindex",
       jsonLd: a.reader
         ? [
             newsArticleLd({
@@ -122,9 +122,11 @@ function ArticlePage() {
             <time dateTime={article.publishedAt}>{relativeTimeAr(article.publishedAt, now)}</time> ·{" "}
             {article.reader
               ? `نشره: ${article.reader.name} · ${article.reader.neighborhood}`
-              : article.source}
+              : article.author
+                ? `${article.source} · كتبه: ${article.author}`
+                : article.source}
           </p>
-          {article.reader ? (
+          {article.reader || article.staff ? (
             <ReaderBody article={article} />
           ) : (
             <>
@@ -212,10 +214,14 @@ function ReaderBody({ article }: { article: NewsItem }) {
           <ExternalLink className="size-4" aria-hidden />
         </a>
       ) : null}
-      <p className="mt-3 text-sm font-semibold text-muted">
-        خبر أرسله أحد القرّاء وراجعه فريق رهط بوست قبل النشر. المسؤولية عن المحتوى على ناشره.
-      </p>
-      <ReportButton type="news" id={article.slug.replace(/^reader-/, "")} />
+      {article.staff ? null : (
+        <p className="mt-3 text-sm font-semibold text-muted">
+          خبر أرسله أحد القرّاء وراجعه فريق رهط بوست قبل النشر. المسؤولية عن المحتوى على ناشره.
+        </p>
+      )}
+      {article.staff ? null : (
+        <ReportButton type="news" id={article.slug.replace(/^reader-/, "")} />
+      )}
     </>
   );
 }

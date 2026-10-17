@@ -32,11 +32,14 @@ async function safe<T>(label: string, load: () => Promise<T[]>): Promise<T[]> {
 }
 
 async function entries(): Promise<Entry[]> {
-  const [businesses, ads, readerNews] = await Promise.all([
+  const [businesses, ads, readerNews, staffNews] = await Promise.all([
     safe("directory", async () => (await import("@/lib/directory/store.server")).getApproved()),
     safe("ads", async () => (await import("@/lib/ads/store.server")).listApproved(1000)),
     safe("reader news", async () =>
       (await import("@/lib/reader-news/store.server")).listApproved(1000),
+    ),
+    safe("staff news", async () =>
+      (await import("@/lib/staff-news/store.server")).listStaffNews(1000),
     ),
   ]);
   const now = new Date().toISOString();
@@ -68,6 +71,12 @@ async function entries(): Promise<Entry[]> {
     { path: "/app", changefreq: "monthly", priority: 0.3 },
     { path: "/privacy", changefreq: "yearly", priority: 0.2 },
     { path: "/terms", changefreq: "yearly", priority: 0.2 },
+    ...staffNews.map((n) => ({
+      path: `/news/rp-${n.id}`,
+      lastmod: day(n.createdAt),
+      changefreq: "monthly",
+      priority: 0.7,
+    })),
     ...readerNews.map((n) => ({
       path: `/news/reader-${n.id}`,
       lastmod: day(n.updatedAt),

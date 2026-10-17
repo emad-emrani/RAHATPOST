@@ -8,7 +8,7 @@ const MAX_SIDE = 1600;
  * Resize + re-encode in the browser (max 1600 px, WebP ~80%, JPEG where WebP encoding isn't
  * supported). Drawing through a canvas drops EXIF/GPS; orientation is applied first.
  */
-async function compress(file: File): Promise<Blob> {
+export async function compress(file: File): Promise<Blob> {
   let bitmap: ImageBitmap | HTMLImageElement;
   try {
     bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });

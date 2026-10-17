@@ -65,9 +65,8 @@ export const deleteMyNews = createServerFn({ method: "POST" })
 /* ------------------------------------------------------------- admin */
 
 async function requireAdmin() {
-  const { getCookie } = await import("@tanstack/react-start/server");
-  const { ADMIN_COOKIE, verifySession } = await import("@/lib/directory/auth.server");
-  if (!verifySession(getCookie(ADMIN_COOKIE))) throw new Error("unauthorized");
+  const { requireAdmin: check } = await import("@/lib/admin-auth");
+  await check();
 }
 
 export const adminListNews = createServerFn({ method: "POST" }).handler(
