@@ -58,7 +58,6 @@ function AdminDashboard() {
     let imageUrl = '';
 
     try {
-      // 1. رفع الصورة عبر Fetch API مباشرة إلى Supabase Storage
       if (imageFile) {
         const fileExt = imageFile.name.split('.').pop();
         const fileName = `${Date.now()}.${fileExt}`;
@@ -82,7 +81,6 @@ function AdminDashboard() {
         imageUrl = `${SUPABASE_URL}/storage/v1/object/public/news-images/${fileName}`;
       }
 
-      // 2. حفظ الخبر في قاعدة البيانات عبر Rest API
       const insertRes = await fetch(`${SUPABASE_URL}/rest/v1/articles`, {
         method: 'POST',
         headers: {
@@ -267,3 +265,4 @@ function AdminDashboard() {
       </div>
     </div>
   );
+}
