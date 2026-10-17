@@ -267,4 +267,3 @@ function AdminDashboard() {
       </div>
     </div>
   );
-}
