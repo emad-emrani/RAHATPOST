@@ -20,7 +20,7 @@ export const Route = createFileRoute("/israel-news/")({
       jsonLd: [breadcrumbLd([{ name: "أخبار إسرائيل", path: "/israel-news" }])],
     }),
   loader: () => getIsraelNews(),
-  staleTime: 5 * 60_000,
+  staleTime: 4 * 60_000,
   component: IsraelNewsPage,
 });
 

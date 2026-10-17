@@ -15,7 +15,7 @@ async function cacheHeaders(ok: boolean) {
   }
 }
 
-/** Israel news from Hebrew outlets' RSS, with cached Arabic machine translations (~10 min). */
+/** Israel news from Hebrew outlets' RSS, with cached Arabic machine translations (~4 min). */
 export const getIsraelNews = createServerFn({ method: "GET" }).handler(
   async (): Promise<IsraelNewsResult> => {
     const { loadIsraelNews } = await import("./israel.server");

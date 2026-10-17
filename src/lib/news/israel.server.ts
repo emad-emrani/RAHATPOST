@@ -55,7 +55,7 @@ const SOURCES: Source[] = [
 
 export const ISRAEL_SOURCES = SOURCES.map(({ name, nameHe, home }) => ({ name, nameHe, home }));
 
-const TTL_MS = 10 * 60_000;
+const TTL_MS = 4 * 60_000;
 const MAX_AGE_MS = 3 * 24 * 60 * 60_000;
 const MAX_ITEMS = 60;
 const PER_SOURCE = 15;
