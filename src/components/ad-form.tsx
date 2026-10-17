@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { PhotoPicker } from "@/components/photo-picker";
 import { adPostTypes, type AdInput } from "@/lib/ads/types";
 import { MAX_AD_PHOTOS } from "@/lib/media/types";
+import { tr, trv } from "@/lib/i18n/core";
 
 type Props = {
   initial?: Partial<AdInput>;
@@ -27,7 +28,7 @@ export function AdForm({ initial, submitLabel, onSubmit, onCancel }: Props) {
         event.preventDefault();
         setError("");
         if (uploading) {
-          setError("انتظر حتى يكتمل رفع الصور.");
+          setError(tr("انتظر حتى يكتمل رفع الصور."));
           return;
         }
         const form = new FormData(event.currentTarget);
@@ -47,28 +48,28 @@ export function AdForm({ initial, submitLabel, onSubmit, onCancel }: Props) {
           });
           if (message) setError(message);
         } catch {
-          setError("تعذّر الإرسال. حاول مرة أخرى.");
+          setError(tr("تعذّر الإرسال. حاول مرة أخرى."));
         } finally {
           setBusy(false);
         }
       }}
     >
       <label className="block font-bold">
-        نوع الإعلان
+        {tr("نوع الإعلان")}
         <select name="type" required className="field mt-1" defaultValue={initial?.type ?? ""}>
           <option value="" disabled>
-            اختر النوع
+            {tr("اختر النوع")}
           </option>
           {adPostTypes.map((t) => (
             <option key={t} value={t}>
-              {t}
+              {trv(t)}
             </option>
           ))}
         </select>
       </label>
-      <Input label="عنوان الإعلان" name="title" min={3} max={90} defaultValue={initial?.title} />
+      <Input label={tr("عنوان الإعلان")} name="title" min={3} max={90} defaultValue={initial?.title} />
       <label className="block font-bold">
-        التفاصيل
+        {tr("التفاصيل")}
         <textarea
           name="description"
           required
@@ -79,21 +80,21 @@ export function AdForm({ initial, submitLabel, onSubmit, onCancel }: Props) {
         />
       </label>
       <Input
-        label="السعر (اختياري)"
+        label={tr("السعر (اختياري)")}
         name="price"
         max={30}
         required={false}
         defaultValue={initial?.price ?? ""}
       />
       <Input
-        label="الحي"
+        label={tr("الحي")}
         name="neighborhood"
         min={2}
         max={60}
         defaultValue={initial?.neighborhood}
       />
       <Input
-        label="هاتف للتواصل"
+        label={tr("هاتف للتواصل")}
         name="phone"
         type="tel"
         max={20}
@@ -106,31 +107,31 @@ export function AdForm({ initial, submitLabel, onSubmit, onCancel }: Props) {
         value={photos}
         onChange={setPhotos}
         onBusyChange={setUploading}
-        label="صور (اختياري)"
-        hint={`حتى ${MAX_AD_PHOTOS} صور. نصغّرها ونحذف منها بيانات الموقع قبل الرفع.`}
+        label={tr("صور (اختياري)")}
+        hint={tr("حتى {0} صور. نصغّرها ونحذف منها بيانات الموقع قبل الرفع.", MAX_AD_PHOTOS)}
       />
       {/* Honeypot: hidden from people, bots tend to fill it. */}
       <div aria-hidden="true" className="absolute -z-10 h-0 w-0 overflow-hidden opacity-0">
         <label>
-          الموقع
+          {tr("الموقع")}
           <input name="website" tabIndex={-1} autoComplete="off" />
         </label>
       </div>
       <p className="text-sm font-semibold text-muted">
-        يُنشر الإعلان باسمك بعد مراجعته، ويظهر رقم الهاتف لمن يفتح الإعلان. أي تعديل يعيده للمراجعة.
+        {tr("يُنشر الإعلان باسمك بعد مراجعته، ويظهر رقم الهاتف لمن يفتح الإعلان. أي تعديل يعيده للمراجعة.")}
       </p>
       {error ? (
         <p role="alert" className="font-bold text-ink">
-          {error}
+          {trv(error)}
         </p>
       ) : null}
       <div className={onCancel ? "grid grid-cols-2 gap-2" : "grid"}>
         <button type="submit" className="btn" disabled={busy || uploading}>
-          {busy ? "جاري الإرسال…" : uploading ? "جاري رفع الصور…" : submitLabel}
+          {busy ? tr("جاري الإرسال…") : uploading ? tr("جاري رفع الصور…") : submitLabel}
         </button>
         {onCancel ? (
           <button type="button" className="btn btn-ghost" onClick={onCancel}>
-            إلغاء
+            {tr("إلغاء")}
           </button>
         ) : null}
       </div>
@@ -159,7 +160,7 @@ function Input({
 }) {
   return (
     <label className="block font-bold">
-      {label}
+      {trv(label)}
       <input
         name={name}
         type={type}

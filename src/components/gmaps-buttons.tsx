@@ -1,5 +1,6 @@
 import { ExternalLink, Navigation } from "lucide-react";
 import { gmapsPlace, gmapsTransitTo } from "@/lib/buses/map";
+import { tr } from "@/lib/i18n/core";
 
 /** «افتح في خرائط جوجل» + transit directions to a stop. */
 export function GmapsStopButtons({ lat, lon }: { lat: number; lon: number }) {
@@ -12,7 +13,7 @@ export function GmapsStopButtons({ lat, lon }: { lat: number; lon: number }) {
         className="btn btn-ghost px-2 text-sm"
       >
         <ExternalLink className="size-4" aria-hidden />
-        افتح في خرائط جوجل
+        {tr("افتح في خرائط جوجل")}
       </a>
       <a
         href={gmapsTransitTo(lat, lon)}
@@ -21,7 +22,7 @@ export function GmapsStopButtons({ lat, lon }: { lat: number; lon: number }) {
         className="btn btn-ghost px-2 text-sm"
       >
         <Navigation className="size-4" aria-hidden />
-        الاتجاهات إلى المحطة
+        {tr("الاتجاهات إلى المحطة")}
       </a>
     </div>
   );

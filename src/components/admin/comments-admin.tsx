@@ -6,6 +6,7 @@ import {
   adminSetPremod,
 } from "@/lib/comments/api";
 import { STATUS_LABEL, type AdminComment, type AdminCommentFilter } from "@/lib/comments/types";
+import { tr, trv } from "@/lib/i18n/core";
 
 const FILTERS: [AdminCommentFilter, string][] = [
   ["all", "الكل"],
@@ -38,9 +39,9 @@ export function CommentsAdmin() {
     void load();
   }, [load]);
 
-  if (!data) return <p className="stamp p-4 font-semibold">جاري التحميل…</p>;
+  if (!data) return <p className="stamp p-4 font-semibold">{tr("جاري التحميل…")}</p>;
   if (!data.authed)
-    return <p className="stamp p-4 font-bold">انتهت الجلسة. سجّل الدخول من جديد.</p>;
+    return <p className="stamp p-4 font-bold">{tr("انتهت الجلسة. سجّل الدخول من جديد.")}</p>;
 
   const act = async (key: string, fn: () => Promise<unknown>) => {
     setBusy(key);
@@ -56,11 +57,11 @@ export function CommentsAdmin() {
     <div className="flex flex-col gap-4">
       <section className="stamp flex items-center justify-between gap-3 p-4">
         <div className="min-w-0">
-          <p className="font-bold">المراجعة المسبقة</p>
+          <p className="font-bold">{tr("المراجعة المسبقة")}</p>
           <p className="text-sm font-semibold text-muted">
             {data.premod
-              ? "مفعّلة: التعليقات الجديدة لا تظهر إلا بعد موافقتك."
-              : "متوقفة: التعليقات تُنشر فوراً (مع الفلتر والبلاغات)."}
+              ? tr("مفعّلة: التعليقات الجديدة لا تظهر إلا بعد موافقتك.")
+              : tr("متوقفة: التعليقات تُنشر فوراً (مع الفلتر والبلاغات).")}
           </p>
         </div>
         <label className="flex shrink-0 items-center gap-2 font-bold">
@@ -74,11 +75,11 @@ export function CommentsAdmin() {
               act("premod", () => adminSetPremod({ data: { on: e.target.checked } }))
             }
           />
-          {data.premod ? "مفعّلة" : "متوقفة"}
+          {data.premod ? tr("مفعّلة") : tr("متوقفة")}
         </label>
       </section>
 
-      <div className="scroll-row flex gap-2" role="group" aria-label="تصفية">
+      <div className="scroll-row flex gap-2" role="group" aria-label={tr("تصفية")}>
         {FILTERS.map(([key, label]) => (
           <button
             key={key}
@@ -87,15 +88,15 @@ export function CommentsAdmin() {
             className={`chip min-h-10 shrink-0 ${filter === key ? "chip-ink" : ""}`}
             onClick={() => setFilter(key)}
           >
-            {label} ({data.counts?.[key] ?? 0})
+            {trv(label)} ({data.counts?.[key] ?? 0})
           </button>
         ))}
       </div>
 
       {!data.ok ? (
-        <p className="stamp p-4 font-bold">تعذّر تحميل التعليقات.</p>
+        <p className="stamp p-4 font-bold">{tr("تعذّر تحميل التعليقات.")}</p>
       ) : data.items.length === 0 ? (
-        <p className="stamp p-4 font-semibold">لا تعليقات هنا.</p>
+        <p className="stamp p-4 font-semibold">{tr("لا تعليقات هنا.")}</p>
       ) : (
         <ul className="flex flex-col gap-3">
           {data.items.map((c: AdminComment) => (
@@ -110,23 +111,23 @@ export function CommentsAdmin() {
                         : "chip chip-deep"
                   }
                 >
-                  {STATUS_LABEL[c.status]}
+                  {trv(STATUS_LABEL[c.status])}
                 </span>
                 {c.reports > 0 ? (
-                  <span className="chip chip-alert">بلاغات: {c.reports}</span>
+                  <span className="chip chip-alert">{tr("بلاغات:")} {trv(c.reports)}</span>
                 ) : null}
-                {c.parentId ? <span className="chip">رد</span> : null}
-                {c.userBlocked ? <span className="chip chip-ink">محظور</span> : null}
+                {c.parentId ? <span className="chip">{tr("رد")}</span> : null}
+                {c.userBlocked ? <span className="chip chip-ink">{tr("محظور")}</span> : null}
               </div>
               <p className="mt-2 whitespace-pre-line break-words text-lg" dir="auto">
-                {c.body}
+                {trv(c.body)}
               </p>
               <p className="mt-1 text-sm font-semibold text-muted">
-                {c.userName}
+                {trv(c.userName)}
                 {c.userEmail ? (
                   <>
                     {" "}
-                    · <span dir="ltr">{c.userEmail}</span>
+                    · <span dir="ltr">{trv(c.userEmail)}</span>
                   </>
                 ) : null}{" "}
                 · {fmt(c.createdAt)}
@@ -137,7 +138,7 @@ export function CommentsAdmin() {
                 target="_blank"
                 rel="noopener"
               >
-                فتح الخبر
+                {tr("فتح الخبر")}
               </a>
               <div className="mt-3 grid grid-cols-2 gap-2">
                 {c.status === "approved" ? (
@@ -149,7 +150,7 @@ export function CommentsAdmin() {
                       act(c.id, () => adminCommentAction({ data: { id: c.id, action: "hide" } }))
                     }
                   >
-                    إخفاء
+                    {tr("إخفاء")}
                   </button>
                 ) : (
                   <button
@@ -160,7 +161,7 @@ export function CommentsAdmin() {
                       act(c.id, () => adminCommentAction({ data: { id: c.id, action: "restore" } }))
                     }
                   >
-                    {c.status === "pending" ? "موافقة ونشر" : "استعادة"}
+                    {c.status === "pending" ? tr("موافقة ونشر") : tr("استعادة")}
                   </button>
                 )}
                 <button
@@ -168,13 +169,13 @@ export function CommentsAdmin() {
                   className="btn btn-ghost"
                   disabled={busy === c.id}
                   onClick={() => {
-                    if (!confirm("حذف التعليق نهائياً (مع الردود عليه)؟")) return;
+                    if (!confirm(tr("حذف التعليق نهائياً (مع الردود عليه)؟"))) return;
                     void act(c.id, () =>
                       adminCommentAction({ data: { id: c.id, action: "delete" } }),
                     );
                   }}
                 >
-                  حذف
+                  {tr("حذف")}
                 </button>
                 <button
                   type="button"
@@ -184,7 +185,7 @@ export function CommentsAdmin() {
                     const block = !c.userBlocked;
                     if (
                       block &&
-                      !confirm(`منع ${c.userName} من التعليق؟ تبقى تعليقاته السابقة كما هي.`)
+                      !confirm(tr("منع {0} من التعليق؟ تبقى تعليقاته السابقة كما هي.", c.userName))
                     )
                       return;
                     void act(c.id, () =>
@@ -192,7 +193,7 @@ export function CommentsAdmin() {
                     );
                   }}
                 >
-                  {c.userBlocked ? "إلغاء حظر التعليق" : "حظر المستخدم من التعليق"}
+                  {c.userBlocked ? tr("إلغاء حظر التعليق") : tr("حظر المستخدم من التعليق")}
                 </button>
               </div>
             </li>

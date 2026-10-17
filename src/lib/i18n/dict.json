@@ -1,0 +1,5821 @@
+{
+ " · أُرسل إشعار": {
+  "en": " · notification sent",
+  "he": " · נשלחה התראה"
+ },
+ " · الخطوط: {0}": {
+  "en": " · Lines: {0}",
+  "he": " · קווים: {0}"
+ },
+ " · معدّل": {
+  "en": " · edited",
+  "he": " · נערך"
+ },
+ " · يظهر بعد موافقة الإدارة": {
+  "en": " · appears after admin approval",
+  "he": " · תופיע לאחר אישור הניהול"
+ },
+ " ورقم الهاتف": {
+  "en": " and phone number",
+  "he": " ומספר טלפון"
+ },
+ " وساعات العمل": {
+  "en": " and opening hours",
+  "he": " ושעות פעילות"
+ },
+ "(أو Facebook أو Apple إن توفّر): اسمك، بريدك الإلكتروني وصورة الحساب. مع Apple يمكنك إخفاء بريدك فنحصل على عنوان وسيط من Apple. لا نحصل على كلمة مرورك ولا ننشر شيئاً على حسابك.": {
+  "en": "(or Facebook or Apple if available): your name, email and account photo. With Apple you can hide your email and we get a relay address from Apple. We don't get your password and we never post on your account.",
+  "he": "(או Facebook או Apple אם זמין): שמך, האימייל ותמונת החשבון. עם Apple ניתן להסתיר את האימייל ונקבל כתובת ממסר מ-Apple. איננו מקבלים את הסיסמה שלך ולעולם לא מפרסמים בחשבונך."
+ },
+ "(اختياري)": {
+  "en": "(optional)",
+  "he": "(אופציונלי)"
+ },
+ "(رقم": {
+  "en": "(No.",
+  "he": "(מס'"
+ },
+ "(قد تحتاج للتمرير للأسفل).": {
+  "en": "(you may need to scroll down).",
+  "he": "(ייתכן שתצטרך לגלול למטה)."
+ },
+ ") · العنوان الرسمي:": {
+  "en": ") · Official address:",
+  "he": ") · כתובת רשמית:"
+ },
+ "+{0} هذا الأسبوع": {
+  "en": "+{0} this week",
+  "he": "+{0} השבוע"
+ },
+ ". الخبر الكامل وحقوقه لدى المصدر.": {
+  "en": ". The full story and its rights belong to the source.",
+  "he": ". הכתבה המלאה וזכויותיה שייכות למקור."
+ },
+ ". العناوين والمقتطفات لأصحابها، والخبر الكامل في موقع المصدر.": {
+  "en": ". Headlines and excerpts belong to their owners; the full story is on the source's site.",
+  "he": ". הכותרות והקטעים שייכים לבעליהם, והכתבה המלאה באתר המקור."
+ },
+ ". ستجد أيقونة رهط بوست على شاشتك الرئيسية.": {
+  "en": ". You'll find the Rahat Post icon on your home screen.",
+  "he": ". תמצא את אייקון רהט פוסט במסך הבית."
+ },
+ ". عند نفاد الأكواد يظهر المنتج «نفد» تلقائياً.": {
+  "en": ". When codes run out, the product shows \"Sold out\" automatically.",
+  "he": ". כשהקודים נגמרים, המוצר מוצג \"אזל\" אוטומטית."
+ },
+ ". قد تختلف دقيقة أو دقيقتين عن تقويم مسجدك.": {
+  "en": ". May differ by a minute or two from your mosque's calendar.",
+  "he": ". עשוי להשתנות בדקה-שתיים מלוח המסגד שלך."
+ },
+ ". لا نعرض إعلانات في لوحة الإدارة أو صفحات الحساب.": {
+  "en": ". We don't show ads in the admin panel or account pages.",
+  "he": ". איננו מציגים מודעות בלוח הניהול או בעמודי החשבון."
+ },
+ "/directory أو https://…": {
+  "en": "/directory or https://…",
+  "he": "/directory או https://…"
+ },
+ "/محليات/": {},
+ "11 أكتوبر 2026": {
+  "en": "October 11, 2026",
+  "he": "11 באוקטובר 2026"
+ },
+ "2,400 ₪ / شهر": {},
+ "28 يوماً": {
+  "en": "28 days",
+  "he": "28 ימים"
+ },
+ "3 أشهر": {
+  "en": "3 months",
+  "he": "3 חודשים"
+ },
+ "30 يوماً": {
+  "en": "30 days",
+  "he": "30 ימים"
+ },
+ "4أ": {},
+ "6 أشهر": {
+  "en": "6 months",
+  "he": "6 חודשים"
+ },
+ "7 أيام": {
+  "en": "7 days",
+  "he": "7 ימים"
+ },
+ "90 يوماً": {
+  "en": "90 days",
+  "he": "90 ימים"
+ },
+ ": إذا فعّلتها، نحفظ عنوان الاشتراك الذي يعطيه متصفحك والمواضيع التي اخترتها.": {
+  "en": ": if you enable them, we store the subscription address your browser gives us and the topics you chose.",
+  "he": ": אם הפעלת אותן, אנו שומרים את כתובת המנוי שהדפדפן נותן ואת הנושאים שבחרת."
+ },
+ ": الأخبار والإعلانات وطلبات إضافة النشاط، مع الحي ورقم الهاتف الذي تكتبه بنفسك والصور التي ترفعها معها (نزيل منها بيانات الموقع والكاميرا تلقائياً).": {
+  "en": ": news, ads and business requests, with the neighborhood and phone number you write yourself and the photos you upload with them (we strip location and camera data automatically).",
+  "he": ": חדשות, מודעות ובקשות עסק, עם השכונה ומספר הטלפון שאתה כותב בעצמך והתמונות שאתה מעלה (אנו מסירים נתוני מיקום ומצלמה אוטומטית)."
+ },
+ ": سبب البلاغ والملاحظة. نحفظ بصمة مشفّرة لا يمكن عكسها من حسابك أو عنوان IP فقط لمنع تكرار البلاغات.": {
+  "en": ": the report reason and note. We store an irreversible hashed fingerprint of your account or IP address only to prevent duplicate reports.",
+  "he": ": סיבת הדיווח וההערה. אנו שומרים טביעה מוצפנת בלתי הפיכה של החשבון או כתובת ה-IP רק כדי למנוע דיווחים כפולים."
+ },
+ ": عنوان IP ونوع المتصفح في سجلات الخادم لفترة قصيرة لحماية الموقع من الإساءة، وإحصاءات زيارات وأداء مجمّعة بلا هوية وبلا ملفات ارتباط (Vercel Analytics).": {
+  "en": ": IP address and browser type in server logs for a short time to protect the site from abuse, and aggregated, anonymous, cookie-free visit and performance statistics (Vercel Analytics).",
+  "he": ": כתובת IP וסוג דפדפן ביומני השרת לזמן קצר להגנה על האתר מפני ניצול, וסטטיסטיקות ביקורים וביצועים מצטברות, אנונימיות וללא עוגיות (Vercel Analytics)."
+ },
+ ": نص تعليقك وردودك ووقتها والخبر الذي كتبتها عليه. تظهر للجميع فوراً مع اسمك وصورة حسابك (أو بعد موافقة الإدارة إذا كانت المراجعة المسبقة مفعّلة). يمكنك تعديل التعليق خلال 10 دقائق وحذفه في أي وقت.": {
+  "en": ": your comment and reply text, their time and the story you wrote them on. They appear to everyone immediately with your name and account photo (or after admin approval if pre-moderation is on). You can edit a comment within 10 minutes and delete it anytime.",
+  "he": ": טקסט התגובות שלך, זמנן והכתבה שעליה נכתבו. הן מוצגות לכולם מיד עם שמך ותמונת החשבון (או לאחר אישור הניהול אם בדיקה מוקדמת מופעלת). ניתן לערוך תגובה תוך 10 דקות ולמחוק אותה בכל עת."
+ },
+ "Cardcom (صفحة دفع آمنة)": {
+  "en": "Cardcom (secure payment page)",
+  "he": "Cardcom (עמוד תשלום מאובטח)"
+ },
+ "Gemini غير متاح (تحقق من الإعدادات أو المفتاح).": {
+  "en": "Gemini isn't available (check the settings or key).",
+  "he": "Gemini לא זמין (בדוק את ההגדרות או המפתח)."
+ },
+ "Google Tag Manager (اختياري)": {
+  "en": "Google Tag Manager (optional)",
+  "he": "Google Tag Manager (אופציונלי)"
+ },
+ "Tranzila (صفحة دفع آمنة)": {
+  "en": "Tranzila (secure payment page)",
+  "he": "Tranzila (עמוד תשלום מאובטח)"
+ },
+ "Tranzila: التأكيد التلقائي غير مفعّل بعد؛ الإشعار يُسجَّل فقط وتؤكّد أنت الدفع بزر «تم الدفع».": {
+  "en": "Tranzila: automatic confirmation isn't enabled yet; the notice is only logged and you confirm payment with the \"Paid\" button.",
+  "he": "Tranzila: אישור אוטומטי עדיין לא מופעל; ההודעה נרשמת בלבד ואתה מאשר את התשלום בכפתור \"שולם\"."
+ },
+ "[مسحوب] ": {
+  "en": "[Revoked] ",
+  "he": "[נשלל] "
+ },
+ "[نقداً عبر واتساب]": {
+  "en": "[Cash via WhatsApp]",
+  "he": "[מזומן דרך וואטסאפ]"
+ },
+ "client_email غير موجود في الملف.": {
+  "en": "client_email is missing from the file.",
+  "he": "client_email חסר בקובץ."
+ },
+ "no email sender configured (shown in طلباتي only)": {},
+ "private_key غير موجود في الملف.": {
+  "en": "private_key is missing from the file.",
+  "he": "private_key חסר בקובץ."
+ },
+ "visible again in طلباتي": {},
+ "{0}\nرهط بوست": {},
+ "{0} | متجر رهط بوست": {
+  "en": "{0} | Rahat Post store",
+  "he": "{0} | חנות רהט פוסט"
+ },
+ "{0} · {1} في رهط | دليل رهط بوست": {
+  "en": "{0} · {1} in Rahat | Rahat Post directory",
+  "he": "{0} · {1} ברהט | מדריך רהט פוסט"
+ },
+ "{0} · إعلانات رهط | رهط بوست": {
+  "en": "{0} · Rahat classifieds | Rahat Post",
+  "he": "{0} · מודעות רהט | רהט פוסט"
+ },
+ "{0} · رهط بوست": {
+  "en": "{0} · Rahat Post",
+  "he": "{0} · רהט פוסט"
+ },
+ "{0} · كتبه: {1}": {
+  "en": "{0} · By: {1}",
+  "he": "{0} · מאת: {1}"
+ },
+ "{0} باص على الخط الآن · مواقع حقيقية من نظام وزارة المواصلات · {1}": {
+  "en": "{0} buses on the line now · real locations from the Ministry of Transport system · {1}",
+  "he": "{0} אוטובוסים בקו עכשיו · מיקומים אמיתיים ממערכת משרד התחבורה · {1}"
+ },
+ "{0} باص قادم يرسل موقعه الآن · مواقع حقيقية من وزارة المواصلات": {
+  "en": "{0} upcoming buses sending their location now · real locations from the Ministry of Transport",
+  "he": "{0} אוטובוסים קרובים משדרים מיקום עכשיו · מיקומים אמיתיים ממשרד התחבורה"
+ },
+ "{0} تعليق": {
+  "en": "{0} comments",
+  "he": "{0} תגובות"
+ },
+ "{0} جديد": {
+  "en": "{0} new",
+  "he": "{0} חדשים"
+ },
+ "{0} د": {
+  "en": "{0} min",
+  "he": "{0} ד'"
+ },
+ "{0} طلب هذا الأسبوع": {
+  "en": "{0} orders this week",
+  "he": "{0} הזמנות השבוע"
+ },
+ "{0} في رهط{1}: {2}": {
+  "en": "{0} in Rahat{1}: {2}",
+  "he": "{0} ברהט{1}: {2}"
+ },
+ "{0} في متجر رهط بوست": {
+  "en": "{0} at the Rahat Post store",
+  "he": "{0} בחנות רהט פוסט"
+ },
+ "{0} مثال": {
+  "en": "{0} samples",
+  "he": "{0} דוגמאות"
+ },
+ "{0} من {1}": {
+  "en": "{0} of {1}",
+  "he": "{0} מתוך {1}"
+ },
+ "{0} نص محفوظ": {
+  "en": "{0} saved texts",
+  "he": "{0} טקסטים שמורים"
+ },
+ "{0} — أخبار رهط والنقب.": {
+  "en": "{0} — Rahat and Negev news.",
+  "he": "{0} — חדשות רהט והנגב."
+ },
+ "{0} — صورة {1} من {2}": {
+  "en": "{0} — photo {1} of {2}",
+  "he": "{0} — תמונה {1} מתוך {2}"
+ },
+ "{0}: {1} في رهط{2}. الموقع على الخريطة{3}{4} في دليل رهط بوست.": {
+  "en": "{0}: {1} in Rahat{2}. Location on the map{3}{4} in the Rahat Post directory.",
+  "he": "{0}: {1} ברהט{2}. מיקום על המפה{3}{4} במדריך רהט פוסט."
+ },
+ "{0}، الرئيسية": {
+  "en": "{0}, home",
+  "he": "{0}, דף הבית"
+ },
+ "«إضافة إلى الشاشة الرئيسية»": {
+  "en": "\"Add to Home Screen\"",
+  "he": "\"הוסף למסך הבית\""
+ },
+ "«إضافة»": {
+  "en": "\"Add\"",
+  "he": "\"הוסף\""
+ },
+ "«مباشر» يعني أن الباص يرسل موقعه الآن (بيانات وزارة المواصلات عبر curlbus، تتأخر حتى دقيقة تقريباً). «حسب الجدول» وقت مخطط وتقريبي.": {
+  "en": "\"Live\" means the bus is sending its location now (Ministry of Transport data via curlbus, up to about a minute late). \"Scheduled\" is a planned, approximate time.",
+  "he": "\"חי\" אומר שהאוטובוס משדר את מיקומו עכשיו (נתוני משרד התחבורה דרך curlbus, באיחור של עד כדקה). \"לפי לוח\" הוא זמן מתוכנן ומשוער."
+ },
+ "· آخر قراءة من Google:": {
+  "en": "· Last read by Google:",
+  "he": "· נקרא לאחרונה על ידי Google:"
+ },
+ "· أخطاء:": {
+  "en": "· Errors:",
+  "he": "· שגיאות:"
+ },
+ "· إلى {0}": {
+  "en": "· to {0}",
+  "he": "· ל{0}"
+ },
+ "· تحذيرات:": {
+  "en": "· Warnings:",
+  "he": "· אזהרות:"
+ },
+ "· مُسلّم:": {
+  "en": "· Delivered:",
+  "he": "· נמסרו:"
+ },
+ "· مُعرّف مصدر البيانات:": {
+  "en": "· Data stream ID:",
+  "he": "· מזהה זרם נתונים:"
+ },
+ "، ": {
+  "en": ", ",
+  "he": ", "
+ },
+ "، أو حذف حسابك كاملاً من «منشوراتي» ← «حذف حسابي». يُحذف عندها فوراً: حسابك، جلساتك، ربط حساب Google/Facebook/Apple، كل إعلاناتك وأخبارك وتعليقاتك وردودك وطلبات نشاطك (حتى الموافَق عليها في الدليل) وصورها واشتراكات الإشعارات. تبقى البلاغات التي أرسلتَها بدون أي ربط بك.": {
+  "en": ", or delete your whole account from \"My posts\" → \"Delete my account\". This immediately deletes: your account, sessions, Google/Facebook/Apple links, all your ads, news, comments, replies and business requests (even approved directory entries), their photos and notification subscriptions. Reports you sent remain without any link to you.",
+  "he": ", או למחוק את כל החשבון מ\"הפוסטים שלי\" ← \"מחק את החשבון שלי\". אז נמחקים מיד: החשבון, הסשנים, קישורי Google/Facebook/Apple, כל המודעות, החדשות, התגובות ובקשות העסק שלך (גם מאושרות במדריך), התמונות ומנויי ההתראות. דיווחים ששלחת נשארים ללא קישור אליך."
+ },
+ "، وتُحدَّث أسبوعياً. النشاطات «الموثّقة» أضافها أصحابها وراجعناها.": {
+  "en": ", updated weekly. \"Verified\" businesses were added by their owners and reviewed by us.",
+  "he": ", מתעדכן מדי שבוע. עסקים \"מאומתים\" נוספו על ידי בעליהם ונבדקו על ידינו."
+ },
+ "، وللتواصل:": {
+  "en": ", and to contact us:",
+  "he": ", וליצירת קשר:"
+ },
+ "؟": {
+  "en": "?",
+  "he": "?"
+ },
+ "آخر أخبار رهط والنقب على مدار اليوم: بلدية رهط، التعليم، الصحة، الرياضة والمجتمع من المواقع العربية المحلية، وأخبار يكتبها أهالي رهط في «من القراء».": {
+  "en": "The latest Rahat and Negev news all day: Rahat municipality, education, health, sports and community from local Arabic sites, and news written by Rahat residents in \"From readers\".",
+  "he": "החדשות האחרונות מרהט והנגב לאורך היום: עיריית רהט, חינוך, בריאות, ספורט וקהילה מאתרים ערביים מקומיים, וחדשות שכותבים תושבי רהט ב\"מהקוראים\"."
+ },
+ "آخر إرسال:": {
+  "en": "Last submitted:",
+  "he": "נשלח לאחרונה:"
+ },
+ "آخر الأخبار": {
+  "en": "Latest news",
+  "he": "חדשות אחרונות"
+ },
+ "آخر الأخطاء": {
+  "en": "Latest errors",
+  "he": "שגיאות אחרונות"
+ },
+ "آخر الإعلانات": {
+  "en": "Latest ads",
+  "he": "מודעות אחרונות"
+ },
+ "آخر تحديث:": {
+  "en": "Last updated:",
+  "he": "עודכן לאחרונה:"
+ },
+ "آخر تحقق من كل المصادر:": {
+  "en": "All sources last checked:",
+  "he": "כל המקורות נבדקו לאחרונה:"
+ },
+ "آخر تحقق:": {
+  "en": "Last checked:",
+  "he": "נבדק לאחרונה:"
+ },
+ "آخر خبر": {
+  "en": "Latest story",
+  "he": "החדשה האחרונה"
+ },
+ "آخر خبر ·": {
+  "en": "Latest ·",
+  "he": "אחרונות ·"
+ },
+ "آخر موقع قبل {0} د": {
+  "en": "Last location {0} min ago",
+  "he": "מיקום אחרון לפני {0} ד'"
+ },
+ "أ": {},
+ "أبرز المحتوى": {
+  "en": "Highlights",
+  "he": "מומלצים"
+ },
+ "أحد المنتجات لم يعد متوفراً. حدّث السلة.": {
+  "en": "One of the products is no longer available. Refresh the cart.",
+  "he": "אחד המוצרים כבר לא זמין. רענן את הסל."
+ },
+ "أخبار 12": {
+  "en": "N12",
+  "he": "חדשות 12"
+ },
+ "أخبار إسرائيل": {
+  "en": "Israel news",
+  "he": "חדשות ישראל"
+ },
+ "أخبار إسرائيل بالعربية اليوم · رهط بوست": {
+  "en": "Israel news today · Rahat Post",
+  "he": "חדשות ישראל היום · רהט פוסט"
+ },
+ "أخبار الفريق": {
+  "en": "Team news",
+  "he": "חדשות הצוות"
+ },
+ "أخبار القراء": {
+  "en": "Reader news",
+  "he": "חדשות קוראים"
+ },
+ "أخبار القراء الجديدة": {
+  "en": "New reader news",
+  "he": "חדשות קוראים חדשות"
+ },
+ "أخبار القراء المنشورة": {
+  "en": "Published reader news",
+  "he": "חדשות קוראים שפורסמו"
+ },
+ "أخبار رهط": {
+  "en": "Rahat news",
+  "he": "חדשות רהט"
+ },
+ "أخبار رهط والنقب اليوم · رهط بوست": {
+  "en": "Rahat & Negev news today · Rahat Post",
+  "he": "חדשות רהט והנגב היום · רהט פוסט"
+ },
+ "أخبار محلية": {
+  "en": "Local news",
+  "he": "חדשות מקומיות"
+ },
+ "أخباري": {
+  "en": "My news",
+  "he": "החדשות שלי"
+ },
+ "أخرى": {
+  "en": "Other",
+  "he": "אחר"
+ },
+ "أخضر": {
+  "en": "Green",
+  "he": "ירוק"
+ },
+ "أخطاء": {
+  "en": "Errors",
+  "he": "שגיאות"
+ },
+ "أدخل المعرّفات فقط (لا تلصق أكواد). لا تظهر الإعلانات في لوحة الإدارة وصفحات الحساب.": {
+  "en": "Enter IDs only (don't paste code). Ads don't appear in the admin panel or account pages.",
+  "he": "הזן מזהים בלבד (אל תדביק קוד). מודעות לא מופיעות בלוח הניהול ובעמודי החשבון."
+ },
+ "أدخل معرّف الموقع وملف حساب الخدمة أولاً.": {
+  "en": "Enter the Property ID and the service account file first.",
+  "he": "הזן קודם את מזהה הנכס ואת קובץ חשבון השירות."
+ },
+ "أدلة الخدمات": {
+  "en": "Service guides",
+  "he": "מדריכי שירות"
+ },
+ "أرجيلة": {},
+ "أرجيلة الجبور": {},
+ "أرسل إشعار «تنبيهات عاجلة» للمشتركين": {
+  "en": "Send an \"Urgent alerts\" notification to subscribers",
+  "he": "שלח התראת \"התראות דחופות\" למנויים"
+ },
+ "أرسل إشعار «صيدلية المناوبة» (إذا كانت تشمل اليوم)": {
+  "en": "Send an \"On-duty pharmacy\" notification (if it includes today)",
+  "he": "שלח התראת \"בית מרקחת תורן\" (אם כולל את היום)"
+ },
+ "أرسل البلاغ": {
+  "en": "Send report",
+  "he": "שלח דיווח"
+ },
+ "أرسل الرد": {
+  "en": "Send reply",
+  "he": "שלח תגובה"
+ },
+ "أرسل الطلب": {
+  "en": "Send order",
+  "he": "שלח הזמנה"
+ },
+ "أرسل خبراً من رهط، أو إعلاناً مبوباً، أو أضف نشاطك التجاري إلى دليل رهط.": {
+  "en": "Send news from Rahat, a classified ad, or add your business to the Rahat directory.",
+  "he": "שלח חדשה מרהט, מודעה, או הוסף את העסק שלך למדריך רהט."
+ },
+ "أرسلت عدة أخبار للتو. حاول بعد قليل.": {
+  "en": "You just sent several news items. Try again shortly.",
+  "he": "שלחת כמה חדשות הרגע. נסה שוב בעוד מעט."
+ },
+ "أرسلت عدة إعلانات للتو. حاول بعد قليل.": {
+  "en": "You just sent several ads. Try again shortly.",
+  "he": "שלחת כמה מודעות הרגע. נסה שוב בעוד מעט."
+ },
+ "أرسلت عدة بلاغات للتو. حاول بعد قليل.": {
+  "en": "You just sent several reports. Try again shortly.",
+  "he": "שלחת כמה דיווחים הרגע. נסה שוב בעוד מעט."
+ },
+ "أرسلت عدة طلبات للتو. حاول بعد قليل.": {
+  "en": "You just sent several requests. Try again shortly.",
+  "he": "שלחת כמה בקשות הרגע. נסה שוב בעוד מעט."
+ },
+ "أرقام الطوارئ": {
+  "en": "Emergency numbers",
+  "he": "מספרי חירום"
+ },
+ "أرقام الطوارئ الوطنية حقيقية. الأخبار والدليل والباصات من مصادر حقيقية مذكورة في كل صفحة.": {
+  "en": "National emergency numbers are real. News, the directory and buses come from real sources named on each page.",
+  "he": "מספרי החירום הארציים אמיתיים. החדשות, המדריך והאוטובוסים מגיעים ממקורות אמיתיים המצוינים בכל עמוד."
+ },
+ "أرقام الطوارئ وصيدلية الحراسة": {
+  "en": "Emergency numbers and on-duty pharmacy",
+  "he": "מספרי חירום ובית מרקחת תורן"
+ },
+ "أرقام تُحفظ": {
+  "en": "Numbers to save",
+  "he": "מספרים לשמירה"
+ },
+ "أزرق": {
+  "en": "Blue",
+  "he": "כחול"
+ },
+ "أسفل": {
+  "en": "Down",
+  "he": "למטה"
+ },
+ "أسلوب الترجمة (تعليمات للنموذج)": {
+  "en": "Translation style (instructions for the model)",
+  "he": "סגנון תרגום (הנחיות למודל)"
+ },
+ "أصفر رهط (الافتراضي)": {
+  "en": "Rahat yellow (default)",
+  "he": "צהוב רהט (ברירת מחדל)"
+ },
+ "أضف": {
+  "en": "Add",
+  "he": "הוסף"
+ },
+ "أضف أكواداً (كود في كل سطر)": {
+  "en": "Add codes (one code per line)",
+  "he": "הוסף קודים (קוד בכל שורה)"
+ },
+ "أضف إعلانك": {
+  "en": "Post your ad",
+  "he": "פרסם מודעה"
+ },
+ "أضف تفاصيل تساعدنا في المراجعة": {
+  "en": "Add details that help us review",
+  "he": "הוסף פרטים שיעזרו לנו בבדיקה"
+ },
+ "أضف خبراً أو إعلاناً أو نشاطاً": {
+  "en": "Add news, an ad or a business",
+  "he": "הוסף חדשה, מודעה או עסק"
+ },
+ "أضف خبراً أو إعلاناً أو نشاطاً · رهط بوست": {
+  "en": "Add news, an ad or a business · Rahat Post",
+  "he": "הוסף חדשה, מודעה או עסק · רהט פוסט"
+ },
+ "أضف صورة": {
+  "en": "Add a photo",
+  "he": "הוסף תמונה"
+ },
+ "أضف للسلة": {
+  "en": "Add to cart",
+  "he": "הוסף לסל"
+ },
+ "أضف مفتاح حساب الخدمة في إعدادات Google Analytics أدناه لعرض بيانات البحث.": {
+  "en": "Add the service account key in the Google Analytics settings below to show search data.",
+  "he": "הוסף את מפתח חשבון השירות בהגדרות Google Analytics למטה כדי להציג נתוני חיפוש."
+ },
+ "أضف نشاطك": {
+  "en": "Add your business",
+  "he": "הוסף את העסק שלך"
+ },
+ "أضف نشاطك في دليل رهط": {
+  "en": "Add your business to the Rahat directory",
+  "he": "הוסף את העסק שלך למדריך רהט"
+ },
+ "أظهر أو أخفِ الأقسام ورتّبها بالأسهم.": {
+  "en": "Show or hide sections and reorder them with the arrows.",
+  "he": "הצג או הסתר מדורים וסדר אותם בעזרת החצים."
+ },
+ "أظهره كـ «قريباً» وهو فارغ": {
+  "en": "Show as \"Coming soon\" while empty",
+  "he": "הצג כ\"בקרוב\" כשהוא ריק"
+ },
+ "أعضاء الفريق (مشرف / كاتب)": {
+  "en": "Team members (moderator / writer)",
+  "he": "חברי צוות (מנהל / כותב)"
+ },
+ "أعلى": {
+  "en": "Up",
+  "he": "למעלה"
+ },
+ "أعمال": {
+  "en": "Business",
+  "he": "עסקים"
+ },
+ "أقرب محطة لي": {
+  "en": "Nearest stop to me",
+  "he": "התחנה הקרובה אליי"
+ },
+ "أقسام الإدارة": {
+  "en": "Admin sections",
+  "he": "מדורי ניהול"
+ },
+ "أقسام الدليل": {
+  "en": "Guide sections",
+  "he": "מדורי המדריך"
+ },
+ "أقسام الرئيسية": {
+  "en": "Home sections",
+  "he": "מדורי עמוד הבית"
+ },
+ "أقسام الصفحة الرئيسية": {
+  "en": "Home page sections",
+  "he": "מדורי עמוד הבית"
+ },
+ "أكثر عبارات البحث": {
+  "en": "Top search queries",
+  "he": "שאילתות החיפוש המובילות"
+ },
+ "أكواد قليلة (≤": {
+  "en": "Low codes (≤",
+  "he": "מעט קודים (≤"
+ },
+ "أكواد: {0} متاح · {1} مُسلّم": {
+  "en": "Codes: {0} available · {1} delivered",
+  "he": "קודים: {0} זמינים · {1} נמסרו"
+ },
+ "ألعاب": {
+  "en": "Games",
+  "he": "משחקים"
+ },
+ "أمطار": {
+  "en": "Rain",
+  "he": "גשם"
+ },
+ "أمطار غزيرة": {
+  "en": "Heavy rain",
+  "he": "גשם כבד"
+ },
+ "أنت مسؤول عن صحة ما تنشره وعن حقك في نشر الصور والمعلومات.": {
+  "en": "You're responsible for the accuracy of what you post and for your right to publish the images and information.",
+  "he": "אתה אחראי לדיוק מה שאתה מפרסם ולזכותך לפרסם את התמונות והמידע."
+ },
+ "أنت مسجّل الدخول باسم": {
+  "en": "You're signed in as",
+  "he": "אתה מחובר בתור"
+ },
+ "أنشطة في الدليل": {
+  "en": "Directory businesses",
+  "he": "עסקים במדריך"
+ },
+ "أهم عناوين أخبار إسرائيل من واي نت والقناة 12 ومعاريف وغلوبس، مترجمة آلياً إلى العربية لأهالي رهط والنقب، مع رابط الخبر الأصلي بالعبرية.": {
+  "en": "Top Israel news headlines from Ynet, Channel 12, Maariv and Globes, machine-translated into Arabic for the people of Rahat and the Negev, with a link to the original Hebrew story.",
+  "he": "כותרות חדשות ישראל המובילות מ-ynet, חדשות 12, מעריב וגלובס, בתרגום מכונה לערבית לתושבי רהט והנגב, עם קישור לכתבה המקורית בעברית."
+ },
+ "أوقات الانطلاق من أول محطة في كل اتجاه.": {
+  "en": "Departure times from the first stop in each direction.",
+  "he": "זמני יציאה מהתחנה הראשונה בכל כיוון."
+ },
+ "أوقات الصلاة في رهط": {
+  "en": "Prayer times in Rahat",
+  "he": "זמני תפילה ברהט"
+ },
+ "أوقات مباشرة وجدول محدّث يومياً": {
+  "en": "Live times and a schedule updated daily",
+  "he": "זמנים חיים ולוח זמנים שמתעדכן מדי יום"
+ },
+ "أيام": {
+  "en": "days",
+  "he": "ימים"
+ },
+ "أيقونات الأقسام": {
+  "en": "Section icons",
+  "he": "אייקוני מדורים"
+ },
+ "أيقونات الأقسام في الرئيسية": {
+  "en": "Section icons on the home page",
+  "he": "אייקוני מדורים בעמוד הבית"
+ },
+ "أيقونة المتصفح (favicon)": {
+  "en": "Browser icon (favicon)",
+  "he": "אייקון דפדפן (favicon)"
+ },
+ "أيقونة على الشاشة الرئيسية، ويفتح بملء الشاشة كتطبيق.": {
+  "en": "An icon on the home screen; opens full-screen like an app.",
+  "he": "אייקון במסך הבית; נפתחת במסך מלא כמו אפליקציה."
+ },
+ "أين تُخزَّن البيانات": {
+  "en": "Where the data is stored",
+  "he": "היכן הנתונים נשמרים"
+ },
+ "أين؟ (الحي أو المكان)": {
+  "en": "Where? (neighborhood or place)",
+  "he": "איפה? (שכונה או מקום)"
+ },
+ "أُرسل إلى {0} جهاز{1}{2}.": {
+  "en": "Sent to {0} device{1}{2}.",
+  "he": "נשלח ל-{0} מכשירים{1}{2}."
+ },
+ "أُضيف {0} كود.": {
+  "en": "Added {0} codes.",
+  "he": "נוספו {0} קודים."
+ },
+ "أُضيف ✓": {
+  "en": "Added ✓",
+  "he": "נוסף ✓"
+ },
+ "أُضيفت اللغة. اضغط «حفظ» ثم «ترجمة الناقص بالذكاء الاصطناعي».": {
+  "en": "Language added. Press \"Save\", then \"Translate missing with AI\".",
+  "he": "השפה נוספה. לחץ \"שמירה\" ואז \"תרגם חסרים עם AI\"."
+ },
+ "إبلاغ": {
+  "en": "Report",
+  "he": "דווח"
+ },
+ "إبلاغ عن مشكلة": {
+  "en": "Report a problem",
+  "he": "דווח על בעיה"
+ },
+ "إبلاغ عن هذا المنشور": {
+  "en": "Report this post",
+  "he": "דווח על פוסט זה"
+ },
+ "إجراء غير معروف.": {
+  "en": "Unknown action.",
+  "he": "פעולה לא ידועה."
+ },
+ "إخفاء": {
+  "en": "Hide",
+  "he": "הסתר"
+ },
+ "إخفاء المحتوى عن المشتري؟": {
+  "en": "Hide the content from the buyer?",
+  "he": "להסתיר את התוכן מהקונה?"
+ },
+ "إدارة · رهط بوست": {
+  "en": "Admin · Rahat Post",
+  "he": "ניהול · רהט פוסט"
+ },
+ "إذا لم يُفتح التطبيق تلقائياً، اضغط الزر.": {
+  "en": "If the app doesn't open automatically, press the button.",
+  "he": "אם האפליקציה לא נפתחת אוטומטית, לחץ על הכפתור."
+ },
+ "إرجاع الألوان الافتراضية": {
+  "en": "Reset default colors",
+  "he": "החזר צבעי ברירת מחדל"
+ },
+ "إرسال": {
+  "en": "Send",
+  "he": "שלח"
+ },
+ "إرسال إشعار": {
+  "en": "Send notification",
+  "he": "שלח התראה"
+ },
+ "إرسال الإشعار الآن لكل المشتركين في هذا الموضوع؟": {
+  "en": "Send the notification now to everyone subscribed to this topic?",
+  "he": "לשלוח את ההתראה עכשיו לכל המנויים בנושא זה?"
+ },
+ "إرسال للمراجعة": {
+  "en": "Submit for review",
+  "he": "שלח לבדיקה"
+ },
+ "إزالة": {
+  "en": "Remove",
+  "he": "הסר"
+ },
+ "إزالة الصورة": {
+  "en": "Remove image",
+  "he": "הסר תמונה"
+ },
+ "إزالة صلاحية {0}؟": {
+  "en": "Remove {0}'s permission?",
+  "he": "להסיר את ההרשאה של {0}?"
+ },
+ "إسرائيل": {
+  "en": "Israel",
+  "he": "ישראל"
+ },
+ "إشعار من شركة الدفع": {
+  "en": "Payment provider notice",
+  "he": "הודעה מחברת התשלום"
+ },
+ "إضافة": {
+  "en": "Add",
+  "he": "הוסף"
+ },
+ "إضافة بالبريد الإلكتروني": {
+  "en": "Add by email",
+  "he": "הוספה לפי אימייל"
+ },
+ "إضافة رابط": {
+  "en": "Add link",
+  "he": "הוסף קישור"
+ },
+ "إضافة شريحة": {
+  "en": "Add slide",
+  "he": "הוסף שקופית"
+ },
+ "إضافة صور": {
+  "en": "Add photos",
+  "he": "הוסף תמונות"
+ },
+ "إضافة صورة": {
+  "en": "Add photo",
+  "he": "הוסף תמונה"
+ },
+ "إضافة لغة": {
+  "en": "Add language",
+  "he": "הוסף שפה"
+ },
+ "إضافة مناوبة": {
+  "en": "Add on-duty shift",
+  "he": "הוסף תורנות"
+ },
+ "إضافة وحدة إعلانية": {
+  "en": "Add ad unit",
+  "he": "הוסף יחידת מודעה"
+ },
+ "إظهار": {
+  "en": "Show",
+  "he": "הצג"
+ },
+ "إظهار الرقم": {
+  "en": "Show number",
+  "he": "הצג מספר"
+ },
+ "إعادة إرسال": {
+  "en": "Resend",
+  "he": "שלח שוב"
+ },
+ "إعادة الإرسال": {
+  "en": "Resend",
+  "he": "שליחה חוזרת"
+ },
+ "إعادة محاولة التسليم": {
+  "en": "Retry delivery",
+  "he": "נסה שוב את המסירה"
+ },
+ "إعدادات Gemini": {
+  "en": "Gemini settings",
+  "he": "הגדרות Gemini"
+ },
+ "إعدادات Google Analytics (للمالك)": {
+  "en": "Google Analytics settings (owner)",
+  "he": "הגדרות Google Analytics (לבעלים)"
+ },
+ "إعدادات الإعلانات في Google": {
+  "en": "Google Ads Settings",
+  "he": "הגדרות המודעות של Google"
+ },
+ "إعدادات الدفع": {
+  "en": "Payment settings",
+  "he": "הגדרות תשלום"
+ },
+ "إعدادات الموقع": {
+  "en": "Site settings",
+  "he": "הגדרות האתר"
+ },
+ "إعلان": {
+  "en": "Ad",
+  "he": "מודעה"
+ },
+ "إعلان التعزية يبقى هادئاً: المكان والوقت فقط، بلا لون تنبيه وبلا سعر. هذا نموذج عرض لا خبر حقيقي.": {},
+ "إعلان غير موجود.": {
+  "en": "Ad not found.",
+  "he": "המודעה לא נמצאה."
+ },
+ "إعلان من مستخدم وليس من رهط بوست. لا تدفع مسبقاً قبل أن ترى الشيء أو تلتقي بصاحبه.": {
+  "en": "An ad by a user, not by Rahat Post. Don't pay in advance before seeing the item or meeting the seller.",
+  "he": "מודעה של משתמש ולא של רהט פוסט. אל תשלם מראש לפני שראית את הפריט או פגשת את המוכר."
+ },
+ "إعلانات": {
+  "en": "Ads",
+  "he": "מודעות"
+ },
+ "إعلانات أهل رهط، تُنشر بعد المراجعة.": {
+  "en": "Ads from Rahat residents, published after review.",
+  "he": "מודעות של תושבי רהט, מתפרסמות לאחר בדיקה."
+ },
+ "إعلانات رهط": {
+  "en": "Rahat classifieds",
+  "he": "מודעות רהט"
+ },
+ "إعلانات رهط المبوبة: وظائف، سيارات، عقارات وخدمات · رهط بوست": {
+  "en": "Rahat classifieds: jobs, cars, real estate and services · Rahat Post",
+  "he": "לוח מודעות רהט: דרושים, רכב, נדל\"ן ושירותים · רהט פוסט"
+ },
+ "إعلانات مبوبة في رهط والنقب: وظائف، سيارات للبيع، عقارات وشقق، مناسبات، خدمات ومفقودات. أضف إعلانك مجاناً بعد تسجيل الدخول.": {
+  "en": "Classifieds in Rahat and the Negev: jobs, cars for sale, real estate and apartments, events, services and lost & found. Post your ad for free after signing in.",
+  "he": "מודעות ברהט ובנגב: דרושים, רכבים למכירה, נדל\"ן ודירות, אירועים, שירותים ואבידות. פרסם מודעה בחינם לאחר התחברות."
+ },
+ "إعلانات منشورة": {
+  "en": "Published ads",
+  "he": "מודעות שפורסמו"
+ },
+ "إعلانات نموذجية لعرض الشكل فقط، وليست إعلانات حقيقية.": {
+  "en": "Sample ads to show the layout only, not real ads.",
+  "he": "מודעות לדוגמה להצגת המראה בלבד, לא מודעות אמיתיות."
+ },
+ "إعلاناتي": {
+  "en": "My ads",
+  "he": "המודעות שלי"
+ },
+ "إغلاق": {
+  "en": "Close",
+  "he": "סגור"
+ },
+ "إغلاق القائمة": {
+  "en": "Close menu",
+  "he": "סגור תפריט"
+ },
+ "إلغاء": {
+  "en": "Cancel",
+  "he": "ביטול"
+ },
+ "إلغاء التثبيت": {
+  "en": "Unpin",
+  "he": "בטל הצמדה"
+ },
+ "إلغاء التعديل": {
+  "en": "Cancel edit",
+  "he": "בטל עריכה"
+ },
+ "إلغاء الطلب؟": {
+  "en": "Cancel the order?",
+  "he": "לבטל את ההזמנה?"
+ },
+ "إلغاء العاجل": {
+  "en": "Remove breaking",
+  "he": "בטל מבזק"
+ },
+ "إلغاء حظر التعليق": {
+  "en": "Unban commenting",
+  "he": "בטל חסימת תגובות"
+ },
+ "إلغاء دعوة {0}؟": {
+  "en": "Cancel the invite for {0}?",
+  "he": "לבטל את ההזמנה של {0}?"
+ },
+ "إلى": {
+  "en": "To",
+  "he": "עד"
+ },
+ "إلى {0}": {
+  "en": "To {0}",
+  "he": "ל{0}"
+ },
+ "إلى الدفع": {
+  "en": "To payment",
+  "he": "לתשלום"
+ },
+ "إلى المتجر": {
+  "en": "To the store",
+  "he": "לחנות"
+ },
+ "إلى تاريخ": {
+  "en": "To date",
+  "he": "עד תאריך"
+ },
+ "إن لم يكن المزوّد مفعّلاً أو بيانات الاعتماد ناقصة، يبقى الدفع يدوياً تلقائياً. لا تُعلَّم أي عملية «مدفوعة» إلا بعد تحقق الخادم من شركة الدفع أو بزر «تم الدفع».": {
+  "en": "If the provider isn't enabled or credentials are missing, payment automatically stays manual. No transaction is marked \"paid\" until the server verifies it with the payment provider or you press \"Paid\".",
+  "he": "אם הספק לא מופעל או שפרטי ההתחברות חסרים, התשלום נשאר ידני אוטומטית. שום עסקה לא מסומנת \"שולם\" עד שהשרת מאמת אותה מול חברת התשלום או בכפתור \"שולם\"."
+ },
+ "إنقاص": {
+  "en": "Decrease",
+  "he": "הקטן"
+ },
+ "إنهاء الآن": {
+  "en": "End now",
+  "he": "סיים עכשיו"
+ },
+ "إيقاف الإشعارات": {
+  "en": "Turn off notifications",
+  "he": "כבה התראות"
+ },
+ "إيقاف مصدر يخفي كل أخباره من الموقع. التغييرات تظهر خلال دقيقة تقريباً.": {
+  "en": "Turning off a source hides all its news from the site. Changes appear within about a minute.",
+  "he": "כיבוי מקור מסתיר את כל החדשות שלו מהאתר. השינויים יופיעו תוך כדקה."
+ },
+ "ا": {},
+ "ابحث بالاسم أو البريد": {
+  "en": "Search by name or email",
+  "he": "חיפוש לפי שם או אימייל"
+ },
+ "ابحث في الأخبار والدليل والإعلانات": {
+  "en": "Search news, the directory and classifieds",
+  "he": "חפש בחדשות, במדריך ובמודעות"
+ },
+ "ابحث في العناوين": {
+  "en": "Search headlines",
+  "he": "חיפוש בכותרות"
+ },
+ "ابن الشرموطه": {},
+ "ابن القحبه": {},
+ "ابن الكلب": {},
+ "اتحاد الإنقاذ": {
+  "en": "United Hatzalah",
+  "he": "איחוד הצלה"
+ },
+ "اتصال": {
+  "en": "Call",
+  "he": "התקשר"
+ },
+ "اتصالات": {
+  "en": "Telecom",
+  "he": "תקשורת"
+ },
+ "اتصل بصيدليتك أو بنجمة داود الحمراء 101 للاستفسار.": {
+  "en": "Call your pharmacy or Magen David Adom 101 for inquiries.",
+  "he": "לבירורים התקשר לבית המרקחת שלך או למד\"א 101."
+ },
+ "احتمال المطر اليوم": {
+  "en": "Chance of rain today",
+  "he": "סיכוי לגשם היום"
+ },
+ "احتيال أو نصب": {
+  "en": "Fraud or scam",
+  "he": "הונאה או עוקץ"
+ },
+ "احذف حسابي نهائياً": {
+  "en": "Permanently delete my account",
+  "he": "מחק את החשבון שלי לצמיתות"
+ },
+ "اختبار الاتصال": {
+  "en": "Test connection",
+  "he": "בדיקת חיבור"
+ },
+ "اختر": {
+  "en": "Choose",
+  "he": "בחר"
+ },
+ "اختر التاريخ.": {
+  "en": "Choose the date.",
+  "he": "בחר תאריך."
+ },
+ "اختر التصنيف": {
+  "en": "Choose a category",
+  "he": "בחר קטגוריה"
+ },
+ "اختر الخط والاتجاه والمحطة.": {
+  "en": "Choose the line, direction and stop.",
+  "he": "בחר קו, כיוון ותחנה."
+ },
+ "اختر الصلاحية.": {
+  "en": "Choose the permission.",
+  "he": "בחר הרשאה."
+ },
+ "اختر النوع": {
+  "en": "Choose a type",
+  "he": "בחר סוג"
+ },
+ "اختر تصنيفاً من القائمة.": {
+  "en": "Choose a category from the list.",
+  "he": "בחר קטגוריה מהרשימה."
+ },
+ "اختر سبب الإبلاغ.": {
+  "en": "Choose a reason for the report.",
+  "he": "בחר סיבה לדיווח."
+ },
+ "اختر ملف صورة.": {
+  "en": "Choose an image file.",
+  "he": "בחר קובץ תמונה."
+ },
+ "اختر نوع الإعلان.": {
+  "en": "Choose the ad type.",
+  "he": "בחר את סוג המודעה."
+ },
+ "اختيار صورة": {
+  "en": "Choose image",
+  "he": "בחר תמונה"
+ },
+ "اختياري": {
+  "en": "Optional",
+  "he": "אופציונלי"
+ },
+ "ادفع في البريد": {
+  "en": "Pay at the post office",
+  "he": "שלם בדואר"
+ },
+ "اربح المال": {},
+ "ارفع صورك الخاصة فقط (يُفضّل عدم استخدام شعارات تجارية دون إذن).": {
+  "en": "Upload only your own images (avoid using brand logos without permission).",
+  "he": "העלה רק תמונות משלך (עדיף לא להשתמש בלוגואים מסחריים ללא רשות)."
+ },
+ "استثمار مضمون": {},
+ "استعادة": {
+  "en": "Restore",
+  "he": "שחזר"
+ },
+ "استعادة الافتراضي": {
+  "en": "Restore defaults",
+  "he": "שחזר ברירת מחדל"
+ },
+ "استعادة كل الإعدادات الافتراضية؟ سيتم حذف كل التخصيصات.": {
+  "en": "Restore all default settings? All customizations will be deleted.",
+  "he": "לשחזר את כל הגדרות ברירת המחדל? כל ההתאמות יימחקו."
+ },
+ "اسم الصيدلية": {
+  "en": "Pharmacy name",
+  "he": "שם בית המרקחת"
+ },
+ "اسم المسوف (Supplier / Terminal)": {
+  "en": "Supplier name (Supplier / Terminal)",
+  "he": "שם ספק (Supplier / Terminal)"
+ },
+ "اسم الموقع (في الشريط العلوي)": {
+  "en": "Site name (in the top bar)",
+  "he": "שם האתר (בסרגל העליון)"
+ },
+ "اسم النشاط": {
+  "en": "Business name",
+  "he": "שם העסק"
+ },
+ "اسم النشاط أو الشارع أو الحي": {
+  "en": "Business name, street or neighborhood",
+  "he": "שם עסק, רחוב או שכונה"
+ },
+ "اسم مستخدم الواجهة (ApiName)": {
+  "en": "API username (ApiName)",
+  "he": "שם משתמש API (ApiName)"
+ },
+ "اشتراكات ومنتجات رقمية تصلك في «طلباتي» بعد الدفع.": {
+  "en": "Subscriptions and digital products delivered to \"My orders\" after payment.",
+  "he": "מנויים ומוצרים דיגיטליים שמגיעים ל\"ההזמנות שלי\" לאחר התשלום."
+ },
+ "اشترِ الآن": {
+  "en": "Buy now",
+  "he": "קנה עכשיו"
+ },
+ "اضغط": {
+  "en": "Tap",
+  "he": "לחץ"
+ },
+ "اضغط زر": {
+  "en": "Tap the",
+  "he": "לחץ על כפתור"
+ },
+ "افتح console.cloud.google.com وأنشئ مشروعاً (أو اختر مشروعاً موجوداً).": {
+  "en": "Open console.cloud.google.com and create a project (or choose an existing one).",
+  "he": "פתח את console.cloud.google.com וצור פרויקט (או בחר פרויקט קיים)."
+ },
+ "افتح حساب الخدمة ← تبويب «Keys» ← «Add key» ← «Create new key» ← اختر JSON. سيُنزَّل ملف؛ احتفظ به سراً.": {
+  "en": "Open the service account → \"Keys\" tab → \"Add key\" → \"Create new key\" → choose JSON. A file downloads; keep it secret.",
+  "he": "פתח את חשבון השירות ← לשונית \"Keys\" ← \"Add key\" ← \"Create new key\" ← בחר JSON. קובץ יורד; שמור אותו בסוד."
+ },
+ "افتح دليل البريد": {
+  "en": "Open the post guide",
+  "he": "פתח את מדריך הדואר"
+ },
+ "افتح في خرائط جوجل": {
+  "en": "Open in Google Maps",
+  "he": "פתח במפות Google"
+ },
+ "افتح هذه الصفحة في Chrome على أندرويد أو في Safari على آيفون لتثبيت التطبيق. على الكمبيوتر استخدم زر التثبيت في شريط عنوان Chrome أو Edge.": {
+  "en": "Open this page in Chrome on Android or Safari on iPhone to install the app. On a computer, use the install button in the Chrome or Edge address bar.",
+  "he": "פתח עמוד זה ב-Chrome באנדרואיד או ב-Safari באייפון כדי להתקין את האפליקציה. במחשב השתמש בכפתור ההתקנה בשורת הכתובת של Chrome או Edge."
+ },
+ "افتحه كتطبيق بلمسة، بدون متجر.": {
+  "en": "Open it like an app with one tap, no store needed.",
+  "he": "פתח אותו כמו אפליקציה בלחיצה, בלי חנות."
+ },
+ "افتراضي": {
+  "en": "Default",
+  "he": "ברירת מחדל"
+ },
+ "اقرأ أيضاً": {
+  "en": "Read also",
+  "he": "קרא גם"
+ },
+ "اقرأ الخبر كاملاً في المصدر": {
+  "en": "Read the full story at the source",
+  "he": "קרא את הכתבה המלאה במקור"
+ },
+ "اكتب اسم الصيدلية.": {
+  "en": "Enter the pharmacy name.",
+  "he": "הזן את שם בית המרקחת."
+ },
+ "اكتب اسم القسم.": {
+  "en": "Enter the section name.",
+  "he": "הזן את שם המדור."
+ },
+ "اكتب اسم المنتج.": {
+  "en": "Enter the product name.",
+  "he": "הזן את שם המוצר."
+ },
+ "اكتب اسم النشاط.": {
+  "en": "Enter the business name.",
+  "he": "הזן את שם העסק."
+ },
+ "اكتب الحي أو العنوان.": {
+  "en": "Enter the neighborhood or address.",
+  "he": "הזן שכונה או כתובת."
+ },
+ "اكتب الحي أو المكان.": {
+  "en": "Enter the neighborhood or place.",
+  "he": "הזן שכונה או מקום."
+ },
+ "اكتب الحي.": {
+  "en": "Enter the neighborhood.",
+  "he": "הזן את השכונה."
+ },
+ "اكتب تعليقاً": {
+  "en": "Write a comment",
+  "he": "כתוב תגובה"
+ },
+ "اكتب تعليقك…": {
+  "en": "Write your comment…",
+  "he": "כתוב את תגובתך…"
+ },
+ "اكتب تفاصيل الإعلان (10 أحرف على الأقل).": {
+  "en": "Write the ad details (at least 10 characters).",
+  "he": "כתוב את פרטי המודעה (לפחות 10 תווים)."
+ },
+ "اكتب حذف للتأكيد": {
+  "en": "Type حذف to confirm",
+  "he": "הקלד حذف לאישור"
+ },
+ "اكتب رداً": {
+  "en": "Write a reply",
+  "he": "כתוב תגובה"
+ },
+ "اكتب ساعات المناوبة.": {
+  "en": "Enter the shift hours.",
+  "he": "הזן את שעות התורנות."
+ },
+ "اكتب سطر وصف قصير.": {
+  "en": "Write a short description line.",
+  "he": "כתוב שורת תיאור קצרה."
+ },
+ "اكتب عنوان التنبيه.": {
+  "en": "Enter the alert title.",
+  "he": "הזן את כותרת ההתראה."
+ },
+ "اكتب عنواناً للإعلان (3 أحرف على الأقل).": {
+  "en": "Write an ad title (at least 3 characters).",
+  "he": "כתוב כותרת למודעה (לפחות 3 תווים)."
+ },
+ "اكتب عنواناً للخبر (5 أحرف على الأقل).": {
+  "en": "Write a news title (at least 5 characters).",
+  "he": "כתוב כותרת לחדשה (לפחות 5 תווים)."
+ },
+ "اكتب عنواناً ونصاً للإشعار.": {
+  "en": "Enter a title and text for the notification.",
+  "he": "הזן כותרת וטקסט להתראה."
+ },
+ "اكتب كلمة «حذف» للتأكيد.": {
+  "en": "Type the word «حذف» to confirm.",
+  "he": "הקלד את המילה «حذف» לאישור."
+ },
+ "اكتب نص التنبيه.": {
+  "en": "Enter the alert text.",
+  "he": "הזן את טקסט ההתראה."
+ },
+ "اكتب نص الخبر (20 حرفاً على الأقل).": {
+  "en": "Write the news text (at least 20 characters).",
+  "he": "כתוב את טקסט החדשה (לפחות 20 תווים)."
+ },
+ "ال": {},
+ "الآن": {
+  "en": "Now",
+  "he": "עכשיו"
+ },
+ "الأجهزة": {
+  "en": "Devices",
+  "he": "מכשירים"
+ },
+ "الأجهزة (بحث)": {
+  "en": "Devices (search)",
+  "he": "מכשירים (חיפוש)"
+ },
+ "الأحد": {
+  "en": "Sunday",
+  "he": "ראשון"
+ },
+ "الأحدث": {
+  "en": "Newest",
+  "he": "החדשות ביותר"
+ },
+ "الأخبار": {
+  "en": "News",
+  "he": "חדשות"
+ },
+ "الأخبار التلقائية": {
+  "en": "Auto news",
+  "he": "חדשות אוטומטיות"
+ },
+ "الأخبار الكاذبة أو المنسوخة دون ذكر المصدر.": {
+  "en": "Fake news or copied content without citing the source.",
+  "he": "חדשות כוזבות או תוכן מועתק ללא ציון המקור."
+ },
+ "الأخبار المأخوذة من مواقع أخرى تُعرض بعنوانها ومقتطف قصير مع رابط للمصدر الأصلي، وترجمة أخبار إسرائيل آلية وقد تحتوي أخطاء. مواعيد الباصات والصيدلية المناوبة والتنبيهات للمساعدة فقط؛ في الطوارئ اتصل بـ 100 أو 101.": {
+  "en": "News taken from other sites is shown with its headline and a short excerpt with a link to the original source, and the Israel news translation is automatic and may contain errors. Bus times, the on-duty pharmacy and alerts are for help only; in emergencies call 100 or 101.",
+  "he": "חדשות מאתרים אחרים מוצגות עם הכותרת וקטע קצר וקישור למקור, ותרגום חדשות ישראל אוטומטי ועלול להכיל שגיאות. זמני אוטובוסים, בית המרקחת התורן וההתראות לעזרה בלבד; בחירום התקשר 100 או 101."
+ },
+ "الأخبار المنشورة (": {
+  "en": "Published news (",
+  "he": "חדשות שפורסמו ("
+ },
+ "الأخبار من مواقع:": {
+  "en": "News from:",
+  "he": "חדשות מאתרי:"
+ },
+ "الأخبار والمعلومات": {
+  "en": "News and information",
+  "he": "חדשות ומידע"
+ },
+ "الأربعاء": {
+  "en": "Wednesday",
+  "he": "רביעי"
+ },
+ "الأصلي": {
+  "en": "Original",
+  "he": "מקור"
+ },
+ "الأصلي:": {
+  "en": "Original:",
+  "he": "מקור:"
+ },
+ "الأطفال": {
+  "en": "Children",
+  "he": "ילדים"
+ },
+ "الأعضاء": {
+  "en": "Members",
+  "he": "חברים"
+ },
+ "الأعضاء والصلاحيات": {
+  "en": "Members & permissions",
+  "he": "חברים והרשאות"
+ },
+ "الأقدم": {
+  "en": "Oldest",
+  "he": "הישנות ביותר"
+ },
+ "الأقسام": {
+  "en": "Sections",
+  "he": "מדורים"
+ },
+ "الأقسام والكتالوجات": {
+  "en": "Sections & catalogs",
+  "he": "מדורים וקטלוגים"
+ },
+ "الأكثر مبيعاً، جديد": {
+  "en": "Best seller, New",
+  "he": "רב מכר, חדש"
+ },
+ "الألوان": {
+  "en": "Colors",
+  "he": "צבעים"
+ },
+ "الألوان الفاتحة للون الأساسي تبقى أوضح مع النص الداكن.": {
+  "en": "Light primary colors stay clearer with dark text.",
+  "he": "צבעים ראשיים בהירים נשארים ברורים יותר עם טקסט כהה."
+ },
+ "الأيقونة (بدون صورة)": {
+  "en": "Icon (without image)",
+  "he": "אייקון (ללא תמונה)"
+ },
+ "الإبلاغ": {
+  "en": "Reporting",
+  "he": "דיווח"
+ },
+ "الإثنين": {
+  "en": "Monday",
+  "he": "שני"
+ },
+ "الإحساس": {
+  "en": "Feels like",
+  "he": "מרגיש כמו"
+ },
+ "الإحصائيات": {
+  "en": "Statistics",
+  "he": "סטטיסטיקה"
+ },
+ "الإدارة": {
+  "en": "Admin",
+  "he": "ניהול"
+ },
+ "الإساءة أو التحريض أو الكراهية أو التهديد.": {
+  "en": "Abuse, incitement, hate or threats.",
+  "he": "פגיעה, הסתה, שנאה או איומים."
+ },
+ "الإسعاف": {
+  "en": "Ambulance",
+  "he": "מד\"א"
+ },
+ "الإشعارات": {
+  "en": "Notifications",
+  "he": "התראות"
+ },
+ "الإشعارات غير متاحة حالياً.": {
+  "en": "Notifications aren't available right now.",
+  "he": "התראות לא זמינות כרגע."
+ },
+ "الإشعارات محظورة لهذا الموقع. افتح إعدادات المتصفح ← إعدادات الموقع ← الإشعارات، واسمح لرهط بوست.": {
+  "en": "Notifications are blocked for this site. Open browser settings → Site settings → Notifications, and allow Rahat Post.",
+  "he": "ההתראות חסומות לאתר זה. פתח הגדרות דפדפן ← הגדרות אתר ← התראות, ואפשר את רהט פוסט."
+ },
+ "الإطفاء": {
+  "en": "Fire department",
+  "he": "כבאות"
+ },
+ "الإعلان غير متوفر": {
+  "en": "Ad unavailable",
+  "he": "המודעה לא זמינה"
+ },
+ "الإعلانات": {
+  "en": "Classifieds",
+  "he": "מודעות"
+ },
+ "الإعلانات التلقائية (Auto ads) — فعّلها أيضاً من حساب AdSense": {
+  "en": "Auto ads — also enable them in your AdSense account",
+  "he": "מודעות אוטומטיות (Auto ads) — הפעל גם בחשבון AdSense"
+ },
+ "الإعلانات المعروضة الآن نماذج لعرض الشكل فقط، وليست إعلانات حقيقية. تختفي عند نشر أول إعلان حقيقي.": {
+  "en": "The ads shown now are samples to show the layout only, not real ads. They disappear when the first real ad is published.",
+  "he": "המודעות המוצגות כעת הן דוגמאות להצגת המראה בלבד, לא מודעות אמיתיות. הן ייעלמו עם פרסום המודעה האמיתית הראשונה."
+ },
+ "الإيرادات المؤكدة": {
+  "en": "Confirmed revenue",
+  "he": "הכנסות מאושרות"
+ },
+ "الاتجاه": {
+  "en": "Direction",
+  "he": "כיוון"
+ },
+ "الاتجاهات": {
+  "en": "Directions",
+  "he": "הוראות הגעה"
+ },
+ "الاتجاهات إلى المحطة": {
+  "en": "Directions to the stop",
+  "he": "הוראות הגעה לתחנה"
+ },
+ "الاحتيال، والإعلانات المضللة، وبيع الممنوعات.": {
+  "en": "Fraud, misleading ads and selling prohibited goods.",
+  "he": "הונאה, מודעות מטעות ומכירת מוצרים אסורים."
+ },
+ "الاختبار يستخدم القيم المحفوظة (احفظ أولاً).": {
+  "en": "The test uses the saved values (save first).",
+  "he": "הבדיקה משתמשת בערכים השמורים (שמור קודם)."
+ },
+ "الاستخدام اليوم": {
+  "en": "Usage today",
+  "he": "שימוש היום"
+ },
+ "الاسم": {
+  "en": "Name",
+  "he": "שם"
+ },
+ "الاسم الرسمي:": {
+  "en": "Official name:",
+  "he": "שם רשמי:"
+ },
+ "الاسم بلغته (Français)": {
+  "en": "Native name (Français)",
+  "he": "שם בשפת המקור (Français)"
+ },
+ "الافتراضية": {
+  "en": "Default",
+  "he": "ברירת מחדל"
+ },
+ "الباصات": {
+  "en": "Buses",
+  "he": "אוטובוסים"
+ },
+ "الباصات القادمة": {
+  "en": "Upcoming buses",
+  "he": "אוטובוסים קרובים"
+ },
+ "الباصات القادمة إلى محطة {0} في رهط ومواقعها المباشرة على الخريطة.": {
+  "en": "Buses coming to stop {0} in Rahat and their live positions on the map.",
+  "he": "האוטובוסים המגיעים לתחנה {0} ברהט ומיקומם החי על המפה."
+ },
+ "البحث": {
+  "en": "Search",
+  "he": "חיפוש"
+ },
+ "البلاغات": {
+  "en": "Reports",
+  "he": "דיווחים"
+ },
+ "البلدية": {
+  "en": "Municipality",
+  "he": "העירייה"
+ },
+ "البيانات ©": {
+  "en": "Data ©",
+  "he": "נתונים ©"
+ },
+ "البيانات كبيرة جداً.": {
+  "en": "The data is too large.",
+  "he": "הנתונים גדולים מדי."
+ },
+ "البيت": {},
+ "التاريخ": {
+  "en": "Date",
+  "he": "תאריך"
+ },
+ "التالي": {
+  "en": "Next",
+  "he": "הבא"
+ },
+ "الترتيب": {
+  "en": "Position",
+  "he": "מיקום"
+ },
+ "الترجمة": {
+  "en": "Translation",
+  "he": "תרגום"
+ },
+ "التسليم التلقائي بعد الدفع": {
+  "en": "Automatic delivery after payment",
+  "he": "מסירה אוטומטית לאחר תשלום"
+ },
+ "التصنيف": {
+  "en": "Category",
+  "he": "קטגוריה"
+ },
+ "التصنيف قصير.": {
+  "en": "The category is too short.",
+  "he": "הקטגוריה קצרה מדי."
+ },
+ "التصنيفات": {
+  "en": "Categories",
+  "he": "קטגוריות"
+ },
+ "التطبيق": {
+  "en": "App",
+  "he": "אפליקציה"
+ },
+ "التطبيق مثبّت على هذا الجهاز. افتحه من الشاشة الرئيسية.": {
+  "en": "The app is installed on this device. Open it from the home screen.",
+  "he": "האפליקציה מותקנת במכשיר זה. פתח אותה ממסך הבית."
+ },
+ "التعليق الذي ترد عليه لم يعد متاحاً.": {
+  "en": "The comment you're replying to is no longer available.",
+  "he": "התגובה שאתה משיב לה כבר לא זמינה."
+ },
+ "التعليق طويل. الحد {0} حرف.": {
+  "en": "The comment is too long. The limit is {0} characters.",
+  "he": "התגובה ארוכה מדי. המגבלה היא {0} תווים."
+ },
+ "التعليق قصير جداً.": {
+  "en": "The comment is too short.",
+  "he": "התגובה קצרה מדי."
+ },
+ "التعليق يحتوي على تكرار كثير.": {
+  "en": "The comment has too much repetition.",
+  "he": "התגובה מכילה יותר מדי חזרות."
+ },
+ "التعليق يحتوي على كلمات غير لائقة. عدّله وحاول مجدداً.": {
+  "en": "The comment contains inappropriate words. Edit it and try again.",
+  "he": "התגובה מכילה מילים לא הולמות. ערוך ונסה שוב."
+ },
+ "التعليقات": {
+  "en": "Comments",
+  "he": "תגובות"
+ },
+ "التعليقات تظهر فوراً بعد فحص تلقائي للألفاظ والروابط (رابط واحد كحد أقصى)، ويمكن للإدارة إخفاؤها أو حذفها ومنع المسيء من التعليق.": {
+  "en": "Comments appear immediately after an automatic check for language and links (one link at most), and the admins can hide or delete them and ban offenders from commenting.",
+  "he": "תגובות מופיעות מיד לאחר בדיקה אוטומטית של שפה וקישורים (קישור אחד לכל היותר), והניהול יכול להסתיר או למחוק אותן ולחסום פוגעים."
+ },
+ "التعليقات تعبّر عن أصحابها. يمنع السب والإساءة والإعلانات؛ أبلغ عن أي تعليق مخالف.": {
+  "en": "Comments reflect their authors' views. No insults, abuse or ads; report any comment that breaks the rules.",
+  "he": "התגובות מבטאות את דעת כותביהן. אסורים קללות, פגיעה ופרסומות; דווח על כל תגובה פוגענית."
+ },
+ "التفاصيل": {
+  "en": "Details",
+  "he": "פרטים"
+ },
+ "التنبيهات": {
+  "en": "Alerts",
+  "he": "התראות"
+ },
+ "التنقل": {
+  "en": "Navigation",
+  "he": "ניווט"
+ },
+ "التواصل": {
+  "en": "Contact",
+  "he": "יצירת קשר"
+ },
+ "الثانوية أ": {},
+ "الثلاثاء": {
+  "en": "Tuesday",
+  "he": "שלישי"
+ },
+ "الجبهة الداخلية": {
+  "en": "Home Front Command",
+  "he": "פיקוד העורף"
+ },
+ "الجلسات": {
+  "en": "Sessions",
+  "he": "סשנים"
+ },
+ "الجمعة": {
+  "en": "Friday",
+  "he": "שישי"
+ },
+ "الجهاز": {
+  "en": "Device",
+  "he": "מכשיר"
+ },
+ "الحساب": {
+  "en": "Account",
+  "he": "חשבון"
+ },
+ "الحي": {
+  "en": "Neighborhood",
+  "he": "שכונה"
+ },
+ "الحي أو العنوان": {
+  "en": "Neighborhood or address",
+  "he": "שכונה או כתובת"
+ },
+ "الخبر الأصلي بالعبرية": {
+  "en": "Original Hebrew story",
+  "he": "הכתבה המקורית בעברית"
+ },
+ "الخبر الكامل وحقوقه لدى المصدر.": {
+  "en": "The full story and its rights belong to the source.",
+  "he": "הכתבה המלאה וזכויותיה שייכות למקור."
+ },
+ "الخبر غير متوفر · رهط بوست": {
+  "en": "Story unavailable · Rahat Post",
+  "he": "הכתבה לא זמינה · רהט פוסט"
+ },
+ "الخدمة": {
+  "en": "The service",
+  "he": "השירות"
+ },
+ "الخدمة موجّهة لمن هم 13 عاماً فما فوق. لا نجمع بيانات الأطفال عن قصد.": {
+  "en": "The service is intended for ages 13 and up. We don't knowingly collect children's data.",
+  "he": "השירות מיועד לגילאי 13 ומעלה. איננו אוספים ביודעין נתונים של ילדים."
+ },
+ "الخريطة": {
+  "en": "Map",
+  "he": "מפה"
+ },
+ "الخريطة المباشرة": {
+  "en": "Live map",
+  "he": "מפה חיה"
+ },
+ "الخزان / حطين": {},
+ "الخضر، حي 31": {},
+ "الخط": {
+  "en": "Line",
+  "he": "קו"
+ },
+ "الخميس": {
+  "en": "Thursday",
+  "he": "חמישי"
+ },
+ "الدفع الإلكتروني غير مفعّل بعد: يُحفظ طلبك وسيتم التواصل معك لإتمام الدفع. لا يُخصم أي مبلغ الآن.": {
+  "en": "Online payment isn't enabled yet: your order is saved and we'll contact you to complete payment. Nothing is charged now.",
+  "he": "תשלום מקוון עדיין לא מופעל: ההזמנה שלך נשמרת וניצור איתך קשר להשלמת התשלום. לא מחויב דבר כעת."
+ },
+ "الدفع اليدوي: سيتم التواصل معك لإتمام الدفع.": {
+  "en": "Manual payment: we'll contact you to complete payment.",
+  "he": "תשלום ידני: ניצור איתך קשר להשלמת התשלום."
+ },
+ "الدفع نقداً عبر واتساب": {
+  "en": "Pay cash via WhatsApp",
+  "he": "תשלום במזומן דרך וואטסאפ"
+ },
+ "الدفع نقداً عبر واتساب (سجّل الدخول)": {
+  "en": "Pay cash via WhatsApp (sign in)",
+  "he": "תשלום במזומן דרך וואטסאפ (התחבר)"
+ },
+ "الدليل": {
+  "en": "Directory",
+  "he": "מדריך"
+ },
+ "الدليل غير موجود · رهط بوست": {
+  "en": "Guide not found · Rahat Post",
+  "he": "המדריך לא נמצא · רהט פוסט"
+ },
+ "الدول": {
+  "en": "Countries",
+  "he": "מדינות"
+ },
+ "الدول (بحث)": {
+  "en": "Countries (search)",
+  "he": "מדינות (חיפוש)"
+ },
+ "الدولة": {
+  "en": "Country",
+  "he": "מדינה"
+ },
+ "الرئيسية": {
+  "en": "Home",
+  "he": "בית"
+ },
+ "الرابط (slug بالإنجليزية)": {
+  "en": "Link (slug in English)",
+  "he": "קישור (slug באנגלית)"
+ },
+ "الرابط (slug) بالأحرف الإنجليزية والأرقام والشرطة فقط.": {
+  "en": "The link (slug) can only contain English letters, numbers and hyphens.",
+  "he": "הקישור (slug) יכול להכיל רק אותיות באנגלית, ספרות ומקפים."
+ },
+ "الرابط (بالإنجليزية)": {
+  "en": "Link (in English)",
+  "he": "קישור (באנגלית)"
+ },
+ "الرابط (صفحة في الموقع مثل /buses أو رابط https)": {
+  "en": "Link (a site page like /buses or an https link)",
+  "he": "קישור (עמוד באתר כמו /buses או קישור https)"
+ },
+ "الرابط بالأحرف الإنجليزية والأرقام والشرطة فقط.": {
+  "en": "The link can only contain English letters, numbers and hyphens.",
+  "he": "הקישור יכול להכיל רק אותיות באנגלית, ספרות ומקפים."
+ },
+ "الردود على تعليقاتي": {
+  "en": "Replies to my comments",
+  "he": "תגובות לתגובות שלי"
+ },
+ "الرسائل المكررة والدعاية المزعجة.": {
+  "en": "Repeated messages and spam.",
+  "he": "הודעות חוזרות וספאם."
+ },
+ "الرطوبة": {
+  "en": "Humidity",
+  "he": "לחות"
+ },
+ "الرمز (fr)": {
+  "en": "Code (fr)",
+  "he": "קוד (fr)"
+ },
+ "الروابط بدون عنوان أو برابط غير صحيح لا تُحفظ.": {
+  "en": "Links without a title or with an invalid URL aren't saved.",
+  "he": "קישורים ללא כותרת או עם כתובת לא תקינה לא יישמרו."
+ },
+ "الرياح": {
+  "en": "Wind",
+  "he": "רוח"
+ },
+ "السابق": {
+  "en": "Previous",
+  "he": "הקודם"
+ },
+ "الساعات": {
+  "en": "Hours",
+  "he": "שעות"
+ },
+ "الساعات القادمة": {
+  "en": "Next hours",
+  "he": "השעות הקרובות"
+ },
+ "السبت": {
+  "en": "Saturday",
+  "he": "שבת"
+ },
+ "السجل (": {
+  "en": "Log (",
+  "he": "יומן ("
+ },
+ "السعر": {
+  "en": "Price",
+  "he": "מחיר"
+ },
+ "السعر (اختياري)": {
+  "en": "Price (optional)",
+  "he": "מחיר (אופציונלי)"
+ },
+ "السعر غير صحيح.": {
+  "en": "Invalid price.",
+  "he": "מחיר לא תקין."
+ },
+ "السلام": {},
+ "السلام 22": {},
+ "السلام، الدفيئات": {},
+ "السلام، مستودع البلدية": {},
+ "السلايدر": {
+  "en": "Slider",
+  "he": "סליידר"
+ },
+ "السلة": {
+  "en": "Cart",
+  "he": "סל קניות"
+ },
+ "السلة ({0})": {
+  "en": "Cart ({0})",
+  "he": "סל ({0})"
+ },
+ "السلة · رهط بوست": {
+  "en": "Cart · Rahat Post",
+  "he": "סל · רהט פוסט"
+ },
+ "السلة فارغة.": {
+  "en": "The cart is empty.",
+  "he": "הסל ריק."
+ },
+ "السوق": {},
+ "الشرطة": {
+  "en": "Police",
+  "he": "משטרה"
+ },
+ "الشرطة 100 · الإسعاف 101 · الإطفاء 102": {
+  "en": "Police 100 · Ambulance 101 · Fire 102",
+  "he": "משטרה 100 · מד\"א 101 · כבאות 102"
+ },
+ "الشروق": {
+  "en": "Sunrise",
+  "he": "זריחה"
+ },
+ "الشريحة {0}": {
+  "en": "Slide {0}",
+  "he": "שקופית {0}"
+ },
+ "الشعار": {
+  "en": "Logo",
+  "he": "לוגו"
+ },
+ "الشعار تحت الاسم": {
+  "en": "Tagline under the name",
+  "he": "סלוגן מתחת לשם"
+ },
+ "الشعار والأيقونة": {
+  "en": "Logo and icon",
+  "he": "לוגו ואייקון"
+ },
+ "الصغرى": {
+  "en": "Low",
+  "he": "מינימום"
+ },
+ "الصفحات الأكثر مشاهدة": {
+  "en": "Most viewed pages",
+  "he": "העמודים הנצפים ביותר"
+ },
+ "الصفحات التي فتحتها مؤخراً تعمل حتى بدون إنترنت.": {
+  "en": "Pages you opened recently work even without internet.",
+  "he": "עמודים שפתחת לאחרונה עובדים גם בלי אינטרנט."
+ },
+ "الصفحات النشطة": {
+  "en": "Active pages",
+  "he": "עמודים פעילים"
+ },
+ "الصفحات في نتائج البحث": {
+  "en": "Pages in search results",
+  "he": "עמודים בתוצאות החיפוש"
+ },
+ "الصفحة": {
+  "en": "Page",
+  "he": "עמוד"
+ },
+ "الصفحة الرئيسية (بين الأقسام)": {
+  "en": "Home page (between sections)",
+  "he": "עמוד הבית (בין המדורים)"
+ },
+ "الصنارة": {
+  "en": "Assennara",
+  "he": "א-סנארה"
+ },
+ "الصورة": {
+  "en": "Image",
+  "he": "תמונה"
+ },
+ "الصورة {0}": {
+  "en": "Photo {0}",
+  "he": "תמונה {0}"
+ },
+ "الصورة كبيرة جداً حتى بعد الضغط.": {
+  "en": "The image is too large even after compression.",
+  "he": "התמונה גדולה מדי גם אחרי דחיסה."
+ },
+ "الصورة:": {
+  "en": "Image:",
+  "he": "תמונה:"
+ },
+ "الصيغة غير صحيحة — لن تُحفظ.": {
+  "en": "Invalid format — it won't be saved.",
+  "he": "פורמט לא תקין — לא יישמר."
+ },
+ "الطقس في رهط": {
+  "en": "Weather in Rahat",
+  "he": "מזג האוויר ברהט"
+ },
+ "الطقس في رهط: {0} درجة، {1}": {
+  "en": "Weather in Rahat: {0}°, {1}",
+  "he": "מזג האוויר ברהט: {0} מעלות, {1}"
+ },
+ "الطقس ومواقيت الصلاة": {
+  "en": "Weather & prayer times",
+  "he": "מזג אוויר וזמני תפילה"
+ },
+ "الطلب غير مدفوع.": {
+  "en": "The order isn't paid.",
+  "he": "ההזמנה לא שולמה."
+ },
+ "الطلبات": {
+  "en": "Orders",
+  "he": "הזמנות"
+ },
+ "الظهر": {
+  "en": "Dhuhr",
+  "he": "ד'והר"
+ },
+ "العبارة": {
+  "en": "Query",
+  "he": "שאילתה"
+ },
+ "العربية": {
+  "en": "Arabic",
+  "he": "ערבית"
+ },
+ "العربية لغة أساسية ولا يمكن حذفها.": {
+  "en": "Arabic is the main language and can't be deleted.",
+  "he": "ערבית היא השפה הראשית ולא ניתן למחוק אותה."
+ },
+ "العشاء": {
+  "en": "Isha",
+  "he": "עישאא"
+ },
+ "العصر": {
+  "en": "Asr",
+  "he": "עסר"
+ },
+ "العظمى": {
+  "en": "High",
+  "he": "מקסימום"
+ },
+ "العلم": {
+  "en": "Flag",
+  "he": "דגל"
+ },
+ "العملة": {
+  "en": "Currency",
+  "he": "מטבע"
+ },
+ "العناوين بالعبرية كما نشرها المصدر.": {
+  "en": "Headlines in Hebrew as published by the source.",
+  "he": "כותרות בעברית כפי שפורסמו במקור."
+ },
+ "العناوين مترجمة ترجمة آلية من العبرية وقد تحتوي أخطاء؛ ما لم يُترجم بعد يظهر بالعبرية.": {
+  "en": "Headlines are machine-translated from Hebrew and may contain errors; anything not yet translated appears in Hebrew.",
+  "he": "הכותרות מתורגמות במכונה מעברית ועלולות להכיל שגיאות; מה שטרם תורגם מוצג בעברית."
+ },
+ "العناوين وساعات الدوام والاتجاهات": {
+  "en": "Addresses, opening hours and directions",
+  "he": "כתובות, שעות פעילות והוראות הגעה"
+ },
+ "العنوان": {
+  "en": "Title",
+  "he": "כותרת"
+ },
+ "العنوان الأصلي بالعبرية": {
+  "en": "Original Hebrew headline",
+  "he": "הכותרת המקורית בעברית"
+ },
+ "العنوان قصير (5 أحرف على الأقل).": {
+  "en": "The title is too short (at least 5 characters).",
+  "he": "הכותרת קצרה מדי (לפחות 5 תווים)."
+ },
+ "العنوان قصير.": {
+  "en": "The title is too short.",
+  "he": "הכותרת קצרה מדי."
+ },
+ "العودة إلى التطبيق": {
+  "en": "Back to the app",
+  "he": "חזרה לאפליקציה"
+ },
+ "العودة إلى التطبيق · رهط بوست": {
+  "en": "Back to the app · Rahat Post",
+  "he": "חזרה לאפליקציה · רהט פוסט"
+ },
+ "الفترة المختارة": {
+  "en": "Selected period",
+  "he": "תקופה נבחרת"
+ },
+ "الفجر": {
+  "en": "Fajr",
+  "he": "פג'ר"
+ },
+ "القسم": {
+  "en": "Section",
+  "he": "מדור"
+ },
+ "القسم الأب (اختياري)": {
+  "en": "Parent section (optional)",
+  "he": "מדור אב (אופציונלי)"
+ },
+ "القسم الأب يجب أن يكون قسماً رئيسياً.": {
+  "en": "The parent section must be a main section.",
+  "he": "מדור האב חייב להיות מדור ראשי."
+ },
+ "القسم الفارغ لا يظهر للزوار حتى تضيف له منتجاً مفعّلاً، إلا إذا فعّلت «أظهره كـ قريباً». أضف الخطط (شهري، 3 أشهر، سنوي…) كمنتجات داخل القسم.": {
+  "en": "An empty section isn't shown to visitors until you add an active product, unless you enable \"Show as Coming soon\". Add plans (monthly, 3 months, yearly…) as products inside the section.",
+  "he": "מדור ריק לא מוצג למבקרים עד שתוסיף לו מוצר פעיל, אלא אם הפעלת \"הצג כבקרוב\". הוסף תוכניות (חודשי, 3 חודשים, שנתי…) כמוצרים בתוך המדור."
+ },
+ "القمار": {},
+ "القنوات": {
+  "en": "Channels",
+  "he": "ערוצים"
+ },
+ "القوائم والأيقونات": {
+  "en": "Menus & icons",
+  "he": "תפריטים ואייקונים"
+ },
+ "الكل": {
+  "en": "All",
+  "he": "הכל"
+ },
+ "الكمية المتوفرة": {
+  "en": "Available quantity",
+  "he": "כמות זמינה"
+ },
+ "الكمية غير صحيحة (اتركها فارغة لغير محدود).": {
+  "en": "Invalid quantity (leave empty for unlimited).",
+  "he": "כמות לא תקינה (השאר ריק ללא הגבלה)."
+ },
+ "الكمية: {0}": {
+  "en": "Quantity: {0}",
+  "he": "כמות: {0}"
+ },
+ "الكهرباء": {
+  "en": "Electricity",
+  "he": "חשמל"
+ },
+ "اللغات": {
+  "en": "Languages",
+  "he": "שפות"
+ },
+ "اللون": {
+  "en": "Color",
+  "he": "צבע"
+ },
+ "اللون الأساسي (الأزرار والتحديد)": {
+  "en": "Primary color (buttons and selection)",
+  "he": "צבע ראשי (כפתורים ובחירה)"
+ },
+ "المالك": {
+  "en": "Owner",
+  "he": "בעלים"
+ },
+ "المتابعة باستخدام Apple": {
+  "en": "Continue with Apple",
+  "he": "המשך עם Apple"
+ },
+ "المتابعة باستخدام Facebook": {
+  "en": "Continue with Facebook",
+  "he": "המשך עם Facebook"
+ },
+ "المتابعة باستخدام Google": {
+  "en": "Continue with Google",
+  "he": "המשך עם Google"
+ },
+ "المتجر": {
+  "en": "Store",
+  "he": "חנות"
+ },
+ "المتجر | رهط بوست": {
+  "en": "Store | Rahat Post",
+  "he": "חנות | רהט פוסט"
+ },
+ "المثبتة": {
+  "en": "Pinned",
+  "he": "מוצמדות"
+ },
+ "المجموع": {
+  "en": "Total",
+  "he": "סה\"כ"
+ },
+ "المحتوى والأعضاء": {
+  "en": "Content & members",
+  "he": "תוכן וחברים"
+ },
+ "المحطة": {
+  "en": "Stop",
+  "he": "תחנה"
+ },
+ "المخفية": {
+  "en": "Hidden",
+  "he": "מוסתרות"
+ },
+ "المدة": {
+  "en": "Duration",
+  "he": "משך"
+ },
+ "المدن": {
+  "en": "Cities",
+  "he": "ערים"
+ },
+ "المدينة المنورة، الحديقة": {},
+ "المدينة المنورة، شمال غرب": {},
+ "المراجعة المسبقة": {
+  "en": "Pre-moderation",
+  "he": "בדיקה מוקדמת"
+ },
+ "المركز التجاري رهط": {},
+ "المركز الجماهيري رهط": {},
+ "المزوّد": {
+  "en": "Provider",
+  "he": "ספק"
+ },
+ "المزيد من أخبار إسرائيل": {
+  "en": "More Israel news",
+  "he": "עוד חדשות ישראל"
+ },
+ "المسار في خرائط جوجل (من": {
+  "en": "Route in Google Maps (from",
+  "he": "המסלול במפות Google (מ-"
+ },
+ "المسار والمحطات: بيانات GTFS من وزارة المواصلات. المواقع وأوقات الوصول: SIRI عبر curlbus.app.": {
+  "en": "Route and stops: GTFS data from the Ministry of Transport. Locations and arrival times: SIRI via curlbus.app.",
+  "he": "מסלול ותחנות: נתוני GTFS של משרד התחבורה. מיקומים וזמני הגעה: SIRI דרך curlbus.app."
+ },
+ "المسارات: GTFS وزارة المواصلات. المواقع والأوقات المباشرة: SIRI عبر curlbus.app (آخر 5 دقائق فقط).": {
+  "en": "Routes: Ministry of Transport GTFS. Live locations and times: SIRI via curlbus.app (last 5 minutes only).",
+  "he": "מסלולים: GTFS משרד התחבורה. מיקומים וזמנים חיים: SIRI דרך curlbus.app (5 דקות אחרונות בלבד)."
+ },
+ "المستخدمون": {
+  "en": "Users",
+  "he": "משתמשים"
+ },
+ "المشاركة": {
+  "en": "Share",
+  "he": "השיתוף"
+ },
+ "المشتركون": {
+  "en": "Subscribers",
+  "he": "מנויים"
+ },
+ "المصادر": {
+  "en": "Sources",
+  "he": "מקורות"
+ },
+ "المصدر الذي أرفقه الناشر": {
+  "en": "Source attached by the poster",
+  "he": "מקור שצירף המפרסם"
+ },
+ "المصدر: Google Analytics 4 · تُحدَّث كل 5 دقائق تقريباً (آخر جلب:": {
+  "en": "Source: Google Analytics 4 · updated about every 5 minutes (last fetch:",
+  "he": "מקור: Google Analytics 4 · מתעדכן בערך כל 5 דקות (טעינה אחרונה:"
+ },
+ "المصدر: Google Search Console · تُحدَّث كل ساعة تقريباً (آخر جلب:": {
+  "en": "Source: Google Search Console · updated about every hour (last fetch:",
+  "he": "מקור: Google Search Console · מתעדכן בערך כל שעה (טעינה אחרונה:"
+ },
+ "المظهر والألوان": {
+  "en": "Appearance & colors",
+  "he": "מראה וצבעים"
+ },
+ "المعدّلة": {
+  "en": "Edited",
+  "he": "ערוכות"
+ },
+ "المغرب": {
+  "en": "Maghrib",
+  "he": "מע'רב"
+ },
+ "الملعب المدرسة": {},
+ "الملف كبير جداً.": {
+  "en": "The file is too large.",
+  "he": "הקובץ גדול מדי."
+ },
+ "المناوبات": {
+  "en": "On-duty shifts",
+  "he": "תורנויות"
+ },
+ "المنتج غير موجود.": {
+  "en": "Product not found.",
+  "he": "המוצר לא נמצא."
+ },
+ "المنتجات": {
+  "en": "Products",
+  "he": "מוצרים"
+ },
+ "المنشور لم يعد موجوداً.": {
+  "en": "The post no longer exists.",
+  "he": "הפוסט כבר לא קיים."
+ },
+ "المواقع العبرية لا تستجيب حالياً. حاول مرة أخرى بعد قليل.": {
+  "en": "The Hebrew sites aren't responding right now. Try again shortly.",
+  "he": "האתרים העבריים לא מגיבים כרגע. נסה שוב בקרוב."
+ },
+ "الموضوع": {
+  "en": "Topic",
+  "he": "נושא"
+ },
+ "الموقع": {
+  "en": "Location",
+  "he": "מיקום"
+ },
+ "الموقع الإلكتروني": {
+  "en": "Website",
+  "he": "אתר אינטרנט"
+ },
+ "الموقع غير متاح في هذا المتصفح.": {
+  "en": "Location isn't available in this browser.",
+  "he": "מיקום לא זמין בדפדפן זה."
+ },
+ "الناقص فقط": {
+  "en": "Missing only",
+  "he": "חסרים בלבד"
+ },
+ "النشاط غير موجود · دليل رهط": {
+  "en": "Business not found · Rahat directory",
+  "he": "העסק לא נמצא · מדריך רהט"
+ },
+ "النشر": {
+  "en": "Publishing",
+  "he": "פרסום"
+ },
+ "النشر يتطلب تسجيل الدخول، وكل خبر أو إعلان أو نشاط يُراجَع قبل ظهوره.": {
+  "en": "Publishing requires signing in, and every news item, ad or business is reviewed before it appears.",
+  "he": "פרסום דורש התחברות, וכל חדשה, מודעה או עסק נבדקים לפני שהם מופיעים."
+ },
+ "النص": {
+  "en": "Text",
+  "he": "טקסט"
+ },
+ "النصوص والشعار": {
+  "en": "Texts & logo",
+  "he": "טקסטים ולוגו"
+ },
+ "النقب": {
+  "en": "Negev",
+  "he": "הנגב"
+ },
+ "النقرات": {
+  "en": "Clicks",
+  "he": "הקלקות"
+ },
+ "النموذج": {
+  "en": "Model",
+  "he": "מודל"
+ },
+ "النوع": {
+  "en": "Type",
+  "he": "סוג"
+ },
+ "الهاتف": {
+  "en": "Phone",
+  "he": "טלפון"
+ },
+ "الوصف": {
+  "en": "Description",
+  "he": "תיאור"
+ },
+ "اليوم": {
+  "en": "Today",
+  "he": "היום"
+ },
+ "اليوم (": {
+  "en": "Today (",
+  "he": "היום ("
+ },
+ "انتظر بضع دقائق ثم اضغط زر التحديث.": {
+  "en": "Wait a few minutes, then press refresh.",
+  "he": "המתן כמה דקות ואז לחץ על רענון."
+ },
+ "انتظر حتى يكتمل رفع الصور.": {
+  "en": "Wait until the photos finish uploading.",
+  "he": "המתן עד שהעלאת התמונות תסתיים."
+ },
+ "انتظر حتى يكتمل رفع الصورة.": {
+  "en": "Wait until the image finishes uploading.",
+  "he": "המתן עד שהעלאת התמונה תסתיים."
+ },
+ "انتهت الجلسة.": {
+  "en": "Session expired.",
+  "he": "פג תוקף ההתחברות."
+ },
+ "انتهت الجلسة. سجّل الدخول من جديد.": {
+  "en": "Session expired. Please sign in again.",
+  "he": "פג תוקף ההתחברות. התחבר מחדש."
+ },
+ "انتهت صلاحية رابط الدخول أو استُخدم من قبل. حاول تسجيل الدخول مرة أخرى.": {
+  "en": "The sign-in link expired or was already used. Try signing in again.",
+  "he": "קישור ההתחברות פג תוקף או כבר נוצל. נסה להתחבר שוב."
+ },
+ "انسخ بريد حساب الخدمة (ينتهي بـ iam.gserviceaccount.com).": {
+  "en": "Copy the service account email (ends with iam.gserviceaccount.com).",
+  "he": "העתק את אימייל חשבון השירות (מסתיים ב-iam.gserviceaccount.com)."
+ },
+ "انشر التعليق": {
+  "en": "Post comment",
+  "he": "פרסם תגובה"
+ },
+ "انقطاع المياه في حي 10": {
+  "en": "Water outage in Neighborhood 10",
+  "he": "הפסקת מים בשכונה 10"
+ },
+ "انقطاع مياه أو كهرباء وطوارئ في رهط فقط، بلا إزعاج.": {
+  "en": "Only water or power outages and emergencies in Rahat, no spam.",
+  "he": "רק הפסקות מים או חשמל ומצבי חירום ברהט, בלי הצפה."
+ },
+ "انقطاع مياه أو كهرباء، طوارئ وإغلاقات": {
+  "en": "Water or power outages, emergencies and closures",
+  "he": "הפסקות מים או חשמל, חירום וסגירות"
+ },
+ "انيك": {},
+ "ب": {},
+ "بإذن «مقيّد».": {
+  "en": "with \"Restricted\" permission.",
+  "he": "בהרשאה \"מוגבלת\"."
+ },
+ "بئر السبع": {
+  "en": "Beersheba",
+  "he": "באר שבע"
+ },
+ "بئر طوفيا": {
+  "en": "Be'er Tuvia",
+  "he": "באר טוביה"
+ },
+ "باز": {},
+ "باصات": {
+  "en": "Buses",
+  "he": "אוטובוסים"
+ },
+ "باصات رهط": {
+  "en": "Rahat buses",
+  "he": "אוטובוסים ברהט"
+ },
+ "باصات رهط: مواعيد خطوط غاليم ووصول الباص المباشر · رهط بوست": {
+  "en": "Rahat buses: Galim line times and live bus arrivals · Rahat Post",
+  "he": "אוטובוסים ברהט: זמני קווי גלים והגעת אוטובוס בזמן אמת · רהט פוסט"
+ },
+ "باصات غاليم": {
+  "en": "Galim buses",
+  "he": "אוטובוסי גלים"
+ },
+ "بال": {},
+ "بالعبرية": {
+  "en": "In Hebrew",
+  "he": "בעברית"
+ },
+ "بانتظار الدفع": {
+  "en": "Awaiting payment",
+  "he": "ממתין לתשלום"
+ },
+ "بانتظار المراجعة": {
+  "en": "Awaiting review",
+  "he": "ממתין לבדיקה"
+ },
+ "بانتظار الموافقة": {
+  "en": "Awaiting approval",
+  "he": "ממתינות לאישור"
+ },
+ "بانتظار تأكيد الدفع من شركة الدفع.": {
+  "en": "Awaiting payment confirmation from the payment provider.",
+  "he": "ממתין לאישור תשלום מחברת התשלום."
+ },
+ "بحاجة لمراجعة": {
+  "en": "Needs review",
+  "he": "דורש בדיקה"
+ },
+ "بحث": {
+  "en": "Search",
+  "he": "חיפוש"
+ },
+ "بحث Google (Search Console)": {
+  "en": "Google Search (Search Console)",
+  "he": "חיפוש Google (Search Console)"
+ },
+ "بحث في الدليل": {
+  "en": "Search the directory",
+  "he": "חיפוש במדריך"
+ },
+ "بحث…": {
+  "en": "Search…",
+  "he": "חיפוש…"
+ },
+ "بدون": {
+  "en": "None",
+  "he": "ללא"
+ },
+ "بدون اسم": {
+  "en": "No name",
+  "he": "ללא שם"
+ },
+ "بدون مدة": {
+  "en": "No duration",
+  "he": "ללא משך"
+ },
+ "برتقالي": {
+  "en": "Orange",
+  "he": "כתום"
+ },
+ "بريد": {
+  "en": "Email",
+  "he": "אימייל"
+ },
+ "بريد إلكتروني غير صالح.": {
+  "en": "Invalid email.",
+  "he": "אימייל לא תקין."
+ },
+ "بريد التواصل": {
+  "en": "Contact email",
+  "he": "אימייל ליצירת קשר"
+ },
+ "بريد التواصل (يظهر أسفل الصفحة)": {
+  "en": "Contact email (shown in the footer)",
+  "he": "אימייל ליצירת קשר (מוצג בתחתית)"
+ },
+ "بريدك الإلكتروني لا يُعرض لأحد.": {
+  "en": "Your email is never shown to anyone.",
+  "he": "האימייל שלך לא מוצג לאף אחד."
+ },
+ "بطاقات صغيرة بروابط تختارها. رتّب مكانها من «أقسام الرئيسية».": {
+  "en": "Small cards with links you choose. Set their position in \"Home sections\".",
+  "he": "כרטיסים קטנים עם קישורים לבחירתך. קבע את מיקומם ב\"מדורי עמוד הבית\"."
+ },
+ "بعد {0} دقائق": {
+  "en": "in {0} min",
+  "he": "בעוד {0} דקות"
+ },
+ "بعد {0} دقيقة": {
+  "en": "in {0} min",
+  "he": "בעוד {0} דק'"
+ },
+ "بعد {0} س {1} د": {
+  "en": "in {0}h {1}m",
+  "he": "בעוד {0} ש' {1} ד'"
+ },
+ "بعد {0} ساعة": {
+  "en": "in {0} h",
+  "he": "בעוד {0} שע'"
+ },
+ "بعد {0}{1}": {
+  "en": "in {0}{1}",
+  "he": "בעוד {0}{1}"
+ },
+ "بعد أقل من دقيقة": {
+  "en": "in less than a minute",
+  "he": "בעוד פחות מדקה"
+ },
+ "بعد دقيقة": {
+  "en": "in 1 min",
+  "he": "בעוד דקה"
+ },
+ "بعد دقيقتين": {
+  "en": "in 2 min",
+  "he": "בעוד 2 דקות"
+ },
+ "بعد موافقة الإدارة يظهر منشورك للجميع مع الاسم الذي يظهر في حسابك.": {
+  "en": "After admin approval, your post appears to everyone with the name shown on your account.",
+  "he": "לאחר אישור הניהול, הפוסט שלך מוצג לכולם עם השם המופיע בחשבונך."
+ },
+ "بقالات": {},
+ "بلاغ": {
+  "en": "Report",
+  "he": "דיווח"
+ },
+ "بلاغات": {
+  "en": "Reports",
+  "he": "דיווחים"
+ },
+ "بلاغات:": {
+  "en": "Reports:",
+  "he": "דיווחים:"
+ },
+ "بلدية": {
+  "en": "Municipality",
+  "he": "עירייה"
+ },
+ "بن זונה": {},
+ "بنك البريد": {
+  "en": "Postal Bank",
+  "he": "בנק הדואר"
+ },
+ "بنك ماركنتيل ديسكاونت": {},
+ "بنك هبوعليم": {},
+ "بنوك وصرّافات": {
+  "en": "Banks & ATMs",
+  "he": "בנקים וכספומטים"
+ },
+ "بنيك": {},
+ "بيانات الطقس:": {
+  "en": "Weather data:",
+  "he": "נתוני מזג אוויר:"
+ },
+ "بيانات غير صحيحة.": {
+  "en": "Invalid data.",
+  "he": "נתונים לא תקינים."
+ },
+ "بيتزا البري": {},
+ "تأكيد استلام الدفع؟ سيُسلَّم المنتج للمشتري تلقائياً.": {
+  "en": "Confirm payment received? The product will be delivered to the buyer automatically.",
+  "he": "לאשר שהתשלום התקבל? המוצר יימסר לקונה אוטומטית."
+ },
+ "تاريخ النهاية قبل تاريخ البداية.": {
+  "en": "The end date is before the start date.",
+  "he": "תאריך הסיום לפני תאריך ההתחלה."
+ },
+ "تتابع حالته من صفحة «منشوراتي».": {
+  "en": "Follow its status on the \"My posts\" page.",
+  "he": "עקוב אחר מצבו בעמוד \"הפוסטים שלי\"."
+ },
+ "تثبيت": {
+  "en": "Pin",
+  "he": "הצמד"
+ },
+ "تثبيت التطبيق": {
+  "en": "Install the app",
+  "he": "התקנת האפליקציה"
+ },
+ "تثبيت التطبيق والإشعارات": {
+  "en": "App install & notifications",
+  "he": "התקנת אפליקציה והתראות"
+ },
+ "تجاهل": {
+  "en": "Ignore",
+  "he": "התעלם"
+ },
+ "تجربة": {
+  "en": "Test",
+  "he": "בדיקה"
+ },
+ "تحديث": {
+  "en": "Refresh",
+  "he": "רענן"
+ },
+ "تحقق من الحقول وحاول مرة أخرى.": {
+  "en": "Check the fields and try again.",
+  "he": "בדוק את השדות ונסה שוב."
+ },
+ "تحقق من الحقول.": {
+  "en": "Check the fields.",
+  "he": "בדוק את השדות."
+ },
+ "تخزين محلي في جهازك لتذكّر إخفاء بطاقة «ثبّت التطبيق» أو الإشعارات، وصفحات محفوظة للعمل بدون اتصال.": {
+  "en": "Local storage on your device to remember hiding the \"Install the app\" or notifications card, and saved pages for offline use.",
+  "he": "אחסון מקומי במכשירך לזכירת הסתרת כרטיס \"התקן את האפליקציה\" או ההתראות, ועמודים שמורים לשימוש בלי חיבור."
+ },
+ "تخفيض": {
+  "en": "Sale",
+  "he": "מבצע"
+ },
+ "تداول العملات": {},
+ "ترتيب التعليقات": {
+  "en": "Sort comments",
+  "he": "מיון תגובות"
+ },
+ "ترجم": {
+  "en": "Translate",
+  "he": "תרגם"
+ },
+ "ترجمة آلية": {
+  "en": "Machine translation",
+  "he": "תרגום מכונה"
+ },
+ "ترجمة آلية إلى العربية لخبر من {0}: {1}": {
+  "en": "Machine translation into Arabic of a story from {0}: {1}",
+  "he": "תרגום מכונה לערבית של כתבה מ-{0}: {1}"
+ },
+ "ترجمة آلية لعنوان ومقتطف قصير من موقع {0}، وقد تحتوي أخطاء.": {
+  "en": "Machine translation of a headline and short excerpt from {0}; it may contain errors.",
+  "he": "תרגום מכונה של כותרת וקטע קצר מאתר {0}; עלול להכיל שגיאות."
+ },
+ "ترجمة أخبار إسرائيل (عبري ← عربي)": {
+  "en": "Israel news translation (Hebrew → Arabic)",
+  "he": "תרגום חדשות ישראל (עברית ← ערבית)"
+ },
+ "ترجمة الأخبار التلقائية": {
+  "en": "Auto-news translation",
+  "he": "תרגום חדשות אוטומטיות"
+ },
+ "ترجمة الناقص بالذكاء الاصطناعي": {
+  "en": "Translate missing with AI",
+  "he": "תרגם חסרים עם AI"
+ },
+ "ترجمة لغات الموقع (الواجهة والمحتوى)": {
+  "en": "Site language translation (interface and content)",
+  "he": "תרגום שפות האתר (ממשק ותוכן)"
+ },
+ "ترخيص ساري، مفحوصة، مالك واحد. المعاينة في حي 8 بعد العصر.": {},
+ "تريد أن تصلك التنبيهات العاجلة؟": {
+  "en": "Want to get urgent alerts?",
+  "he": "רוצה לקבל התראות דחופות?"
+ },
+ "تسجيل الدخول": {
+  "en": "Sign in",
+  "he": "התחברות"
+ },
+ "تسجيل الدخول · رهط بوست": {
+  "en": "Sign in · Rahat Post",
+  "he": "התחברות · רהט פוסט"
+ },
+ "تسجيل الدخول بحساب Google يعمل داخل التطبيق أيضاً.": {
+  "en": "Signing in with Google works inside the app too.",
+  "he": "התחברות עם Google עובדת גם בתוך האפליקציה."
+ },
+ "تسجيل الدخول غير متاح حالياً. حاول لاحقاً.": {
+  "en": "Sign-in isn't available right now. Try later.",
+  "he": "ההתחברות לא זמינה כרגע. נסה מאוחר יותר."
+ },
+ "تسجيل الدخول في المتصفح": {
+  "en": "Sign in in the browser",
+  "he": "התחברות בדפדפן"
+ },
+ "تسجيل خروج": {
+  "en": "Sign out",
+  "he": "התנתקות"
+ },
+ "تسليم": {
+  "en": "Deliver",
+  "he": "מסור"
+ },
+ "تصفية": {
+  "en": "Filter",
+  "he": "סינון"
+ },
+ "تصفّح المتجر": {
+  "en": "Browse the store",
+  "he": "עיין בחנות"
+ },
+ "تطبيق رهط بوست": {
+  "en": "Rahat Post app",
+  "he": "אפליקציית רהט פוסט"
+ },
+ "تطبيق رهط بوست: ثبّته على هاتفك": {
+  "en": "Rahat Post app: install it on your phone",
+  "he": "אפליקציית רהט פוסט: התקן אותה בטלפון"
+ },
+ "تظهر اللغات المفعّلة فقط في زر اللغة أعلى الموقع. العربية هي اللغة الأساسية للمحتوى.": {
+  "en": "Only enabled languages appear in the language button at the top of the site. Arabic is the main content language.",
+  "he": "רק שפות פעילות מופיעות בכפתור השפה בראש האתר. ערבית היא שפת התוכן הראשית."
+ },
+ "تعديل": {
+  "en": "Edit",
+  "he": "ערוך"
+ },
+ "تعديل {0}": {
+  "en": "Edit {0}",
+  "he": "ערוך {0}"
+ },
+ "تعديل التعليق": {
+  "en": "Edit comment",
+  "he": "ערוך תגובה"
+ },
+ "تعديل الخبر": {
+  "en": "Edit news",
+  "he": "ערוך חדשה"
+ },
+ "تعديل العنوان": {
+  "en": "Edit title",
+  "he": "ערוך כותרת"
+ },
+ "تعديل النصوص": {
+  "en": "Edit texts",
+  "he": "ערוך טקסטים"
+ },
+ "تعديل قسم": {
+  "en": "Edit section",
+  "he": "ערוך מדור"
+ },
+ "تعديل منتج": {
+  "en": "Edit product",
+  "he": "ערוך מוצר"
+ },
+ "تعذّر إتمام الطلب. حاول مرة أخرى.": {
+  "en": "Couldn't complete the order. Please try again.",
+  "he": "לא ניתן להשלים את ההזמנה. נסה שוב."
+ },
+ "تعذّر إرسال البلاغ الآن. حاول مرة أخرى.": {
+  "en": "Couldn't send the report right now. Please try again.",
+  "he": "לא ניתן לשלוח את הדיווח כרגע. נסה שוב."
+ },
+ "تعذّر إرسال البلاغ.": {
+  "en": "Couldn't send the report.",
+  "he": "שליחת הדיווח נכשלה."
+ },
+ "تعذّر إرسال البلاغ. تحقق من الاتصال.": {
+  "en": "Couldn't send the report. Check your connection.",
+  "he": "שליחת הדיווח נכשלה. בדוק את החיבור."
+ },
+ "تعذّر إنشاء الطلب.": {
+  "en": "Couldn't create the order.",
+  "he": "יצירת ההזמנה נכשלה."
+ },
+ "تعذّر الإرسال الآن.": {
+  "en": "Couldn't send right now.",
+  "he": "לא ניתן לשלוח כרגע."
+ },
+ "تعذّر الإرسال.": {
+  "en": "Couldn't send.",
+  "he": "השליחה נכשלה."
+ },
+ "تعذّر الإرسال. حاول مرة أخرى.": {
+  "en": "Couldn't send. Please try again.",
+  "he": "השליחה נכשלה. נסה שוב."
+ },
+ "تعذّر الاتصال.": {
+  "en": "Couldn't connect.",
+  "he": "החיבור נכשל."
+ },
+ "تعذّر الاستعادة.": {
+  "en": "Couldn't restore.",
+  "he": "השחזור נכשל."
+ },
+ "تعذّر التنفيذ.": {
+  "en": "Couldn't complete.",
+  "he": "הביצוע נכשל."
+ },
+ "تعذّر الحذف.": {
+  "en": "Couldn't delete.",
+  "he": "המחיקה נכשלה."
+ },
+ "تعذّر الحفظ الآن. حاول مرة أخرى.": {
+  "en": "Couldn't save right now. Please try again.",
+  "he": "לא ניתן לשמור כרגע. נסה שוב."
+ },
+ "تعذّر الحفظ.": {
+  "en": "Couldn't save.",
+  "he": "השמירה נכשלה."
+ },
+ "تعذّر الدخول.": {
+  "en": "Couldn't sign in.",
+  "he": "הכניסה נכשלה."
+ },
+ "تعذّر الرفع.": {
+  "en": "Couldn't upload.",
+  "he": "ההעלאה נכשלה."
+ },
+ "تعذّر النشر.": {
+  "en": "Couldn't publish.",
+  "he": "הפרסום נכשל."
+ },
+ "تعذّر النشر. تحقق من الاتصال أو سجّل الدخول من جديد.": {
+  "en": "Couldn't publish. Check your connection or sign in again.",
+  "he": "הפרסום נכשל. בדוק את החיבור או התחבר מחדש."
+ },
+ "تعذّر النشر. حاول مرة أخرى.": {
+  "en": "Couldn't publish. Please try again.",
+  "he": "הפרסום נכשל. נסה שוב."
+ },
+ "تعذّر بدء تسجيل الدخول. أغلق هذه الصفحة وحاول مرة أخرى من التطبيق.": {
+  "en": "Couldn't start sign-in. Close this page and try again from the app.",
+  "he": "לא ניתן להתחיל התחברות. סגור עמוד זה ונסה שוב מהאפליקציה."
+ },
+ "تعذّر بدء تسجيل الدخول. حاول مرة أخرى.": {
+  "en": "Couldn't start sign-in. Please try again.",
+  "he": "לא ניתן להתחיל התחברות. נסה שוב."
+ },
+ "تعذّر تحديد موقعك.": {
+  "en": "Couldn't determine your location.",
+  "he": "לא ניתן לאתר את מיקומך."
+ },
+ "تعذّر تحديد موقعك. اسمح للموقع باستخدام الموقع الجغرافي.": {
+  "en": "Couldn't determine your location. Allow the site to use your location.",
+  "he": "לא ניתן לאתר את מיקומך. אפשר לאתר להשתמש במיקום."
+ },
+ "تعذّر تحميل الأخبار المنشورة.": {
+  "en": "Couldn't load published news.",
+  "he": "טעינת החדשות שפורסמו נכשלה."
+ },
+ "تعذّر تحميل الأخبار.": {
+  "en": "Couldn't load the news.",
+  "he": "טעינת החדשות נכשלה."
+ },
+ "تعذّر تحميل الأعضاء.": {
+  "en": "Couldn't load members.",
+  "he": "טעינת החברים נכשלה."
+ },
+ "تعذّر تحميل الإعلانات.": {
+  "en": "Couldn't load ads.",
+  "he": "טעינת המודעות נכשלה."
+ },
+ "تعذّر تحميل البلاغات.": {
+  "en": "Couldn't load reports.",
+  "he": "טעינת הדיווחים נכשלה."
+ },
+ "تعذّر تحميل التعليقات الآن.": {
+  "en": "Couldn't load comments right now.",
+  "he": "לא ניתן לטעון תגובות כרגע."
+ },
+ "تعذّر تحميل التعليقات.": {
+  "en": "Couldn't load comments.",
+  "he": "טעינת התגובות נכשלה."
+ },
+ "تعذّر تحميل السلة.": {
+  "en": "Couldn't load the cart.",
+  "he": "טעינת הסל נכשלה."
+ },
+ "تعذّر تحميل الطلبات من التخزين.": {
+  "en": "Couldn't load requests from storage.",
+  "he": "טעינת הבקשות מהאחסון נכשלה."
+ },
+ "تعذّر تحميل المتجر الآن.": {
+  "en": "Couldn't load the store right now.",
+  "he": "לא ניתן לטעון את החנות כרגע."
+ },
+ "تعذّر تحميل النشاطات الموثّقة الآن.": {
+  "en": "Couldn't load verified businesses right now.",
+  "he": "לא ניתן לטעון עסקים מאומתים כרגע."
+ },
+ "تعذّر تحميل منشوراتك.": {
+  "en": "Couldn't load your posts.",
+  "he": "טעינת הפוסטים שלך נכשלה."
+ },
+ "تعذّر تسجيل الخروج. حاول مرة أخرى.": {
+  "en": "Couldn't sign out. Please try again.",
+  "he": "ההתנתקות נכשלה. נסה שוב."
+ },
+ "تعذّر تغيير المصدر.": {
+  "en": "Couldn't change the source.",
+  "he": "שינוי המקור נכשל."
+ },
+ "تعذّر تفعيل الإشعارات الآن.": {
+  "en": "Couldn't enable notifications right now.",
+  "he": "לא ניתן להפעיל התראות כרגע."
+ },
+ "تعذّر تنفيذ العملية.": {
+  "en": "Couldn't complete the action.",
+  "he": "הפעולה נכשלה."
+ },
+ "تعذّر جلب أخبار إسرائيل الآن": {
+  "en": "Couldn't fetch Israel news right now",
+  "he": "לא ניתן לטעון חדשות ישראל כרגע"
+ },
+ "تعذّر جلب أوقات الوصول الآن.": {
+  "en": "Couldn't fetch arrival times right now.",
+  "he": "לא ניתן לטעון זמני הגעה כרגע."
+ },
+ "تعذّر جلب الأخبار الآن": {
+  "en": "Couldn't fetch news right now",
+  "he": "לא ניתן לטעון חדשות כרגע"
+ },
+ "تعذّر جلب البيانات المباشرة الآن.": {
+  "en": "Couldn't fetch live data right now.",
+  "he": "לא ניתן לטעון נתונים חיים כרגע."
+ },
+ "تعذّر جلب البيانات المباشرة الآن، فالأوقات المعروضة حسب الجدول وتقريبية.": {
+  "en": "Couldn't fetch live data right now, so the times shown are scheduled and approximate.",
+  "he": "לא ניתן לטעון נתונים חיים כרגע, ולכן הזמנים המוצגים לפי הלוח ומשוערים."
+ },
+ "تعذّر جلب المواقع المباشرة الآن. المسار والمحطات من الجدول الرسمي.": {
+  "en": "Couldn't fetch live locations right now. The route and stops are from the official schedule.",
+  "he": "לא ניתן לטעון מיקומים חיים כרגע. המסלול והתחנות מהלוח הרשמי."
+ },
+ "تعذّر جلب بيانات Google Analytics الآن.": {
+  "en": "Couldn't fetch Google Analytics data right now.",
+  "he": "לא ניתן לטעון נתוני Google Analytics כרגע."
+ },
+ "تعذّر جلب بيانات Search Console الآن.": {
+  "en": "Couldn't fetch Search Console data right now.",
+  "he": "לא ניתן לטעון נתוני Search Console כרגע."
+ },
+ "تعذّر جلب قائمة النماذج (تحقق من المفتاح).": {
+  "en": "Couldn't fetch the model list (check the key).",
+  "he": "לא ניתן לטעון את רשימת המודלים (בדוק את המפתח)."
+ },
+ "تعذّر حذف الحساب الآن. حاول مرة أخرى أو راسلنا.": {
+  "en": "Couldn't delete the account right now. Try again or contact us.",
+  "he": "לא ניתן למחוק את החשבון כרגע. נסה שוב או צור קשר."
+ },
+ "تعذّر حذف الحساب.": {
+  "en": "Couldn't delete the account.",
+  "he": "מחיקת החשבון נכשלה."
+ },
+ "تعذّر حذف الحساب. حاول مرة أخرى.": {
+  "en": "Couldn't delete the account. Please try again.",
+  "he": "מחיקת החשבון נכשלה. נסה שוב."
+ },
+ "تعذّر حفظ الاشتراك الآن.": {
+  "en": "Couldn't save the subscription right now.",
+  "he": "לא ניתן לשמור את המנוי כרגע."
+ },
+ "تعذّر حفظ الاشتراك.": {
+  "en": "Couldn't save the subscription.",
+  "he": "שמירת המנוי נכשלה."
+ },
+ "تعذّر حفظ الصلاحية.": {
+  "en": "Couldn't save the permission.",
+  "he": "שמירת ההרשאה נכשלה."
+ },
+ "تعذّر حفظ المنتج.": {
+  "en": "Couldn't save the product.",
+  "he": "שמירת המוצר נכשלה."
+ },
+ "تعذّر رفع الصورة.": {
+  "en": "Couldn't upload the image.",
+  "he": "העלאת התמונה נכשלה."
+ },
+ "تعذّر رفع الصورة. حاول مرة أخرى.": {
+  "en": "Couldn't upload the image. Please try again.",
+  "he": "העלאת התמונה נכשלה. נסה שוב."
+ },
+ "تعذّر قراءة هذه الصورة. جرّب صورة JPG أو PNG.": {
+  "en": "Couldn't read this image. Try a JPG or PNG.",
+  "he": "לא ניתן לקרוא את התמונה. נסה JPG או PNG."
+ },
+ "تعذّر نشر التعليق الآن. حاول مرة أخرى.": {
+  "en": "Couldn't post the comment right now. Please try again.",
+  "he": "לא ניתן לפרסם את התגובה כרגע. נסה שוב."
+ },
+ "تعليق": {
+  "en": "Comment",
+  "he": "תגובה"
+ },
+ "تعليقات": {
+  "en": "Comments",
+  "he": "תגובות"
+ },
+ "تعليم": {
+  "en": "Education",
+  "he": "חינוך"
+ },
+ "تغيير اللغة": {
+  "en": "Change language",
+  "he": "שינוי שפה"
+ },
+ "تفعيل Google Analytics": {
+  "en": "Enable Google Analytics",
+  "he": "הפעל Google Analytics"
+ },
+ "تفعيل الإعلانات": {
+  "en": "Enable ads",
+  "he": "הפעל מודעות"
+ },
+ "تفعيل الترجمة بالذكاء الاصطناعي": {
+  "en": "Enable AI translation",
+  "he": "הפעל תרגום בינה מלאכותית"
+ },
+ "تفعيل الدفع الإلكتروني": {
+  "en": "Enable online payment",
+  "he": "הפעל תשלום מקוון"
+ },
+ "تفو": {},
+ "تل السبع": {
+  "en": "Tel as-Sabi",
+  "he": "תל שבע"
+ },
+ "تليجرام": {
+  "en": "Telegram",
+  "he": "טלגרם"
+ },
+ "تم إيقاف إمكانية التعليق لحسابك.": {
+  "en": "Commenting has been disabled for your account.",
+  "he": "אפשרות התגובה הושבתה עבור החשבון שלך."
+ },
+ "تم الإبلاغ": {
+  "en": "Reported",
+  "he": "דווח"
+ },
+ "تم الاتصال بـ Google Analytics بنجاح.": {
+  "en": "Connected to Google Analytics successfully.",
+  "he": "החיבור ל-Google Analytics הצליח."
+ },
+ "تم التسليم": {
+  "en": "Delivered",
+  "he": "נמסר"
+ },
+ "تم الحفظ ✓ تظهر التغييرات في الموقع خلال دقيقة تقريباً.": {
+  "en": "Saved ✓ Changes appear on the site within about a minute.",
+  "he": "נשמר ✓ השינויים יופיעו באתר תוך כדקה."
+ },
+ "تم الحفظ.": {
+  "en": "Saved.",
+  "he": "נשמר."
+ },
+ "تم الدفع": {
+  "en": "Paid",
+  "he": "שולם"
+ },
+ "تم الدفع، ونجهّز طلبك.": {
+  "en": "Paid — we're preparing your order.",
+  "he": "שולם, ואנו מכינים את ההזמנה שלך."
+ },
+ "تم تسجيل الدخول.": {
+  "en": "Signed in.",
+  "he": "התחברת."
+ },
+ "تم حفظ التعديل ✓": {
+  "en": "Edit saved ✓",
+  "he": "העריכה נשמרה ✓"
+ },
+ "تم رفع الصورة ✓": {
+  "en": "Image uploaded ✓",
+  "he": "התמונה הועלתה ✓"
+ },
+ "تم منح صلاحية «{0}» للعضو الموجود.": {
+  "en": "\"{0}\" permission granted to the existing member.",
+  "he": "הרשאת \"{0}\" ניתנה לחבר הקיים."
+ },
+ "تم نشر الخبر ✓ (يظهر في الموقع خلال دقيقة)": {
+  "en": "News published ✓ (appears on the site within a minute)",
+  "he": "החדשה פורסמה ✓ (תופיע באתר תוך דקה)"
+ },
+ "تمت استعادة الإعدادات الافتراضية ✓": {
+  "en": "Default settings restored ✓",
+  "he": "הגדרות ברירת המחדל שוחזרו ✓"
+ },
+ "تنبيه بلدي": {
+  "en": "Municipal alert",
+  "he": "התראה עירונית"
+ },
+ "تنبيه جديد": {
+  "en": "New alert",
+  "he": "התראה חדשה"
+ },
+ "تنبيه عاجل": {
+  "en": "Urgent alert",
+  "he": "התראה דחופה"
+ },
+ "تنبيهات عاجلة": {
+  "en": "Urgent alerts",
+  "he": "התראות דחופות"
+ },
+ "تنبيهات عاجلة لرهط (انقطاع مياه أو كهرباء، طوارئ) تصلك حتى والتطبيق مغلق.": {
+  "en": "Urgent alerts for Rahat (water or power outages, emergencies) reach you even when the app is closed.",
+  "he": "התראות דחופות לרהט (הפסקות מים או חשמל, חירום) מגיעות אליך גם כשהאפליקציה סגורה."
+ },
+ "تُرجم {0} نصاً، المتبقي {1}…": {
+  "en": "Translated {0} texts, {1} remaining…",
+  "he": "תורגמו {0} טקסטים, נותרו {1}…"
+ },
+ "ثانوية شاملة العزي": {},
+ "ثبّت التطبيق": {
+  "en": "Install the app",
+  "he": "התקן את האפליקציה"
+ },
+ "ثبّت تطبيق رهط بوست على هاتفك (أندرويد وآيفون) بضغطة واحدة: أخبار رهط والنقب، باصات رهط، الدليل والإعلانات، ويعمل حتى بدون اتصال.": {
+  "en": "Install the Rahat Post app on your phone (Android and iPhone) with one tap: Rahat & Negev news, Rahat buses, the directory and classifieds — it even works offline.",
+  "he": "התקן את אפליקציית רהט פוסט בטלפון (אנדרואיד ואייפון) בלחיצה אחת: חדשות רהט והנגב, אוטובוסים, מדריך ומודעות — עובדת גם בלי חיבור."
+ },
+ "ثبّت رهط بوست على آيفون": {
+  "en": "Install Rahat Post on iPhone",
+  "he": "התקן את רהט פוסט באייפון"
+ },
+ "ثلج": {
+  "en": "Snow",
+  "he": "שלג"
+ },
+ "جاري إنشاء الطلب…": {
+  "en": "Creating order…",
+  "he": "יוצר הזמנה…"
+ },
+ "جاري الإرسال…": {
+  "en": "Sending…",
+  "he": "שולח…"
+ },
+ "جاري الاختبار…": {
+  "en": "Testing…",
+  "he": "בודק…"
+ },
+ "جاري التحميل…": {
+  "en": "Loading…",
+  "he": "טוען…"
+ },
+ "جاري التحويل إلى صفحة تسجيل الدخول…": {
+  "en": "Redirecting to the sign-in page…",
+  "he": "מעביר לעמוד ההתחברות…"
+ },
+ "جاري التحويل…": {
+  "en": "Redirecting…",
+  "he": "מעביר…"
+ },
+ "جاري الترجمة…": {
+  "en": "Translating…",
+  "he": "מתרגם…"
+ },
+ "جاري التفعيل…": {
+  "en": "Enabling…",
+  "he": "מפעיל…"
+ },
+ "جاري الحذف…": {
+  "en": "Deleting…",
+  "he": "מוחק…"
+ },
+ "جاري الحفظ…": {
+  "en": "Saving…",
+  "he": "שומר…"
+ },
+ "جاري الرفع…": {
+  "en": "Uploading…",
+  "he": "מעלה…"
+ },
+ "جاري النشر…": {
+  "en": "Publishing…",
+  "he": "מפרסם…"
+ },
+ "جاري تحميل التعليقات…": {
+  "en": "Loading comments…",
+  "he": "טוען תגובות…"
+ },
+ "جاري تسجيل الدخول…": {
+  "en": "Signing in…",
+  "he": "מתחבר…"
+ },
+ "جاري جلب أوقات الوصول…": {
+  "en": "Fetching arrival times…",
+  "he": "טוען זמני הגעה…"
+ },
+ "جاري جلب الباصات القادمة…": {
+  "en": "Fetching upcoming buses…",
+  "he": "טוען אוטובוסים קרובים…"
+ },
+ "جاري جلب البيانات المباشرة…": {
+  "en": "Fetching live data…",
+  "he": "טוען נתונים חיים…"
+ },
+ "جاري جلب مواقع الباصات…": {
+  "en": "Fetching bus locations…",
+  "he": "טוען מיקומי אוטובוסים…"
+ },
+ "جاري رفع الصورة…": {
+  "en": "Uploading image…",
+  "he": "מעלה תמונה…"
+ },
+ "جاري رفع الصور…": {
+  "en": "Uploading photos…",
+  "he": "מעלה תמונות…"
+ },
+ "جدد مقابل عائدين": {
+  "en": "New vs returning",
+  "he": "חדשים מול חוזרים"
+ },
+ "جدول المواعيد": {
+  "en": "Timetable",
+  "he": "לוח זמנים"
+ },
+ "جعله عاجلاً": {
+  "en": "Make breaking",
+  "he": "הפוך למבזק"
+ },
+ "جلسات": {
+  "en": "Sessions",
+  "he": "סשנים"
+ },
+ "جلسة ·": {
+  "en": "sessions ·",
+  "he": "סשנים ·"
+ },
+ "جنوب": {
+  "en": "Janoub",
+  "he": "ג'נוב"
+ },
+ "جهاز لوحي": {
+  "en": "Tablet",
+  "he": "טאבלט"
+ },
+ "حتى": {
+  "en": "Until",
+  "he": "עד"
+ },
+ "حتى 23:00": {
+  "en": "Until 23:00",
+  "he": "עד 23:00"
+ },
+ "حتى {0} صور. نصغّرها ونحذف منها بيانات الموقع قبل الرفع.": {
+  "en": "Up to {0} photos. We shrink them and strip location data before uploading.",
+  "he": "עד {0} תמונות. אנו מקטינים אותן ומסירים נתוני מיקום לפני ההעלאה."
+ },
+ "حجز دور": {
+  "en": "Book an appointment",
+  "he": "קבע תור"
+ },
+ "حديقة عامة مركز البلد": {},
+ "حدّد وقت البداية والانتهاء.": {
+  "en": "Set the start and end time.",
+  "he": "קבע שעת התחלה וסיום."
+ },
+ "حذف": {
+  "en": "Delete",
+  "he": "מחק"
+ },
+ "حذف {0}": {
+  "en": "Delete {0}",
+  "he": "מחק {0}"
+ },
+ "حذف «{0}»؟": {
+  "en": "Delete \"{0}\"?",
+  "he": "למחוק את \"{0}\"?"
+ },
+ "حذف الأكواد غير المستخدمة": {
+  "en": "Delete unused codes",
+  "he": "מחק קודים שלא נוצלו"
+ },
+ "حذف الإعلان نهائياً؟": {
+  "en": "Permanently delete the ad?",
+  "he": "למחוק את המודעה לצמיתות?"
+ },
+ "حذف الترجمات الآلية المحفوظة لهذه اللغة؟ (التعديلات اليدوية تبقى)": {
+  "en": "Delete saved machine translations for this language? (Manual edits are kept)",
+  "he": "למחוק את התרגומים האוטומטיים השמורים לשפה זו? (עריכות ידניות יישמרו)"
+ },
+ "حذف التعليق نهائياً (مع الردود عليه)؟": {
+  "en": "Permanently delete this comment (and its replies)?",
+  "he": "למחוק לצמיתות את התגובה (כולל התגובות אליה)?"
+ },
+ "حذف التنبيه نهائياً؟": {
+  "en": "Permanently delete this alert?",
+  "he": "למחוק את ההתראה לצמיתות?"
+ },
+ "حذف الحساب نهائياً؟": {
+  "en": "Permanently delete the account?",
+  "he": "למחוק את החשבון לצמיתות?"
+ },
+ "حذف الخبر نهائياً؟": {
+  "en": "Permanently delete this news item?",
+  "he": "למחוק את החדשה לצמיתות?"
+ },
+ "حذف الصورة {0}": {
+  "en": "Delete photo {0}",
+  "he": "מחק תמונה {0}"
+ },
+ "حذف الطلب نهائياً؟": {
+  "en": "Permanently delete the request?",
+  "he": "למחוק את הבקשה לצמיתות?"
+ },
+ "حذف الطلب يزيل النشاط من الدليل. متأكد؟": {
+  "en": "Deleting the request removes the business from the directory. Are you sure?",
+  "he": "מחיקת הבקשה מסירה את העסק מהמדריך. בטוח?"
+ },
+ "حذف المفتاح": {
+  "en": "Delete key",
+  "he": "מחק מפתח"
+ },
+ "حذف المفتاح المحفوظ": {
+  "en": "Delete saved key",
+  "he": "מחק מפתח שמור"
+ },
+ "حذف المنشور نهائياً؟": {
+  "en": "Permanently delete this post?",
+  "he": "למחוק את הפוסט לצמיתות?"
+ },
+ "حذف بياناتك": {
+  "en": "Deleting your data",
+  "he": "מחיקת הנתונים שלך"
+ },
+ "حذف تعليقك؟ تُحذف الردود عليه أيضاً.": {
+  "en": "Delete your comment? Replies to it are deleted too.",
+  "he": "למחוק את התגובה שלך? גם התגובות אליה יימחקו."
+ },
+ "حذف حسابي": {
+  "en": "Delete my account",
+  "he": "מחק את החשבון שלי"
+ },
+ "حذف قسم «{0}»؟ المنتجات والأقسام الفرعية تبقى بدون قسم.": {
+  "en": "Delete section \"{0}\"? Its products and subsections stay without a section.",
+  "he": "למחוק את המדור \"{0}\"? המוצרים ותתי-המדורים יישארו ללא מדור."
+ },
+ "حذف كل الأكواد غير المستخدمة؟": {
+  "en": "Delete all unused codes?",
+  "he": "למחוק את כל הקודים שלא נוצלו?"
+ },
+ "حذف كل الأمثلة (": {
+  "en": "Delete all samples (",
+  "he": "מחק את כל הדוגמאות ("
+ },
+ "حذف كل المنتجات التجريبية «مثال»؟": {
+  "en": "Delete all sample products?",
+  "he": "למחוק את כל מוצרי הדוגמה?"
+ },
+ "حذف مفتاح حساب الخدمة؟": {
+  "en": "Delete the service account key?",
+  "he": "למחוק את מפתח חשבון השירות?"
+ },
+ "حذف هذه المناوبة؟": {
+  "en": "Delete this shift?",
+  "he": "למחוק תורנות זו?"
+ },
+ "حسابك ليس له صلاحية في لوحة الإدارة. اطلب من مالك الموقع إضافتك.": {
+  "en": "Your account has no access to the admin panel. Ask the site owner to add you.",
+  "he": "לחשבון שלך אין הרשאה ללוח הניהול. בקש מבעל האתר להוסיף אותך."
+ },
+ "حسابي: {0}": {
+  "en": "My account: {0}",
+  "he": "החשבון שלי: {0}"
+ },
+ "حسب الجدول": {
+  "en": "Scheduled",
+  "he": "לפי לוח"
+ },
+ "حظر المستخدم من التعليق": {
+  "en": "Ban user from commenting",
+  "he": "חסום משתמש מלהגיב"
+ },
+ "حفظ": {
+  "en": "Save",
+  "he": "שמירה"
+ },
+ "حفظ التعديل": {
+  "en": "Save edit",
+  "he": "שמור עריכה"
+ },
+ "حفظ التغييرات": {
+  "en": "Save changes",
+  "he": "שמור שינויים"
+ },
+ "حفظ المناوبة": {
+  "en": "Save shift",
+  "he": "שמור תורנות"
+ },
+ "حفظ وإرسال للمراجعة": {
+  "en": "Save and submit for review",
+  "he": "שמור ושלח לבדיקה"
+ },
+ "حقيبة": {
+  "en": "Bag",
+  "he": "תיק"
+ },
+ "حقير": {},
+ "حلويات الروزنةً": {},
+ "حماية": {
+  "en": "Security",
+  "he": "אבטחה"
+ },
+ "حي 1": {},
+ "حي 10": {},
+ "حي 3": {},
+ "حي 4": {},
+ "حي 5": {},
+ "حي 8": {},
+ "حيفا نت": {
+  "en": "Haifa Net",
+  "he": "חיפה נט"
+ },
+ "حُذف {0} ترجمة محفوظة.": {
+  "en": "Deleted {0} saved translations.",
+  "he": "נמחקו {0} תרגומים שמורים."
+ },
+ "حُذف {0} كود غير مستخدم.": {
+  "en": "Deleted {0} unused codes.",
+  "he": "נמחקו {0} קודים שלא נוצלו."
+ },
+ "حُذف {0} منتج تجريبي.": {
+  "en": "Deleted {0} sample products.",
+  "he": "נמחקו {0} מוצרי דוגמה."
+ },
+ "حُفظت الدعوة. ستُفعَّل «{0}» عند دخول {1} بحساب Google.": {
+  "en": "Invite saved. \"{0}\" will be activated when {1} signs in with Google.",
+  "he": "ההזמנה נשמרה. \"{0}\" תופעל כאשר {1} יתחבר עם Google."
+ },
+ "حُفظت المناوبة.{0}": {
+  "en": "On-duty shift saved.{0}",
+  "he": "התורנות נשמרה.{0}"
+ },
+ "خارج المدينة": {
+  "en": "Out of town",
+  "he": "מחוץ לעיר"
+ },
+ "خبر": {
+  "en": "News",
+  "he": "חדשות"
+ },
+ "خبر أرسله أحد القرّاء وراجعه فريق رهط بوست قبل النشر. المسؤولية عن المحتوى على ناشره.": {
+  "en": "News sent by a reader and reviewed by the Rahat Post team before publishing. Responsibility for the content lies with its poster.",
+  "he": "חדשה ששלח קורא ונבדקה על ידי צוות רהט פוסט לפני הפרסום. האחריות לתוכן על המפרסם."
+ },
+ "خبر جديد من القراء": {
+  "en": "New reader news",
+  "he": "חדשה חדשה מהקוראים"
+ },
+ "خبر عاجل (يظهر في شريط «عاجل» بالصفحة الرئيسية)": {
+  "en": "Breaking news (shown in the \"Breaking\" bar on the home page)",
+  "he": "מבזק (מופיע בפס \"מבזק\" בעמוד הבית)"
+ },
+ "خبر قارئ": {
+  "en": "Reader news",
+  "he": "חדשת קורא"
+ },
+ "خدمات": {
+  "en": "Services",
+  "he": "שירותים"
+ },
+ "خدمات جوجل": {
+  "en": "Google services",
+  "he": "שירותי Google"
+ },
+ "خدمات عامة": {
+  "en": "Public services",
+  "he": "שירותים ציבוריים"
+ },
+ "خدمة البريد": {
+  "en": "Post service",
+  "he": "שירותי דואר"
+ },
+ "خرائط الموقع (Sitemaps)": {
+  "en": "Sitemaps",
+  "he": "מפות אתר (Sitemaps)"
+ },
+ "خروج": {
+  "en": "Sign out",
+  "he": "יציאה"
+ },
+ "خريطة خط": {
+  "en": "Line map",
+  "he": "מפת קו"
+ },
+ "خريطة خط {0}": {
+  "en": "Line {0} map",
+  "he": "מפת קו {0}"
+ },
+ "خريطة خط {0} · باصات رهط · رهط بوست": {
+  "en": "Line {0} map · Rahat buses · Rahat Post",
+  "he": "מפת קו {0} · אוטובוסים ברהט · רהט פוסט"
+ },
+ "خط": {
+  "en": "Line",
+  "he": "קו"
+ },
+ "خط {0}": {
+  "en": "Line {0}",
+  "he": "קו {0}"
+ },
+ "خط {0} · يصل خلال {1} د": {
+  "en": "Line {0} · arrives in {1} min",
+  "he": "קו {0} · מגיע בעוד {1} ד'"
+ },
+ "خط دائري": {
+  "en": "Circular line",
+  "he": "קו מעגלי"
+ },
+ "خطأ": {
+  "en": "Error",
+  "he": "שגיאה"
+ },
+ "خطوط أخرى تصل هذه المحطة الآن": {
+  "en": "Other lines arriving at this stop now",
+  "he": "קווים נוספים המגיעים לתחנה זו עכשיו"
+ },
+ "خطوط المدينة 1 حتى 6، وبئر السبع وما حولها": {
+  "en": "City lines 1 to 6, plus Beersheba and the area",
+  "he": "קווי העיר 1 עד 6, ובאר שבע והסביבה"
+ },
+ "خطوط مدينة رهط والخطوط الخارجة منها. المواعيد تتحدّث تلقائياً كل يوم من بيانات وزارة المواصلات، آخر تحديث": {
+  "en": "Rahat city lines and lines leaving the city. Times update automatically every day from Ministry of Transport data, last updated",
+  "he": "קווי העיר רהט והקווים היוצאים ממנה. הזמנים מתעדכנים אוטומטית מדי יום מנתוני משרד התחבורה, עדכון אחרון"
+ },
+ "خول": {},
+ "خيار واحد": {
+  "en": "one option",
+  "he": "אפשרות אחת"
+ },
+ "خيارات": {
+  "en": "options",
+  "he": "אפשרויות"
+ },
+ "خياران": {
+  "en": "two options",
+  "he": "שתי אפשרויות"
+ },
+ "خياراً": {
+  "en": "options",
+  "he": "אפשרויות"
+ },
+ "داخل المدينة، وبئر السبع وكسيفة وتل السبع وعسقلان": {
+  "en": "Within the city, plus Beersheba, Kseifa, Tel as-Sabi and Ashkelon",
+  "he": "בתוך העיר, ובאר שבע, כסייפה, תל שבע ואשקלון"
+ },
+ "داخل رهط": {
+  "en": "Within Rahat",
+  "he": "בתוך רהט"
+ },
+ "دخول": {
+  "en": "Sign in",
+  "he": "כניסה"
+ },
+ "دخول بحساب Google": {
+  "en": "Sign in with Google",
+  "he": "כניסה עם Google"
+ },
+ "دخول تجريبي": {
+  "en": "Test sign-in",
+  "he": "כניסת בדיקה"
+ },
+ "دخول تجريبي (محلي فقط)": {
+  "en": "Test sign-in (local only)",
+  "he": "כניסת בדיקה (מקומית בלבד)"
+ },
+ "درجة الإبداع (Temperature): {0}": {
+  "en": "Creativity (Temperature): {0}",
+  "he": "יצירתיות (Temperature): {0}"
+ },
+ "دعوات بانتظار تسجيل الدخول": {
+  "en": "Invites awaiting sign-in",
+  "he": "הזמנות הממתינות להתחברות"
+ },
+ "دفع مؤكَّد": {
+  "en": "Payment confirmed",
+  "he": "תשלום מאושר"
+ },
+ "دقائق": {
+  "en": "minutes",
+  "he": "דקות"
+ },
+ "دقيقة": {
+  "en": "minute",
+  "he": "דקה"
+ },
+ "دقيقتين": {
+  "en": "2 minutes",
+  "he": "שתי דקות"
+ },
+ "دكان تيسير": {},
+ "دكان زقنة": {},
+ "دكان سلمان": {},
+ "دليل المحلات والخدمات في رهط": {
+  "en": "Rahat shops & services directory",
+  "he": "מדריך חנויות ושירותים ברהט"
+ },
+ "دليل خدمة البريد": {
+  "en": "Post service guide",
+  "he": "מדריך שירותי הדואר"
+ },
+ "دليل رهط": {
+  "en": "Rahat directory",
+  "he": "מדריך רהט"
+ },
+ "دليل رهط للأعمال والخدمات: مطاعم ومقاهي، بقالات، عيادات وصحة، مدارس، مساجد، ورش وسيارات وغيرها في مدينة رهط بالنقب، مع العنوان والخريطة.": {
+  "en": "Rahat business and services directory: restaurants and cafés, groceries, clinics and health, schools, mosques, workshops, cars and more in Rahat in the Negev, with address and map.",
+  "he": "מדריך עסקים ושירותים ברהט: מסעדות ובתי קפה, מכולות, מרפאות ובריאות, בתי ספר, מסגדים, מוסכים ועוד בעיר רהט שבנגב, עם כתובת ומפה."
+ },
+ "دليل رهط: محلات ومطاعم وخدمات في رهط · رهط بوست": {
+  "en": "Rahat directory: shops, restaurants and services in Rahat · Rahat Post",
+  "he": "מדריך רהט: חנויות, מסעדות ושירותים ברהט · רהט פוסט"
+ },
+ "دنتال للأجهزة الكهربائية": {},
+ "دوار ابن خلدون": {},
+ "دوار الاخاء כיכר אל אח׳א": {},
+ "دوار النور": {},
+ "دوام صباحي، خبرة سنة على الأقل في الرواتب والفواتير. أرسلوا الاسم وسنوات الخبرة على الواتساب.": {},
+ "ذات صلة": {
+  "en": "Related",
+  "he": "קשורים"
+ },
+ "ذاكرة الترجمة": {
+  "en": "Translation cache",
+  "he": "מטמון תרגומים"
+ },
+ "ذكاء": {
+  "en": "AI",
+  "he": "בינה"
+ },
+ "ذكاء اصطناعي": {
+  "en": "AI",
+  "he": "בינה מלאכותית"
+ },
+ "ذكاء اصطناعي (Gemini)": {
+  "en": "AI (Gemini)",
+  "he": "בינה מלאכותית (Gemini)"
+ },
+ "رابط (اختياري)": {
+  "en": "Link (optional)",
+  "he": "קישור (אופציונלי)"
+ },
+ "رابط Search Console مثل https://rahatpost.com/ أو sc-domain:rahatpost.com": {
+  "en": "A Search Console URL like https://rahatpost.com/ or sc-domain:rahatpost.com",
+  "he": "כתובת Search Console כמו https://rahatpost.com/ או sc-domain:rahatpost.com"
+ },
+ "رابط الخريطة (اختياري)": {
+  "en": "Map link (optional)",
+  "he": "קישור למפה (אופציונלי)"
+ },
+ "رابط القسم مستخدم أو غير صالح.": {
+  "en": "The section link is taken or invalid.",
+  "he": "קישור המדור תפוס או לא תקין."
+ },
+ "رابط المصدر": {
+  "en": "Source link",
+  "he": "קישור למקור"
+ },
+ "رابط المصدر غير صحيح (يبدأ بـ https://).": {
+  "en": "Invalid source link (starts with https://).",
+  "he": "קישור מקור לא תקין (מתחיל ב-https://)."
+ },
+ "رابط واحد كحد أقصى": {
+  "en": "One link at most",
+  "he": "קישור אחד לכל היותר"
+ },
+ "ربح سريع": {},
+ "ربط Google Analytics بلوحة الإدارة": {
+  "en": "Connect Google Analytics to the admin panel",
+  "he": "חיבור Google Analytics ללוח הניהול"
+ },
+ "رتّب الشرائح بالأسهم. الشرائح الجاهزة تتحدث تلقائياً.": {
+  "en": "Reorder slides with the arrows. Built-in slides update automatically.",
+  "he": "סדר את השקופיות בעזרת החצים. שקופיות מובנות מתעדכנות אוטומטית."
+ },
+ "رجوع إلى الباصات": {
+  "en": "Back to buses",
+  "he": "חזרה לאוטובוסים"
+ },
+ "رجوع لأخبار إسرائيل": {
+  "en": "Back to Israel news",
+  "he": "חזרה לחדשות ישראל"
+ },
+ "رجوع للأخبار": {
+  "en": "Back to news",
+  "he": "חזרה לחדשות"
+ },
+ "رجوع للإعلانات": {
+  "en": "Back to classifieds",
+  "he": "חזרה למודעות"
+ },
+ "رجوع للدليل": {
+  "en": "Back to the directory",
+  "he": "חזרה למדריך"
+ },
+ "رحلات أقل من خط 4": {
+  "en": "Fewer trips than line 4",
+  "he": "פחות נסיעות מקו 4"
+ },
+ "رد": {
+  "en": "Reply",
+  "he": "תגובה"
+ },
+ "ردّ": {
+  "en": "Reply",
+  "he": "השב"
+ },
+ "ردّ على {0}": {
+  "en": "Reply to {0}",
+  "he": "השב ל-{0}"
+ },
+ "رذاذ": {
+  "en": "Drizzle",
+  "he": "טפטוף"
+ },
+ "رفح / البوئي": {},
+ "رفض": {
+  "en": "Reject",
+  "he": "דחה"
+ },
+ "رفع صورة/أيقونة": {
+  "en": "Upload image/icon",
+  "he": "העלה תמונה/אייקון"
+ },
+ "رقم الطرفية (TerminalNumber)": {
+  "en": "Terminal number (TerminalNumber)",
+  "he": "מספר מסוף (TerminalNumber)"
+ },
+ "رقم المحطة": {
+  "en": "Stop number",
+  "he": "מספר תחנה"
+ },
+ "رقم الهاتف غير صحيح.": {
+  "en": "Invalid phone number.",
+  "he": "מספר טלפון לא תקין."
+ },
+ "رقم الهاتف في الإعلان أو النشاط يظهر لمن يضغط «إظهار الرقم».": {
+  "en": "The phone number in an ad or business is shown to anyone who taps \"Show number\".",
+  "he": "מספר הטלפון במודעה או בעסק מוצג למי שלוחץ \"הצג מספר\"."
+ },
+ "رقم الوحدة (data-ad-slot)": {
+  "en": "Unit number (data-ad-slot)",
+  "he": "מספר יחידה (data-ad-slot)"
+ },
+ "رقم واتساب (الدفع نقداً واليدوي)": {
+  "en": "WhatsApp number (cash and manual payment)",
+  "he": "מספר וואטסאפ (תשלום במזומן וידני)"
+ },
+ "رمز": {
+  "en": "Icon",
+  "he": "סמל"
+ },
+ "رمز التحقق": {
+  "en": "Verification code",
+  "he": "קוד אימות"
+ },
+ "رمز اللغة غير صحيح (مثل: fr أو ru أو tr).": {
+  "en": "Invalid language code (e.g. fr, ru or tr).",
+  "he": "קוד שפה לא תקין (למשל fr, ru או tr)."
+ },
+ "رهط": {
+  "en": "Rahat",
+  "he": "רהט"
+ },
+ "رهط بوست": {
+  "en": "Rahat Post",
+  "he": "רהט פוסט"
+ },
+ "رهط بوست | أخبار رهط والنقب": {
+  "en": "Rahat Post | News of Rahat and the Negev",
+  "he": "רהט פוסט | חדשות רהט והנגב"
+ },
+ "رهط بوست | أخبار رهط والنقب، باصات رهط، دليل وإعلانات": {
+  "en": "Rahat Post | Rahat & Negev news, Rahat buses, directory and classifieds",
+  "he": "רהט פוסט | חדשות רהט והנגב, אוטובוסים, מדריך ומודעות"
+ },
+ "رهط بوست على شاشتك الرئيسية": {
+  "en": "Rahat Post on your home screen",
+  "he": "רהט פוסט במסך הבית שלך"
+ },
+ "رهط بوست موقع وتطبيق مجتمعي لأهالي رهط والنقب. نجمع أقل ما يلزم لتشغيل الخدمة، ولا نبيع بياناتك ولا نعرض إعلانات تتبّعك.": {
+  "en": "Rahat Post is a community website and app for the people of Rahat and the Negev. We collect the minimum needed to run the service, we don't sell your data and we don't show ads that track you.",
+  "he": "רהט פוסט הוא אתר ואפליקציה קהילתיים לתושבי רהט והנגב. אנו אוספים את המינימום הדרוש להפעלת השירות, לא מוכרים את הנתונים שלך ולא מציגים פרסומות שעוקבות אחריך."
+ },
+ "رهط بوست يجمع أخبار رهط والنقب من مصادرها، ويتيح للأهالي نشر أخبار وإعلانات وإضافة أنشطتهم إلى الدليل. الخدمة مجانية وتُقدَّم «كما هي».": {
+  "en": "Rahat Post gathers Rahat and Negev news from its sources and lets residents publish news and ads and add their businesses to the directory. The service is free and provided \"as is\".",
+  "he": "רהט פוסט אוסף חדשות רהט והנגב ממקורותיהן ומאפשר לתושבים לפרסם חדשות ומודעות ולהוסיף את עסקיהם למדריך. השירות חינמי ומסופק \"כמות שהוא\"."
+ },
+ "رهط بوست: آخر أخبار رهط والنقب، مواعيد باصات رهط، دليل محلات وخدمات رهط، إعلانات مبوبة، صيدلية الحراسة وأرقام الطوارئ — كل ما تحتاجه في مدينة رهط في مكان واحد.": {
+  "en": "Rahat Post: the latest Rahat and Negev news, Rahat bus times, a directory of shops and services, classifieds, the on-duty pharmacy and emergency numbers — everything you need in Rahat in one place.",
+  "he": "רהט פוסט: החדשות האחרונות מרהט והנגב, זמני אוטובוסים, מדריך חנויות ושירותים, מודעות, בית מרקחת תורן ומספרי חירום — כל מה שצריך ברהט במקום אחד."
+ },
+ "رهط بوست: أخبار رهط والنقب، مواعيد باصات رهط، دليل محلات وخدمات رهط، إعلانات مبوبة وأرقام الطوارئ.": {
+  "en": "Rahat Post: news of Rahat and the Negev, Rahat bus times, a directory of Rahat shops and services, classifieds and emergency numbers.",
+  "he": "רהט פוסט: חדשות רהט והנגב, זמני אוטובוסים ברהט, מדריך חנויות ושירותים ברהט, לוח מודעות ומספרי חירום."
+ },
+ "رهط بوست: أخبار وخدمات رهط والنقب": {
+  "en": "Rahat Post: news and services for Rahat and the Negev",
+  "he": "רהט פוסט: חדשות ושירותים לרהט והנגב"
+ },
+ "رهط والنقب": {
+  "en": "Rahat & the Negev",
+  "he": "רהט והנגב"
+ },
+ "روابط أخرى": {
+  "en": "Other links",
+  "he": "קישורים נוספים"
+ },
+ "روابط الموقع": {
+  "en": "Site links",
+  "he": "קישורי האתר"
+ },
+ "روابط سريعة": {
+  "en": "Quick links",
+  "he": "קישורים מהירים"
+ },
+ "روابط سريعة في الرئيسية": {
+  "en": "Quick links on the home page",
+  "he": "קישורים מהירים בעמוד הבית"
+ },
+ "روابط مُرسلة:": {
+  "en": "Submitted URLs:",
+  "he": "כתובות שנשלחו:"
+ },
+ "روبوت": {
+  "en": "Robot",
+  "he": "רובוט"
+ },
+ "رياضة": {
+  "en": "Sports",
+  "he": "ספורט"
+ },
+ "رياضة وترفيه": {
+  "en": "Sports & leisure",
+  "he": "ספורט ופנאי"
+ },
+ "زب": {},
+ "زبك": {},
+ "زبي": {},
+ "زخات ثلج": {
+  "en": "Snow showers",
+  "he": "ממטרי שלג"
+ },
+ "زخات مطر": {
+  "en": "Rain showers",
+  "he": "ממטרים"
+ },
+ "زر أساسي": {
+  "en": "Primary button",
+  "he": "כפתור ראשי"
+ },
+ "زقنة": {},
+ "زوار جدد": {
+  "en": "New visitors",
+  "he": "מבקרים חדשים"
+ },
+ "زوار عائدون": {
+  "en": "Returning visitors",
+  "he": "מבקרים חוזרים"
+ },
+ "زوار نشطون الآن (آخر 30 دقيقة)": {
+  "en": "Active visitors now (last 30 minutes)",
+  "he": "מבקרים פעילים עכשיו (30 דקות אחרונות)"
+ },
+ "زيادة": {
+  "en": "Increase",
+  "he": "הגדל"
+ },
+ "ساحة ابن رشد": {},
+ "ساحة الباز": {},
+ "ساعات": {
+  "en": "hours",
+  "he": "שעות"
+ },
+ "ساعات العمل": {
+  "en": "Opening hours",
+  "he": "שעות פעילות"
+ },
+ "ساعات العمل:": {
+  "en": "Opening hours:",
+  "he": "שעות פעילות:"
+ },
+ "ساعة": {
+  "en": "hour",
+  "he": "שעה"
+ },
+ "ساعتين": {
+  "en": "2 hours",
+  "he": "שעתיים"
+ },
+ "ستنتقل إلى صفحة دفع آمنة لدى شركة الدفع.": {
+  "en": "You'll be taken to a secure payment page at the payment provider.",
+  "he": "תועבר לעמוד תשלום מאובטח של חברת התשלום."
+ },
+ "سجّل الدخول بحساب Google لإتمام الطلب": {
+  "en": "Sign in with Google to complete the order",
+  "he": "התחבר עם Google כדי להשלים את ההזמנה"
+ },
+ "سجّل الدخول بحساب Google لتكتب تعليقاً أو ترد على الآخرين.": {
+  "en": "Sign in with Google to write a comment or reply to others.",
+  "he": "התחבר עם Google כדי לכתוב תגובה או להגיב לאחרים."
+ },
+ "سجّل الدخول لترسل خبراً باسمك.": {
+  "en": "Sign in to send news under your name.",
+  "he": "התחבר כדי לשלוח חדשה בשמך."
+ },
+ "سجّل الدخول لترى أخبارك وإعلاناتك وطلبات نشاطك وحالتها.": {
+  "en": "Sign in to see your news, ads and business requests and their status.",
+  "he": "התחבר כדי לראות את החדשות, המודעות ובקשות העסק שלך ואת מצבן."
+ },
+ "سجّل الدخول لترى طلباتك ومشترياتك.": {
+  "en": "Sign in to see your orders and purchases.",
+  "he": "התחבר כדי לראות את ההזמנות והרכישות שלך."
+ },
+ "سجّل الدخول لتضيف نشاطك إلى الدليل.": {
+  "en": "Sign in to add your business to the directory.",
+  "he": "התחבר כדי להוסיף את העסק שלך למדריך."
+ },
+ "سجّل الدخول لتنشر أخباراً وإعلانات وتضيف نشاطك باسمك، وتتابعها من «منشوراتي».": {
+  "en": "Sign in to publish news and ads and add your business under your name, and follow them in \"My posts\".",
+  "he": "התחבר כדי לפרסם חדשות ומודעות ולהוסיף את העסק שלך בשמך, ולעקוב אחריהם ב\"הפוסטים שלי\"."
+ },
+ "سجّل الدخول لتنشر إعلاناً باسمك.": {
+  "en": "Sign in to post an ad under your name.",
+  "he": "התחבר כדי לפרסם מודעה בשמך."
+ },
+ "سجّل الدخول للتعليق": {
+  "en": "Sign in to comment",
+  "he": "התחבר כדי להגיב"
+ },
+ "سحابة": {
+  "en": "Cloud",
+  "he": "ענן"
+ },
+ "سحب": {
+  "en": "Revoke",
+  "he": "שלול"
+ },
+ "سحب التسليم": {
+  "en": "Revoke delivery",
+  "he": "שלול מסירה"
+ },
+ "سحب الطلب وحذفه؟": {
+  "en": "Withdraw and delete the request?",
+  "he": "למשוך ולמחוק את הבקשה?"
+ },
+ "سديروت": {
+  "en": "Sderot",
+  "he": "שדרות"
+ },
+ "سطر وصف": {
+  "en": "Description line",
+  "he": "שורת תיאור"
+ },
+ "سعر التخفيض": {
+  "en": "Sale price",
+  "he": "מחיר מבצע"
+ },
+ "سعر التخفيض غير صحيح.": {
+  "en": "Invalid sale price.",
+  "he": "מחיר מבצע לא תקין."
+ },
+ "سعر التخفيض يجب أن يكون أقل من السعر.": {
+  "en": "The sale price must be lower than the price.",
+  "he": "מחיר המבצע חייב להיות נמוך מהמחיר."
+ },
+ "سكودا أوكتافيا 2016 للبيع": {},
+ "سلتك فارغة": {
+  "en": "Your cart is empty",
+  "he": "הסל שלך ריק"
+ },
+ "سنوي": {
+  "en": "Yearly",
+  "he": "שנתי"
+ },
+ "سوبرماركت الاخوة": {},
+ "سوق بلدي": {
+  "en": "Municipal market",
+  "he": "שוק עירוני"
+ },
+ "سيارات": {
+  "en": "Cars",
+  "he": "רכב"
+ },
+ "سيارات ووقود": {
+  "en": "Cars & fuel",
+  "he": "רכב ודלק"
+ },
+ "سيارة مغلقة وعاملان. الحجز قبلها بيوم. السعر حسب الحي والطابق.": {},
+ "سياسة الخصوصية": {
+  "en": "Privacy policy",
+  "he": "מדיניות פרטיות"
+ },
+ "سياسة الخصوصية · رهط بوست": {
+  "en": "Privacy policy · Rahat Post",
+  "he": "מדיניות פרטיות · רהט פוסט"
+ },
+ "سيما سنتر": {},
+ "سيُحذف حسابك وجميع منشوراتك فوراً، وتُسجَّل خارجاً من كل الأجهزة. للتأكيد اكتب كلمة": {
+  "en": "Your account and all your posts will be deleted immediately, and you'll be signed out on all devices. To confirm, type the word",
+  "he": "החשבון שלך וכל הפוסטים שלך יימחקו מיד, ותנותק מכל המכשירים. לאישור הקלד את המילה"
+ },
+ "شارات (مفصولة بفاصلة)": {
+  "en": "Badges (comma-separated)",
+  "he": "תגיות (מופרדות בפסיק)"
+ },
+ "شارع السلام": {},
+ "شارع صلاح الدين": {},
+ "شارع صلاح الدين 52": {},
+ "شاشة": {
+  "en": "Screen",
+  "he": "מסך"
+ },
+ "شرائح السلايدر": {
+  "en": "Slider slides",
+  "he": "שקופיות הסליידר"
+ },
+ "شراميط": {},
+ "شركة גלים": {
+  "en": "Galim company",
+  "he": "חברת גלים"
+ },
+ "شركة גלים · أوقات مباشرة وجدول اليوم": {
+  "en": "Galim company · live times and today's schedule",
+  "he": "חברת גלים · זמנים חיים ולוח היום"
+ },
+ "شركة الدفع": {
+  "en": "Payment provider",
+  "he": "חברת תשלום"
+ },
+ "شرموط": {},
+ "شرموطه": {},
+ "شروط استخدام رهط بوست: النشر بعد المراجعة، المحتوى الممنوع، الإبلاغ عن المنشورات، مسؤولية الناشر، والأخبار من مصادر خارجية.": {
+  "en": "Rahat Post terms of use: publishing after review, prohibited content, reporting posts, poster responsibility, and news from external sources.",
+  "he": "תנאי השימוש ברהט פוסט: פרסום לאחר בדיקה, תוכן אסור, דיווח על פוסטים, אחריות המפרסם וחדשות ממקורות חיצוניים."
+ },
+ "شروط الاستخدام": {
+  "en": "Terms of use",
+  "he": "תנאי שימוש"
+ },
+ "شروط الاستخدام · رهط بوست": {
+  "en": "Terms of use · Rahat Post",
+  "he": "תנאי שימוש · רהט פוסט"
+ },
+ "شريحة جاهزة: {0}": {
+  "en": "Built-in slide: {0}",
+  "he": "שקופית מובנית: {0}"
+ },
+ "شريحة جديدة": {
+  "en": "New slide",
+  "he": "שקופית חדשה"
+ },
+ "شريط التنقل السفلي وقائمة الأقسام العلوية": {
+  "en": "Bottom tab bar and top section menu",
+  "he": "סרגל ניווט תחתון ותפריט מדורים עליון"
+ },
+ "شعار أو صورة للمحل (اختياري)": {
+  "en": "Logo or shop photo (optional)",
+  "he": "לוגו או תמונת החנות (אופציונלי)"
+ },
+ "شقة 4 غرف للإيجار في حي 10": {},
+ "شكراً لشرائك من متجر رهط بوست.": {
+  "en": "Thank you for buying from the Rahat Post store.",
+  "he": "תודה שקנית בחנות רהט פוסט."
+ },
+ "شكراً لك": {
+  "en": "Thank you",
+  "he": "תודה"
+ },
+ "شهري": {
+  "en": "Monthly",
+  "he": "חודשי"
+ },
+ "شوبينغ سنتر": {},
+ "صافٍ": {
+  "en": "Clear",
+  "he": "בהיר"
+ },
+ "صافٍ غالباً": {
+  "en": "Mostly clear",
+  "he": "בהיר ברובו"
+ },
+ "صبابا": {},
+ "صحة": {
+  "en": "Health",
+  "he": "בריאות"
+ },
+ "صراف بنك العمال": {},
+ "صراف مركنتيل": {},
+ "صفحة الخبر": {
+  "en": "Article page",
+  "he": "עמוד הכתבה"
+ },
+ "صفحة الفرع": {
+  "en": "Branch page",
+  "he": "עמוד הסניף"
+ },
+ "صفحة الفرع الرسمية (الساعات المحدّثة)": {
+  "en": "Official branch page (updated hours)",
+  "he": "עמוד הסניף הרשמי (שעות מעודכנות)"
+ },
+ "صلاح الدين، مدرسة الهدى": {},
+ "صودا ستريم": {},
+ "صور (اختياري)": {
+  "en": "Photos (optional)",
+  "he": "תמונות (אופציונלי)"
+ },
+ "صور الإعلان": {
+  "en": "Ad photos",
+  "he": "תמונות המודעה"
+ },
+ "صورة (اختياري)": {
+  "en": "Image (optional)",
+  "he": "תמונה (אופציונלי)"
+ },
+ "صورة {0}": {
+  "en": "Photo {0}",
+  "he": "תמונה {0}"
+ },
+ "صورة المنتج": {
+  "en": "Product image",
+  "he": "תמונת המוצר"
+ },
+ "صورة مربعة JPG أو WebP. تُستبدل صورة الشعار في الشريط العلوي وأيقونة المتصفح.": {
+  "en": "Square JPG or WebP image. Replaces the logo in the top bar and the browser icon.",
+  "he": "תמונה ריבועית JPG או WebP. מחליפה את הלוגו בסרגל העליון ואת אייקון הדפדפן."
+ },
+ "صورة واحدة": {
+  "en": "one photo",
+  "he": "תמונה אחת"
+ },
+ "صورة واحدة تظهر في صفحة نشاطك بعد الموافقة.": {
+  "en": "One photo shown on your business page after approval.",
+  "he": "תמונה אחת שתוצג בעמוד העסק לאחר אישור."
+ },
+ "صيدليات سابقة": {
+  "en": "Previous pharmacies",
+  "he": "בתי מרקחת קודמים"
+ },
+ "صيدلية الحراسة": {
+  "en": "On-duty pharmacy",
+  "he": "בית מרקחת תורן"
+ },
+ "صيدلية الحراسة اليوم": {
+  "en": "On-duty pharmacy today",
+  "he": "בית מרקחת תורן היום"
+ },
+ "صيدلية المناوبة": {
+  "en": "On-duty pharmacy",
+  "he": "בית מרקחת תורן"
+ },
+ "ضباب": {
+  "en": "Fog",
+  "he": "ערפל"
+ },
+ "طابق ثانٍ، موقف واحد، متاحة أول الشهر القادم. عقد سنة.": {},
+ "طريقة الترجمة": {
+  "en": "Translation mode",
+  "he": "שיטת תרגום"
+ },
+ "طريقة الهيئة المصرية العامة للمساحة · العصر على المذهب الشافعي": {
+  "en": "Egyptian General Authority of Survey method · Asr per the Shafi'i school",
+  "he": "שיטת הרשות המצרית למדידות · עסר לפי האסכולה השאפעית"
+ },
+ "طلب": {
+  "en": "Order",
+  "he": "הזמנה"
+ },
+ "طلب قديم": {
+  "en": "Old request",
+  "he": "בקשה ישנה"
+ },
+ "طلبات": {
+  "en": "Requests",
+  "he": "בקשות"
+ },
+ "طلبات الدليل": {
+  "en": "Directory requests",
+  "he": "בקשות למדריך"
+ },
+ "طلبات بانتظار الدفع": {
+  "en": "Orders awaiting payment",
+  "he": "הזמנות הממתינות לתשלום"
+ },
+ "طلبات كثيرة للتو. حاول بعد قليل.": {
+  "en": "Too many orders just now. Try again shortly.",
+  "he": "יותר מדי הזמנות הרגע. נסה שוב בעוד מעט."
+ },
+ "طلبات مدفوعة/مسلّمة": {
+  "en": "Paid/delivered orders",
+  "he": "הזמנות ששולמו/נמסרו"
+ },
+ "طلبات نشاطي في الدليل": {
+  "en": "My directory business requests",
+  "he": "בקשות העסק שלי במדריך"
+ },
+ "طلباتي": {
+  "en": "My orders",
+  "he": "ההזמנות שלי"
+ },
+ "طلباتي · رهط بوست": {
+  "en": "My orders · Rahat Post",
+  "he": "ההזמנות שלי · רהט פוסט"
+ },
+ "طلبك من متجر رهط بوست جاهز": {
+  "en": "Your Rahat Post store order is ready",
+  "he": "ההזמנה שלך מחנות רהט פוסט מוכנה"
+ },
+ "طوارئ": {
+  "en": "Emergency",
+  "he": "חירום"
+ },
+ "طيز": {},
+ "طيزك": {},
+ "ظاهر": {
+  "en": "Visible",
+  "he": "מוצג"
+ },
+ "ظاهر «قريباً»": {
+  "en": "Shown as \"Coming soon\"",
+  "he": "מוצג \"בקרוב\""
+ },
+ "ظاهر في المتجر": {
+  "en": "Visible in the store",
+  "he": "מוצג בחנות"
+ },
+ "ظهور": {
+  "en": "Impressions",
+  "he": "חשיפות"
+ },
+ "عاجل": {
+  "en": "Breaking",
+  "he": "מבזק"
+ },
+ "عاجل: ": {
+  "en": "Breaking: ",
+  "he": "מבזק: "
+ },
+ "عاصفة رعدية": {
+  "en": "Thunderstorm",
+  "he": "סופת רעמים"
+ },
+ "عام": {
+  "en": "General",
+  "he": "כללי"
+ },
+ "عاهره": {},
+ "عدة أيام (نطاق تواريخ)": {
+  "en": "Several days (date range)",
+  "he": "כמה ימים (טווח תאריכים)"
+ },
+ "عدّلت عدة مرات للتو. حاول بعد قليل.": {
+  "en": "You just edited several times. Try again shortly.",
+  "he": "ערכת כמה פעמים הרגע. נסה שוב בעוד מעט."
+ },
+ "عرب 48": {
+  "en": "Arab48",
+  "he": "ערב 48"
+ },
+ "عرص": {},
+ "عرض": {
+  "en": "View",
+  "he": "הצג"
+ },
+ "عرض أو تصحيح في OpenStreetMap": {
+  "en": "View or fix on OpenStreetMap",
+  "he": "הצג או תקן ב-OpenStreetMap"
+ },
+ "عرض الكل": {
+  "en": "See all",
+  "he": "הצג הכל"
+ },
+ "عرعرة النقب": {
+  "en": "Ar'arat an-Naqab",
+  "he": "ערערה בנגב"
+ },
+ "عسقلان": {
+  "en": "Ashkelon",
+  "he": "אשקלון"
+ },
+ "عضو": {
+  "en": "Member",
+  "he": "חבר"
+ },
+ "عقارات": {
+  "en": "Real estate",
+  "he": "נדל\"ן"
+ },
+ "على آيفون (iOS 16.4 أو أحدث): ثبّت رهط بوست على الشاشة الرئيسية أولاً، ثم افتحه من الأيقونة وفعّل الإشعارات من هنا.": {
+  "en": "On iPhone (iOS 16.4 or later): first install Rahat Post on the home screen, then open it from the icon and enable notifications here.",
+  "he": "באייפון (iOS 16.4 ומעלה): התקן קודם את רהט פוסט במסך הבית, ואז פתח אותו מהאייקון והפעל כאן התראות."
+ },
+ "على الخريطة": {
+  "en": "On the map",
+  "he": "על המפה"
+ },
+ "عند تحديث صيدلية الحراسة": {
+  "en": "When the on-duty pharmacy is updated",
+  "he": "כשבית המרקחת התורן מתעדכן"
+ },
+ "عند تسجيل الدخول بحساب Google": {
+  "en": "When you sign in with Google",
+  "he": "בהתחברות עם Google"
+ },
+ "عند سامي": {},
+ "عند نشر خبر جديد من أهالي رهط": {
+  "en": "When Rahat residents publish new news",
+  "he": "כשתושבי רהט מפרסמים חדשה"
+ },
+ "عندما يرد أحد على تعليقك (عند تسجيل الدخول)": {
+  "en": "When someone replies to your comment (when signed in)",
+  "he": "כשמישהו מגיב לתגובה שלך (כשאתה מחובר)"
+ },
+ "عنوان WebHookUrl (يُرسل تلقائياً مع كل عملية؛ يمكن وضعه أيضاً في إعدادات Cardcom)": {
+  "en": "WebHookUrl (sent automatically with every transaction; can also be set in Cardcom settings)",
+  "he": "כתובת WebHookUrl (נשלחת אוטומטית עם כל עסקה; ניתן להגדיר גם בהגדרות Cardcom)"
+ },
+ "عنوان notify_url (Tranzila)": {
+  "en": "notify_url (Tranzila)",
+  "he": "כתובת notify_url (Tranzila)"
+ },
+ "عنوان الإعلان": {
+  "en": "Ad title",
+  "he": "כותרת המודעה"
+ },
+ "عنوان الخبر": {
+  "en": "News headline",
+  "he": "כותרת החדשה"
+ },
+ "عنوان خبر للمعاينة": {
+  "en": "Sample news headline",
+  "he": "כותרת חדשה לדוגמה"
+ },
+ "عنوان ومقتطف قصير من موقع {0} كما نُشر بالعبرية.": {
+  "en": "Headline and short excerpt from {0} as published in Hebrew.",
+  "he": "כותרת וקטע קצר מאתר {0} כפי שפורסמו בעברית."
+ },
+ "غائم": {
+  "en": "Cloudy",
+  "he": "מעונן"
+ },
+ "غائم جزئياً": {
+  "en": "Partly cloudy",
+  "he": "מעונן חלקית"
+ },
+ "غاليم": {
+  "en": "Galim",
+  "he": "גלים"
+ },
+ "غداً": {
+  "en": "Tomorrow",
+  "he": "מחר"
+ },
+ "غلوبس": {
+  "en": "Globes",
+  "he": "גלובס"
+ },
+ "غير متوفر حالياً": {
+  "en": "Currently unavailable",
+  "he": "לא זמין כרגע"
+ },
+ "غير محدود": {
+  "en": "Unlimited",
+  "he": "ללא הגבלה"
+ },
+ "غير محفوظ": {
+  "en": "Not saved",
+  "he": "לא נשמר"
+ },
+ "غير مسموح.": {
+  "en": "Not allowed.",
+  "he": "לא מורשה."
+ },
+ "غير مصرح.": {
+  "en": "Unauthorized.",
+  "he": "אין הרשאה."
+ },
+ "غير معروف": {
+  "en": "Unknown",
+  "he": "לא ידוע"
+ },
+ "غير موجود · رهط بوست": {
+  "en": "Not found · Rahat Post",
+  "he": "לא נמצא · רהט פוסט"
+ },
+ "ف": {},
+ "فارغ = غير محدود": {
+  "en": "Empty = unlimited",
+  "he": "ריק = ללא הגבלה"
+ },
+ "فاكس:": {
+  "en": "Fax:",
+  "he": "פקס:"
+ },
+ "فتح الخبر": {
+  "en": "Open article",
+  "he": "פתח כתבה"
+ },
+ "فتح القائمة": {
+  "en": "Open menu",
+  "he": "פתח תפריט"
+ },
+ "فتح المنشور": {
+  "en": "Open post",
+  "he": "פתח פוסט"
+ },
+ "فروع البريد في رهط": {
+  "en": "Post offices in Rahat",
+  "he": "סניפי הדואר ברהט"
+ },
+ "فريق الإدارة": {
+  "en": "Admin team",
+  "he": "צוות הניהול"
+ },
+ "فريق الإدارة يرى المنشورات قبل نشرها والبلاغات المرسلة عنها، ويمكنه إخفاء أو حذف أي تعليق مخالف ومنع صاحبه من التعليق.": {
+  "en": "The admin team sees posts before they're published and the reports sent about them, and can hide or delete any offending comment and ban its author from commenting.",
+  "he": "צוות הניהול רואה פוסטים לפני פרסומם ואת הדיווחים עליהם, ויכול להסתיר או למחוק כל תגובה פוגענית ולחסום את כותבה."
+ },
+ "فشل الطلب.": {
+  "en": "Request failed.",
+  "he": "הבקשה נכשלה."
+ },
+ "فشل الطلب. راجع آخر الأخطاء.": {
+  "en": "Request failed. Check the latest errors.",
+  "he": "הבקשה נכשלה. בדוק את השגיאות האחרונות."
+ },
+ "فعّل «Google Search Console API»:": {
+  "en": "Enable \"Google Search Console API\":",
+  "he": "הפעל את \"Google Search Console API\":"
+ },
+ "فعّل الإشعارات": {
+  "en": "Enable notifications",
+  "he": "הפעל התראות"
+ },
+ "فلافل عزات": {},
+ "فهمت": {
+  "en": "Got it",
+  "he": "הבנתי"
+ },
+ "فواتير، أرنونا، مخالفات وضرائب — في الفرع أو أونلاين": {
+  "en": "Bills, arnona, fines and taxes — at the branch or online",
+  "he": "חשבונות, ארנונה, קנסות ומסים — בסניף או אונליין"
+ },
+ "في GA: «الإدارة» ← «تفاصيل الموقع» (Property details): انسخ «معرّف الموقع» (Property ID، أرقام فقط — ليس G-…).": {
+  "en": "In GA: Admin → Property details: copy the Property ID (digits only — not G-…).",
+  "he": "ב-GA: Admin ← Property details: העתק את Property ID (ספרות בלבד — לא G-…)."
+ },
+ "في Google Analytics: «الإدارة» (Admin ⚙️) ← «إدارة الوصول إلى الموقع» (Property access management) ← «+» ← أضف البريد بدور «مُشاهد» (Viewer) وأزل علامة إرسال الإشعار.": {
+  "en": "In Google Analytics: Admin ⚙️ → Property access management → \"+\" → add the email with the Viewer role and untick the notification email.",
+  "he": "ב-Google Analytics: Admin ⚙️ ← Property access management ← \"+\" ← הוסף את האימייל בתפקיד Viewer ובטל את שליחת ההודעה."
+ },
+ "في Safari (المربّع مع السهم، أسفل الشاشة أو أعلاها).": {
+  "en": "button in Safari (the square with an arrow, at the bottom or top of the screen).",
+  "he": "ב-Safari (הריבוע עם החץ, בתחתית או בראש המסך)."
+ },
+ "في Search Console ← «الإعدادات» ← «المستخدمون والأذونات» ← «إضافة مستخدم»: أضف": {
+  "en": "In Search Console → Settings → Users and permissions → Add user: add",
+  "he": "ב-Search Console ← הגדרות ← משתמשים והרשאות ← הוספת משתמש: הוסף את"
+ },
+ "في الأسفل (للمالك): الصق معرّف الموقع ومحتوى ملف JSON، احفظ ثم «اختبار الاتصال».": {
+  "en": "Below (owner only): paste the Property ID and the JSON file contents, save, then \"Test connection\".",
+  "he": "למטה (לבעלים): הדבק את מזהה הנכס ואת תוכן קובץ ה-JSON, שמור ואז \"בדיקת חיבור\"."
+ },
+ "في كل خبر قارئ وإعلان ونشاط وتعليق زر «إبلاغ». المنشور الذي يتلقى عدة بلاغات يُخفى مؤقتاً حتى تراجعه الإدارة.": {
+  "en": "Every reader news item, ad, business and comment has a \"Report\" button. A post that receives several reports is hidden temporarily until the admins review it.",
+  "he": "בכל חדשת קורא, מודעה, עסק ותגובה יש כפתור \"דווח\". פוסט שמקבל כמה דיווחים מוסתר זמנית עד שהניהול יבדוק אותו."
+ },
+ "قائمة الأخبار": {
+  "en": "News list",
+  "he": "רשימת החדשות"
+ },
+ "قائمة الإدارة": {
+  "en": "Admin menu",
+  "he": "תפריט ניהול"
+ },
+ "قائمة المراجعة ممتلئة الآن. حاول لاحقاً.": {
+  "en": "The review queue is full right now. Try later.",
+  "he": "תור הבדיקה מלא כרגע. נסה מאוחר יותר."
+ },
+ "قارئ": {
+  "en": "Reader",
+  "he": "קורא"
+ },
+ "قحاب": {},
+ "قحبه": {},
+ "قد تبقى نسخة في النسخ الاحتياطية التلقائية لدى مزوّد قاعدة البيانات لفترة محدودة، ثم تُمحى تلقائياً.": {
+  "en": "A copy may remain in the database provider's automatic backups for a limited time, then it's erased automatically.",
+  "he": "עותק עשוי להישאר בגיבויים האוטומטיים של ספק מסד הנתונים לזמן מוגבל, ולאחר מכן נמחק אוטומטית."
+ },
+ "قراءة التعليقات متاحة للجميع. يظهر اسمك وصورتك مع تعليقك.": {
+  "en": "Anyone can read comments. Your name and photo appear with your comment.",
+  "he": "כל אחד יכול לקרוא תגובות. שמך ותמונתך מופיעים עם התגובה."
+ },
+ "قروض سريعه": {},
+ "قريباً": {
+  "en": "Coming soon",
+  "he": "בקרוב"
+ },
+ "قريباً.": {
+  "en": "soon.",
+  "he": "בקרוב."
+ },
+ "قريباً: نجهّز الخيارات والأسعار لهذا القسم.": {
+  "en": "Coming soon: we're preparing options and prices for this section.",
+  "he": "בקרוב: אנו מכינים אפשרויות ומחירים למדור זה."
+ },
+ "قسم جديد": {
+  "en": "New section",
+  "he": "מדור חדש"
+ },
+ "قطرة حليب": {},
+ "قيد المعالجة · ": {
+  "en": "Processing · ",
+  "he": "בעיבוד · "
+ },
+ "قيم من متغيرات البيئة (تتقدّم على هذه الحقول):": {
+  "en": "Values from environment variables (override these fields):",
+  "he": "ערכים ממשתני סביבה (גוברים על השדות האלה):"
+ },
+ "كاتب": {
+  "en": "Writer",
+  "he": "כותב"
+ },
+ "كاتب:": {
+  "en": "Writer:",
+  "he": "כותב:"
+ },
+ "كتبت عدة تعليقات للتو. انتظر قليلاً ثم حاول.": {
+  "en": "You just wrote several comments. Wait a bit and try again.",
+  "he": "כתבת כמה תגובות הרגע. המתן מעט ונסה שוב."
+ },
+ "كتبه: {0}": {
+  "en": "By: {0}",
+  "he": "מאת: {0}"
+ },
+ "كس": {},
+ "كس اختك": {},
+ "كس امك": {},
+ "كسامك": {},
+ "كسختك": {},
+ "كسك": {},
+ "كسمك": {},
+ "كسها": {},
+ "كسيفة": {
+  "en": "Kseifa",
+  "he": "כסייפה"
+ },
+ "كل الأخبار": {
+  "en": "All news",
+  "he": "כל החדשות"
+ },
+ "كل الأرقام": {
+  "en": "All numbers",
+  "he": "כל המספרים"
+ },
+ "كل الأقسام": {
+  "en": "All sections",
+  "he": "כל המדורים"
+ },
+ "كل الإعلانات": {
+  "en": "All ads",
+  "he": "כל המודעות"
+ },
+ "كل التصنيفات": {
+  "en": "All categories",
+  "he": "כל הקטגוריות"
+ },
+ "كل الحالات": {
+  "en": "All statuses",
+  "he": "כל הסטטוסים"
+ },
+ "كل المتجر": {
+  "en": "Whole store",
+  "he": "כל החנות"
+ },
+ "كل المصادر": {
+  "en": "All sources",
+  "he": "כל המקורות"
+ },
+ "كل المنتجات": {
+  "en": "All products",
+  "he": "כל המוצרים"
+ },
+ "كل المواعيد": {
+  "en": "All times",
+  "he": "כל הזמנים"
+ },
+ "كلمة المرور": {
+  "en": "Password",
+  "he": "סיסמה"
+ },
+ "كلمة المرور غير صحيحة.": {
+  "en": "Wrong password.",
+  "he": "סיסמה שגויה."
+ },
+ "كلمة سر الواجهة (ApiPassword، اختيارية)": {
+  "en": "API password (ApiPassword, optional)",
+  "he": "סיסמת API (ApiPassword, אופציונלי)"
+ },
+ "كم/س": {
+  "en": "km/h",
+  "he": "קמ\"ש"
+ },
+ "كمبيوتر": {
+  "en": "Desktop",
+  "he": "מחשב"
+ },
+ "ل": {},
+ "لأي سؤال عن الخصوصية أو لحذف بياناتك استخدم «حذف حسابي» في صفحة منشوراتي.": {
+  "en": "For any privacy question or to delete your data, use \"Delete my account\" on the My posts page.",
+  "he": "לכל שאלה בנושא פרטיות או למחיקת נתונים, השתמש ב\"מחק את החשבון שלי\" בעמוד הפוסטים שלי."
+ },
+ "لأي سؤال عن الخصوصية أو لطلب حذف بياناتك:": {
+  "en": "For any privacy question or to request deletion of your data:",
+  "he": "לכל שאלה בנושא פרטיות או לבקשת מחיקת נתונים:"
+ },
+ "لا أخبار منشورة بعد.": {
+  "en": "No published news yet.",
+  "he": "עדיין אין חדשות שפורסמו."
+ },
+ "لا أخبار هنا.": {
+  "en": "No news here.",
+  "he": "אין כאן חדשות."
+ },
+ "لا أعضاء.": {
+  "en": "No members.",
+  "he": "אין חברים."
+ },
+ "لا إعلانات من هذا النوع الآن.": {
+  "en": "No ads of this type right now.",
+  "he": "אין כרגע מודעות מסוג זה."
+ },
+ "لا إعلانات هنا.": {
+  "en": "No ads here.",
+  "he": "אין כאן מודעות."
+ },
+ "لا بلاغات بانتظار المراجعة.": {
+  "en": "No reports awaiting review.",
+  "he": "אין דיווחים הממתינים לבדיקה."
+ },
+ "لا بيانات بحث بعد. تظهر عادةً بعد يومين إلى ثلاثة من التحقق من الموقع.": {
+  "en": "No search data yet. It usually appears two to three days after verifying the site.",
+  "he": "אין עדיין נתוני חיפוש. בדרך כלל הם מופיעים יומיים-שלושה אחרי אימות האתר."
+ },
+ "لا بيانات بعد.": {
+  "en": "No data yet.",
+  "he": "אין נתונים עדיין."
+ },
+ "لا تتوفر مواعيد محدّثة حالياً. اتصل بغاليم للتأكد.": {
+  "en": "No updated times available right now. Call Galim to confirm.",
+  "he": "אין כרגע זמנים מעודכנים. התקשר לגלים לווידוא."
+ },
+ "لا تعليقات بعد. كن أول من يعلّق.": {
+  "en": "No comments yet. Be the first to comment.",
+  "he": "אין עדיין תגובות. היה הראשון להגיב."
+ },
+ "لا تعليقات هنا.": {
+  "en": "No comments here.",
+  "he": "אין כאן תגובות."
+ },
+ "لا تغييرات": {
+  "en": "No changes",
+  "he": "אין שינויים"
+ },
+ "لا تنبيهات.": {
+  "en": "No alerts.",
+  "he": "אין התראות."
+ },
+ "لا تنشر أرقام هواتف في التعليقات. للإعلانات استخدم قسم الإعلانات.": {
+  "en": "Don't post phone numbers in comments. For ads, use the classifieds section.",
+  "he": "אל תפרסם מספרי טלפון בתגובות. לפרסום השתמש במדור המודעות."
+ },
+ "لا توجد أخطاء.": {
+  "en": "No errors.",
+  "he": "אין שגיאות."
+ },
+ "لا توجد منتجات بعد": {
+  "en": "No products yet",
+  "he": "אין עדיין מוצרים"
+ },
+ "لا توجد نتيجة. جرّب اسماً أو حياً أو تصنيفاً.": {
+  "en": "No results. Try a name, neighborhood or category.",
+  "he": "אין תוצאות. נסה שם, שכונה או קטגוריה."
+ },
+ "لا توجد نشاطات موثّقة بعد. أضف نشاطك ليظهر هنا بعد المراجعة.": {
+  "en": "No verified businesses yet. Add your business to appear here after review.",
+  "he": "אין עדיין עסקים מאומתים. הוסף את העסק שלך כדי שיופיע כאן לאחר בדיקה."
+ },
+ "لا خبر في هذا التصنيف الآن.": {
+  "en": "No news in this category right now.",
+  "he": "אין כרגע חדשות בקטגוריה זו."
+ },
+ "لا رحلات أخرى لهذا الخط من هذه المحطة اليوم.": {
+  "en": "No more trips on this line from this stop today.",
+  "he": "אין עוד נסיעות בקו זה מתחנה זו היום."
+ },
+ "لا رحلات في هذا اليوم حسب الجدول.": {
+  "en": "No trips on this day according to the schedule.",
+  "he": "אין נסיעות ביום זה לפי הלוח."
+ },
+ "لا طلبات بعد.": {
+  "en": "No orders yet.",
+  "he": "אין עדיין הזמנות."
+ },
+ "لا طلبات هنا.": {
+  "en": "No orders here.",
+  "he": "אין כאן הזמנות."
+ },
+ "لا مناوبات مسجلة.": {
+  "en": "No shifts recorded.",
+  "he": "אין תורנויות רשומות."
+ },
+ "لا منتجات بعد. المتجر يظهر فارغاً للزوار حتى تضيف منتجاً وتفعّله.": {
+  "en": "No products yet. The store appears empty to visitors until you add and enable a product.",
+  "he": "אין עדיין מוצרים. החנות תופיע ריקה למבקרים עד שתוסיף ותפעיל מוצר."
+ },
+ "لا نستخدم ملفات ارتباط إعلانية أو تتبّع من أطراف أخرى.": {
+  "en": "We don't use third-party advertising or tracking cookies.",
+  "he": "איננו משתמשים בעוגיות פרסום או מעקב של צד שלישי."
+ },
+ "لا نشاط يطابق البحث.": {
+  "en": "No business matches the search.",
+  "he": "אין עסק התואם לחיפוש."
+ },
+ "لا نقبل منشورات بلا حساب، حتى نعرف من نشر ونمنع الرسائل المزعجة. بعد الدخول تعود إلى هذه الصفحة مباشرة، وتتابع ما أرسلته وحالته من «منشوراتي».": {
+  "en": "We don't accept posts without an account, so we know who posted and can block spam. After signing in you return straight to this page and can follow what you sent and its status in \"My posts\".",
+  "he": "איננו מקבלים פוסטים ללא חשבון, כדי לדעת מי פרסם ולמנוע ספאם. לאחר ההתחברות תחזור ישירות לעמוד זה ותוכל לעקוב אחר מה ששלחת ב\"הפוסטים שלי\"."
+ },
+ "لا وصول متوقع قريباً لهذه المحطة.": {
+  "en": "No arrivals expected soon at this stop.",
+  "he": "אין הגעות צפויות בקרוב לתחנה זו."
+ },
+ "لا وصول متوقع لخط": {
+  "en": "No arrival expected for line",
+  "he": "אין הגעה צפויה לקו"
+ },
+ "لا يمكن تشفير المفتاح على هذا الخادم.": {
+  "en": "The key can't be encrypted on this server.",
+  "he": "לא ניתן להצפין את המפתח בשרת זה."
+ },
+ "لا يمكن تعديل هذا التعليق (التعديل متاح لصاحبه خلال 10 دقائق).": {
+  "en": "This comment can't be edited (editing is available to its author for 10 minutes).",
+  "he": "לא ניתן לערוך תגובה זו (העריכה זמינה לכותב במשך 10 דקות)."
+ },
+ "لا يوجد باص قادم يرسل موقعه الآن — الأوقات أدناه من النظام المباشر أو الجدول.": {
+  "en": "No upcoming bus is sending its location now — the times below are from the live system or the schedule.",
+  "he": "אין כרגע אוטובוס קרוב המשדר מיקום — הזמנים למטה מהמערכת החיה או מהלוח."
+ },
+ "لا يوجد باص يرسل موقعه الآن لهذه المحطة، فالأوقات المعروضة حسب الجدول وتقريبية.": {
+  "en": "No bus is sending its location for this stop right now, so the times shown are scheduled and approximate.",
+  "he": "אין כרגע אוטובוס המשדר מיקום לתחנה זו, ולכן הזמנים המוצגים לפי הלוח ומשוערים."
+ },
+ "لا يوجد باص يرسل موقعه على هذا الخط الآن. اضغط على محطة لرؤية أوقات الوصول.": {
+  "en": "No bus on this line is sending its location now. Tap a stop to see arrival times.",
+  "he": "אין כרגע אוטובוס בקו זה המשדר מיקום. לחץ על תחנה לראות זמני הגעה."
+ },
+ "لا يوجد رقم هاتف مسجّل لهذا المكان.": {
+  "en": "No phone number is listed for this place.",
+  "he": "לא רשום מספר טלפון למקום זה."
+ },
+ "لا يوجد مفتاح Gemini.": {
+  "en": "No Gemini key.",
+  "he": "אין מפתח Gemini."
+ },
+ "لا يوجد مفتاح تشفير على الخادم (BETTER_AUTH_SECRET).": {
+  "en": "No encryption key on the server (BETTER_AUTH_SECRET).",
+  "he": "אין מפתח הצפנה בשרת (BETTER_AUTH_SECRET)."
+ },
+ "لا يوجد مفتاح تشفير على الخادم.": {
+  "en": "No encryption key on the server.",
+  "he": "אין מפתח הצפנה בשרת."
+ },
+ "لا يوجد مفتاح تشفير على الخادم؛ لا يمكن حفظ كلمات السر.": {
+  "en": "No encryption key on the server; passwords can't be saved.",
+  "he": "אין מפתח הצפנה בשרת; לא ניתן לשמור סיסמאות."
+ },
+ "لا يوجد مفتاح.": {
+  "en": "No key.",
+  "he": "אין מפתח."
+ },
+ "لاحقاً": {
+  "en": "Later",
+  "he": "אחר כך"
+ },
+ "لديك طلبات بانتظار المراجعة. انتظر مراجعتها أولاً.": {
+  "en": "You have requests awaiting review. Wait for them to be reviewed first.",
+  "he": "יש לך בקשות הממתינות לבדיקה. המתן לבדיקתן קודם."
+ },
+ "لديك عدة أخبار بانتظار المراجعة. انتظر مراجعتها أولاً.": {
+  "en": "You have several news items awaiting review. Wait for them to be reviewed first.",
+  "he": "יש לך כמה חדשות הממתינות לבדיקה. המתן לבדיקתן קודם."
+ },
+ "لديك عدة إعلانات بانتظار المراجعة. انتظر مراجعتها أولاً.": {
+  "en": "You have several ads awaiting review. Wait for them to be reviewed first.",
+  "he": "יש לך כמה מודעות הממתינות לבדיקה. המתן לבדיקתן קודם."
+ },
+ "لعرض الزيارات هنا، يحتاج مالك الموقع إلى ربط حساب خدمة من Google Cloud مرة واحدة:": {
+  "en": "To show visits here, the site owner needs to connect a Google Cloud service account once:",
+  "he": "כדי להציג כאן ביקורים, על בעל האתר לחבר חשבון שירות של Google Cloud פעם אחת:"
+ },
+ "لغات الموقع": {
+  "en": "Site languages",
+  "he": "שפות האתר"
+ },
+ "لكل مستخدم": {
+  "en": "per user",
+  "he": "למשתמש"
+ },
+ "للإدارة أن ترفض أو تحذف أي منشور يخالف هذه الشروط دون إشعار.": {
+  "en": "The admins may reject or delete any post that breaks these terms without notice.",
+  "he": "הניהול רשאי לדחות או למחוק כל פוסט המפר תנאים אלה ללא הודעה."
+ },
+ "للتواصل:": {
+  "en": "Contact:",
+  "he": "ליצירת קשר:"
+ },
+ "لم تتغير الحالة (قد يكون الطلب ليس بانتظار الدفع، أو نقص في الأكواد).": {
+  "en": "The status didn't change (the order may not be awaiting payment, or codes ran short).",
+  "he": "הסטטוס לא השתנה (ייתכן שההזמנה לא ממתינה לתשלום, או שחסרים קודים)."
+ },
+ "لم ترسل أي خبر بعد.": {
+  "en": "You haven't sent any news yet.",
+  "he": "עדיין לא שלחת חדשות."
+ },
+ "لم ترسل أي طلب نشاط بعد.": {
+  "en": "You haven't sent any business requests yet.",
+  "he": "עדיין לא שלחת בקשות עסק."
+ },
+ "لم تكتمل عملية الدفع. لم يُخصم شيء، ويمكنك المحاولة لاحقاً.": {
+  "en": "The payment wasn't completed. Nothing was charged, and you can try later.",
+  "he": "התשלום לא הושלם. לא חויב דבר, ותוכל לנסות מאוחר יותר."
+ },
+ "لم تنشر أي إعلان بعد.": {
+  "en": "You haven't posted any ads yet.",
+  "he": "עדיין לא פרסמת מודעות."
+ },
+ "لم تُرسل خريطة موقع بعد. أرسل https://rahatpost.com/sitemap.xml من Search Console ← «خرائط الموقع».": {
+  "en": "No sitemap submitted yet. Submit https://rahatpost.com/sitemap.xml from Search Console → Sitemaps.",
+  "he": "עדיין לא נשלחה מפת אתר. שלח את https://rahatpost.com/sitemap.xml מ-Search Console ← מפות אתר."
+ },
+ "لم نتمكن من تحديد موقعك.": {
+  "en": "We couldn't determine your location.",
+  "he": "לא הצלחנו לאתר את מיקומך."
+ },
+ "لم يكتمل تسجيل الدخول. ارجع إلى التطبيق وحاول مرة أخرى.": {
+  "en": "Sign-in wasn't completed. Go back to the app and try again.",
+  "he": "ההתחברות לא הושלמה. חזור לאפליקציה ונסה שוב."
+ },
+ "لم يكتمل تسجيل الدخول. حاول مرة أخرى.": {
+  "en": "Sign-in wasn't completed. Please try again.",
+  "he": "ההתחברות לא הושלמה. נסה שוב."
+ },
+ "لم يُحدَّث جدول اليوم": {
+  "en": "Today's schedule hasn't been updated",
+  "he": "לוח היום לא עודכן"
+ },
+ "لم يُسمح بالإشعارات. يمكنك تفعيلها من إعدادات المتصفح لموقع رهط بوست.": {
+  "en": "Notifications weren't allowed. You can enable them in the browser settings for Rahat Post.",
+  "he": "ההתראות לא אושרו. ניתן להפעיל אותן בהגדרות הדפדפן לאתר רהט פוסט."
+ },
+ "لمرة واحدة": {
+  "en": "One-time",
+  "he": "חד-פעמי"
+ },
+ "لوحة التحكم": {
+  "en": "Dashboard",
+  "he": "לוח בקרה"
+ },
+ "لوحة اليوم": {
+  "en": "Today board",
+  "he": "לוח היום"
+ },
+ "لوحة اليوم في رهط والنقب: الطقس الآن، أوقات الصلاة، صيدلية الحراسة اليوم، أرقام الطوارئ والإسعاف والشرطة، التنبيهات، وأهم أخبار إسرائيل مترجمة إلى العربية.": {
+  "en": "Today in Rahat and the Negev: current weather, prayer times, today's on-duty pharmacy, emergency, ambulance and police numbers, alerts, and top Israel news translated into Arabic.",
+  "he": "היום ברהט והנגב: מזג האוויר עכשיו, זמני תפילה, בית המרקחת התורן, מספרי חירום, מד\"א ומשטרה, התראות וחדשות ישראל המובילות בתרגום לערבית."
+ },
+ "لوحة اليوم في رهط: الطقس، أوقات الصلاة، الطوارئ والصيدلية المناوبة · رهط بوست": {
+  "en": "Today in Rahat: weather, prayer times, emergencies and the on-duty pharmacy · Rahat Post",
+  "he": "היום ברהט: מזג אוויר, זמני תפילה, חירום ובית מרקחת תורן · רהט פוסט"
+ },
+ "لوطي": {},
+ "لون التنبيه والعاجل": {
+  "en": "Alert & breaking color",
+  "he": "צבע התראה ומבזק"
+ },
+ "لون الخلفية": {
+  "en": "Background color",
+  "he": "צבע רקע"
+ },
+ "لون النص": {
+  "en": "Text color",
+  "he": "צבע טקסט"
+ },
+ "ما الذي تريد أن يصلك؟": {
+  "en": "What would you like to receive?",
+  "he": "מה תרצה לקבל?"
+ },
+ "ما الذي نجمعه": {
+  "en": "What we collect",
+  "he": "מה אנו אוספים"
+ },
+ "ما المشكلة؟": {
+  "en": "What's the problem?",
+  "he": "מה הבעיה?"
+ },
+ "ما المعلومات التي يجمعها رهط بوست (اسم وبريد حساب Google، منشوراتك، رقم الهاتف إن أضفته)، أين تُخزَّن، ومن يراها، وكيف تحذف حسابك وبياناتك.": {
+  "en": "What information Rahat Post collects (Google account name and email, your posts, your phone number if you add it), where it's stored, who sees it, and how to delete your account and data.",
+  "he": "איזה מידע אוסף רהט פוסט (שם ואימייל של חשבון Google, הפוסטים שלך, מספר טלפון אם הוספת), היכן הוא נשמר, מי רואה אותו, ואיך למחוק את החשבון והנתונים."
+ },
+ "ما تنشره": {
+  "en": "What you post",
+  "he": "מה שאתה מפרסם"
+ },
+ "ماركنتيل": {},
+ "مباشر": {
+  "en": "Live",
+  "he": "חי"
+ },
+ "متاح الآن:": {
+  "en": "Available now:",
+  "he": "זמין עכשיו:"
+ },
+ "متجر رهط بوست: اشتراكات ومنتجات رقمية تصلك مباشرة في حسابك.": {
+  "en": "Rahat Post store: subscriptions and digital products delivered straight to your account.",
+  "he": "חנות רהט פוסט: מנויים ומוצרים דיגיטליים שמגיעים ישירות לחשבון שלך."
+ },
+ "مترجم {0} من {1}": {
+  "en": "{0} of {1} translated",
+  "he": "תורגמו {0} מתוך {1}"
+ },
+ "متناك": {},
+ "متناكه": {},
+ "متوسط الترتيب": {
+  "en": "Average position",
+  "he": "מיקום ממוצע"
+ },
+ "متوسط التفاعل": {
+  "en": "Avg. engagement",
+  "he": "מעורבות ממוצעת"
+ },
+ "متوقفة": {
+  "en": "Off",
+  "he": "כבוי"
+ },
+ "متوقفة: التعليقات تُنشر فوراً (مع الفلتر والبلاغات).": {
+  "en": "Off: comments are published immediately (with the filter and reports).",
+  "he": "כבוי: תגובות מתפרסמות מיד (עם הסינון והדיווחים)."
+ },
+ "متى يصل الباص؟": {
+  "en": "When does the bus arrive?",
+  "he": "מתי מגיע האוטובוס?"
+ },
+ "مثال": {
+  "en": "Sample",
+  "he": "דוגמה"
+ },
+ "مجاني، بدون متجر، ويتحدّث تلقائياً": {
+  "en": "Free, no store, updates automatically",
+  "he": "חינם, בלי חנות, מתעדכנת אוטומטית"
+ },
+ "مجتمع": {
+  "en": "Community",
+  "he": "קהילה"
+ },
+ "مجدول": {
+  "en": "Scheduled",
+  "he": "מתוזמן"
+ },
+ "محاولات كثيرة. حاول بعد ربع ساعة.": {
+  "en": "Too many attempts. Try again in 15 minutes.",
+  "he": "יותר מדי ניסיונות. נסה שוב בעוד רבע שעה."
+ },
+ "محاولات كثيرة. حاول بعد قليل.": {
+  "en": "Too many attempts. Try again shortly.",
+  "he": "יותר מדי ניסיונות. נסה שוב בעוד מעט."
+ },
+ "محتوى التسليم (يظهر للمشتري فقط بعد تأكيد الدفع)": {
+  "en": "Delivery content (shown to the buyer only after payment is confirmed)",
+  "he": "תוכן המסירה (מוצג לקונה רק לאחר אישור התשלום)"
+ },
+ "محتوى ثابت لكل المشترين (نص / رابط)": {
+  "en": "Same content for all buyers (text / link)",
+  "he": "תוכן קבוע לכל הקונים (טקסט / קישור)"
+ },
+ "محتوى مسيء أو كراهية": {
+  "en": "Offensive or hateful content",
+  "he": "תוכן פוגעני או שנאה"
+ },
+ "محسوبة لموقع رهط ·": {
+  "en": "Calculated for Rahat ·",
+  "he": "מחושב למיקום רהט ·"
+ },
+ "محطة": {
+  "en": "Stop",
+  "he": "תחנה"
+ },
+ "محطة {0}": {
+  "en": "Stop {0}",
+  "he": "תחנה {0}"
+ },
+ "محطة {0} على الخريطة · باصات رهط": {
+  "en": "Stop {0} on the map · Rahat buses",
+  "he": "תחנה {0} על המפה · אוטובוסים ברהט"
+ },
+ "محطة الاطفاء": {
+  "en": "Fire station",
+  "he": "תחנת כיבוי אש"
+ },
+ "محطة الشرطة": {
+  "en": "Police station",
+  "he": "תחנת משטרה"
+ },
+ "محطة تافوح / السلام": {},
+ "محطة وقود": {
+  "en": "Gas station",
+  "he": "תחנת דלק"
+ },
+ "محظور": {
+  "en": "Banned",
+  "he": "חסום"
+ },
+ "مخزون أكواد (كود مختلف لكل وحدة)": {
+  "en": "Code pool (a different code per unit)",
+  "he": "מאגר קודים (קוד שונה לכל יחידה)"
+ },
+ "مخصصات، تحويل أموال، صرف شيكات وعملات": {
+  "en": "Benefits, money transfers, cashing checks and currency",
+  "he": "קצבאות, העברות כספים, פדיון צ'קים ומט\"ח"
+ },
+ "مخصّص": {
+  "en": "Custom",
+  "he": "מותאם"
+ },
+ "مخفي": {
+  "en": "Hidden",
+  "he": "מוסתר"
+ },
+ "مخفي (بانتظار المراجعة)": {
+  "en": "Hidden (awaiting review)",
+  "he": "מוסתר (ממתין לבדיקה)"
+ },
+ "مخفي حتى تضاف منتجات": {
+  "en": "Hidden until products are added",
+  "he": "מוסתר עד שיתווספו מוצרים"
+ },
+ "مخفية": {
+  "en": "Hidden",
+  "he": "מוסתרות"
+ },
+ "مدخل مدرسة": {},
+ "مدرسة ابن سينا": {},
+ "مدرسة الإخاء": {},
+ "مدرسة الرحمة الابتدائية": {},
+ "مدرسة السلام أ": {},
+ "مدرسة النور": {},
+ "مدرسة الهدى": {},
+ "مدرسة بيت الحكمة": {},
+ "مدرسة بين الحكمة": {},
+ "مدرسة خميس": {},
+ "مدرسة دار القلم": {},
+ "مدرسة صلاح الدين": {},
+ "مدرسة عمال التكنولوجية": {},
+ "مدرسة عمر بن الخطاب": {},
+ "مدفوع": {
+  "en": "Paid",
+  "he": "שולם"
+ },
+ "مدمج": {
+  "en": "Built-in",
+  "he": "מובנה"
+ },
+ "مدى الحياة": {
+  "en": "Lifetime",
+  "he": "לכל החיים"
+ },
+ "مرات الظهور": {
+  "en": "Impressions",
+  "he": "חשיפות"
+ },
+ "مرحباً بكم في رهط بوست، أخبار رهط والنقب.": {
+  "en": "Welcome to Rahat Post, news of Rahat and the Negev.",
+  "he": "ברוכים הבאים לרהט פוסט, חדשות רהט והנגב."
+ },
+ "مرحباً، أريد إتمام طلبي من متجر رهط بوست والدفع نقداً.": {
+  "en": "Hello, I'd like to complete my order from the Rahat Post store and pay cash.",
+  "he": "שלום, אני רוצה להשלים את ההזמנה שלי מחנות רהט פוסט ולשלם במזומן."
+ },
+ "مرفوض": {
+  "en": "Rejected",
+  "he": "נדחה"
+ },
+ "مركز التسوق": {},
+ "مركز بايس رهط": {},
+ "مساجد": {
+  "en": "Mosques",
+  "he": "מסגדים"
+ },
+ "مسار التصفح": {
+  "en": "Breadcrumb",
+  "he": "פירורי לחם"
+ },
+ "مسار خط الباص {0} في رهط ومحطاته على الخريطة، مع مواقع الباصات المباشرة.": {
+  "en": "Bus line {0} route in Rahat and its stops on the map, with live bus positions.",
+  "he": "מסלול קו {0} ברהט ותחנותיו על המפה, עם מיקומי אוטובוסים בזמן אמת."
+ },
+ "مساهمو OpenStreetMap": {
+  "en": "OpenStreetMap contributors",
+  "he": "תורמי OpenStreetMap"
+ },
+ "مستخدم": {
+  "en": "User",
+  "he": "משתמש"
+ },
+ "مستخدم ·": {
+  "en": "users ·",
+  "he": "משתמשים ·"
+ },
+ "مستخدمون": {
+  "en": "Users",
+  "he": "משתמשים"
+ },
+ "مستشفى كلاليت رهط": {},
+ "مسجد": {
+  "en": "Mosque",
+  "he": "מסגד"
+ },
+ "مسجد الأنصار": {},
+ "مسجد الإحسان": {},
+ "مسجد الاخاء": {},
+ "مسجد التقوى": {},
+ "مسجد الراشدين": {},
+ "مسجد الرحمة": {},
+ "مسجد السلام": {},
+ "مسجد بلال بن رباح": {},
+ "مسجد هلال": {},
+ "مسح": {
+  "en": "Clear",
+  "he": "נקה"
+ },
+ "مسح ذاكرة الترجمة": {
+  "en": "Clear translation cache",
+  "he": "נקה מטמון תרגום"
+ },
+ "مشاهدات": {
+  "en": "Views",
+  "he": "צפיות"
+ },
+ "مشاهدات الصفحات": {
+  "en": "Page views",
+  "he": "צפיות בעמודים"
+ },
+ "مشاهدة": {
+  "en": "views",
+  "he": "צפיות"
+ },
+ "مشتركو الإشعارات": {
+  "en": "Notification subscribers",
+  "he": "מנויי התראות"
+ },
+ "مشرف": {
+  "en": "Moderator",
+  "he": "מנהל"
+ },
+ "مشرف:": {
+  "en": "Moderator:",
+  "he": "מנהל:"
+ },
+ "مصادر الأخبار لا تستجيب حالياً. حاول مرة أخرى بعد قليل.": {
+  "en": "News sources aren't responding right now. Try again shortly.",
+  "he": "מקורות החדשות לא מגיבים כרגע. נסה שוב בקרוב."
+ },
+ "مصادر الزيارات": {
+  "en": "Traffic sources",
+  "he": "מקורות תנועה"
+ },
+ "مصدر المواعيد: بيانات GTFS المفتوحة من وزارة المواصلات، وتُحدَّث يومياً. قد تتغير المواعيد في الأعياد والطوارئ.": {
+  "en": "Times source: open GTFS data from the Ministry of Transport, updated daily. Times may change on holidays and in emergencies.",
+  "he": "מקור הזמנים: נתוני GTFS פתוחים של משרד התחבורה, מתעדכנים מדי יום. הזמנים עשויים להשתנות בחגים ובמצבי חירום."
+ },
+ "مطاعم ومقاهي": {
+  "en": "Restaurants & cafés",
+  "he": "מסעדות ובתי קפה"
+ },
+ "مطعم السلام": {},
+ "مطعم الطابون": {},
+ "مطلوب محاسب لمكتب صغير في حي 1": {},
+ "معاريف": {
+  "en": "Maariv",
+  "he": "מעריב"
+ },
+ "معاينة مباشرة": {
+  "en": "Live preview",
+  "he": "תצוגה מקדימה חיה"
+ },
+ "معرص": {},
+ "معرّف الحاوية (GTM-…)": {
+  "en": "Container ID (GTM-…)",
+  "he": "מזהה מכל (GTM-…)"
+ },
+ "معرّف القياس (G-…)": {
+  "en": "Measurement ID (G-…)",
+  "he": "מזהה מדידה (G-…)"
+ },
+ "معرّف القياس على الموقع:": {
+  "en": "Measurement ID on the site:",
+  "he": "מזהה מדידה באתר:"
+ },
+ "معرّف الموقع (Property ID)": {
+  "en": "Property ID",
+  "he": "מזהה נכס (Property ID)"
+ },
+ "معرّف الموقع (Property ID) أرقام فقط، مثل 123456789.": {
+  "en": "The Property ID is digits only, e.g. 123456789.",
+  "he": "מזהה הנכס (Property ID) מכיל ספרות בלבד, למשל 123456789."
+ },
+ "معرّف الموقع (Property ID) غير صحيح.": {
+  "en": "Invalid Property ID.",
+  "he": "מזהה נכס (Property ID) לא תקין."
+ },
+ "معرّف الناشر (ca-pub-…)": {
+  "en": "Publisher ID (ca-pub-…)",
+  "he": "מזהה מפרסם (ca-pub-…)"
+ },
+ "معطّل": {
+  "en": "Disabled",
+  "he": "מושבת"
+ },
+ "معلومات تقنية": {
+  "en": "Technical information",
+  "he": "מידע טכני"
+ },
+ "معلومات شخصية عن شخص آخر": {
+  "en": "Personal information about someone else",
+  "he": "מידע אישי על אדם אחר"
+ },
+ "معلومات كاذبة": {
+  "en": "False information",
+  "he": "מידע כוזב"
+ },
+ "مفاتيح VAPID غير مضبوطة على الخادم، لذلك لا يمكن الإرسال.": {
+  "en": "VAPID keys aren't set on the server, so notifications can't be sent.",
+  "he": "מפתחות VAPID לא הוגדרו בשרת, ולכן לא ניתן לשלוח."
+ },
+ "مفاتيح VAPID غير مضبوطة.": {
+  "en": "VAPID keys aren't configured.",
+  "he": "מפתחות VAPID לא הוגדרו."
+ },
+ "مفاتيح سيارة وُجدت قرب سوق الخميس": {},
+ "مفتاح API (اختياري)": {
+  "en": "API key (optional)",
+  "he": "מפתח API (אופציונלי)"
+ },
+ "مفتاح حساب الخدمة (محتوى ملف JSON)": {
+  "en": "Service account key (JSON file contents)",
+  "he": "מפתח חשבון שירות (תוכן קובץ JSON)"
+ },
+ "مفعّل": {
+  "en": "Enabled",
+  "he": "פעיל"
+ },
+ "مفعّلة": {
+  "en": "On",
+  "he": "פעיל"
+ },
+ "مفعّلة: التعليقات الجديدة لا تظهر إلا بعد موافقتك.": {
+  "en": "On: new comments appear only after your approval.",
+  "he": "פעיל: תגובות חדשות יופיעו רק לאחר אישורך."
+ },
+ "مفقودات": {
+  "en": "Lost & found",
+  "he": "אבידות ומציאות"
+ },
+ "مقتطف قصير من موقع": {
+  "en": "A short excerpt from",
+  "he": "קטע קצר מאתר"
+ },
+ "مكاناً ونشاطاً في رهط.": {
+  "en": "places and businesses in Rahat.",
+  "he": "מקומות ועסקים ברהט."
+ },
+ "مكتب": {
+  "en": "Office",
+  "he": "משרד"
+ },
+ "مكتب البريد": {
+  "en": "Post office",
+  "he": "סניף דואר"
+ },
+ "مكرر أو مزعج": {
+  "en": "Duplicate or spam",
+  "he": "כפול או ספאם"
+ },
+ "ملابس": {
+  "en": "Clothing",
+  "he": "ביגוד"
+ },
+ "ملاحظة (اختياري)": {
+  "en": "Note (optional)",
+  "he": "הערה (אופציונלי)"
+ },
+ "ملحمة ابو حسن": {},
+ "ملحمة ومشاوي ابو حسن": {},
+ "ملخّص سريع": {
+  "en": "Quick summary",
+  "he": "סיכום מהיר"
+ },
+ "ملعب": {},
+ "ملعب كرة السلة": {},
+ "ملعب كرة سلة": {},
+ "ملعب مدرسة": {},
+ "ملعب هبوعل رهط": {},
+ "ملغى": {
+  "en": "Cancelled",
+  "he": "בוטל"
+ },
+ "ملف JSON غير صالح.": {
+  "en": "Invalid JSON file.",
+  "he": "קובץ JSON לא תקין."
+ },
+ "ملف ads.txt يُنشأ تلقائياً على rahatpost.com/ads.txt من معرّف الناشر.": {
+  "en": "ads.txt is generated automatically at rahatpost.com/ads.txt from the publisher ID.",
+  "he": "קובץ ads.txt נוצר אוטומטית ב-rahatpost.com/ads.txt ממזהה המפרסם."
+ },
+ "ملف ارتباط لجلسة تسجيل الدخول (ينتهي بعد 7 أيام أو عند الخروج).": {
+  "en": "A sign-in session cookie (expires after 7 days or when you sign out).",
+  "he": "עוגיית סשן התחברות (פגה לאחר 7 ימים או ביציאה)."
+ },
+ "ملفات تعريف الارتباط والتخزين المحلي": {
+  "en": "Cookies and local storage",
+  "he": "עוגיות ואחסון מקומי"
+ },
+ "ممنوع": {
+  "en": "Prohibited",
+  "he": "אסור"
+ },
+ "من": {
+  "en": "From",
+  "he": "מאת"
+ },
+ "من «APIs & Services» ← «Library» ابحث عن": {
+  "en": "From \"APIs & Services\" → \"Library\" search for",
+  "he": "מתוך \"APIs & Services\" ← \"Library\" חפש את"
+ },
+ "من «IAM & Admin» ← «Service Accounts» اضغط «Create service account»، اكتب اسماً مثل rahatpost-stats ثم «Done» (بدون أدوار).": {
+  "en": "From \"IAM & Admin\" → \"Service Accounts\" press \"Create service account\", type a name like rahatpost-stats, then \"Done\" (no roles).",
+  "he": "מתוך \"IAM & Admin\" ← \"Service Accounts\" לחץ \"Create service account\", הקלד שם כמו rahatpost-stats ואז \"Done\" (ללא תפקידים)."
+ },
+ "من «طريقة التحقق: علامة HTML» انسخ قيمة content فقط.": {
+  "en": "From \"Verification method: HTML tag\", copy only the content value.",
+  "he": "מתוך \"שיטת אימות: תג HTML\" העתק רק את ערך content."
+ },
+ "من الذاكرة": {
+  "en": "From cache",
+  "he": "מהמטמון"
+ },
+ "من القراء": {
+  "en": "From readers",
+  "he": "מהקוראים"
+ },
+ "من القراء · {0}": {
+  "en": "From readers · {0}",
+  "he": "מהקוראים · {0}"
+ },
+ "من المتجر": {
+  "en": "From the store",
+  "he": "מהחנות"
+ },
+ "من المواقع الإخبارية العبرية، مترجمة آلياً إلى العربية": {
+  "en": "From Hebrew news sites, machine-translated into Arabic",
+  "he": "מאתרי החדשות העבריים, בתרגום מכונה לערבית"
+ },
+ "من تاريخ": {
+  "en": "From date",
+  "he": "מתאריך"
+ },
+ "من يرى ماذا": {
+  "en": "Who sees what",
+  "he": "מי רואה מה"
+ },
+ "مناسبات": {
+  "en": "Occasions",
+  "he": "אירועים"
+ },
+ "منتج ·": {
+  "en": "products ·",
+  "he": "מוצרים ·"
+ },
+ "منتج تجريبي": {
+  "en": "Sample product",
+  "he": "מוצר לדוגמה"
+ },
+ "منتج تجريبي «مثال» (لا يمكن شراؤه — أزل العلامة لجعله حقيقياً)": {
+  "en": "Sample product (can't be bought — untick to make it real)",
+  "he": "מוצר דוגמה (לא ניתן לרכישה — בטל סימון כדי להפוך אותו לאמיתי)"
+ },
+ "منتج جديد": {
+  "en": "New product",
+  "he": "מוצר חדש"
+ },
+ "منتج رقمي: يظهر لك محتواه (الكود أو الرابط) في «طلباتي» فور تأكيد الدفع.": {
+  "en": "Digital product: its content (code or link) appears in \"My orders\" as soon as payment is confirmed.",
+  "he": "מוצר דיגיטלי: התוכן (קוד או קישור) יופיע ב\"ההזמנות שלי\" מיד עם אישור התשלום."
+ },
+ "منتجات حقيقية مفعّلة": {
+  "en": "Real active products",
+  "he": "מוצרים אמיתיים פעילים"
+ },
+ "منتهٍ": {
+  "en": "Ended",
+  "he": "הסתיים"
+ },
+ "منذ 5 دقائق · رهط بوست": {
+  "en": "5 minutes ago · Rahat Post",
+  "he": "לפני 5 דקות · רהט פוסט"
+ },
+ "منذ {0}": {
+  "en": "{0} ago",
+  "he": "לפני {0}"
+ },
+ "منشور": {
+  "en": "Published",
+  "he": "פורסם"
+ },
+ "منشوراتي": {
+  "en": "My posts",
+  "he": "הפוסטים שלי"
+ },
+ "منشوراتي · رهط بوست": {
+  "en": "My posts · Rahat Post",
+  "he": "הפוסטים שלי · רהט פוסט"
+ },
+ "منع {0} من التعليق؟ تبقى تعليقاته السابقة كما هي.": {
+  "en": "Ban {0} from commenting? Their previous comments stay as they are.",
+  "he": "לחסום את {0} מלהגיב? התגובות הקודמות יישארו."
+ },
+ "منيك": {},
+ "منيوك": {},
+ "منيوكه": {},
+ "مواعيد باصات رهط": {
+  "en": "Rahat bus times",
+  "he": "זמני אוטובוסים ברהט"
+ },
+ "مواعيد باصات رهط لحظة بلحظة: خطوط شركة غاليم داخل رهط وإلى تل السبع وكسيفة وعرعرة النقب، وصول الباص إلى المحطة مباشرة وجدول رحلات اليوم.": {
+  "en": "Rahat bus times live: Galim lines within Rahat and to Tel as-Sabi, Kseifa and Ar'arat an-Naqab, live arrivals at your stop and today's schedule.",
+  "he": "זמני האוטובוסים ברהט בזמן אמת: קווי גלים בתוך רהט ולתל שבע, כסייפה וערערה בנגב, הגעה לתחנה בזמן אמת ולוח הנסיעות של היום."
+ },
+ "موافقة": {
+  "en": "Approve",
+  "he": "אשר"
+ },
+ "موافقة ونشر": {
+  "en": "Approve and publish",
+  "he": "אשר ופרסם"
+ },
+ "موافَق عليه": {
+  "en": "Approved",
+  "he": "אושר"
+ },
+ "موثّق": {
+  "en": "Verified",
+  "he": "מאומת"
+ },
+ "موثّق فقط": {
+  "en": "Verified only",
+  "he": "מאומתים בלבד"
+ },
+ "موسيقى": {
+  "en": "Music",
+  "he": "מוזיקה"
+ },
+ "موقع Search Console": {
+  "en": "Search Console property",
+  "he": "נכס Search Console"
+ },
+ "موقع المشغّل": {
+  "en": "Operator website",
+  "he": "אתר המפעיל"
+ },
+ "موقع مباشر الآن": {
+  "en": "Live location now",
+  "he": "מיקום חי עכשיו"
+ },
+ "موقعك": {
+  "en": "Your location",
+  "he": "המיקום שלך"
+ },
+ "موقعي": {
+  "en": "My location",
+  "he": "המיקום שלי"
+ },
+ "مُبلّغ عنها": {
+  "en": "Reported",
+  "he": "דווחו"
+ },
+ "ناقص": {
+  "en": "Missing",
+  "he": "חסר"
+ },
+ "نتائج «": {
+  "en": "Results for \"",
+  "he": "תוצאות עבור \""
+ },
+ "نتحقق من الدفع لدى شركة الدفع…": {
+  "en": "Verifying payment with the payment provider…",
+  "he": "מאמתים את התשלום מול חברת התשלום…"
+ },
+ "نجهّز المتجر الآن. عُد قريباً.": {
+  "en": "We're preparing the store now. Come back soon.",
+  "he": "אנו מכינים את החנות כעת. חזרו בקרוב."
+ },
+ "نسبة النقر CTR": {
+  "en": "Click-through rate (CTR)",
+  "he": "שיעור הקלקה CTR"
+ },
+ "نستخدم Google Analytics لقياس عدد الزيارات والصفحات الأكثر قراءة. تضع Google ملفات ارتباط لهذا الغرض، ويمكنك منعها من إعدادات متصفحك أو بإضافة إلغاء الاشتراك من Google.": {
+  "en": "We use Google Analytics to measure visits and the most-read pages. Google sets cookies for this purpose; you can block them in your browser settings or with Google's opt-out add-on.",
+  "he": "אנו משתמשים ב-Google Analytics למדידת ביקורים והעמודים הנקראים ביותר. Google מציבה עוגיות לשם כך, וניתן לחסום אותן בהגדרות הדפדפן או בתוסף ההסרה של Google."
+ },
+ "نستخدم اسمك وصورتك من الحساب لعرضهما مع منشوراتك فقط، ولا ننشر شيئاً على حسابك. بتسجيل الدخول أنت توافق على": {
+  "en": "We use your account name and photo only to show them with your posts, and we never post on your account. By signing in you agree to the",
+  "he": "אנו משתמשים בשם ובתמונה מהחשבון רק כדי להציגם עם הפוסטים שלך, ולעולם לא מפרסמים בחשבונך. בהתחברות אתה מסכים ל"
+ },
+ "نسخ": {
+  "en": "Copy",
+  "he": "העתק"
+ },
+ "نشاط": {
+  "en": "Business",
+  "he": "עסק"
+ },
+ "نشاط في الدليل": {
+  "en": "Directory business",
+  "he": "עסק במדריך"
+ },
+ "نشر التنبيه": {
+  "en": "Publish alert",
+  "he": "פרסם התראה"
+ },
+ "نشر الخبر": {
+  "en": "Publish news",
+  "he": "פרסם חדשה"
+ },
+ "نشر خبر": {
+  "en": "Publish news",
+  "he": "פרסום חדשה"
+ },
+ "نشر خبر جديد أو عاجل": {
+  "en": "Publish new or breaking news",
+  "he": "פרסם חדשה או מבזק"
+ },
+ "نشر معلومات شخصية أو صور عن شخص آخر دون إذنه.": {
+  "en": "Publishing personal information or photos of someone else without their permission.",
+  "he": "פרסום מידע אישי או תמונות של אדם אחר ללא רשותו."
+ },
+ "نشره:": {
+  "en": "Posted by:",
+  "he": "פורסם על ידי:"
+ },
+ "نشره: {0} · {1}": {
+  "en": "Posted by: {0} · {1}",
+  "he": "פורסם על ידי: {0} · {1}"
+ },
+ "نشط": {
+  "en": "Active",
+  "he": "פעיל"
+ },
+ "نص أسفل الصفحة": {
+  "en": "Footer text",
+  "he": "טקסט תחתית העמוד"
+ },
+ "نص الخبر": {
+  "en": "News text",
+  "he": "טקסט החדשה"
+ },
+ "نص الخبر قصير (20 حرفاً على الأقل).": {
+  "en": "The news text is too short (at least 20 characters).",
+  "he": "טקסט החדשה קצר מדי (לפחות 20 תווים)."
+ },
+ "نص الخبر: ماذا حدث، متى، ومن المعنيّون؟": {
+  "en": "News text: what happened, when, and who's involved?",
+  "he": "טקסט החדשה: מה קרה, מתי, ומי מעורב?"
+ },
+ "نص زر الإضافة": {
+  "en": "Add button text",
+  "he": "טקסט כפתור ההוספה"
+ },
+ "نص قصير (اختياري)": {
+  "en": "Short text (optional)",
+  "he": "טקסט קצר (אופציונלי)"
+ },
+ "نصوص الموقع": {
+  "en": "Site texts",
+  "he": "טקסטי האתר"
+ },
+ "نصوص الواجهة: {0}": {
+  "en": "Interface texts: {0}",
+  "he": "טקסטי ממשק: {0}"
+ },
+ "نطاق تاريخ غير صالح.": {
+  "en": "Invalid date range.",
+  "he": "טווח תאריכים לא תקין."
+ },
+ "نعرض إعلانات من Google AdSense. قد تستخدم Google وشركاؤها ملفات ارتباط لعرض إعلانات بناءً على زياراتك السابقة لهذا الموقع أو لمواقع أخرى. يمكنك إيقاف الإعلانات المخصّصة من": {
+  "en": "We show ads from Google AdSense. Google and its partners may use cookies to show ads based on your previous visits to this or other sites. You can turn off personalized ads from",
+  "he": "אנו מציגים מודעות מ-Google AdSense. Google ושותפיה עשויים להשתמש בעוגיות להצגת מודעות על סמך ביקוריך הקודמים באתר זה או באתרים אחרים. ניתן לכבות מודעות מותאמות אישית ב"
+ },
+ "نعرض اسمك من الحساب مع ما تنشره فقط، ولا ننشر شيئاً على حسابك.": {
+  "en": "We show your account name only with what you post, and we never post on your account.",
+  "he": "אנו מציגים את שם החשבון רק עם מה שאתה מפרסם, ולעולם לא מפרסמים בחשבונך."
+ },
+ "نفد": {
+  "en": "Sold out",
+  "he": "אזל"
+ },
+ "نقرات": {
+  "en": "Clicks",
+  "he": "הקלקות"
+ },
+ "نقص": {
+  "en": "Shortage",
+  "he": "חוסר"
+ },
+ "نقل أثاث داخل رهط والنقب": {},
+ "نموذج": {
+  "en": "Sample",
+  "he": "דוגמה"
+ },
+ "نموذج تعزية — ديوان حي 5": {},
+ "نموذج دعوة فرح — قاعة الواحة": {},
+ "نوع الإعلان": {
+  "en": "Ad type",
+  "he": "סוג המודעה"
+ },
+ "نيك": {},
+ "نُشر التنبيه.{0}": {
+  "en": "Alert published.{0}",
+  "he": "ההתראה פורסמה.{0}"
+ },
+ "ه": {},
+ "هاتف": {
+  "en": "Mobile",
+  "he": "נייד"
+ },
+ "هاتف للتواصل": {
+  "en": "Contact phone",
+  "he": "טלפון ליצירת קשר"
+ },
+ "هدايا": {
+  "en": "Gifts",
+  "he": "מתנות"
+ },
+ "هذا إعلان نموذجي لعرض الشكل فقط، وليس إعلاناً حقيقياً، لذلك لا يوجد رقم للتواصل.": {
+  "en": "This is a sample ad to show the layout only, not a real ad, so there's no contact number.",
+  "he": "זו מודעה לדוגמה להצגת המראה בלבד, לא מודעה אמיתית, ולכן אין מספר ליצירת קשר."
+ },
+ "هذا الإجراء لمالك الموقع فقط.": {
+  "en": "This action is for the site owner only.",
+  "he": "פעולה זו לבעל האתר בלבד."
+ },
+ "هذا الإعلان غير متوفر.": {
+  "en": "This ad is unavailable.",
+  "he": "מודעה זו לא זמינה."
+ },
+ "هذا الإعلان غير موجود أو انتهت مدته.": {
+  "en": "This ad doesn't exist or has expired.",
+  "he": "מודעה זו לא קיימת או שפג תוקפה."
+ },
+ "هذا الخبر لم يعد ضمن آخر أخبار إسرائيل.": {
+  "en": "This story is no longer among the latest Israel news.",
+  "he": "כתבה זו כבר לא בין חדשות ישראל האחרונות."
+ },
+ "هذا الخبر لم يعد ضمن آخر أخبار رهط والنقب.": {
+  "en": "This story is no longer among the latest Rahat and Negev news.",
+  "he": "כתבה זו כבר לא בין החדשות האחרונות מרהט והנגב."
+ },
+ "هذا الخبر لم يعد ضمن آخر الأخبار.": {
+  "en": "This story is no longer among the latest news.",
+  "he": "כתבה זו כבר לא בין החדשות האחרונות."
+ },
+ "هذا الخبر لم يعد متاحاً للتعليق.": {
+  "en": "This article is no longer open for comments.",
+  "he": "כתבה זו כבר לא פתוחה לתגובות."
+ },
+ "هذا الدليل غير موجود.": {
+  "en": "This guide doesn't exist.",
+  "he": "מדריך זה לא קיים."
+ },
+ "هذا الرابط مستخدم لمنتج آخر.": {
+  "en": "This link is used by another product.",
+  "he": "קישור זה בשימוש על ידי מוצר אחר."
+ },
+ "هذا القسم غير متوفر.": {
+  "en": "This section is unavailable.",
+  "he": "מדור זה לא זמין."
+ },
+ "هذا القسم للمالك والمشرفين فقط.": {
+  "en": "This section is for the owner and moderators only.",
+  "he": "מדור זה מיועד לבעלים ולמנהלים בלבד."
+ },
+ "هذا القسم لمالك الموقع فقط.": {
+  "en": "This section is for the site owner only.",
+  "he": "מדור זה לבעל האתר בלבד."
+ },
+ "هذا القسم له أقسام فرعية، فلا يمكن جعله فرعياً.": {
+  "en": "This section has subsections, so it can't be made a subsection.",
+  "he": "למדור זה יש תתי-מדורים, ולכן לא ניתן להפוך אותו לתת-מדור."
+ },
+ "هذا المتصفح لا يدعم الإشعارات.": {
+  "en": "This browser doesn't support notifications.",
+  "he": "דפדפן זה לא תומך בהתראות."
+ },
+ "هذا المتصفح لا يدعم الإشعارات. جرّب Chrome على أندرويد أو ثبّت التطبيق.": {
+  "en": "This browser doesn't support notifications. Try Chrome on Android or install the app.",
+  "he": "דפדפן זה לא תומך בהתראות. נסה Chrome באנדרואיד או התקן את האפליקציה."
+ },
+ "هذا المنتج غير متوفر.": {
+  "en": "This product is unavailable.",
+  "he": "מוצר זה לא זמין."
+ },
+ "هذا المنشور غير متاح للإبلاغ.": {
+  "en": "This post can't be reported.",
+  "he": "לא ניתן לדווח על פוסט זה."
+ },
+ "هذا النشاط غير موجود في الدليل.": {
+  "en": "This business isn't in the directory.",
+  "he": "עסק זה לא נמצא במדריך."
+ },
+ "هذا النشاط غير موجود في دليل رهط.": {
+  "en": "This business isn't in the Rahat directory.",
+  "he": "עסק זה לא נמצא במדריך רהט."
+ },
+ "هذا شكل إعلان الفرح في رهط بوست: اسم القاعة، اليوم، والساعة. بلا سعر ظاهر في بطاقة الدعوة.": {},
+ "هذا ليس مفتاح حساب خدمة (service_account).": {
+  "en": "This isn't a service account key (service_account).",
+  "he": "זה לא מפתח חשבון שירות (service_account)."
+ },
+ "هذا نشاطي": {
+  "en": "This is my business",
+  "he": "זה העסק שלי"
+ },
+ "هذه اللغة موجودة.": {
+  "en": "This language already exists.",
+  "he": "שפה זו כבר קיימת."
+ },
+ "و": {},
+ "واتساب": {
+  "en": "WhatsApp",
+  "he": "וואטסאפ"
+ },
+ "واتساب فقط": {},
+ "واضغط «Enable».": {
+  "en": "and press \"Enable\".",
+  "he": "ולחץ \"Enable\"."
+ },
+ "وال": {},
+ "واي نت": {
+  "en": "Ynet",
+  "he": "ynet"
+ },
+ "وحدات إعلانية يدوية": {
+  "en": "Manual ad units",
+  "he": "יחידות מודעה ידניות"
+ },
+ "وردي": {
+  "en": "Pink",
+  "he": "ורוד"
+ },
+ "ورش": {
+  "en": "Workshops",
+  "he": "מוסכים וסדנאות"
+ },
+ "وصف قصير": {
+  "en": "Short description",
+  "he": "תיאור קצר"
+ },
+ "وصف قصير (اختياري)": {
+  "en": "Short description (optional)",
+  "he": "תיאור קצר (אופציונלי)"
+ },
+ "وصل البلاغ إلى فريق رهط بوست وسنراجعه قريباً. المنشورات التي تتلقى عدة بلاغات تُخفى مؤقتاً حتى المراجعة.": {
+  "en": "Your report reached the Rahat Post team and we'll review it soon. Posts with several reports are hidden temporarily until reviewed.",
+  "he": "הדיווח הגיע לצוות רהט פוסט ונבדוק אותו בקרוב. פוסטים שמקבלים כמה דיווחים מוסתרים זמנית עד לבדיקה."
+ },
+ "وصل تعليقك وسيظهر للجميع بعد موافقة الإدارة.": {
+  "en": "Your comment was received and will be visible to everyone after admin approval.",
+  "he": "התגובה שלך התקבלה ותוצג לכולם לאחר אישור הניהול."
+ },
+ "وصلت للحد اليومي من التعليقات. حاول غداً.": {
+  "en": "You've reached the daily comment limit. Try tomorrow.",
+  "he": "הגעת למגבלת התגובות היומית. נסה מחר."
+ },
+ "وصلنا. لن يُنشر قبل المراجعة.": {
+  "en": "Received. It won't be published before review.",
+  "he": "התקבל. לא יפורסם לפני בדיקה."
+ },
+ "وضع تجريبي (تُعلَّم الطلبات «تجريبي»)": {
+  "en": "Test mode (orders are marked \"test\")",
+  "he": "מצב בדיקה (הזמנות מסומנות \"בדיקה\")"
+ },
+ "وظائف": {
+  "en": "Jobs",
+  "he": "דרושים"
+ },
+ "وقت الانتهاء مرّ بالفعل.": {
+  "en": "The end time has already passed.",
+  "he": "שעת הסיום כבר עברה."
+ },
+ "وقت الانتهاء يجب أن يكون بعد البداية.": {
+  "en": "The end time must be after the start.",
+  "he": "שעת הסיום חייבת להיות אחרי ההתחלה."
+ },
+ "وُجدت مفاتيح مع ميدالية زرقاء. صاحبها يصف الميدالية عند الاتصال.": {},
+ "ي": {},
+ "يا": {},
+ "يا حمار": {},
+ "يا كلب": {},
+ "يبدأ": {
+  "en": "Starts",
+  "he": "מתחיל"
+ },
+ "يبدو التعليق كإعلان أو رسالة مزعجة. للإعلانات استخدم قسم الإعلانات.": {
+  "en": "The comment looks like an ad or spam. For ads, use the classifieds section.",
+  "he": "התגובה נראית כמו פרסומת או ספאם. לפרסום השתמש במדור המודעות."
+ },
+ "يحذف حسابك وكل ما نشرته: الإعلانات، أخبار القراء، التعليقات والردود، طلبات الدليل (حتى الموافَق عليها) واشتراكات الإشعارات. لا يمكن التراجع.": {
+  "en": "Deletes your account and everything you posted: ads, reader news, comments and replies, directory requests (even approved ones) and notification subscriptions. This can't be undone.",
+  "he": "מוחק את החשבון שלך ואת כל מה שפרסמת: מודעות, חדשות קוראים, תגובות, בקשות למדריך (גם מאושרות) ומנויי התראות. לא ניתן לבטל."
+ },
+ "يدخل بحساب Google ويرى قسم «نشر خبر» فقط، ويعدّل ويحذف أخباره هو.": {
+  "en": "Signs in with Google and sees only the \"Publish news\" section, editing and deleting only their own news.",
+  "he": "נכנס עם Google ורואה רק את מדור \"פרסום חדשה\", ועורך ומוחק רק את החדשות שלו."
+ },
+ "يدخل لوحة الإدارة بحساب Google ويراجع كل الأقسام وينشر الأخبار.": {
+  "en": "Signs in to the admin panel with Google, reviews all sections and publishes news.",
+  "he": "נכנס ללוח הניהול עם Google, בודק את כל המדורים ומפרסם חדשות."
+ },
+ "يدوي": {
+  "en": "Manual",
+  "he": "ידני"
+ },
+ "يدوي (تواصل لإتمام الدفع)": {
+  "en": "Manual (contact to complete payment)",
+  "he": "ידני (צור קשר להשלמת התשלום)"
+ },
+ "يش": {},
+ "يش بشخونا": {},
+ "يصل الآن": {
+  "en": "Arriving now",
+  "he": "מגיע עכשיו"
+ },
+ "يظهر النشاط في الدليل بعلامة «موثّق» بعد أن نراجعه ونتأكد منه، مع الرقم الذي تكتبه هنا.": {
+  "en": "The business appears in the directory with a \"Verified\" badge after we review and confirm it, with the number you write here.",
+  "he": "העסק יופיע במדריך עם תג \"מאומת\" לאחר שנבדוק ונאשר אותו, עם המספר שתכתוב כאן."
+ },
+ "يظهر بعلامة «موثّق» بعد المراجعة": {
+  "en": "Shown with a \"Verified\" badge after review",
+  "he": "מוצג עם תג \"מאומת\" לאחר בדיקה"
+ },
+ "يفتح الصفحة": {
+  "en": "Opens page",
+  "he": "פותח עמוד"
+ },
+ "يلعن ابوك": {},
+ "يلعن امك": {},
+ "يلعن دينك": {},
+ "يمر بحي السلام والدفيئات": {
+  "en": "Passes through al-Salam and the greenhouses",
+  "he": "עובר בשכונת א-סלאם והחממות"
+ },
+ "يمر بزمزم والمنزارة": {
+  "en": "Passes through Zamzam and al-Manzara",
+  "he": "עובר בזמזם ובאל-מנזרה"
+ },
+ "يمكن إضافة {0} فقط.": {
+  "en": "You can add only {0}.",
+  "he": "ניתן להוסיף רק {0}."
+ },
+ "يمكنك إضافة عضو ببريده مباشرة: إن لم يكن مسجّلاً بعد، تُحفظ الدعوة وتُفعَّل تلقائياً عند دخوله بحساب Google بنفس البريد.": {
+  "en": "You can add a member directly by email: if they haven't registered yet, the invite is saved and activated automatically when they sign in with Google using the same email.",
+  "he": "ניתן להוסיף חבר ישירות לפי אימייל: אם עדיין לא נרשם, ההזמנה נשמרת ומופעלת אוטומטית כשיתחבר עם Google באותו אימייל."
+ },
+ "يمكنك حذف أي منشور من صفحة": {
+  "en": "You can delete any post from the page",
+  "he": "ניתן למחוק כל פוסט מהעמוד"
+ },
+ "يمكنك حذف حسابك في أي وقت من «منشوراتي». تفاصيل البيانات في": {
+  "en": "You can delete your account anytime from \"My posts\". Data details are in the",
+  "he": "ניתן למחוק את החשבון בכל עת מ\"הפוסטים שלי\". פרטי הנתונים ב"
+ },
+ "يمكنك رؤية طلباتك دائماً في: https://rahatpost.com/my-orders": {
+  "en": "You can always see your orders at: https://rahatpost.com/my-orders",
+  "he": "תמיד אפשר לראות את ההזמנות שלך ב: https://rahatpost.com/my-orders"
+ },
+ "ينتهي": {
+  "en": "Ends",
+  "he": "מסתיים"
+ },
+ "يوجد مفتاح محفوظ ومشفّر.": {
+  "en": "An encrypted key is saved.",
+  "he": "שמור מפתח מוצפן."
+ },
+ "يوم": {
+  "en": "day",
+  "he": "יום"
+ },
+ "يوماً": {
+  "en": "days",
+  "he": "ימים"
+ },
+ "يومين": {
+  "en": "2 days",
+  "he": "יומיים"
+ },
+ "يُحفظ مفتاح JSON مشفّراً ولا يُعرض مرة أخرى. صلاحية «مُشاهد» للقراءة فقط.": {
+  "en": "The JSON key is stored encrypted and never shown again. The Viewer role is read-only.",
+  "he": "מפתח ה-JSON נשמר מוצפן ולא יוצג שוב. תפקיד Viewer הוא לקריאה בלבד."
+ },
+ "يُستخدم المفتاح من إعدادات الخادم (GEMINI_API_KEY).": {
+  "en": "Using the key from the server settings (GEMINI_API_KEY).",
+  "he": "נעשה שימוש במפתח מהגדרות השרת (GEMINI_API_KEY)."
+ },
+ "يُستضاف الموقع على Vercel، وتُحفظ قاعدة البيانات لدى Neon (PostgreSQL) والصور في Vercel Blob، والاتصال بينهما مشفّر. تمرّ الإشعارات عبر خدمة الإشعارات الخاصة بمتصفحك (Google أو Apple أو Mozilla).": {
+  "en": "The site is hosted on Vercel, the database is stored at Neon (PostgreSQL) and images in Vercel Blob, with encrypted connections between them. Notifications pass through your browser's push service (Google, Apple or Mozilla).",
+  "he": "האתר מאוחסן ב-Vercel, מסד הנתונים ב-Neon (PostgreSQL) והתמונות ב-Vercel Blob, והחיבור ביניהם מוצפן. ההתראות עוברות דרך שירות ההתראות של הדפדפן שלך (Google, Apple או Mozilla)."
+ },
+ "يُسمح برابط واحد فقط في التعليق.": {
+  "en": "Only one link is allowed in a comment.",
+  "he": "מותר רק קישור אחד בתגובה."
+ },
+ "يُنشر الإعلان باسمك بعد مراجعته، ويظهر رقم الهاتف لمن يفتح الإعلان. أي تعديل يعيده للمراجعة.": {
+  "en": "The ad is published under your name after review, and the phone number is shown to anyone who opens it. Any edit sends it back for review.",
+  "he": "המודעה תפורסם בשמך לאחר בדיקה, ומספר הטלפון יוצג לכל מי שפותח אותה. כל עריכה מחזירה אותה לבדיקה."
+ },
+ "يُنشر الخبر باسمك بعد أن يراجعه فريق رهط بوست. اكتب ما تعرفه بدقة ولا تنشر معلومات شخصية عن أحد.": {
+  "en": "The news is published under your name after the Rahat Post team reviews it. Write what you know accurately and don't publish anyone's personal information.",
+  "he": "החדשה תפורסם בשמך לאחר שצוות רהט פוסט יבדוק אותה. כתוב בדיוק את מה שאתה יודע ואל תפרסם מידע אישי על אף אחד."
+ },
+ "— قسم رئيسي —": {
+  "en": "— Main section —",
+  "he": "— מדור ראשי —"
+ },
+ "•••• محفوظ (اكتب لاستبداله)": {
+  "en": "•••• saved (type to replace)",
+  "he": "•••• שמור (הקלד כדי להחליף)"
+ },
+ "•••• محفوظ{0} — الصق ملفاً جديداً لاستبداله": {
+  "en": "•••• saved{0} — paste a new file to replace it",
+  "he": "•••• שמור{0} — הדבק קובץ חדש כדי להחליף"
+ },
+ "📌 مثبّت": {
+  "en": "📌 Pinned",
+  "he": "📌 מוצמד"
+ }
+}

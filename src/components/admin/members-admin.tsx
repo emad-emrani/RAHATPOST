@@ -9,6 +9,7 @@ import {
   type Member,
   type TeamRole,
 } from "@/lib/team/api";
+import { tr, trv } from "@/lib/i18n/core";
 
 const ROLES: Record<TeamRole, string> = { moderator: "مشرف", writer: "كاتب" };
 
@@ -22,7 +23,7 @@ export function MembersAdmin() {
   const refresh = useCallback(async (query: string) => {
     const res = await adminListMembers({ data: { q: query } });
     setItems(res.items);
-    setMsg(!res.authed ? "هذا القسم لمالك الموقع فقط." : res.ok ? "" : "تعذّر تحميل الأعضاء.");
+    setMsg(!res.authed ? tr("هذا القسم لمالك الموقع فقط.") : res.ok ? "" : tr("تعذّر تحميل الأعضاء."));
   }, []);
 
   useEffect(() => {
@@ -30,11 +31,11 @@ export function MembersAdmin() {
   }, [refresh]);
 
   const setRole = async (m: Member, role: TeamRole | "") => {
-    if (!role && !confirm(`إزالة صلاحية ${m.name}؟`)) return;
+    if (!role && !confirm(tr("إزالة صلاحية {0}؟", m.name))) return;
     setBusyId(m.id);
     try {
       const res = await adminSetRole({ data: { userId: m.id, role } });
-      if (!res.ok) setMsg("تعذّر حفظ الصلاحية.");
+      if (!res.ok) setMsg(tr("تعذّر حفظ الصلاحية."));
       await refresh(q);
     } finally {
       setBusyId("");
@@ -45,16 +46,13 @@ export function MembersAdmin() {
     <>
       <div className="stamp mb-4 p-4 text-sm font-semibold text-muted">
         <p>
-          <b className="text-ink">مشرف:</b> يدخل لوحة الإدارة بحساب Google ويراجع كل الأقسام وينشر
-          الأخبار.
+          <b className="text-ink">{tr("مشرف:")}</b> {tr("يدخل لوحة الإدارة بحساب Google ويراجع كل الأقسام وينشر الأخبار.")}
         </p>
         <p className="mt-1">
-          <b className="text-ink">كاتب:</b> يدخل بحساب Google ويرى قسم «نشر خبر» فقط، ويعدّل ويحذف
-          أخباره هو.
+          <b className="text-ink">{tr("كاتب:")}</b> {tr("يدخل بحساب Google ويرى قسم «نشر خبر» فقط، ويعدّل ويحذف أخباره هو.")}
         </p>
         <p className="mt-1">
-          يمكنك إضافة عضو ببريده مباشرة: إن لم يكن مسجّلاً بعد، تُحفظ الدعوة وتُفعَّل تلقائياً عند
-          دخوله بحساب Google بنفس البريد.
+          {tr("يمكنك إضافة عضو ببريده مباشرة: إن لم يكن مسجّلاً بعد، تُحفظ الدعوة وتُفعَّل تلقائياً عند دخوله بحساب Google بنفس البريد.")}
         </p>
       </div>
       <InviteByEmail onDone={() => void refresh(q)} />
@@ -67,19 +65,19 @@ export function MembersAdmin() {
       >
         <input
           className="field"
-          placeholder="ابحث بالاسم أو البريد"
+          placeholder={tr("ابحث بالاسم أو البريد")}
           value={q}
           onChange={(e) => setQ(e.target.value)}
         />
         <button type="submit" className="btn px-4">
-          بحث
+          {tr("بحث")}
         </button>
       </form>
-      {msg ? <p className="stamp mb-3 p-3 font-bold">{msg}</p> : null}
+      {msg ? <p className="stamp mb-3 p-3 font-bold">{trv(msg)}</p> : null}
       {!items ? (
-        <p className="stamp p-4 font-semibold">جاري التحميل…</p>
+        <p className="stamp p-4 font-semibold">{tr("جاري التحميل…")}</p>
       ) : items.length === 0 ? (
-        <p className="stamp p-4 font-semibold">لا أعضاء.</p>
+        <p className="stamp p-4 font-semibold">{tr("لا أعضاء.")}</p>
       ) : (
         <ul className="flex flex-col gap-3">
           {items.map((m) => (
@@ -94,13 +92,13 @@ export function MembersAdmin() {
                   />
                 ) : null}
                 <div className="min-w-0 flex-1">
-                  <p className="font-bold">{m.name}</p>
+                  <p className="font-bold">{trv(m.name)}</p>
                   <p className="truncate text-sm font-semibold text-muted" dir="ltr">
-                    {m.email}
+                    {trv(m.email)}
                   </p>
                 </div>
                 <span className={m.role ? "chip chip-ink" : "chip"}>
-                  {m.role ? ROLES[m.role] : "عضو"}
+                  {m.role ? ROLES[m.role] : tr("عضو")}
                 </span>
               </div>
               <div className="mt-3 grid grid-cols-3 gap-2">
@@ -112,7 +110,7 @@ export function MembersAdmin() {
                     disabled={busyId === m.id || m.role === r}
                     onClick={() => setRole(m, r)}
                   >
-                    {ROLES[r]}
+                    {trv(ROLES[r])}
                   </button>
                 ))}
                 <button
@@ -121,7 +119,7 @@ export function MembersAdmin() {
                   disabled={busyId === m.id || !m.role}
                   onClick={() => setRole(m, "")}
                 >
-                  إزالة
+                  {tr("إزالة")}
                 </button>
               </div>
             </li>
@@ -152,12 +150,12 @@ function InviteByEmail({ onDone }: { onDone: () => void }) {
     setMsg("");
     try {
       const r = await adminInviteByEmail({ data: { email, role } });
-      if (!r.ok) setMsg(r.error ?? "تعذّر الحفظ.");
+      if (!r.ok) setMsg(r.error ?? tr("تعذّر الحفظ."));
       else {
         setMsg(
           r.result === "assigned"
-            ? `تم منح صلاحية «${ROLES[role]}» للعضو الموجود.`
-            : `حُفظت الدعوة. ستُفعَّل «${ROLES[role]}» عند دخول ${email.trim()} بحساب Google.`,
+            ? tr("تم منح صلاحية «{0}» للعضو الموجود.", ROLES[role])
+            : tr("حُفظت الدعوة. ستُفعَّل «{0}» عند دخول {1} بحساب Google.", ROLES[role], email.trim()),
         );
         setEmail("");
         onDone();
@@ -170,7 +168,7 @@ function InviteByEmail({ onDone }: { onDone: () => void }) {
 
   return (
     <div className="stamp mb-4 p-4">
-      <h3 className="mb-2 font-black">إضافة بالبريد الإلكتروني</h3>
+      <h3 className="mb-2 font-black">{tr("إضافة بالبريد الإلكتروني")}</h3>
       <form
         className="flex flex-wrap gap-2"
         onSubmit={(e) => {
@@ -193,21 +191,21 @@ function InviteByEmail({ onDone }: { onDone: () => void }) {
           value={role}
           onChange={(e) => setRole(e.target.value as TeamRole)}
         >
-          <option value="writer">كاتب</option>
-          <option value="moderator">مشرف</option>
+          <option value="writer">{tr("كاتب")}</option>
+          <option value="moderator">{tr("مشرف")}</option>
         </select>
         <button className="btn" disabled={busy}>
-          {busy ? "…" : "إضافة"}
+          {busy ? "…" : tr("إضافة")}
         </button>
       </form>
       {msg ? (
         <p className="mt-2 text-sm font-bold" role="status">
-          {msg}
+          {trv(msg)}
         </p>
       ) : null}
       {invites.length ? (
         <div className="mt-3">
-          <p className="mb-1 text-sm font-bold text-muted">دعوات بانتظار تسجيل الدخول</p>
+          <p className="mb-1 text-sm font-bold text-muted">{tr("دعوات بانتظار تسجيل الدخول")}</p>
           <ul className="flex flex-col gap-1.5">
             {invites.map((i) => (
               <li
@@ -215,21 +213,21 @@ function InviteByEmail({ onDone }: { onDone: () => void }) {
                 className="flex items-center gap-2 rounded-xl bg-surface px-3 py-2 text-sm font-semibold"
               >
                 <span className="min-w-0 flex-1 truncate" dir="ltr">
-                  {i.email}
+                  {trv(i.email)}
                 </span>
                 <span className="rounded-full bg-primary-soft px-2 py-0.5 text-xs font-bold">
-                  {ROLES[i.role]}
+                  {trv(ROLES[i.role])}
                 </span>
                 <button
                   type="button"
                   className="text-xs font-bold text-red-700 underline"
                   onClick={async () => {
-                    if (!confirm(`إلغاء دعوة ${i.email}؟`)) return;
+                    if (!confirm(tr("إلغاء دعوة {0}؟", i.email))) return;
                     await adminCancelInvite({ data: { email: i.email } });
                     await load();
                   }}
                 >
-                  إلغاء
+                  {tr("إلغاء")}
                 </button>
               </li>
             ))}

@@ -12,6 +12,7 @@ import {
   type CommentView,
 } from "@/lib/comments/types";
 import { relativeTimeAr } from "@/lib/news/format";
+import { tr, trv } from "@/lib/i18n/core";
 
 /** Comments under a news article. `articleKey` = page path without the leading "/". */
 export function Comments({ articleKey }: { articleKey: string }) {
@@ -42,7 +43,7 @@ export function Comments({ articleKey }: { articleKey: string }) {
 
   const posted = async (status?: string) => {
     setReplyTo(null);
-    setNotice(status === "pending" ? "وصل تعليقك وسيظهر للجميع بعد موافقة الإدارة." : "");
+    setNotice(status === "pending" ? tr("وصل تعليقك وسيظهر للجميع بعد موافقة الإدارة.") : "");
     await load();
     void linkPushToAccount();
   };
@@ -52,13 +53,13 @@ export function Comments({ articleKey }: { articleKey: string }) {
     <section id="comments" className="mt-8 scroll-mt-24" aria-labelledby="comments-title">
       <div className="mb-3 flex items-center justify-between gap-3">
         <h2 id="comments-title" className="text-xl font-bold">
-          التعليقات{thread?.total ? ` (${thread.total})` : ""}
+          {tr("التعليقات")}{thread?.total ? ` (${thread.total})` : ""}
         </h2>
-        <div className="flex gap-1" role="group" aria-label="ترتيب التعليقات">
+        <div className="flex gap-1" role="group" aria-label={tr("ترتيب التعليقات")}>
           {(
             [
-              ["newest", "الأحدث"],
-              ["oldest", "الأقدم"],
+              ["newest", tr("الأحدث")],
+              ["oldest", tr("الأقدم")],
             ] as const
           ).map(([key, label]) => (
             <button
@@ -68,7 +69,7 @@ export function Comments({ articleKey }: { articleKey: string }) {
               className={`chip min-h-10 ${order === key ? "chip-ink" : ""}`}
               onClick={() => setOrder(key)}
             >
-              {label}
+              {trv(label)}
             </button>
           ))}
         </div>
@@ -76,32 +77,32 @@ export function Comments({ articleKey }: { articleKey: string }) {
 
       {isPending ? null : !user ? (
         <div className="stamp flex flex-col gap-3 p-4">
-          <p className="font-bold">سجّل الدخول بحساب Google لتكتب تعليقاً أو ترد على الآخرين.</p>
+          <p className="font-bold">{tr("سجّل الدخول بحساب Google لتكتب تعليقاً أو ترد على الآخرين.")}</p>
           <p className="text-sm font-semibold text-muted">
-            قراءة التعليقات متاحة للجميع. يظهر اسمك وصورتك مع تعليقك.
+            {tr("قراءة التعليقات متاحة للجميع. يظهر اسمك وصورتك مع تعليقك.")}
           </p>
           <Link to="/login" search={{ redirect }} className="btn">
-            سجّل الدخول للتعليق
+            {tr("سجّل الدخول للتعليق")}
           </Link>
         </div>
       ) : thread?.blocked ? (
-        <p className="stamp p-4 font-semibold">تم إيقاف إمكانية التعليق لحسابك.</p>
+        <p className="stamp p-4 font-semibold">{tr("تم إيقاف إمكانية التعليق لحسابك.")}</p>
       ) : (
         <Composer articleKey={articleKey} premod={thread?.premod ?? false} onPosted={posted} />
       )}
 
       {notice ? (
         <p className="stamp mt-3 p-3 font-bold" role="status">
-          {notice}
+          {trv(notice)}
         </p>
       ) : null}
 
       {!thread ? (
-        <p className="mt-4 font-semibold text-muted">جاري تحميل التعليقات…</p>
+        <p className="mt-4 font-semibold text-muted">{tr("جاري تحميل التعليقات…")}</p>
       ) : !thread.ok ? (
-        <p className="stamp mt-4 p-4 font-semibold">تعذّر تحميل التعليقات الآن.</p>
+        <p className="stamp mt-4 p-4 font-semibold">{tr("تعذّر تحميل التعليقات الآن.")}</p>
       ) : thread.comments.length === 0 ? (
-        <p className="mt-4 font-semibold text-muted">لا تعليقات بعد. كن أول من يعلّق.</p>
+        <p className="mt-4 font-semibold text-muted">{tr("لا تعليقات بعد. كن أول من يعلّق.")}</p>
       ) : (
         <ul className="mt-4 flex flex-col gap-3">
           {thread.comments.map((c) => (
@@ -128,7 +129,7 @@ export function Comments({ articleKey }: { articleKey: string }) {
                         premod={thread.premod}
                         onPosted={posted}
                         onCancel={() => setReplyTo(null)}
-                        placeholder={`ردّ على ${c.author.name}`}
+                        placeholder={tr("ردّ على {0}", c.author.name)}
                       />
                     </li>
                   ) : null}
@@ -139,7 +140,7 @@ export function Comments({ articleKey }: { articleKey: string }) {
         </ul>
       )}
       <p className="mt-3 text-sm font-semibold text-muted">
-        التعليقات تعبّر عن أصحابها. يمنع السب والإساءة والإعلانات؛ أبلغ عن أي تعليق مخالف.
+        {tr("التعليقات تعبّر عن أصحابها. يمنع السب والإساءة والإعلانات؛ أبلغ عن أي تعليق مخالف.")}
       </p>
     </section>
   );
@@ -165,7 +166,7 @@ function Avatar({ name, image }: { name: string; image: string | null }) {
       aria-hidden
       className="grid size-10 shrink-0 place-items-center rounded-full bg-primary font-bold text-ink"
     >
-      {name.trim().charAt(0) || "؟"}
+      {name.trim().charAt(0) || tr("؟")}
     </span>
   );
 }
@@ -191,13 +192,13 @@ function CommentItem({
       <header className="flex items-center gap-3">
         <Avatar name={c.author.name} image={c.author.image} />
         <div className="min-w-0 flex-1">
-          <p className="truncate font-bold">{c.author.name}</p>
+          <p className="truncate font-bold">{trv(c.author.name)}</p>
           <p className="text-sm font-semibold text-muted">
             <time dateTime={c.createdAt}>{relativeTimeAr(c.createdAt, now)}</time>
-            {c.editedAt ? " · معدّل" : ""}
+            {c.editedAt ? tr(" · معدّل") : ""}
           </p>
         </div>
-        {c.status === "pending" ? <span className="chip">بانتظار الموافقة</span> : null}
+        {c.status === "pending" ? <span className="chip">{tr("بانتظار الموافقة")}</span> : null}
       </header>
       {editing ? (
         <Composer
@@ -211,7 +212,7 @@ function CommentItem({
         />
       ) : (
         <p className="mt-2 whitespace-pre-line break-words text-lg leading-relaxed" dir="auto">
-          {c.body}
+          {trv(c.body)}
         </p>
       )}
       {!editing ? (
@@ -223,7 +224,7 @@ function CommentItem({
               onClick={onReply}
             >
               <Reply className="size-4" aria-hidden />
-              ردّ
+              {tr("ردّ")}
             </button>
           ) : null}
           {canEdit ? (
@@ -233,7 +234,7 @@ function CommentItem({
               onClick={() => setEditing(true)}
             >
               <Pencil className="size-4" aria-hidden />
-              تعديل
+              {tr("تعديل")}
             </button>
           ) : null}
           {c.mine ? (
@@ -242,7 +243,7 @@ function CommentItem({
               className="inline-flex min-h-10 items-center gap-1 text-sm font-bold text-muted"
               disabled={busy}
               onClick={async () => {
-                if (!confirm("حذف تعليقك؟ تُحذف الردود عليه أيضاً.")) return;
+                if (!confirm(tr("حذف تعليقك؟ تُحذف الردود عليه أيضاً."))) return;
                 setBusy(true);
                 await deleteComment({ data: { id: c.id } }).catch(() => {});
                 await onChanged();
@@ -250,10 +251,10 @@ function CommentItem({
               }}
             >
               <Trash2 className="size-4" aria-hidden />
-              حذف
+              {tr("حذف")}
             </button>
           ) : c.status === "approved" ? (
-            <ReportButton type="comment" id={c.id} label="إبلاغ" compact />
+            <ReportButton type="comment" id={c.id} label={tr("إبلاغ")} compact />
           ) : null}
         </div>
       ) : null}
@@ -309,16 +310,16 @@ function Composer({
             setText("");
             startedAt.current = Date.now();
             await onPosted("status" in res ? String(res.status ?? "") : undefined);
-          } else setError(res.message ?? "تعذّر النشر.");
+          } else setError(res.message ?? tr("تعذّر النشر."));
         } catch {
-          setError("تعذّر النشر. تحقق من الاتصال أو سجّل الدخول من جديد.");
+          setError(tr("تعذّر النشر. تحقق من الاتصال أو سجّل الدخول من جديد."));
         } finally {
           setBusy(false);
         }
       }}
     >
       <label className="sr-only" htmlFor={`cm-${editId ?? parentId ?? "new"}`}>
-        {editId ? "تعديل التعليق" : parentId ? "اكتب رداً" : "اكتب تعليقاً"}
+        {editId ? tr("تعديل التعليق") : parentId ? tr("اكتب رداً") : tr("اكتب تعليقاً")}
       </label>
       <textarea
         id={`cm-${editId ?? parentId ?? "new"}`}
@@ -329,29 +330,29 @@ function Composer({
         maxLength={COMMENT_MAX}
         required
         value={text}
-        placeholder={placeholder ?? "اكتب تعليقك…"}
+        placeholder={placeholder ?? tr("اكتب تعليقك…")}
         onChange={(e) => setText(e.target.value)}
       />
       <input name="website" tabIndex={-1} autoComplete="off" className="hidden" aria-hidden />
       <div className="flex items-center justify-between gap-2 text-sm font-semibold text-muted">
         <span>
-          {len}/{COMMENT_MAX}
-          {premod && !editId ? " · يظهر بعد موافقة الإدارة" : ""}
+          {trv(len)}/{trv(COMMENT_MAX)}
+          {premod && !editId ? tr(" · يظهر بعد موافقة الإدارة") : ""}
         </span>
-        <span>رابط واحد كحد أقصى</span>
+        <span>{tr("رابط واحد كحد أقصى")}</span>
       </div>
       {error ? (
         <p role="alert" className="font-bold text-alert">
-          {error}
+          {trv(error)}
         </p>
       ) : null}
       <div className={onCancel ? "grid grid-cols-2 gap-2" : ""}>
         <button type="submit" className="btn w-full" disabled={busy || len < 2}>
-          {busy ? "جاري النشر…" : editId ? "حفظ" : parentId ? "أرسل الرد" : "انشر التعليق"}
+          {busy ? tr("جاري النشر…") : editId ? tr("حفظ") : parentId ? tr("أرسل الرد") : tr("انشر التعليق")}
         </button>
         {onCancel ? (
           <button type="button" className="btn btn-ghost w-full" onClick={onCancel}>
-            إلغاء
+            {tr("إلغاء")}
           </button>
         ) : null}
       </div>

@@ -9,17 +9,19 @@ import {
 import { getIsraelNews } from "@/lib/news/israel-api";
 import { useNow } from "@/lib/news/format";
 import { breadcrumbLd, seo } from "@/lib/seo";
+import { tr } from "@/lib/i18n/core";
+import { localized, localizedIsrael } from "@/lib/i18n/localize";
 
 export const Route = createFileRoute("/israel-news/")({
   head: () =>
     seo({
-      title: "أخبار إسرائيل بالعربية اليوم · رهط بوست",
+      title: tr("أخبار إسرائيل بالعربية اليوم · رهط بوست"),
       description:
-        "أهم عناوين أخبار إسرائيل من واي نت والقناة 12 ومعاريف وغلوبس، مترجمة آلياً إلى العربية لأهالي رهط والنقب، مع رابط الخبر الأصلي بالعبرية.",
+        tr("أهم عناوين أخبار إسرائيل من واي نت والقناة 12 ومعاريف وغلوبس، مترجمة آلياً إلى العربية لأهالي رهط والنقب، مع رابط الخبر الأصلي بالعبرية."),
       path: "/israel-news",
-      jsonLd: [breadcrumbLd([{ name: "أخبار إسرائيل", path: "/israel-news" }])],
+      jsonLd: [breadcrumbLd([{ name: tr("أخبار إسرائيل"), path: "/israel-news" }])],
     }),
-  loader: () => getIsraelNews(),
+  loader: async () => localizedIsrael(await getIsraelNews(), (d) => d.items),
   staleTime: 4 * 60_000,
   component: IsraelNewsPage,
 });
@@ -30,9 +32,9 @@ function IsraelNewsPage() {
   const [lead, ...rest] = data.items;
   return (
     <Shell>
-      <h1 className="mb-1 text-2xl font-bold">أخبار إسرائيل</h1>
+      <h1 className="mb-1 text-2xl font-bold">{tr("أخبار إسرائيل")}</h1>
       <p className="mb-4 font-semibold text-muted">
-        من المواقع الإخبارية العبرية، مترجمة آلياً إلى العربية
+        {tr("من المواقع الإخبارية العبرية، مترجمة آلياً إلى العربية")}
       </p>
       {lead ? (
         <>

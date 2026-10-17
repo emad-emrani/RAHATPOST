@@ -1,5 +1,6 @@
 import { deletePushSubscription, getPushConfig, getPushTopics, savePushSubscription } from "./api";
 import type { PushTopics } from "./types";
+import { tr } from "@/lib/i18n/core";
 
 export const DEFAULT_TOPICS: PushTopics = {
   alerts: true,
@@ -50,12 +51,12 @@ export async function loadTopics(): Promise<PushTopics | null> {
 
 /** Asks permission (if needed), subscribes and saves the topics. Returns an Arabic error or "". */
 export async function enablePush(topics: PushTopics = DEFAULT_TOPICS): Promise<string> {
-  if (pushSupport() !== "supported") return "هذا المتصفح لا يدعم الإشعارات.";
+  if (pushSupport() !== "supported") return tr("هذا المتصفح لا يدعم الإشعارات.");
   const permission = await Notification.requestPermission();
   if (permission !== "granted")
-    return "لم يُسمح بالإشعارات. يمكنك تفعيلها من إعدادات المتصفح لموقع رهط بوست.";
+    return tr("لم يُسمح بالإشعارات. يمكنك تفعيلها من إعدادات المتصفح لموقع رهط بوست.");
   const { publicKey } = await getPushConfig();
-  if (!publicKey) return "الإشعارات غير متاحة حالياً.";
+  if (!publicKey) return tr("الإشعارات غير متاحة حالياً.");
   const reg = await registration();
   let sub = await reg.pushManager.getSubscription();
   if (!sub) {
@@ -70,7 +71,7 @@ export async function enablePush(topics: PushTopics = DEFAULT_TOPICS): Promise<s
 export async function saveTopics(sub: PushSubscription, topics: PushTopics): Promise<string> {
   const json = sub.toJSON() as { endpoint: string; keys: { p256dh: string; auth: string } };
   const res = await savePushSubscription({ data: { subscription: json, topics } });
-  return res.ok ? "" : (res.message ?? "تعذّر حفظ الاشتراك.");
+  return res.ok ? "" : (res.message ?? tr("تعذّر حفظ الاشتراك."));
 }
 
 export async function disablePush(): Promise<void> {

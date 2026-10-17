@@ -3,6 +3,7 @@ import { ShoppingBag, ListChecks, LogOut, UserRound, Smartphone, UserX } from "l
 import { useEffect, useRef, useState } from "react";
 import { signOut } from "@/lib/auth/client";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
+import { tr, trv } from "@/lib/i18n/core";
 
 /** Top-bar account control: «دخول» when signed out, avatar menu when signed in. */
 export function UserMenu() {
@@ -29,13 +30,13 @@ export function UserMenu() {
 
   if (!user) {
     return (
-      <Link to="/login" className="btn btn-ghost size-12 shrink-0 p-0" aria-label="تسجيل الدخول">
+      <Link to="/login" className="btn btn-ghost size-12 shrink-0 p-0" aria-label={tr("تسجيل الدخول")}>
         <UserRound className="size-5" aria-hidden />
       </Link>
     );
   }
 
-  const initial = user.displayName.trim().charAt(0) || "؟";
+  const initial = user.displayName.trim().charAt(0) || tr("؟");
 
   return (
     <div ref={ref} className="relative shrink-0">
@@ -44,7 +45,7 @@ export function UserMenu() {
         className="grid size-12 place-items-center rounded-full"
         aria-haspopup="menu"
         aria-expanded={open}
-        aria-label={`حسابي: ${user.displayName}`}
+        aria-label={tr("حسابي: {0}", user.displayName)}
         onClick={() => setOpen((v) => !v)}
       >
         {user.image ? (
@@ -58,7 +59,7 @@ export function UserMenu() {
           />
         ) : (
           <span className="grid size-10 place-items-center rounded-full border border-primary-deep bg-primary font-bold text-ink">
-            {initial}
+            {trv(initial)}
           </span>
         )}
       </button>
@@ -67,7 +68,7 @@ export function UserMenu() {
           role="menu"
           className="stamp absolute end-0 top-full z-40 mt-2 w-60 overflow-hidden p-1"
         >
-          <p className="truncate px-3 py-2 text-sm font-bold">{user.displayName}</p>
+          <p className="truncate px-3 py-2 text-sm font-bold">{trv(user.displayName)}</p>
           <Link
             to="/my-posts"
             role="menuitem"
@@ -75,7 +76,7 @@ export function UserMenu() {
             onClick={() => setOpen(false)}
           >
             <ListChecks className="size-5 text-primary-ink" aria-hidden />
-            منشوراتي
+            {tr("منشوراتي")}
           </Link>
           <Link
             to="/my-orders"
@@ -84,7 +85,7 @@ export function UserMenu() {
             onClick={() => setOpen(false)}
           >
             <ShoppingBag className="size-5 text-primary-ink" aria-hidden />
-            طلباتي
+            {tr("طلباتي")}
           </Link>
           <Link
             to="/app"
@@ -93,7 +94,7 @@ export function UserMenu() {
             onClick={() => setOpen(false)}
           >
             <Smartphone className="size-5 text-primary-ink" aria-hidden />
-            تطبيق رهط بوست
+            {tr("تطبيق رهط بوست")}
           </Link>
           <a
             href="/my-posts#delete-account"
@@ -102,7 +103,7 @@ export function UserMenu() {
             onClick={() => setOpen(false)}
           >
             <UserX className="size-5 text-primary-ink" aria-hidden />
-            حذف حسابي
+            {tr("حذف حسابي")}
           </a>
           <button
             type="button"
@@ -112,14 +113,14 @@ export function UserMenu() {
               try {
                 await signOut("/");
               } catch {
-                setError("تعذّر تسجيل الخروج. حاول مرة أخرى.");
+                setError(tr("تعذّر تسجيل الخروج. حاول مرة أخرى."));
               }
             }}
           >
             <LogOut className="size-5 text-primary-ink" aria-hidden />
-            تسجيل خروج
+            {tr("تسجيل خروج")}
           </button>
-          {error ? <p className="px-3 py-2 text-sm font-bold">{error}</p> : null}
+          {error ? <p className="px-3 py-2 text-sm font-bold">{trv(error)}</p> : null}
         </div>
       ) : null}
     </div>

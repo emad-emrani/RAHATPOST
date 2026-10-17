@@ -1,5 +1,6 @@
 import { X } from "lucide-react";
 import { useEffect, useId, type ReactNode } from "react";
+import { tr, trv } from "@/lib/i18n/core";
 
 /** Bottom sheet dialog (mobile-first), closes on Escape / backdrop / X. */
 export function Sheet({
@@ -31,12 +32,12 @@ export function Sheet({
       >
         <div className="mb-3 flex items-center justify-between gap-3">
           <h2 id={id} className="text-xl font-bold">
-            {title}
+            {trv(title)}
           </h2>
           <button
             type="button"
             className="grid size-12 shrink-0 place-items-center rounded-xl"
-            aria-label="إغلاق"
+            aria-label={tr("إغلاق")}
             onClick={onClose}
           >
             <X className="size-5" aria-hidden />

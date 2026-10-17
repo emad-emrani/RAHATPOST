@@ -10,10 +10,12 @@ import type { NewsItem } from "@/lib/news/types";
 import { breadcrumbLd, newsArticleLd, seo, snippet } from "@/lib/seo";
 import { ReportButton } from "@/components/report";
 import { AdSlots } from "@/components/google-services";
+import { tr, trv } from "@/lib/i18n/core";
+import { localized, localizedIsrael } from "@/lib/i18n/localize";
 
 export const Route = createFileRoute("/news/$slug")({
   loader: async ({ params }) => {
-    const data = await getNews();
+    const data = await localized(await getNews(), (d) => [{ items: d.items, fields: ["title", "summary", "body"] }], "auto");
     return {
       now: data.now,
       empty: data.items.length === 0,
@@ -27,19 +29,19 @@ export const Route = createFileRoute("/news/$slug")({
     const path = `/news/${params.slug}`;
     if (!a) {
       return seo({
-        title: "الخبر غير متوفر · رهط بوست",
-        description: "هذا الخبر لم يعد ضمن آخر أخبار رهط والنقب.",
+        title: tr("الخبر غير متوفر · رهط بوست"),
+        description: tr("هذا الخبر لم يعد ضمن آخر أخبار رهط والنقب."),
         path,
         robots: "noindex",
       });
     }
-    const description = snippet(a.summary) || `${a.title} — أخبار رهط والنقب.`;
+    const description = snippet(a.summary) || tr("{0} — أخبار رهط والنقب.", a.title);
     const crumbs = breadcrumbLd([
-      { name: "أخبار رهط", path: "/news" },
+      { name: tr("أخبار رهط"), path: "/news" },
       { name: snippet(a.title, 80), path },
     ]);
     return seo({
-      title: `${a.title} · رهط بوست`,
+      title: tr("{0} · رهط بوست", a.title),
       description,
       path,
       type: "article",
@@ -78,10 +80,10 @@ function ArticlePage() {
         {empty ? (
           <NewsUnavailable />
         ) : (
-          <p className="stamp p-4 font-semibold">هذا الخبر لم يعد ضمن آخر الأخبار.</p>
+          <p className="stamp p-4 font-semibold">{tr("هذا الخبر لم يعد ضمن آخر الأخبار.")}</p>
         )}
         <Link to="/news" className="btn mt-4">
-          رجوع للأخبار
+          {tr("رجوع للأخبار")}
         </Link>
       </Shell>
     );
@@ -94,7 +96,7 @@ function ArticlePage() {
     ...sameCategory,
     ...items.filter((item) => item.slug !== article.slug && item.category !== article.category),
   ].slice(0, 3);
-  const share = encodeURIComponent(`${article.title}\nرهط بوست`);
+  const share = encodeURIComponent(tr("{0}\nرهط بوست", article.title));
   const url = `https://rahatpost.com/news/${article.slug}`;
 
   return (
@@ -110,39 +112,39 @@ function ArticlePage() {
               iconClassName="size-12"
             />
             <figcaption className="px-4 pt-2 text-xs font-semibold text-muted">
-              الصورة: {article.source}
+              {tr("الصورة:")} {trv(article.source)}
             </figcaption>
           </figure>
         ) : null}
         <div className="p-4">
           <span className={article.breaking ? "chip chip-alert" : "chip chip-deep"}>
-            {article.breaking ? "عاجل" : article.reader ? "من القراء" : article.category}
+            {article.breaking ? tr("عاجل") : article.reader ? tr("من القراء") : trv(article.category)}
           </span>
-          <h1 className="mt-3 text-2xl font-bold">{article.title}</h1>
+          <h1 className="mt-3 text-2xl font-bold">{trv(article.title)}</h1>
           <p className="mt-1 font-semibold text-muted">
             <time dateTime={article.publishedAt}>{relativeTimeAr(article.publishedAt, now)}</time> ·{" "}
             {article.reader
-              ? `نشره: ${article.reader.name} · ${article.reader.neighborhood}`
+              ? tr("نشره: {0} · {1}", article.reader.name, article.reader.neighborhood)
               : article.author
-                ? `${article.source} · كتبه: ${article.author}`
-                : article.source}
+                ? tr("{0} · كتبه: {1}", article.source, article.author)
+                : trv(article.source)}
           </p>
           {article.reader || article.staff ? (
             <ReaderBody article={article} />
           ) : (
             <>
-              {article.summary ? <p className="mt-4 text-lg">{article.summary}</p> : null}
+              {article.summary ? <p className="mt-4 text-lg">{trv(article.summary)}</p> : null}
               <a
                 className="btn mt-5 w-full"
                 href={article.link}
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                اقرأ الخبر كاملاً في المصدر
+                {tr("اقرأ الخبر كاملاً في المصدر")}
                 <ExternalLink className="size-4" aria-hidden />
               </a>
               <p className="mt-3 text-sm font-semibold text-muted">
-                مقتطف قصير من موقع {article.source}. الخبر الكامل وحقوقه لدى المصدر.
+                {tr("مقتطف قصير من موقع")} {trv(article.source)}{tr(". الخبر الكامل وحقوقه لدى المصدر.")}
               </p>
             </>
           )}
@@ -155,7 +157,7 @@ function ArticlePage() {
           target="_blank"
           rel="noopener noreferrer"
         >
-          تليجرام
+          {tr("تليجرام")}
         </a>
         <a
           className="btn btn-ghost"
@@ -163,14 +165,14 @@ function ArticlePage() {
           target="_blank"
           rel="noopener noreferrer"
         >
-          واتساب
+          {tr("واتساب")}
         </a>
       </div>
       <AdSlots placement="article" />
       <Comments key={article.slug} articleKey={`news/${article.slug}`} />
       {related.length > 0 ? (
         <>
-          <h2 className="mt-8 mb-3 text-xl font-bold">ذات صلة</h2>
+          <h2 className="mt-8 mb-3 text-xl font-bold">{tr("ذات صلة")}</h2>
           <ul className="flex flex-col gap-3">
             {related.map((item) => (
               <li key={item.slug}>
@@ -180,7 +182,7 @@ function ArticlePage() {
                   className="stamp press flex items-center gap-3 p-3 font-bold"
                 >
                   <NewsImage item={item} className="size-16 rounded-xl" />
-                  <span className="min-w-0 flex-1 leading-snug">{item.title}</span>
+                  <span className="min-w-0 flex-1 leading-snug">{trv(item.title)}</span>
                 </Link>
               </li>
             ))}
@@ -201,7 +203,7 @@ function ReaderBody({ article }: { article: NewsItem }) {
           .filter(Boolean)
           .map((para, i) => (
             <p key={i} className="whitespace-pre-line">
-              {para}
+              {trv(para)}
             </p>
           ))}
       </div>
@@ -212,13 +214,13 @@ function ReaderBody({ article }: { article: NewsItem }) {
           target="_blank"
           rel="noopener noreferrer nofollow ugc"
         >
-          المصدر الذي أرفقه الناشر
+          {tr("المصدر الذي أرفقه الناشر")}
           <ExternalLink className="size-4" aria-hidden />
         </a>
       ) : null}
       {article.staff ? null : (
         <p className="mt-3 text-sm font-semibold text-muted">
-          خبر أرسله أحد القرّاء وراجعه فريق رهط بوست قبل النشر. المسؤولية عن المحتوى على ناشره.
+          {tr("خبر أرسله أحد القرّاء وراجعه فريق رهط بوست قبل النشر. المسؤولية عن المحتوى على ناشره.")}
         </p>
       )}
       {article.staff ? null : (

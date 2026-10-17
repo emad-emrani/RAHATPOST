@@ -30,6 +30,7 @@ import {
 } from "@/lib/store/types";
 import type { AdminProductRow } from "@/lib/store/store.server";
 import type { AdminPaySettings } from "@/lib/store/settings.server";
+import { tr, trv } from "@/lib/i18n/core";
 
 const PARTS = {
   products: "المنتجات",
@@ -52,7 +53,7 @@ async function uploadImage(file: File): Promise<string> {
     key?: string;
     message?: string;
   };
-  if (!res.ok || !data.ok || !data.key) throw new Error(data.message || "تعذّر رفع الصورة.");
+  if (!res.ok || !data.ok || !data.key) throw new Error(data.message || tr("تعذّر رفع الصورة."));
   return data.key;
 }
 
@@ -70,7 +71,7 @@ export function StoreAdmin({ isOwner }: { isOwner: boolean }) {
             className={part === p ? "chip chip-ink shrink-0" : "chip shrink-0 bg-paper"}
             onClick={() => setPart(p)}
           >
-            {PARTS[p]}
+            {trv(PARTS[p])}
           </button>
         ))}
       </div>
@@ -100,11 +101,11 @@ function Catalog({ part }: { part: "products" | "categories" }) {
   const [editing, setEditing] = useState<Partial<AdminProductRow> | null>(null);
   const refresh = useCallback(async () => {
     const r = await adminStoreData();
-    if (!r.authed) return setMsg("انتهت الجلسة.");
+    if (!r.authed) return setMsg(tr("انتهت الجلسة."));
     setData(r);
   }, []);
   useEffect(() => void refresh(), [refresh]);
-  if (!data) return <p className="stamp p-4 font-semibold">{msg || "جاري التحميل…"}</p>;
+  if (!data) return <p className="stamp p-4 font-semibold">{msg || tr("جاري التحميل…")}</p>;
 
   if (part === "categories") return <Categories cats={data.categories} refresh={refresh} />;
   if (editing)
@@ -124,8 +125,8 @@ function Catalog({ part }: { part: "products" | "categories" }) {
         <div className="stamp mb-3 flex gap-2 border-red-300 p-3 font-bold">
           <AlertTriangle className="size-5 shrink-0 text-red-700" aria-hidden />
           <span>
-            أكواد قليلة (≤ {data.lowThreshold}):{" "}
-            {data.low.map((l) => `${l.name} (${l.freeCodes})`).join("، ")}
+            {tr("أكواد قليلة (≤")} {trv(data.lowThreshold)}):{" "}
+            {data.low.map((l) => `${l.name} (${l.freeCodes})`).join(tr("، "))}
           </span>
         </div>
       ) : null}
@@ -137,27 +138,27 @@ function Catalog({ part }: { part: "products" | "categories" }) {
         }
       >
         <Plus className="size-4" aria-hidden />
-        منتج جديد
+        {tr("منتج جديد")}
       </button>
       {data.products.some((p) => p.isSample) ? (
         <button
           type="button"
           className="btn btn-ghost mb-3 w-full"
           onClick={async () => {
-            if (!confirm("حذف كل المنتجات التجريبية «مثال»؟")) return;
+            if (!confirm(tr("حذف كل المنتجات التجريبية «مثال»؟"))) return;
             const r = await adminDeleteSamples();
-            setMsg(r.ok ? `حُذف ${r.n} منتج تجريبي.` : "تعذّر الحذف.");
+            setMsg(r.ok ? tr("حُذف {0} منتج تجريبي.", r.n) : tr("تعذّر الحذف."));
             await refresh();
           }}
         >
           <Trash2 className="size-4" aria-hidden />
-          حذف كل الأمثلة ({data.products.filter((p) => p.isSample).length})
+          {tr("حذف كل الأمثلة (")}{trv(data.products.filter((p) => p.isSample).length)})
         </button>
       ) : null}
-      {msg ? <p className="stamp mb-3 p-3 font-bold">{msg}</p> : null}
+      {msg ? <p className="stamp mb-3 p-3 font-bold">{trv(msg)}</p> : null}
       {data.products.length === 0 ? (
         <p className="stamp p-4 font-semibold">
-          لا منتجات بعد. المتجر يظهر فارغاً للزوار حتى تضيف منتجاً وتفعّله.
+          {tr("لا منتجات بعد. المتجر يظهر فارغاً للزوار حتى تضيف منتجاً وتفعّله.")}
         </p>
       ) : (
         <ul className="flex flex-col gap-3">
@@ -174,21 +175,21 @@ function Catalog({ part }: { part: "products" | "categories" }) {
               )}
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap gap-1">
-                  {p.isSample ? <span className="chip chip-deep">مثال</span> : null}
+                  {p.isSample ? <span className="chip chip-deep">{tr("مثال")}</span> : null}
                   <span className={p.active ? "chip chip-ok" : "chip"}>
-                    {p.active ? "مفعّل" : "مخفي"}
+                    {p.active ? tr("مفعّل") : tr("مخفي")}
                   </span>
                   <span className="chip">
                     {p.deliveryType === "codes"
-                      ? `أكواد: ${p.freeCodes} متاح · ${p.usedCodes} مُسلّم`
+                      ? tr("أكواد: {0} متاح · {1} مُسلّم", p.freeCodes, p.usedCodes)
                       : p.stock == null
-                        ? "غير محدود"
-                        : `الكمية: ${p.stock}`}
+                        ? tr("غير محدود")
+                        : tr("الكمية: {0}", p.stock)}
                   </span>
                 </div>
-                <p className="mt-1 font-bold">{p.name}</p>
+                <p className="mt-1 font-bold">{trv(p.name)}</p>
                 <p className="text-sm font-semibold text-muted" dir="ltr">
-                  {formatPrice(p.saleAgorot ?? p.priceAgorot)} · /store/{p.slug}
+                  {formatPrice(p.saleAgorot ?? p.priceAgorot)} · /store/{trv(p.slug)}
                 </p>
                 <div className="mt-2 flex gap-2">
                   <button
@@ -197,19 +198,19 @@ function Catalog({ part }: { part: "products" | "categories" }) {
                     onClick={() => setEditing(p)}
                   >
                     <Pencil className="size-4" aria-hidden />
-                    تعديل
+                    {tr("تعديل")}
                   </button>
                   <button
                     type="button"
                     className="btn btn-ghost px-3"
                     onClick={async () => {
-                      if (!confirm(`حذف «${p.name}»؟`)) return;
+                      if (!confirm(tr("حذف «{0}»؟", p.name))) return;
                       await adminDeleteProduct({ data: { id: p.id } });
                       await refresh();
                     }}
                   >
                     <Trash2 className="size-4" aria-hidden />
-                    حذف
+                    {tr("حذف")}
                   </button>
                 </div>
               </div>
@@ -243,7 +244,7 @@ function ProductForm({
     shortDesc: p.shortDesc ?? "",
     description: p.description ?? "",
     duration: p.duration ?? "none",
-    badges: (p.badges ?? []).join("، "),
+    badges: (p.badges ?? []).join(tr("، ")),
     stock: p.stock == null ? "" : String(p.stock),
     active: p.active ?? false,
     sort: String(p.sort ?? 0),
@@ -261,18 +262,18 @@ function ProductForm({
     const r = await adminSaveProduct({ data: { ...f, badges: f.badges.split(/[،,]/) } });
     if (r.ok && codes.trim() && r.id) {
       const c = await adminCodes({ data: { productId: r.id, text: codes } });
-      setMsg(`أُضيف ${c.n} كود.`);
+      setMsg(tr("أُضيف {0} كود.", c.n));
     }
     setBusy(false);
-    if (!r.ok) return setMsg(r.message ?? "تعذّر الحفظ.");
+    if (!r.ok) return setMsg(r.message ?? tr("تعذّر الحفظ."));
     onDone();
   };
   const field = "field mt-1";
   return (
     <div className="stamp flex flex-col gap-3 p-4">
-      <h2 className="text-xl font-bold">{f.id ? "تعديل منتج" : "منتج جديد"}</h2>
+      <h2 className="text-xl font-bold">{f.id ? tr("تعديل منتج") : tr("منتج جديد")}</h2>
       <label className="font-bold">
-        الاسم
+        {tr("الاسم")}
         <input
           className={field}
           value={f.name}
@@ -281,7 +282,7 @@ function ProductForm({
         />
       </label>
       <label className="font-bold">
-        الرابط (slug بالإنجليزية)
+        {tr("الرابط (slug بالإنجليزية)")}
         <input
           className={field}
           dir="ltr"
@@ -291,13 +292,13 @@ function ProductForm({
         />
       </label>
       <label className="font-bold">
-        القسم
+        {tr("القسم")}
         <select
           className={field}
           value={f.categoryId}
           onChange={(e) => set({ categoryId: e.target.value })}
         >
-          <option value="">بدون</option>
+          <option value="">{tr("بدون")}</option>
           {cats.map((c) => (
             <option key={c.id} value={c.id}>
               {c.parentId
@@ -309,7 +310,7 @@ function ProductForm({
       </label>
       <div className="grid grid-cols-2 gap-2">
         <label className="font-bold">
-          السعر
+          {tr("السعر")}
           <input
             className={field}
             inputMode="decimal"
@@ -319,20 +320,20 @@ function ProductForm({
           />
         </label>
         <label className="font-bold">
-          سعر التخفيض
+          {tr("سعر التخفيض")}
           <input
             className={field}
             inputMode="decimal"
             dir="ltr"
             value={f.sale}
-            placeholder="اختياري"
+            placeholder={tr("اختياري")}
             onChange={(e) => set({ sale: e.target.value })}
           />
         </label>
       </div>
       <div className="grid grid-cols-2 gap-2">
         <label className="font-bold">
-          المدة
+          {tr("المدة")}
           <select
             className={field}
             value={f.duration}
@@ -340,13 +341,13 @@ function ProductForm({
           >
             {Object.entries(DURATIONS).map(([k, v]) => (
               <option key={k} value={k}>
-                {v}
+                {trv(v)}
               </option>
             ))}
           </select>
         </label>
         <label className="font-bold">
-          الترتيب
+          {tr("الترتيب")}
           <input
             className={field}
             inputMode="numeric"
@@ -363,7 +364,7 @@ function ProductForm({
           <span className="size-16 rounded-xl bg-primary-soft" />
         )}
         <label className="btn btn-ghost px-3">
-          {busy ? "…" : "صورة المنتج"}
+          {busy ? "…" : tr("صورة المنتج")}
           <input
             type="file"
             accept="image/*"
@@ -375,7 +376,7 @@ function ProductForm({
               try {
                 set({ imageKey: await uploadImage(file) });
               } catch (err) {
-                setMsg(err instanceof Error ? err.message : "تعذّر الرفع.");
+                setMsg(err instanceof Error ? err.message : tr("تعذّر الرفع."));
               }
               setBusy(false);
             }}
@@ -387,12 +388,12 @@ function ProductForm({
             className="btn btn-ghost px-3"
             onClick={() => set({ imageKey: "" })}
           >
-            إزالة
+            {tr("إزالة")}
           </button>
         ) : null}
       </div>
       <label className="font-bold">
-        وصف قصير
+        {tr("وصف قصير")}
         <input
           className={field}
           maxLength={200}
@@ -401,7 +402,7 @@ function ProductForm({
         />
       </label>
       <label className="font-bold">
-        الوصف
+        {tr("الوصف")}
         <textarea
           className={`${field} min-h-24`}
           maxLength={4000}
@@ -410,23 +411,23 @@ function ProductForm({
         />
       </label>
       <label className="font-bold">
-        شارات (مفصولة بفاصلة)
+        {tr("شارات (مفصولة بفاصلة)")}
         <input
           className={field}
           value={f.badges}
-          placeholder="الأكثر مبيعاً، جديد"
+          placeholder={tr("الأكثر مبيعاً، جديد")}
           onChange={(e) => set({ badges: e.target.value })}
         />
       </label>
       <fieldset className="flex flex-col gap-2 rounded-xl border border-line p-3">
-        <legend className="px-1 font-bold">التسليم التلقائي بعد الدفع</legend>
+        <legend className="px-1 font-bold">{tr("التسليم التلقائي بعد الدفع")}</legend>
         <label className="flex items-center gap-2 font-semibold">
           <input
             type="radio"
             checked={f.deliveryType === "fixed"}
             onChange={() => set({ deliveryType: "fixed" })}
           />{" "}
-          محتوى ثابت لكل المشترين (نص / رابط)
+          {tr("محتوى ثابت لكل المشترين (نص / رابط)")}
         </label>
         <label className="flex items-center gap-2 font-semibold">
           <input
@@ -434,12 +435,12 @@ function ProductForm({
             checked={f.deliveryType === "codes"}
             onChange={() => set({ deliveryType: "codes" })}
           />{" "}
-          مخزون أكواد (كود مختلف لكل وحدة)
+          {tr("مخزون أكواد (كود مختلف لكل وحدة)")}
         </label>
         {f.deliveryType === "fixed" ? (
           <>
             <label className="font-bold">
-              محتوى التسليم (يظهر للمشتري فقط بعد تأكيد الدفع)
+              {tr("محتوى التسليم (يظهر للمشتري فقط بعد تأكيد الدفع)")}
               <textarea
                 className={`${field} min-h-20`}
                 dir="auto"
@@ -448,13 +449,13 @@ function ProductForm({
               />
             </label>
             <label className="font-bold">
-              الكمية المتوفرة
+              {tr("الكمية المتوفرة")}
               <input
                 className={field}
                 inputMode="numeric"
                 dir="ltr"
                 value={f.stock}
-                placeholder="فارغ = غير محدود"
+                placeholder={tr("فارغ = غير محدود")}
                 onChange={(e) => set({ stock: e.target.value })}
               />
             </label>
@@ -462,11 +463,10 @@ function ProductForm({
         ) : (
           <>
             <p className="text-sm font-semibold text-muted">
-              متاح الآن: {p.freeCodes ?? 0} · مُسلّم: {p.usedCodes ?? 0}. عند نفاد الأكواد يظهر
-              المنتج «نفد» تلقائياً.
+              {tr("متاح الآن:")} {p.freeCodes ?? 0} {tr("· مُسلّم:")} {p.usedCodes ?? 0}{tr(". عند نفاد الأكواد يظهر المنتج «نفد» تلقائياً.")}
             </p>
             <label className="font-bold">
-              أضف أكواداً (كود في كل سطر)
+              {tr("أضف أكواداً (كود في كل سطر)")}
               <textarea
                 className={`${field} min-h-24 font-mono`}
                 dir="ltr"
@@ -479,12 +479,12 @@ function ProductForm({
                 type="button"
                 className="btn btn-ghost"
                 onClick={async () => {
-                  if (!confirm("حذف كل الأكواد غير المستخدمة؟")) return;
+                  if (!confirm(tr("حذف كل الأكواد غير المستخدمة؟"))) return;
                   const r = await adminCodes({ data: { productId: f.id, clear: true } });
-                  setMsg(`حُذف ${r.n} كود غير مستخدم.`);
+                  setMsg(tr("حُذف {0} كود غير مستخدم.", r.n));
                 }}
               >
-                حذف الأكواد غير المستخدمة
+                {tr("حذف الأكواد غير المستخدمة")}
               </button>
             ) : null}
           </>
@@ -497,7 +497,7 @@ function ProductForm({
           checked={f.isSample}
           onChange={(e) => set({ isSample: e.target.checked })}
         />{" "}
-        منتج تجريبي «مثال» (لا يمكن شراؤه — أزل العلامة لجعله حقيقياً)
+        {tr("منتج تجريبي «مثال» (لا يمكن شراؤه — أزل العلامة لجعله حقيقياً)")}
       </label>
       <label className="flex items-center gap-2 font-bold">
         <input
@@ -506,15 +506,15 @@ function ProductForm({
           checked={f.active}
           onChange={(e) => set({ active: e.target.checked })}
         />{" "}
-        ظاهر في المتجر
+        {tr("ظاهر في المتجر")}
       </label>
-      {msg ? <p className="font-bold">{msg}</p> : null}
+      {msg ? <p className="font-bold">{trv(msg)}</p> : null}
       <div className="grid grid-cols-2 gap-2">
         <button type="button" className="btn" disabled={busy} onClick={save}>
-          حفظ
+          {tr("حفظ")}
         </button>
         <button type="button" className="btn btn-ghost" onClick={onDone}>
-          إلغاء
+          {tr("إلغاء")}
         </button>
       </div>
     </div>
@@ -541,22 +541,22 @@ function Categories({ cats, refresh }: { cats: StoreCategory[]; refresh: () => P
     <li key={c.id} className={`stamp flex items-center gap-3 p-3 ${sub ? "ms-6" : ""}`}>
       <SectionCover c={c} className="size-14 shrink-0 rounded-xl" />
       <div className="min-w-0 flex-1">
-        <p className="font-bold">{c.name}</p>
+        <p className="font-bold">{trv(c.name)}</p>
         <p className="text-xs font-semibold text-muted">
-          <span dir="ltr">/store/c/{c.slug}</span> · {c.productCount} منتج ·{" "}
+          <span dir="ltr">/store/c/{trv(c.slug)}</span> · {trv(c.productCount)} {tr("منتج ·")}{" "}
           {!c.active
-            ? "معطّل"
+            ? tr("معطّل")
             : c.productCount
-              ? "ظاهر"
+              ? tr("ظاهر")
               : c.showSoon
-                ? "ظاهر «قريباً»"
-                : "مخفي حتى تضاف منتجات"}
+                ? tr("ظاهر «قريباً»")
+                : tr("مخفي حتى تضاف منتجات")}
         </p>
       </div>
       <button
         type="button"
         className="btn btn-ghost px-3"
-        aria-label={`تعديل ${c.name}`}
+        aria-label={tr("تعديل {0}", c.name)}
         onClick={() => setEditing(c)}
       >
         <Pencil className="size-4" aria-hidden />
@@ -564,9 +564,9 @@ function Categories({ cats, refresh }: { cats: StoreCategory[]; refresh: () => P
       <button
         type="button"
         className="btn btn-ghost px-3"
-        aria-label={`حذف ${c.name}`}
+        aria-label={tr("حذف {0}", c.name)}
         onClick={async () => {
-          if (!confirm(`حذف قسم «${c.name}»؟ المنتجات والأقسام الفرعية تبقى بدون قسم.`)) return;
+          if (!confirm(tr("حذف قسم «{0}»؟ المنتجات والأقسام الفرعية تبقى بدون قسم.", c.name))) return;
           await adminDeleteCategory({ data: { id: c.id } });
           await refresh();
         }}
@@ -585,11 +585,10 @@ function Categories({ cats, refresh }: { cats: StoreCategory[]; refresh: () => P
         }
       >
         <Plus className="size-4" aria-hidden />
-        قسم جديد
+        {tr("قسم جديد")}
       </button>
       <p className="mb-3 text-sm font-semibold text-muted">
-        القسم الفارغ لا يظهر للزوار حتى تضيف له منتجاً مفعّلاً، إلا إذا فعّلت «أظهره كـ قريباً». أضف
-        الخطط (شهري، 3 أشهر، سنوي…) كمنتجات داخل القسم.
+        {tr("القسم الفارغ لا يظهر للزوار حتى تضيف له منتجاً مفعّلاً، إلا إذا فعّلت «أظهره كـ قريباً». أضف الخطط (شهري، 3 أشهر، سنوي…) كمنتجات داخل القسم.")}
       </p>
       <ul className="flex flex-col gap-2">
         {top.flatMap((c) => [
@@ -644,9 +643,9 @@ function SectionEditor({
   const field = "field mt-1";
   return (
     <div className="stamp flex flex-col gap-3 p-4">
-      <h2 className="text-xl font-bold">{f.id ? "تعديل قسم" : "قسم جديد"}</h2>
+      <h2 className="text-xl font-bold">{f.id ? tr("تعديل قسم") : tr("قسم جديد")}</h2>
       <label className="font-bold">
-        الاسم
+        {tr("الاسم")}
         <input
           className={field}
           maxLength={60}
@@ -655,7 +654,7 @@ function SectionEditor({
         />
       </label>
       <label className="font-bold">
-        الرابط (بالإنجليزية)
+        {tr("الرابط (بالإنجليزية)")}
         <input
           className={field}
           dir="ltr"
@@ -665,7 +664,7 @@ function SectionEditor({
         />
       </label>
       <label className="font-bold">
-        الوصف
+        {tr("الوصف")}
         <textarea
           className={`${field} min-h-16`}
           maxLength={500}
@@ -674,19 +673,19 @@ function SectionEditor({
         />
       </label>
       <label className="font-bold">
-        القسم الأب (اختياري)
+        {tr("القسم الأب (اختياري)")}
         <select
           className={field}
           value={f.parentId}
           disabled={hasChildren}
           onChange={(e) => set({ parentId: e.target.value })}
         >
-          <option value="">— قسم رئيسي —</option>
+          <option value="">{tr("— قسم رئيسي —")}</option>
           {cats
             .filter((k) => !k.parentId && k.id !== f.id)
             .map((k) => (
               <option key={k.id} value={k.id}>
-                {k.name}
+                {trv(k.name)}
               </option>
             ))}
         </select>
@@ -695,7 +694,7 @@ function SectionEditor({
         <SectionCover c={preview} className="size-20 shrink-0 rounded-2xl" />
         <div className="flex flex-col gap-2">
           <label className="btn btn-ghost px-3">
-            {busy ? "جاري الرفع…" : "رفع صورة/أيقونة"}
+            {busy ? tr("جاري الرفع…") : tr("رفع صورة/أيقونة")}
             <input
               type="file"
               accept="image/*"
@@ -707,7 +706,7 @@ function SectionEditor({
                 try {
                   set({ imageKey: await uploadImage(file) });
                 } catch (err) {
-                  setMsg(err instanceof Error ? err.message : "تعذّر الرفع.");
+                  setMsg(err instanceof Error ? err.message : tr("تعذّر الرفع."));
                 }
                 setBusy(false);
               }}
@@ -719,17 +718,17 @@ function SectionEditor({
               className="btn btn-ghost px-3"
               onClick={() => set({ imageKey: "" })}
             >
-              إزالة الصورة
+              {tr("إزالة الصورة")}
             </button>
           ) : null}
         </div>
       </div>
       <p className="text-xs font-semibold text-muted">
-        ارفع صورك الخاصة فقط (يُفضّل عدم استخدام شعارات تجارية دون إذن).
+        {tr("ارفع صورك الخاصة فقط (يُفضّل عدم استخدام شعارات تجارية دون إذن).")}
       </p>
       <div className="grid grid-cols-2 gap-2">
         <label className="font-bold">
-          الأيقونة (بدون صورة)
+          {tr("الأيقونة (بدون صورة)")}
           <select
             className={field}
             value={f.icon}
@@ -737,13 +736,13 @@ function SectionEditor({
           >
             {Object.entries(SECTION_ICONS).map(([k, v]) => (
               <option key={k} value={k}>
-                {v}
+                {trv(v)}
               </option>
             ))}
           </select>
         </label>
         <label className="font-bold">
-          اللون
+          {tr("اللون")}
           <input
             type="color"
             className="mt-1 h-12 w-full rounded-xl border border-line"
@@ -753,7 +752,7 @@ function SectionEditor({
         </label>
       </div>
       <label className="font-bold">
-        الترتيب
+        {tr("الترتيب")}
         <input
           className={field}
           inputMode="numeric"
@@ -769,7 +768,7 @@ function SectionEditor({
           checked={f.active}
           onChange={(e) => set({ active: e.target.checked })}
         />{" "}
-        مفعّل
+        {tr("مفعّل")}
       </label>
       <label className="flex items-center gap-2 font-bold">
         <input
@@ -778,9 +777,9 @@ function SectionEditor({
           checked={f.showSoon}
           onChange={(e) => set({ showSoon: e.target.checked })}
         />{" "}
-        أظهره كـ «قريباً» وهو فارغ
+        {tr("أظهره كـ «قريباً» وهو فارغ")}
       </label>
-      {msg ? <p className="font-bold">{msg}</p> : null}
+      {msg ? <p className="font-bold">{trv(msg)}</p> : null}
       <div className="grid grid-cols-2 gap-2">
         <button
           type="button"
@@ -790,14 +789,14 @@ function SectionEditor({
             setBusy(true);
             const r = await adminSaveCategory({ data: f });
             setBusy(false);
-            if (!r.ok) return setMsg(r.message ?? "تعذّر الحفظ.");
+            if (!r.ok) return setMsg(r.message ?? tr("تعذّر الحفظ."));
             onDone();
           }}
         >
-          حفظ
+          {tr("حفظ")}
         </button>
         <button type="button" className="btn btn-ghost" onClick={onDone}>
-          إلغاء
+          {tr("إلغاء")}
         </button>
       </div>
     </div>
@@ -836,7 +835,7 @@ function Orders() {
     if (ask && !confirm(ask)) return;
     setBusy(id);
     const r = await adminOrderAction({ data: { id, action } });
-    setMsg(r.ok ? "" : (r.message ?? "تعذّر التنفيذ."));
+    setMsg(r.ok ? "" : (r.message ?? tr("تعذّر التنفيذ.")));
     setBusy("");
     await refresh();
   };
@@ -850,21 +849,21 @@ function Orders() {
             className={status === s ? "chip chip-ink shrink-0" : "chip shrink-0 bg-paper"}
             onClick={() => setStatus(s)}
           >
-            {s ? ORDER_STATUS[s] : "الكل"}
+            {s ? ORDER_STATUS[s] : tr("الكل")}
           </button>
         ))}
       </div>
-      {msg ? <p className="stamp mb-3 p-3 font-bold">{msg}</p> : null}
+      {msg ? <p className="stamp mb-3 p-3 font-bold">{trv(msg)}</p> : null}
       {!orders ? (
-        <p className="stamp p-4 font-semibold">جاري التحميل…</p>
+        <p className="stamp p-4 font-semibold">{tr("جاري التحميل…")}</p>
       ) : orders.length === 0 ? (
-        <p className="stamp p-4 font-semibold">لا طلبات هنا.</p>
+        <p className="stamp p-4 font-semibold">{tr("لا طلبات هنا.")}</p>
       ) : (
         <ul className="flex flex-col gap-3">
           {orders.map((o) => (
             <li key={o.id} className="stamp p-4">
               <div className="flex items-center justify-between gap-2">
-                <span className="chip chip-ink">{ORDER_STATUS[o.status]}</span>
+                <span className="chip chip-ink">{trv(ORDER_STATUS[o.status])}</span>
                 <span className="font-bold" dir="ltr">
                   {formatPrice(o.totalAgorot, o.currency)}
                 </span>
@@ -873,25 +872,25 @@ function Orders() {
                 {o.id.slice(0, 8)} · {at(o.createdAt)} · {PROVIDERS[o.provider] ?? o.provider}
               </p>
               <p className="font-bold">
-                {o.userName}{" "}
+                {trv(o.userName)}{" "}
                 <span className="text-sm text-muted" dir="ltr">
-                  {o.userEmail}
+                  {trv(o.userEmail)}
                 </span>
               </p>
-              {o.note ? <p className="text-sm font-semibold">{o.note}</p> : null}
+              {o.note ? <p className="text-sm font-semibold">{trv(o.note)}</p> : null}
               <ul className="mt-2 flex flex-col gap-1">
                 {o.items.map((i) => (
                   <li key={i.productId} className="text-sm">
                     <span className="font-bold">
-                      {i.name} × {i.qty}
+                      {trv(i.name)} × {trv(i.qty)}
                     </span>
                     {i.delivery ? (
                       <span
                         className="block whitespace-pre-wrap break-all font-mono text-muted"
                         dir="auto"
                       >
-                        {i.revoked ? "[مسحوب] " : ""}
-                        {i.delivery}
+                        {i.revoked ? tr("[مسحوب] ") : ""}
+                        {trv(i.delivery)}
                       </span>
                     ) : null}
                   </li>
@@ -904,10 +903,10 @@ function Orders() {
                     className="btn"
                     disabled={busy === o.id}
                     onClick={() =>
-                      act(o.id, "paid", "تأكيد استلام الدفع؟ سيُسلَّم المنتج للمشتري تلقائياً.")
+                      act(o.id, "paid", tr("تأكيد استلام الدفع؟ سيُسلَّم المنتج للمشتري تلقائياً."))
                     }
                   >
-                    تم الدفع
+                    {tr("تم الدفع")}
                   </button>
                 ) : null}
                 {o.status === "paid" ? (
@@ -917,7 +916,7 @@ function Orders() {
                     disabled={busy === o.id}
                     onClick={() => act(o.id, "deliver")}
                   >
-                    إعادة محاولة التسليم
+                    {tr("إعادة محاولة التسليم")}
                   </button>
                 ) : null}
                 {o.status === "delivered" ? (
@@ -927,7 +926,7 @@ function Orders() {
                     disabled={busy === o.id}
                     onClick={() => act(o.id, "resend")}
                   >
-                    إعادة الإرسال
+                    {tr("إعادة الإرسال")}
                   </button>
                 ) : null}
                 {o.status === "delivered" || o.status === "paid" ? (
@@ -935,9 +934,9 @@ function Orders() {
                     type="button"
                     className="btn btn-ghost"
                     disabled={busy === o.id}
-                    onClick={() => act(o.id, "revoke", "إخفاء المحتوى عن المشتري؟")}
+                    onClick={() => act(o.id, "revoke", tr("إخفاء المحتوى عن المشتري؟"))}
                   >
-                    سحب التسليم
+                    {tr("سحب التسليم")}
                   </button>
                 ) : null}
                 {o.status !== "cancelled" ? (
@@ -945,20 +944,20 @@ function Orders() {
                     type="button"
                     className="btn btn-ghost"
                     disabled={busy === o.id}
-                    onClick={() => act(o.id, "cancelled", "إلغاء الطلب؟")}
+                    onClick={() => act(o.id, "cancelled", tr("إلغاء الطلب؟"))}
                   >
-                    إلغاء
+                    {tr("إلغاء")}
                   </button>
                 ) : null}
               </div>
               {o.log.length ? (
                 <details className="mt-2 text-sm">
-                  <summary className="cursor-pointer font-bold">السجل ({o.log.length})</summary>
+                  <summary className="cursor-pointer font-bold">{tr("السجل (")}{trv(o.log.length)})</summary>
                   <ul className="mt-1 flex flex-col gap-1">
                     {o.log.map((l, k) => (
                       <li key={k}>
                         <b>{LOG[l.action] ?? l.action}</b> · {at(l.at)} ·{" "}
-                        <span dir="auto">{l.detail}</span>
+                        <span dir="auto">{trv(l.detail)}</span>
                       </li>
                     ))}
                   </ul>
@@ -991,7 +990,7 @@ function Secret({
 }) {
   return (
     <label className="font-bold">
-      {label}
+      {trv(label)}
       <span className="mt-1 flex gap-2">
         <input
           className="field"
@@ -999,12 +998,12 @@ function Secret({
           autoComplete="new-password"
           dir="ltr"
           value={value}
-          placeholder={saved && !cleared ? "•••• محفوظ (اكتب لاستبداله)" : "غير محفوظ"}
+          placeholder={saved && !cleared ? tr("•••• محفوظ (اكتب لاستبداله)") : tr("غير محفوظ")}
           onChange={(e) => onChange(e.target.value)}
         />
         {saved && !cleared ? (
           <button type="button" className="btn btn-ghost px-3" onClick={onClear}>
-            مسح
+            {tr("مسح")}
           </button>
         ) : null}
       </span>
@@ -1020,14 +1019,14 @@ function PaySettings() {
   const [msg, setMsg] = useState("");
   const load = useCallback(async () => {
     const r = await adminGetPaySettings();
-    if (!r.authed) return setMsg("هذا القسم لمالك الموقع فقط.");
+    if (!r.authed) return setMsg(tr("هذا القسم لمالك الموقع فقط."));
     setS(r.settings);
     setHooks(r.webhooks);
     setSecrets({});
     setClear([]);
   }, []);
   useEffect(() => void load(), [load]);
-  if (!s) return <p className="stamp p-4 font-semibold">{msg || "جاري التحميل…"}</p>;
+  if (!s) return <p className="stamp p-4 font-semibold">{msg || tr("جاري التحميل…")}</p>;
   const set = (x: Partial<AdminPaySettings>) => setS({ ...s, ...x });
   const sec = (k: string) => ({
     value: secrets[k] ?? "",
@@ -1039,16 +1038,16 @@ function PaySettings() {
   const save = async () => {
     setMsg("");
     const r = await adminSavePaySettings({ data: { ...s, secrets, clear } });
-    setMsg(r.ok ? "تم الحفظ." : (r.message ?? "تعذّر الحفظ."));
+    setMsg(r.ok ? tr("تم الحفظ.") : (r.message ?? tr("تعذّر الحفظ.")));
     if (r.ok) await load();
   };
   const field = "field mt-1";
   return (
     <div className="flex flex-col gap-3">
       <div className="stamp flex flex-col gap-3 p-4">
-        <h2 className="text-lg font-bold">عام</h2>
+        <h2 className="text-lg font-bold">{tr("عام")}</h2>
         <label className="font-bold">
-          العملة
+          {tr("العملة")}
           <select
             className={field}
             value={s.currency}
@@ -1056,13 +1055,13 @@ function PaySettings() {
           >
             {Object.entries(CURRENCIES).map(([k, v]) => (
               <option key={k} value={k}>
-                {k} {v}
+                {trv(k)} {trv(v)}
               </option>
             ))}
           </select>
         </label>
         <label className="font-bold">
-          رقم واتساب (الدفع نقداً واليدوي)
+          {tr("رقم واتساب (الدفع نقداً واليدوي)")}
           <input
             className={field}
             dir="ltr"
@@ -1073,7 +1072,7 @@ function PaySettings() {
           />
         </label>
         <label className="font-bold">
-          بريد التواصل
+          {tr("بريد التواصل")}
           <input
             className={field}
             dir="ltr"
@@ -1084,9 +1083,9 @@ function PaySettings() {
         </label>
       </div>
       <div className="stamp flex flex-col gap-3 p-4">
-        <h2 className="text-lg font-bold">شركة الدفع</h2>
+        <h2 className="text-lg font-bold">{tr("شركة الدفع")}</h2>
         <label className="font-bold">
-          المزوّد
+          {tr("المزوّد")}
           <select
             className={field}
             value={s.provider}
@@ -1094,7 +1093,7 @@ function PaySettings() {
           >
             {Object.entries(PROVIDERS).map(([k, v]) => (
               <option key={k} value={k}>
-                {v}
+                {trv(v)}
               </option>
             ))}
           </select>
@@ -1106,7 +1105,7 @@ function PaySettings() {
             checked={s.enabled}
             onChange={(e) => set({ enabled: e.target.checked })}
           />{" "}
-          تفعيل الدفع الإلكتروني
+          {tr("تفعيل الدفع الإلكتروني")}
         </label>
         <label className="flex items-center gap-2 font-bold">
           <input
@@ -1115,26 +1114,25 @@ function PaySettings() {
             checked={s.testMode}
             onChange={(e) => set({ testMode: e.target.checked })}
           />{" "}
-          وضع تجريبي (تُعلَّم الطلبات «تجريبي»)
+          {tr("وضع تجريبي (تُعلَّم الطلبات «تجريبي»)")}
         </label>
         <p className="text-sm font-semibold text-muted">
-          إن لم يكن المزوّد مفعّلاً أو بيانات الاعتماد ناقصة، يبقى الدفع يدوياً تلقائياً. لا تُعلَّم
-          أي عملية «مدفوعة» إلا بعد تحقق الخادم من شركة الدفع أو بزر «تم الدفع».
+          {tr("إن لم يكن المزوّد مفعّلاً أو بيانات الاعتماد ناقصة، يبقى الدفع يدوياً تلقائياً. لا تُعلَّم أي عملية «مدفوعة» إلا بعد تحقق الخادم من شركة الدفع أو بزر «تم الدفع».")}
         </p>
         {!s.canEncrypt ? (
           <p className="font-bold text-red-700">
-            لا يوجد مفتاح تشفير على الخادم؛ لا يمكن حفظ كلمات السر.
+            {tr("لا يوجد مفتاح تشفير على الخادم؛ لا يمكن حفظ كلمات السر.")}
           </p>
         ) : null}
         {s.env.length ? (
           <p className="text-sm font-bold">
-            قيم من متغيرات البيئة (تتقدّم على هذه الحقول): {s.env.join(", ")}
+            {tr("قيم من متغيرات البيئة (تتقدّم على هذه الحقول):")} {s.env.join(", ")}
           </p>
         ) : null}
         {s.provider === "cardcom" ? (
           <>
             <label className="font-bold">
-              رقم الطرفية (TerminalNumber)
+              {tr("رقم الطرفية (TerminalNumber)")}
               <input
                 className={field}
                 dir="ltr"
@@ -1144,7 +1142,7 @@ function PaySettings() {
               />
             </label>
             <label className="font-bold">
-              اسم مستخدم الواجهة (ApiName)
+              {tr("اسم مستخدم الواجهة (ApiName)")}
               <input
                 className={field}
                 dir="ltr"
@@ -1153,19 +1151,19 @@ function PaySettings() {
               />
             </label>
             <Secret
-              label="كلمة سر الواجهة (ApiPassword، اختيارية)"
+              label={tr("كلمة سر الواجهة (ApiPassword، اختيارية)")}
               {...sec("cardcom.apiPassword")}
             />
             <Hook
               url={hooks.cardcom}
-              label="عنوان WebHookUrl (يُرسل تلقائياً مع كل عملية؛ يمكن وضعه أيضاً في إعدادات Cardcom)"
+              label={tr("عنوان WebHookUrl (يُرسل تلقائياً مع كل عملية؛ يمكن وضعه أيضاً في إعدادات Cardcom)")}
             />
           </>
         ) : null}
         {s.provider === "tranzila" ? (
           <>
             <label className="font-bold">
-              اسم المسوف (Supplier / Terminal)
+              {tr("اسم المسوف (Supplier / Terminal)")}
               <input
                 className={field}
                 dir="ltr"
@@ -1184,32 +1182,31 @@ function PaySettings() {
               />
             </label>
             <Secret label="API Secret" {...sec("tranzila.appSecret")} />
-            <Hook url={hooks.tranzila} label="عنوان notify_url (Tranzila)" />
+            <Hook url={hooks.tranzila} label={tr("عنوان notify_url (Tranzila)")} />
             <p className="text-sm font-bold">
-              Tranzila: التأكيد التلقائي غير مفعّل بعد؛ الإشعار يُسجَّل فقط وتؤكّد أنت الدفع بزر «تم
-              الدفع».
+              {tr("Tranzila: التأكيد التلقائي غير مفعّل بعد؛ الإشعار يُسجَّل فقط وتؤكّد أنت الدفع بزر «تم الدفع».")}
             </p>
           </>
         ) : null}
-        {msg ? <p className="font-bold">{msg}</p> : null}
+        {msg ? <p className="font-bold">{trv(msg)}</p> : null}
         <div className="grid grid-cols-2 gap-2">
           <button type="button" className="btn" onClick={save}>
-            حفظ
+            {tr("حفظ")}
           </button>
           <button
             type="button"
             className="btn btn-ghost"
             onClick={async () => {
-              setMsg("جاري الاختبار…");
+              setMsg(tr("جاري الاختبار…"));
               const r = await adminTestPayment();
               setMsg(r.message);
             }}
           >
-            اختبار الاتصال
+            {tr("اختبار الاتصال")}
           </button>
         </div>
         <p className="text-xs font-semibold text-muted">
-          الاختبار يستخدم القيم المحفوظة (احفظ أولاً).
+          {tr("الاختبار يستخدم القيم المحفوظة (احفظ أولاً).")}
         </p>
       </div>
     </div>
@@ -1219,7 +1216,7 @@ function PaySettings() {
 function Hook({ url, label }: { url: string; label: string }) {
   return (
     <div className="font-bold">
-      {label}
+      {trv(label)}
       <div className="mt-1 flex gap-2">
         <input
           className="field"
@@ -1233,7 +1230,7 @@ function Hook({ url, label }: { url: string; label: string }) {
           className="btn btn-ghost px-3"
           onClick={() => void navigator.clipboard?.writeText(url)}
         >
-          نسخ
+          {tr("نسخ")}
         </button>
       </div>
     </div>

@@ -31,6 +31,8 @@ import { getStore } from "@/lib/store/api";
 import { ProductCard } from "@/components/store-parts";
 import { listAds, type ListAd } from "@/lib/ads/display";
 import { organizationLd, seo, websiteLd } from "@/lib/seo";
+import { tr, trv } from "@/lib/i18n/core";
+import { localized, localizedIsrael } from "@/lib/i18n/localize";
 
 export const Route = createFileRoute("/")({
   // ?q= opens the page with the search filled in (WebSite SearchAction target).
@@ -39,9 +41,9 @@ export const Route = createFileRoute("/")({
   }),
   head: () =>
     seo({
-      title: "رهط بوست | أخبار رهط والنقب، باصات رهط، دليل وإعلانات",
+      title: tr("رهط بوست | أخبار رهط والنقب، باصات رهط، دليل وإعلانات"),
       description:
-        "رهط بوست: آخر أخبار رهط والنقب، مواعيد باصات رهط، دليل محلات وخدمات رهط، إعلانات مبوبة، صيدلية الحراسة وأرقام الطوارئ — كل ما تحتاجه في مدينة رهط في مكان واحد.",
+        tr("رهط بوست: آخر أخبار رهط والنقب، مواعيد باصات رهط، دليل محلات وخدمات رهط، إعلانات مبوبة، صيدلية الحراسة وأرقام الطوارئ — كل ما تحتاجه في مدينة رهط في مكان واحد."),
       path: "/",
       jsonLd: [organizationLd, websiteLd],
     }),
@@ -55,7 +57,12 @@ export const Route = createFileRoute("/")({
       getBoard(),
       getStore(),
     ]);
-    return { news, approved: approved.entries, ads, israel, weather, board, store };
+    const [lNews, lIsrael, lStore] = await Promise.all([
+      localized(news, (d) => [{ items: d.items, fields: ["title", "summary", "body"] }], "auto"),
+      localizedIsrael(israel, (d) => d?.items ?? []),
+      localized(store, (d) => [{ items: d.products, fields: ["name", "shortDesc", "description"] }, { items: d.categories, fields: ["name", "description"] }]),
+    ]);
+    return { news: lNews, approved: approved.entries, ads, israel: lIsrael, weather, board, store: lStore };
   },
   // New items must show up within a minute or two: short CDN cache, revalidated in the background.
   headers: () => ({ "Cache-Control": HOME_CACHE }),
@@ -141,14 +148,14 @@ function Home() {
     slider: <HomeCarousel lead={top} leadTime={top ? relativeTimeAr(top.publishedAt, now) : ""} />,
     search: (
       <label className="search-field block">
-        <span className="sr-only">بحث</span>
+        <span className="sr-only">{tr("بحث")}</span>
         <Search className="size-5" aria-hidden />
         <input
           type="search"
           className="field"
           value={q}
           onChange={(event) => setQ(event.target.value)}
-          placeholder="ابحث في الأخبار والدليل والإعلانات"
+          placeholder={tr("ابحث في الأخبار والدليل والإعلانات")}
         />
       </label>
     ),
@@ -157,7 +164,7 @@ function Home() {
     news: (
       <>
         <section>
-          <SectionTitle title="آخر الأخبار" to="/news" more="كل الأخبار" />
+          <SectionTitle title={tr("آخر الأخبار")} to="/news" more={tr("كل الأخبار")} />
           {lead ? (
             <>
               <Link
@@ -175,9 +182,9 @@ function Home() {
                 ) : null}
                 <span className="block p-4">
                   <span className="chip chip-deep">
-                    {lead.reader ? "من القراء" : lead.category}
+                    {lead.reader ? tr("من القراء") : trv(lead.category)}
                   </span>
-                  <span className="mt-2 block text-xl font-bold">{lead.title}</span>
+                  <span className="mt-2 block text-xl font-bold">{trv(lead.title)}</span>
                   <span className="text-sm font-semibold text-muted">
                     {relativeTimeAr(lead.publishedAt, now)} · {newsByline(lead)}
                     <CommentCount n={lead.comments} className="ms-2" />
@@ -194,9 +201,9 @@ function Home() {
                     >
                       <NewsImage item={item} className="size-16 rounded-xl" />
                       <span className="min-w-0 flex-1">
-                        <span className="block font-bold leading-snug">{item.title}</span>
+                        <span className="block font-bold leading-snug">{trv(item.title)}</span>
                         <span className="text-sm font-semibold text-muted">
-                          {item.category} · {relativeTimeAr(item.publishedAt, now)} ·{" "}
+                          {trv(item.category)} · {relativeTimeAr(item.publishedAt, now)} ·{" "}
                           {newsByline(item)}
                           <CommentCount n={item.comments} className="ms-2" />
                         </span>
@@ -216,7 +223,7 @@ function Home() {
     israel:
       israelTop.length > 0 && israel ? (
         <section>
-          <SectionTitle title="أخبار إسرائيل" to="/israel-news" more="عرض الكل" />
+          <SectionTitle title={tr("أخبار إسرائيل")} to="/israel-news" more={tr("عرض الكل")} />
           <IsraelLead item={israelTop[0]} now={now} />
           <ul className="stack-list">
             {israelTop.slice(1).map((item) => (
@@ -230,7 +237,7 @@ function Home() {
       ) : null,
     post: postGuide ? (
       <section>
-        <SectionTitle title="خدمة البريد" />
+        <SectionTitle title={tr("خدمة البريد")} />
         <HomePostCard guide={postGuide} />
       </section>
     ) : null,
@@ -242,15 +249,15 @@ function Home() {
     ),
     buses: (
       <section>
-        <SectionTitle title="باصات غاليم" to="/buses" more="كل المواعيد" />
+        <SectionTitle title={tr("باصات غاليم")} to="/buses" more={tr("كل المواعيد")} />
         <Link to="/buses" className="stamp press flex items-center gap-3 p-4">
           <span className="icon-badge">
             <Bus className="size-6" aria-hidden />
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block font-bold">خطوط المدينة 1 حتى 6، وبئر السبع وما حولها</span>
+            <span className="block font-bold">{tr("خطوط المدينة 1 حتى 6، وبئر السبع وما حولها")}</span>
             <span className="text-sm font-semibold text-muted">
-              شركة גלים · أوقات مباشرة وجدول اليوم
+              {tr("شركة גלים · أوقات مباشرة وجدول اليوم")}
             </span>
           </span>
           <ChevronLeft className="size-5 text-muted" aria-hidden />
@@ -260,7 +267,7 @@ function Home() {
     // «من المتجر»: hidden until there are real products.
     directory: store.products.length ? (
       <section>
-        <SectionTitle title="من المتجر" to="/store" more="كل المتجر" />
+        <SectionTitle title={tr("من المتجر")} to="/store" more={tr("كل المتجر")} />
         <ul className="scroll-row -mx-4 px-4 pb-2">
           {store.products.slice(0, 8).map((p) => (
             <li key={p.id} className="w-48 shrink-0">
@@ -272,10 +279,10 @@ function Home() {
     ) : null,
     ads: (
       <section>
-        <SectionTitle title="آخر الإعلانات" to="/ads" more="كل الإعلانات" />
+        <SectionTitle title={tr("آخر الإعلانات")} to="/ads" more={tr("كل الإعلانات")} />
         {adsData.showSamples ? (
           <p className="mb-2 text-sm font-semibold text-muted">
-            إعلانات نموذجية لعرض الشكل فقط، وليست إعلانات حقيقية.
+            {tr("إعلانات نموذجية لعرض الشكل فقط، وليست إعلانات حقيقية.")}
           </p>
         ) : null}
         <ul className="flex flex-col gap-3">
@@ -296,12 +303,12 @@ function Home() {
                   />
                 ) : null}
                 <span className="min-w-0 flex-1">
-                  <span className={item.quiet ? "chip" : "chip chip-deep"}>{item.type}</span>
-                  {item.sample ? <span className="chip ms-1">نموذج</span> : null}
-                  <span className="mt-1 block font-bold">{item.title}</span>
-                  <span className="text-sm font-semibold text-muted">{item.neighborhood}</span>
+                  <span className={item.quiet ? "chip" : "chip chip-deep"}>{trv(item.type)}</span>
+                  {item.sample ? <span className="chip ms-1">{tr("نموذج")}</span> : null}
+                  <span className="mt-1 block font-bold">{trv(item.title)}</span>
+                  <span className="text-sm font-semibold text-muted">{trv(item.neighborhood)}</span>
                 </span>
-                {item.price ? <span className="shrink-0 font-bold">{item.price}</span> : null}
+                {item.price ? <span className="shrink-0 font-bold">{trv(item.price)}</span> : null}
               </Link>
             </li>
           ))}
@@ -311,7 +318,7 @@ function Home() {
     duty: <DutyCard duty={board.duty} />,
     emergency: (
       <section>
-        <SectionTitle title="أرقام تُحفظ" to="/today" more="كل الأرقام" />
+        <SectionTitle title={tr("أرقام تُحفظ")} to="/today" more={tr("كل الأرقام")} />
         <div className="scroll-row">
           {emergency.slice(0, 4).map((item) => (
             <a
@@ -319,8 +326,8 @@ function Home() {
               href={`tel:${item.phone}`}
               className="stamp press flex w-28 shrink-0 flex-col items-center px-3 py-3 text-center"
             >
-              <span className="text-2xl font-bold leading-none">{item.phone}</span>
-              <span className="mt-1 text-sm font-bold">{item.name}</span>
+              <span className="text-2xl font-bold leading-none">{trv(item.phone)}</span>
+              <span className="mt-1 text-sm font-bold">{trv(item.name)}</span>
             </a>
           ))}
         </div>
@@ -333,7 +340,7 @@ function Home() {
   return (
     <Shell>
       <div className="flex flex-col gap-6">
-        <h1 className="sr-only">رهط بوست: أخبار وخدمات رهط والنقب</h1>
+        <h1 className="sr-only">{tr("رهط بوست: أخبار وخدمات رهط والنقب")}</h1>
         {/* Top: alerts (only when active), weather + prayer, banner slider, then search. */}
         <AlertsBanner alerts={board.alerts} />
         {breaking ? (
@@ -342,10 +349,10 @@ function Home() {
             params={{ slug: breaking.slug }}
             className="alert-card press block px-4 py-3"
           >
-            <span className="chip bg-white/20 text-white">عاجل</span>
-            <span className="mt-2 block text-lg font-bold">{breaking.title}</span>
+            <span className="chip bg-white/20 text-white">{tr("عاجل")}</span>
+            <span className="mt-2 block text-lg font-bold">{trv(breaking.title)}</span>
             <span className="text-sm font-semibold">
-              {relativeTimeAr(breaking.publishedAt, now)} · {breaking.source}
+              {relativeTimeAr(breaking.publishedAt, now)} · {trv(breaking.source)}
             </span>
           </Link>
         ) : israelBreaking ? (
@@ -354,12 +361,12 @@ function Home() {
             params={{ slug: israelBreaking.slug }}
             className="alert-card press block px-4 py-3"
           >
-            <span className="chip bg-white/20 text-white">عاجل</span>
+            <span className="chip bg-white/20 text-white">{tr("عاجل")}</span>
             <span className="mt-2 block text-lg font-bold">
               {israelBreaking.titleAr ?? israelBreaking.titleHe}
             </span>
             <span className="text-sm font-semibold">
-              {relativeTimeAr(israelBreaking.publishedAt, now)} · {israelBreaking.source}
+              {relativeTimeAr(israelBreaking.publishedAt, now)} · {trv(israelBreaking.source)}
             </span>
           </Link>
         ) : null}
@@ -368,13 +375,13 @@ function Home() {
             {order
               .filter((id) => TOP.includes(id))
               .map((id) => (
-                <Fragment key={id}>{blocks[id]}</Fragment>
+                <Fragment key={id}>{trv(blocks[id])}</Fragment>
               ))}
             {order.includes("search") ? null : blocks.search}
             <SearchResults query={query} results={results} />
           </>
         ) : (
-          order.map((id) => <Fragment key={id}>{blocks[id]}</Fragment>)
+          order.map((id) => <Fragment key={id}>{trv(blocks[id])}</Fragment>)
         )}
       </div>
     </Shell>
@@ -397,9 +404,9 @@ function SearchResults({
     results.news.length + results.places.length + results.ads.length + results.israel.length === 0;
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-2xl font-bold">نتائج «{query}»</h1>
+      <h1 className="text-2xl font-bold">{tr("نتائج «")}{trv(query)}»</h1>
       {empty ? (
-        <p className="stamp p-4 font-semibold">لا توجد نتيجة. جرّب اسماً أو حياً أو تصنيفاً.</p>
+        <p className="stamp p-4 font-semibold">{tr("لا توجد نتيجة. جرّب اسماً أو حياً أو تصنيفاً.")}</p>
       ) : null}
       {results.news.map((item) => (
         <Link
@@ -408,8 +415,8 @@ function SearchResults({
           params={{ slug: item.slug }}
           className="stamp press block p-4"
         >
-          <span className="chip">{item.category}</span>
-          <span className="mt-1 block font-bold">{item.title}</span>
+          <span className="chip">{trv(item.category)}</span>
+          <span className="mt-1 block font-bold">{trv(item.title)}</span>
         </Link>
       ))}
       {results.israel.map((item) => (
@@ -419,7 +426,7 @@ function SearchResults({
           params={{ slug: item.slug }}
           className="stamp press block p-4"
         >
-          <span className="chip">أخبار إسرائيل</span>
+          <span className="chip">{tr("أخبار إسرائيل")}</span>
           <IsraelTitle item={item} className="mt-1 block font-bold" />
         </Link>
       ))}
@@ -430,8 +437,8 @@ function SearchResults({
           params={{ slug: item.slug }}
           className="stamp press block p-4"
         >
-          <span className="chip">{item.category}</span>
-          <span className="mt-1 block font-bold">{item.name}</span>
+          <span className="chip">{trv(item.category)}</span>
+          <span className="mt-1 block font-bold">{trv(item.name)}</span>
         </Link>
       ))}
       {results.ads.map((item) => (
@@ -441,9 +448,9 @@ function SearchResults({
           params={{ id: item.id }}
           className="stamp press block p-4"
         >
-          <span className="chip">{item.type}</span>
-          {item.sample ? <span className="chip ms-1">نموذج</span> : null}
-          <span className="mt-1 block font-bold">{item.title}</span>
+          <span className="chip">{trv(item.type)}</span>
+          {item.sample ? <span className="chip ms-1">{tr("نموذج")}</span> : null}
+          <span className="mt-1 block font-bold">{trv(item.title)}</span>
         </Link>
       ))}
     </div>
@@ -469,17 +476,17 @@ function IsraelLead({ item, now }: { item: IsraelNewsItem; now: number }) {
       ) : null}
       <span className="block p-4">
         <span className="flex flex-wrap gap-2">
-          {item.breaking ? <span className="chip chip-alert">عاجل</span> : null}
-          <span className="chip chip-deep">{item.category}</span>
+          {item.breaking ? <span className="chip chip-alert">{tr("عاجل")}</span> : null}
+          <span className="chip chip-deep">{trv(item.category)}</span>
         </span>
         <span
           className="mt-2 block text-xl font-bold"
           {...(item.titleAr ? {} : { dir: "rtl", lang: "he" })}
         >
-          {title}
+          {trv(title)}
         </span>
         <span className="text-sm font-semibold text-muted">
-          {relativeTimeAr(item.publishedAt, now)} · {item.source}
+          {relativeTimeAr(item.publishedAt, now)} · {trv(item.source)}
           <CommentCount n={item.comments} className="ms-2" />
         </span>
       </span>

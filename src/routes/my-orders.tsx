@@ -5,13 +5,14 @@ import { Shell } from "@/components/shell";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { confirmMyPayment, getStore, listMyOrders } from "@/lib/store/api";
 import { formatPrice, ORDER_STATUS, type Order, type PublicStoreSettings } from "@/lib/store/types";
+import { tr, trv } from "@/lib/i18n/core";
 
 export const Route = createFileRoute("/my-orders")({
   validateSearch: (s: Record<string, unknown>): { order?: string; pay?: string } => ({
     order: typeof s.order === "string" && /^[a-z0-9]{12,32}$/.test(s.order) ? s.order : undefined,
     pay: s.pay === "done" || s.pay === "failed" || s.pay === "manual" ? s.pay : undefined,
   }),
-  head: () => ({ meta: [{ title: "طلباتي · رهط بوست" }, { name: "robots", content: "noindex" }] }),
+  head: () => ({ meta: [{ title: tr("طلباتي · رهط بوست") }, { name: "robots", content: "noindex" }] }),
   component: MyOrdersPage,
 });
 
@@ -39,7 +40,7 @@ function Delivery({ text }: { text: string }) {
             rel="noopener noreferrer nofollow"
             className="underline"
           >
-            {s}
+            {trv(s)}
           </a>
         ) : (
           s
@@ -52,7 +53,7 @@ function Delivery({ text }: { text: string }) {
 export function ManualContact({ s }: { s: PublicStoreSettings }) {
   return (
     <div className="flex flex-col gap-2">
-      <p className="font-bold">الدفع اليدوي: سيتم التواصل معك لإتمام الدفع.</p>
+      <p className="font-bold">{tr("الدفع اليدوي: سيتم التواصل معك لإتمام الدفع.")}</p>
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
         {s.whatsapp ? (
           <a
@@ -62,13 +63,13 @@ export function ManualContact({ s }: { s: PublicStoreSettings }) {
             rel="noopener noreferrer"
           >
             <MessageCircle className="size-4" aria-hidden />
-            واتساب
+            {tr("واتساب")}
           </a>
         ) : null}
         {s.email ? (
           <a className="btn btn-ghost" href={`mailto:${s.email}`}>
             <Mail className="size-4" aria-hidden />
-            {s.email}
+            {trv(s.email)}
           </a>
         ) : null}
       </div>
@@ -106,17 +107,17 @@ function MyOrdersPage() {
   if (isPending)
     return (
       <Shell>
-        <p className="stamp p-4 font-semibold">جاري التحميل…</p>
+        <p className="stamp p-4 font-semibold">{tr("جاري التحميل…")}</p>
       </Shell>
     );
   if (!user)
     return (
       <Shell>
-        <h1 className="mb-3 text-2xl font-bold">طلباتي</h1>
+        <h1 className="mb-3 text-2xl font-bold">{tr("طلباتي")}</h1>
         <div className="stamp flex flex-col gap-3 p-4">
-          <p className="font-semibold">سجّل الدخول لترى طلباتك ومشترياتك.</p>
+          <p className="font-semibold">{tr("سجّل الدخول لترى طلباتك ومشترياتك.")}</p>
           <Link to="/login" search={{ redirect: "/my-orders" }} className="btn">
-            تسجيل الدخول
+            {tr("تسجيل الدخول")}
           </Link>
         </div>
       </Shell>
@@ -124,21 +125,21 @@ function MyOrdersPage() {
 
   return (
     <Shell>
-      <h1 className="mb-4 text-2xl font-bold">طلباتي</h1>
-      {checking ? <p className="stamp mb-3 p-3 font-bold">نتحقق من الدفع لدى شركة الدفع…</p> : null}
+      <h1 className="mb-4 text-2xl font-bold">{tr("طلباتي")}</h1>
+      {checking ? <p className="stamp mb-3 p-3 font-bold">{tr("نتحقق من الدفع لدى شركة الدفع…")}</p> : null}
       {search.pay === "failed" ? (
         <p className="stamp mb-3 p-3 font-bold">
-          لم تكتمل عملية الدفع. لم يُخصم شيء، ويمكنك المحاولة لاحقاً.
+          {tr("لم تكتمل عملية الدفع. لم يُخصم شيء، ويمكنك المحاولة لاحقاً.")}
         </p>
       ) : null}
       {!orders ? (
-        <p className="stamp p-4 font-semibold">جاري التحميل…</p>
+        <p className="stamp p-4 font-semibold">{tr("جاري التحميل…")}</p>
       ) : orders.length === 0 ? (
         <div className="stamp flex flex-col items-center gap-3 p-8 text-center">
           <Package className="size-10 text-primary-ink" aria-hidden />
-          <p className="font-bold">لا طلبات بعد.</p>
+          <p className="font-bold">{tr("لا طلبات بعد.")}</p>
           <Link to="/store" className="btn">
-            إلى المتجر
+            {tr("إلى المتجر")}
           </Link>
         </div>
       ) : (
@@ -149,13 +150,13 @@ function MyOrdersPage() {
               className={`stamp p-4 ${o.id === search.order ? "ring-2 ring-primary-deep" : ""}`}
             >
               <div className="flex items-center justify-between gap-2">
-                <span className={CHIP[o.status]}>{ORDER_STATUS[o.status]}</span>
+                <span className={CHIP[o.status]}>{trv(ORDER_STATUS[o.status])}</span>
                 <span className="font-bold" dir="ltr">
                   {formatPrice(o.totalAgorot, o.currency)}
                 </span>
               </div>
               <p className="mt-1 text-xs font-semibold text-muted">
-                طلب {o.id.slice(0, 8)} ·{" "}
+                {tr("طلب")} {o.id.slice(0, 8)} ·{" "}
                 {new Date(o.createdAt).toLocaleString("ar-u-nu-latn", {
                   timeZone: "Asia/Jerusalem",
                 })}
@@ -164,7 +165,7 @@ function MyOrdersPage() {
                 {o.items.map((i) => (
                   <li key={i.productId}>
                     <p className="font-bold">
-                      {i.name}
+                      {trv(i.name)}
                       {i.qty > 1 ? ` × ${i.qty}` : ""}
                     </p>
                     {i.delivery ? <Delivery text={i.delivery} /> : null}
@@ -176,12 +177,12 @@ function MyOrdersPage() {
                   {o.provider === "manual" ? (
                     <ManualContact s={settings} />
                   ) : (
-                    <p className="font-bold">بانتظار تأكيد الدفع من شركة الدفع.</p>
+                    <p className="font-bold">{tr("بانتظار تأكيد الدفع من شركة الدفع.")}</p>
                   )}
                 </div>
               ) : null}
               {o.status === "paid" ? (
-                <p className="mt-2 text-sm font-bold">تم الدفع، ونجهّز طلبك.</p>
+                <p className="mt-2 text-sm font-bold">{tr("تم الدفع، ونجهّز طلبك.")}</p>
               ) : null}
             </li>
           ))}

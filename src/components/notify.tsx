@@ -11,6 +11,7 @@ import {
   type PushSupport,
 } from "@/lib/push/client";
 import { PUSH_TOPICS, type PushTopics } from "@/lib/push/types";
+import { tr, trv } from "@/lib/i18n/core";
 
 type State =
   | { kind: "loading" }
@@ -45,7 +46,7 @@ export function NotificationsCard() {
       if (message) setError(message);
       setState(await readState());
     } catch {
-      setError("تعذّر تفعيل الإشعارات الآن.");
+      setError(tr("تعذّر تفعيل الإشعارات الآن."));
     } finally {
       setBusy(false);
     }
@@ -74,10 +75,10 @@ export function NotificationsCard() {
         </span>
         <div className="min-w-0">
           <h2 id="notify-title" className="text-xl font-bold">
-            الإشعارات
+            {tr("الإشعارات")}
           </h2>
           <p className="font-semibold text-muted">
-            تنبيهات عاجلة لرهط (انقطاع مياه أو كهرباء، طوارئ) تصلك حتى والتطبيق مغلق.
+            {tr("تنبيهات عاجلة لرهط (انقطاع مياه أو كهرباء، طوارئ) تصلك حتى والتطبيق مغلق.")}
           </p>
         </div>
       </div>
@@ -85,23 +86,22 @@ export function NotificationsCard() {
       {state.kind === "loading" ? null : state.kind === "unsupported" ? (
         <p className="mt-3 rounded-xl bg-surface p-3 font-semibold">
           {state.support === "ios-needs-install"
-            ? "على آيفون (iOS 16.4 أو أحدث): ثبّت رهط بوست على الشاشة الرئيسية أولاً، ثم افتحه من الأيقونة وفعّل الإشعارات من هنا."
-            : "هذا المتصفح لا يدعم الإشعارات. جرّب Chrome على أندرويد أو ثبّت التطبيق."}
+            ? tr("على آيفون (iOS 16.4 أو أحدث): ثبّت رهط بوست على الشاشة الرئيسية أولاً، ثم افتحه من الأيقونة وفعّل الإشعارات من هنا.")
+            : tr("هذا المتصفح لا يدعم الإشعارات. جرّب Chrome على أندرويد أو ثبّت التطبيق.")}
         </p>
       ) : state.kind === "denied" ? (
         <p className="mt-3 rounded-xl bg-surface p-3 font-semibold">
-          الإشعارات محظورة لهذا الموقع. افتح إعدادات المتصفح ← إعدادات الموقع ← الإشعارات، واسمح
-          لرهط بوست.
+          {tr("الإشعارات محظورة لهذا الموقع. افتح إعدادات المتصفح ← إعدادات الموقع ← الإشعارات، واسمح لرهط بوست.")}
         </p>
       ) : state.kind === "off" ? (
         <button type="button" className="btn mt-4 w-full" onClick={enable} disabled={busy}>
           <Bell className="size-4" aria-hidden />
-          {busy ? "جاري التفعيل…" : "فعّل الإشعارات"}
+          {busy ? tr("جاري التفعيل…") : tr("فعّل الإشعارات")}
         </button>
       ) : (
         <>
           <fieldset className="mt-4 flex flex-col gap-2">
-            <legend className="mb-1 font-bold">ما الذي تريد أن يصلك؟</legend>
+            <legend className="mb-1 font-bold">{tr("ما الذي تريد أن يصلك؟")}</legend>
             {PUSH_TOPICS.map((t) => (
               <label
                 key={t.key}
@@ -114,8 +114,8 @@ export function NotificationsCard() {
                   onChange={(e) => void toggle(t.key, e.target.checked)}
                 />
                 <span className="min-w-0">
-                  <span className="block font-bold">{t.label}</span>
-                  <span className="block text-sm font-semibold text-muted">{t.hint}</span>
+                  <span className="block font-bold">{trv(t.label)}</span>
+                  <span className="block text-sm font-semibold text-muted">{trv(t.hint)}</span>
                 </span>
               </label>
             ))}
@@ -132,13 +132,13 @@ export function NotificationsCard() {
             }}
           >
             <BellOff className="size-4" aria-hidden />
-            إيقاف الإشعارات
+            {tr("إيقاف الإشعارات")}
           </button>
         </>
       )}
       {error ? (
         <p role="alert" className="mt-3 font-bold">
-          {error}
+          {trv(error)}
         </p>
       ) : null}
     </section>
@@ -165,21 +165,21 @@ export function NotifyPrompt() {
     setShow(false);
   };
   return (
-    <section className="stamp flex flex-col gap-3 p-4" aria-label="الإشعارات">
+    <section className="stamp flex flex-col gap-3 p-4" aria-label={tr("الإشعارات")}>
       <div className="flex items-start gap-3">
         <span className="icon-badge shrink-0">
           <Bell className="size-6" aria-hidden />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="font-bold">تريد أن تصلك التنبيهات العاجلة؟</p>
+          <p className="font-bold">{tr("تريد أن تصلك التنبيهات العاجلة؟")}</p>
           <p className="text-sm font-semibold text-muted">
-            انقطاع مياه أو كهرباء وطوارئ في رهط فقط، بلا إزعاج.
+            {tr("انقطاع مياه أو كهرباء وطوارئ في رهط فقط، بلا إزعاج.")}
           </p>
         </div>
         <button
           type="button"
           className="grid size-12 shrink-0 place-items-center rounded-xl"
-          aria-label="لاحقاً"
+          aria-label={tr("لاحقاً")}
           onClick={dismiss}
         >
           <X className="size-5" aria-hidden />
@@ -195,7 +195,7 @@ export function NotifyPrompt() {
           dismiss();
         }}
       >
-        فعّل الإشعارات
+        {tr("فعّل الإشعارات")}
       </button>
     </section>
   );

@@ -12,6 +12,7 @@ import { adminPushStats, adminSendPush } from "@/lib/push/api";
 import { PUSH_TOPICS, type PushTopic } from "@/lib/push/types";
 import { adminListReports, adminResolveReport } from "@/lib/reports/api";
 import { TARGET_LABEL, type ReportGroup } from "@/lib/reports/types";
+import { tr, trv } from "@/lib/i18n/core";
 
 const DATETIME = new Intl.DateTimeFormat("ar-u-nu-latn", {
   timeZone: "Asia/Jerusalem",
@@ -33,7 +34,7 @@ function Field({
 }: { label: string; name: string } & React.InputHTMLAttributes<HTMLInputElement>) {
   return (
     <label className="block font-bold">
-      {label}
+      {trv(label)}
       <input name={name} className="field mt-1" {...rest} />
     </label>
   );
@@ -63,9 +64,9 @@ export function DutyAdmin() {
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
 
-  if (!data) return <p className="stamp p-4 font-semibold">جاري التحميل…</p>;
+  if (!data) return <p className="stamp p-4 font-semibold">{tr("جاري التحميل…")}</p>;
   if (!data.authed)
-    return <p className="stamp p-4 font-bold">انتهت الجلسة. سجّل الدخول من جديد.</p>;
+    return <p className="stamp p-4 font-bold">{tr("انتهت الجلسة. سجّل الدخول من جديد.")}</p>;
   const set = (k: keyof SavedPharmacy) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm((f) => ({ ...f, [k]: e.target.value }));
   const today = data.shifts.find((s) => s.startDate <= data.today && s.endDate >= data.today);
@@ -73,11 +74,11 @@ export function DutyAdmin() {
   return (
     <div className="flex flex-col gap-4">
       <section className="stamp p-4">
-        <p className="text-sm font-bold text-muted">اليوم ({data.today})</p>
-        <p className="text-xl font-bold">{today ? today.name : "لم يُحدَّث جدول اليوم"}</p>
+        <p className="text-sm font-bold text-muted">{tr("اليوم (")}{trv(data.today)})</p>
+        <p className="text-xl font-bold">{today ? today.name : tr("لم يُحدَّث جدول اليوم")}</p>
         {today ? (
           <p className="font-semibold">
-            {today.address} · {today.hours}
+            {trv(today.address)} · {trv(today.hours)}
           </p>
         ) : null}
       </section>
@@ -102,21 +103,21 @@ export function DutyAdmin() {
               },
             });
             if (res.ok) {
-              setMessage(`حُفظت المناوبة.${res.push ? ` الإشعار: ${res.push}` : ""}`);
+              setMessage(tr("حُفظت المناوبة.{0}", res.push ? ` الإشعار: ${res.push}` : ""));
               setForm({ name: "", address: "", phone: "", hours: "", mapUrl: "" });
               await refresh();
-            } else setMessage(res.message ?? "تعذّر الحفظ.");
+            } else setMessage(res.message ?? tr("تعذّر الحفظ."));
           } catch {
-            setMessage("تعذّر الحفظ.");
+            setMessage(tr("تعذّر الحفظ."));
           } finally {
             setBusy(false);
           }
         }}
       >
-        <h2 className="text-xl font-bold">إضافة مناوبة</h2>
+        <h2 className="text-xl font-bold">{tr("إضافة مناوبة")}</h2>
         {data.saved.length > 0 ? (
           <div>
-            <p className="mb-1 font-bold">صيدليات سابقة</p>
+            <p className="mb-1 font-bold">{tr("صيدليات سابقة")}</p>
             <div className="flex flex-wrap gap-2">
               {data.saved.map((p) => (
                 <button
@@ -125,7 +126,7 @@ export function DutyAdmin() {
                   className="chip min-h-10"
                   onClick={() => setForm(p)}
                 >
-                  {p.name}
+                  {trv(p.name)}
                 </button>
               ))}
             </div>
@@ -133,7 +134,7 @@ export function DutyAdmin() {
         ) : null}
         <div className="grid grid-cols-2 gap-2">
           <Field
-            label={range ? "من تاريخ" : "التاريخ"}
+            label={range ? tr("من تاريخ") : tr("التاريخ")}
             name="startDate"
             type="date"
             required
@@ -141,7 +142,7 @@ export function DutyAdmin() {
           />
           {range ? (
             <Field
-              label="إلى تاريخ"
+              label={tr("إلى تاريخ")}
               name="endDate"
               type="date"
               required
@@ -158,10 +159,10 @@ export function DutyAdmin() {
             checked={range}
             onChange={(e) => setRange(e.target.checked)}
           />
-          عدة أيام (نطاق تواريخ)
+          {tr("عدة أيام (نطاق تواريخ)")}
         </label>
         <Field
-          label="اسم الصيدلية"
+          label={tr("اسم الصيدلية")}
           name="name"
           required
           maxLength={80}
@@ -169,7 +170,7 @@ export function DutyAdmin() {
           onChange={set("name")}
         />
         <Field
-          label="الحي أو العنوان"
+          label={tr("الحي أو العنوان")}
           name="address"
           required
           maxLength={120}
@@ -178,7 +179,7 @@ export function DutyAdmin() {
         />
         <div className="grid grid-cols-2 gap-2">
           <Field
-            label="الهاتف"
+            label={tr("الهاتف")}
             name="phone"
             required
             inputMode="tel"
@@ -188,17 +189,17 @@ export function DutyAdmin() {
             onChange={set("phone")}
           />
           <Field
-            label="الساعات"
+            label={tr("الساعات")}
             name="hours"
             required
             maxLength={60}
-            placeholder="حتى 23:00"
+            placeholder={tr("حتى 23:00")}
             value={form.hours}
             onChange={set("hours")}
           />
         </div>
         <Field
-          label="رابط الخريطة (اختياري)"
+          label={tr("رابط الخريطة (اختياري)")}
           name="mapUrl"
           type="url"
           dir="ltr"
@@ -209,28 +210,28 @@ export function DutyAdmin() {
         />
         <label className="flex items-center gap-2 font-semibold">
           <input type="checkbox" name="notify" className="size-5" />
-          أرسل إشعار «صيدلية المناوبة» (إذا كانت تشمل اليوم)
+          {tr("أرسل إشعار «صيدلية المناوبة» (إذا كانت تشمل اليوم)")}
         </label>
         {message ? (
           <p className="font-bold" role="status">
-            {message}
+            {trv(message)}
           </p>
         ) : null}
         <button type="submit" className="btn" disabled={busy}>
-          حفظ المناوبة
+          {tr("حفظ المناوبة")}
         </button>
       </form>
 
       <section>
-        <h2 className="mb-2 text-lg font-bold">المناوبات</h2>
+        <h2 className="mb-2 text-lg font-bold">{tr("المناوبات")}</h2>
         {data.shifts.length === 0 ? (
-          <p className="stamp p-4 font-semibold">لا مناوبات مسجلة.</p>
+          <p className="stamp p-4 font-semibold">{tr("لا مناوبات مسجلة.")}</p>
         ) : (
           <ul className="flex flex-col gap-2">
             {data.shifts.map((s: DutyShift) => (
               <li key={s.id} className="stamp flex items-center justify-between gap-3 p-3">
                 <div className="min-w-0">
-                  <p className="font-bold">{s.name}</p>
+                  <p className="font-bold">{trv(s.name)}</p>
                   <p className="text-sm font-semibold text-muted" dir="ltr">
                     {s.startDate === s.endDate ? s.startDate : `${s.startDate} → ${s.endDate}`}
                   </p>
@@ -239,12 +240,12 @@ export function DutyAdmin() {
                   type="button"
                   className="btn btn-ghost px-4"
                   onClick={async () => {
-                    if (!confirm("حذف هذه المناوبة؟")) return;
+                    if (!confirm(tr("حذف هذه المناوبة؟"))) return;
                     await adminDeleteShift({ data: { id: s.id } });
                     await refresh();
                   }}
                 >
-                  حذف
+                  {tr("حذف")}
                 </button>
               </li>
             ))}
@@ -261,9 +262,9 @@ export function AlertsAdmin() {
   const { data, refresh } = useBoard();
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
-  if (!data) return <p className="stamp p-4 font-semibold">جاري التحميل…</p>;
+  if (!data) return <p className="stamp p-4 font-semibold">{tr("جاري التحميل…")}</p>;
   if (!data.authed)
-    return <p className="stamp p-4 font-bold">انتهت الجلسة. سجّل الدخول من جديد.</p>;
+    return <p className="stamp p-4 font-bold">{tr("انتهت الجلسة. سجّل الدخول من جديد.")}</p>;
   const now = new Date();
   const later = new Date(now.getTime() + 6 * 60 * 60_000);
   const isActive = (a: CivicAlert) =>
@@ -298,50 +299,50 @@ export function AlertsAdmin() {
               },
             });
             if (res.ok) {
-              setMessage(`نُشر التنبيه.${res.push ? ` الإشعار: ${res.push}` : ""}`);
+              setMessage(tr("نُشر التنبيه.{0}", res.push ? ` الإشعار: ${res.push}` : ""));
               formEl.reset();
               await refresh();
-            } else setMessage(res.message ?? "تعذّر النشر.");
+            } else setMessage(res.message ?? tr("تعذّر النشر."));
           } catch {
-            setMessage("تعذّر النشر.");
+            setMessage(tr("تعذّر النشر."));
           } finally {
             setBusy(false);
           }
         }}
       >
-        <h2 className="text-xl font-bold">تنبيه جديد</h2>
+        <h2 className="text-xl font-bold">{tr("تنبيه جديد")}</h2>
         <Field
-          label="العنوان"
+          label={tr("العنوان")}
           name="title"
           required
           maxLength={100}
-          placeholder="انقطاع المياه في حي 10"
+          placeholder={tr("انقطاع المياه في حي 10")}
         />
         <label className="block font-bold">
-          النص
+          {tr("النص")}
           <textarea name="body" required maxLength={600} rows={3} className="field mt-1" />
         </label>
         <fieldset className="grid grid-cols-2 gap-2">
-          <legend className="mb-1 font-bold">النوع</legend>
+          <legend className="mb-1 font-bold">{tr("النوع")}</legend>
           <label className="chip min-h-12 justify-center gap-2">
             <input type="radio" name="severity" value="civic" defaultChecked className="size-5" />
-            تنبيه بلدي
+            {tr("تنبيه بلدي")}
           </label>
           <label className="chip min-h-12 justify-center gap-2">
             <input type="radio" name="severity" value="urgent" className="size-5" />
-            عاجل
+            {tr("عاجل")}
           </label>
         </fieldset>
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           <Field
-            label="يبدأ"
+            label={tr("يبدأ")}
             name="startsAt"
             type="datetime-local"
             required
             defaultValue={localInput(now)}
           />
           <Field
-            label="ينتهي"
+            label={tr("ينتهي")}
             name="endsAt"
             type="datetime-local"
             required
@@ -349,7 +350,7 @@ export function AlertsAdmin() {
           />
         </div>
         <Field
-          label="رابط (اختياري)"
+          label={tr("رابط (اختياري)")}
           name="link"
           type="url"
           dir="ltr"
@@ -358,22 +359,22 @@ export function AlertsAdmin() {
         />
         <label className="flex items-center gap-2 font-semibold">
           <input type="checkbox" name="push" defaultChecked className="size-5" />
-          أرسل إشعار «تنبيهات عاجلة» للمشتركين
+          {tr("أرسل إشعار «تنبيهات عاجلة» للمشتركين")}
         </label>
         {message ? (
           <p className="font-bold" role="status">
-            {message}
+            {trv(message)}
           </p>
         ) : null}
         <button type="submit" className="btn" disabled={busy}>
-          نشر التنبيه
+          {tr("نشر التنبيه")}
         </button>
       </form>
 
       <section>
-        <h2 className="mb-2 text-lg font-bold">التنبيهات</h2>
+        <h2 className="mb-2 text-lg font-bold">{tr("التنبيهات")}</h2>
         {data.alerts.length === 0 ? (
-          <p className="stamp p-4 font-semibold">لا تنبيهات.</p>
+          <p className="stamp p-4 font-semibold">{tr("لا تنبيهات.")}</p>
         ) : (
           <ul className="flex flex-col gap-2">
             {data.alerts.map((a) => (
@@ -382,10 +383,10 @@ export function AlertsAdmin() {
                 className={a.severity === "urgent" ? "alert-card p-4" : "alert-card-civic p-4"}
               >
                 <p className="chip w-fit">
-                  {isActive(a) ? "نشط" : Date.parse(a.endsAt) <= Date.now() ? "منتهٍ" : "مجدول"}
-                  {a.pushedAt ? " · أُرسل إشعار" : ""}
+                  {isActive(a) ? tr("نشط") : Date.parse(a.endsAt) <= Date.now() ? tr("منتهٍ") : tr("مجدول")}
+                  {a.pushedAt ? tr(" · أُرسل إشعار") : ""}
                 </p>
-                <p className="mt-1 text-lg font-bold">{a.title}</p>
+                <p className="mt-1 text-lg font-bold">{trv(a.title)}</p>
                 <p className="text-sm font-semibold">
                   {fmt(a.startsAt)} ← {fmt(a.endsAt)}
                 </p>
@@ -399,7 +400,7 @@ export function AlertsAdmin() {
                         await refresh();
                       }}
                     >
-                      إنهاء الآن
+                      {tr("إنهاء الآن")}
                     </button>
                   ) : (
                     <span />
@@ -408,12 +409,12 @@ export function AlertsAdmin() {
                     type="button"
                     className="btn btn-ghost"
                     onClick={async () => {
-                      if (!confirm("حذف التنبيه نهائياً؟")) return;
+                      if (!confirm(tr("حذف التنبيه نهائياً؟"))) return;
                       await adminAlertAction({ data: { id: a.id, action: "delete" } });
                       await refresh();
                     }}
                   >
-                    حذف
+                    {tr("حذف")}
                   </button>
                 </div>
               </li>
@@ -442,15 +443,15 @@ export function ReportsAdmin() {
   useEffect(() => {
     void refresh();
   }, [refresh]);
-  if (!data) return <p className="stamp p-4 font-semibold">جاري التحميل…</p>;
+  if (!data) return <p className="stamp p-4 font-semibold">{tr("جاري التحميل…")}</p>;
   if (!data.authed)
-    return <p className="stamp p-4 font-bold">انتهت الجلسة. سجّل الدخول من جديد.</p>;
-  if (!data.ok) return <p className="stamp p-4 font-bold">تعذّر تحميل البلاغات.</p>;
+    return <p className="stamp p-4 font-bold">{tr("انتهت الجلسة. سجّل الدخول من جديد.")}</p>;
+  if (!data.ok) return <p className="stamp p-4 font-bold">{tr("تعذّر تحميل البلاغات.")}</p>;
   if (data.groups.length === 0)
-    return <p className="stamp p-4 font-semibold">لا بلاغات بانتظار المراجعة.</p>;
+    return <p className="stamp p-4 font-semibold">{tr("لا بلاغات بانتظار المراجعة.")}</p>;
 
   const act = async (g: ReportGroup, action: "hide" | "delete" | "dismiss") => {
-    if (action === "delete" && !confirm("حذف المنشور نهائياً؟")) return;
+    if (action === "delete" && !confirm(tr("حذف المنشور نهائياً؟"))) return;
     const key = `${g.targetType}:${g.targetId}`;
     setBusy(key);
     try {
@@ -468,29 +469,29 @@ export function ReportsAdmin() {
         return (
           <li key={key} className="stamp p-4">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="chip">{TARGET_LABEL[g.targetType]}</span>
-              <span className="chip chip-alert">{g.count} بلاغ</span>
+              <span className="chip">{trv(TARGET_LABEL[g.targetType])}</span>
+              <span className="chip chip-alert">{trv(g.count)} {tr("بلاغ")}</span>
               {g.target ? (
                 <span className="chip">{TARGET_STATUS[g.target.status] ?? g.target.status}</span>
               ) : null}
             </div>
             {g.target ? (
               <>
-                <h2 className="mt-2 text-xl font-bold">{g.target.title}</h2>
-                <p className="mt-1 line-clamp-3">{g.target.excerpt}</p>
+                <h2 className="mt-2 text-xl font-bold">{trv(g.target.title)}</h2>
+                <p className="mt-1 line-clamp-3">{trv(g.target.excerpt)}</p>
                 {g.target.status === "approved" ? (
                   <a href={g.target.url} className="mt-1 inline-block text-sm font-bold underline">
-                    فتح المنشور
+                    {tr("فتح المنشور")}
                   </a>
                 ) : null}
               </>
             ) : (
-              <p className="mt-2 font-semibold text-muted">المنشور لم يعد موجوداً.</p>
+              <p className="mt-2 font-semibold text-muted">{tr("المنشور لم يعد موجوداً.")}</p>
             )}
             <ul className="mt-3 flex flex-col gap-1 rounded-xl bg-surface p-3 text-sm">
               {g.reports.map((r) => (
                 <li key={r.id}>
-                  <b>{r.reason}</b>
+                  <b>{trv(r.reason)}</b>
                   {r.note ? ` — ${r.note}` : ""}
                   <span className="text-muted"> · {fmt(r.createdAt)}</span>
                 </li>
@@ -503,7 +504,7 @@ export function ReportsAdmin() {
                 disabled={busy === key || !g.target}
                 onClick={() => act(g, "hide")}
               >
-                إخفاء
+                {tr("إخفاء")}
               </button>
               <button
                 type="button"
@@ -511,7 +512,7 @@ export function ReportsAdmin() {
                 disabled={busy === key || !g.target}
                 onClick={() => act(g, "delete")}
               >
-                حذف
+                {tr("حذف")}
               </button>
               <button
                 type="button"
@@ -519,7 +520,7 @@ export function ReportsAdmin() {
                 disabled={busy === key}
                 onClick={() => act(g, "dismiss")}
               >
-                تجاهل
+                {tr("تجاهل")}
               </button>
             </div>
           </li>
@@ -539,27 +540,27 @@ export function PushAdmin() {
   useEffect(() => {
     void refresh();
   }, [refresh]);
-  if (!stats) return <p className="stamp p-4 font-semibold">جاري التحميل…</p>;
+  if (!stats) return <p className="stamp p-4 font-semibold">{tr("جاري التحميل…")}</p>;
   if (!stats.authed)
-    return <p className="stamp p-4 font-bold">انتهت الجلسة. سجّل الدخول من جديد.</p>;
+    return <p className="stamp p-4 font-bold">{tr("انتهت الجلسة. سجّل الدخول من جديد.")}</p>;
 
   return (
     <div className="flex flex-col gap-4">
       <section className="stamp p-4">
-        <h2 className="text-xl font-bold">المشتركون</h2>
+        <h2 className="text-xl font-bold">{tr("المشتركون")}</h2>
         {!stats.configured ? (
           <p className="mt-1 font-bold">
-            مفاتيح VAPID غير مضبوطة على الخادم، لذلك لا يمكن الإرسال.
+            {tr("مفاتيح VAPID غير مضبوطة على الخادم، لذلك لا يمكن الإرسال.")}
           </p>
         ) : null}
         <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
           <p className="rounded-xl bg-surface p-3 text-center font-bold">
-            الكل
+            {tr("الكل")}
             <span className="block text-2xl">{stats.counts?.total ?? 0}</span>
           </p>
           {PUSH_TOPICS.map((t) => (
             <p key={t.key} className="rounded-xl bg-surface p-3 text-center font-bold">
-              {t.label}
+              {trv(t.label)}
               <span className="block text-2xl">{stats.counts?.[t.key] ?? 0}</span>
             </p>
           ))}
@@ -571,7 +572,7 @@ export function PushAdmin() {
           event.preventDefault();
           const formEl = event.currentTarget;
           const f = new FormData(formEl);
-          if (!confirm("إرسال الإشعار الآن لكل المشتركين في هذا الموضوع؟")) return;
+          if (!confirm(tr("إرسال الإشعار الآن لكل المشتركين في هذا الموضوع؟"))) return;
           setBusy(true);
           setMessage("");
           try {
@@ -585,8 +586,8 @@ export function PushAdmin() {
             });
             setMessage(
               res.ok
-                ? `أُرسل إلى ${res.sent} جهاز${res.removed ? `، وحُذف ${res.removed} اشتراك منتهٍ` : ""}${res.failed ? `، وفشل ${res.failed}` : ""}.`
-                : (res.message ?? "تعذّر الإرسال."),
+                ? tr("أُرسل إلى {0} جهاز{1}{2}.", res.sent, res.removed ? `، وحُذف ${res.removed} اشتراك منتهٍ` : "", res.failed ? `، وفشل ${res.failed}` : "")
+                : (res.message ?? tr("تعذّر الإرسال.")),
             );
             if (res.ok) formEl.reset();
             await refresh();
@@ -594,37 +595,37 @@ export function PushAdmin() {
             setMessage(
               error instanceof Error && /[\u0600-\u06ff]/.test(error.message)
                 ? error.message
-                : "تعذّر الإرسال.",
+                : tr("تعذّر الإرسال."),
             );
           } finally {
             setBusy(false);
           }
         }}
       >
-        <h2 className="text-xl font-bold">إرسال إشعار</h2>
+        <h2 className="text-xl font-bold">{tr("إرسال إشعار")}</h2>
         <label className="block font-bold">
-          الموضوع
+          {tr("الموضوع")}
           <select name="topic" className="field mt-1" defaultValue="alerts">
             {PUSH_TOPICS.filter((t) => !t.personal).map((t) => (
               <option key={t.key} value={t.key}>
-                {t.label}
+                {trv(t.label)}
               </option>
             ))}
           </select>
         </label>
-        <Field label="العنوان" name="title" required maxLength={80} />
+        <Field label={tr("العنوان")} name="title" required maxLength={80} />
         <label className="block font-bold">
-          النص
+          {tr("النص")}
           <textarea name="body" required maxLength={200} rows={2} className="field mt-1" />
         </label>
-        <Field label="يفتح الصفحة" name="url" dir="ltr" maxLength={300} defaultValue="/today" />
+        <Field label={tr("يفتح الصفحة")} name="url" dir="ltr" maxLength={300} defaultValue="/today" />
         {message ? (
           <p className="font-bold" role="status">
-            {message}
+            {trv(message)}
           </p>
         ) : null}
         <button type="submit" className="btn" disabled={busy || !stats.configured}>
-          إرسال
+          {tr("إرسال")}
         </button>
       </form>
     </div>

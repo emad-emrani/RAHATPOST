@@ -12,10 +12,11 @@ import { deleteMyNews, listMyNews } from "@/lib/reader-news/api";
 import type { OwnReaderNews } from "@/lib/reader-news/types";
 import { AD_STATUS_LABEL, type OwnAd } from "@/lib/ads/types";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
+import { tr, trv } from "@/lib/i18n/core";
 
 export const Route = createFileRoute("/my-posts")({
   head: () => ({
-    meta: [{ title: "منشوراتي · رهط بوست" }, { name: "robots", content: "noindex" }],
+    meta: [{ title: tr("منشوراتي · رهط بوست") }, { name: "robots", content: "noindex" }],
   }),
   component: MyPostsPage,
 });
@@ -43,7 +44,7 @@ function MyPostsPage() {
       setBusinesses(b);
       setError("");
     } catch {
-      setError("تعذّر تحميل منشوراتك.");
+      setError(tr("تعذّر تحميل منشوراتك."));
       setAds([]);
       setNews([]);
       setBusinesses([]);
@@ -58,7 +59,7 @@ function MyPostsPage() {
   if (isPending) {
     return (
       <Shell>
-        <p className="stamp p-4 font-semibold">جاري التحميل…</p>
+        <p className="stamp p-4 font-semibold">{tr("جاري التحميل…")}</p>
       </Shell>
     );
   }
@@ -66,11 +67,11 @@ function MyPostsPage() {
   if (!user) {
     return (
       <Shell>
-        <h1 className="mb-3 text-2xl font-bold">منشوراتي</h1>
+        <h1 className="mb-3 text-2xl font-bold">{tr("منشوراتي")}</h1>
         <div className="stamp flex flex-col gap-3 p-4">
-          <p className="font-semibold">سجّل الدخول لترى أخبارك وإعلاناتك وطلبات نشاطك وحالتها.</p>
+          <p className="font-semibold">{tr("سجّل الدخول لترى أخبارك وإعلاناتك وطلبات نشاطك وحالتها.")}</p>
           <Link to="/login" search={{ redirect: "/my-posts" }} className="btn">
-            تسجيل الدخول
+            {tr("تسجيل الدخول")}
           </Link>
         </div>
       </Shell>
@@ -80,18 +81,18 @@ function MyPostsPage() {
   return (
     <Shell>
       <div className="mb-3 flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold">منشوراتي</h1>
+        <h1 className="text-2xl font-bold">{tr("منشوراتي")}</h1>
         <Link to="/submit" className="btn px-4">
           <Plus className="size-4" aria-hidden />
-          أضف
+          {tr("أضف")}
         </Link>
       </div>
-      {error ? <p className="stamp mb-3 p-3 font-bold">{error}</p> : null}
-      <h2 className="mb-3 text-xl font-bold">إعلاناتي</h2>
+      {error ? <p className="stamp mb-3 p-3 font-bold">{trv(error)}</p> : null}
+      <h2 className="mb-3 text-xl font-bold">{tr("إعلاناتي")}</h2>
       {ads === null ? (
-        <p className="stamp p-4 font-semibold">جاري التحميل…</p>
+        <p className="stamp p-4 font-semibold">{tr("جاري التحميل…")}</p>
       ) : ads.length === 0 ? (
-        <p className="stamp p-4 font-semibold">لم تنشر أي إعلان بعد.</p>
+        <p className="stamp p-4 font-semibold">{tr("لم تنشر أي إعلان بعد.")}</p>
       ) : (
         <ul className="flex flex-col gap-3">
           {ads.map((ad) =>
@@ -99,11 +100,11 @@ function MyPostsPage() {
               <li key={ad.id}>
                 <AdForm
                   initial={{ ...ad, price: ad.price ?? "" }}
-                  submitLabel="حفظ وإرسال للمراجعة"
+                  submitLabel={tr("حفظ وإرسال للمراجعة")}
                   onCancel={() => setEditing("")}
                   onSubmit={async (data) => {
                     const res = await updateMyAd({ data: { ...data, id: ad.id } });
-                    if (!res.ok) return res.message ?? "تعذّر الحفظ.";
+                    if (!res.ok) return res.message ?? tr("تعذّر الحفظ.");
                     setEditing("");
                     await refresh();
                     return null;
@@ -113,8 +114,8 @@ function MyPostsPage() {
             ) : (
               <li key={ad.id} className="stamp p-4">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="chip">{ad.type}</span>
-                  <span className={STATUS_CHIP[ad.status]}>{AD_STATUS_LABEL[ad.status]}</span>
+                  <span className="chip">{trv(ad.type)}</span>
+                  <span className={STATUS_CHIP[ad.status]}>{trv(AD_STATUS_LABEL[ad.status])}</span>
                 </div>
                 <h3 className="mt-2 text-lg font-bold">
                   {ad.status === "approved" ? (
@@ -123,41 +124,41 @@ function MyPostsPage() {
                       params={{ id: ad.id }}
                       className="underline decoration-primary-deep"
                     >
-                      {ad.title}
+                      {trv(ad.title)}
                     </Link>
                   ) : (
                     ad.title
                   )}
                 </h3>
                 <p className="text-sm font-semibold text-muted">
-                  {ad.neighborhood}
+                  {trv(ad.neighborhood)}
                   {ad.price ? ` · ${ad.price}` : ""}
                 </p>
                 <PhotoStrip keys={ad.photos} size="size-16" />
                 <div className="mt-3 grid grid-cols-2 gap-2">
                   <button type="button" className="btn btn-ghost" onClick={() => setEditing(ad.id)}>
                     <Pencil className="size-4" aria-hidden />
-                    تعديل
+                    {tr("تعديل")}
                   </button>
                   <button
                     type="button"
                     className="btn btn-ghost"
                     disabled={busyId === ad.id}
                     onClick={async () => {
-                      if (!confirm("حذف الإعلان نهائياً؟")) return;
+                      if (!confirm(tr("حذف الإعلان نهائياً؟"))) return;
                       setBusyId(ad.id);
                       try {
                         await deleteMyAd({ data: { id: ad.id } });
                         await refresh();
                       } catch {
-                        setError("تعذّر الحذف.");
+                        setError(tr("تعذّر الحذف."));
                       } finally {
                         setBusyId("");
                       }
                     }}
                   >
                     <Trash2 className="size-4" aria-hidden />
-                    حذف
+                    {tr("حذف")}
                   </button>
                 </div>
               </li>
@@ -166,18 +167,18 @@ function MyPostsPage() {
         </ul>
       )}
 
-      <h2 className="mt-8 mb-3 text-xl font-bold">أخباري</h2>
+      <h2 className="mt-8 mb-3 text-xl font-bold">{tr("أخباري")}</h2>
       {news === null ? (
-        <p className="stamp p-4 font-semibold">جاري التحميل…</p>
+        <p className="stamp p-4 font-semibold">{tr("جاري التحميل…")}</p>
       ) : news.length === 0 ? (
-        <p className="stamp p-4 font-semibold">لم ترسل أي خبر بعد.</p>
+        <p className="stamp p-4 font-semibold">{tr("لم ترسل أي خبر بعد.")}</p>
       ) : (
         <ul className="flex flex-col gap-3">
           {news.map((item) => (
             <li key={item.id} className="stamp p-4">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="chip">خبر</span>
-                <span className={STATUS_CHIP[item.status]}>{AD_STATUS_LABEL[item.status]}</span>
+                <span className="chip">{tr("خبر")}</span>
+                <span className={STATUS_CHIP[item.status]}>{trv(AD_STATUS_LABEL[item.status])}</span>
               </div>
               <h3 className="mt-2 text-lg font-bold">
                 {item.status === "approved" ? (
@@ -186,23 +187,23 @@ function MyPostsPage() {
                     params={{ slug: `reader-${item.id}` }}
                     className="underline decoration-primary-deep"
                   >
-                    {item.title}
+                    {trv(item.title)}
                   </Link>
                 ) : (
                   item.title
                 )}
               </h3>
-              <p className="text-sm font-semibold text-muted">{item.neighborhood}</p>
+              <p className="text-sm font-semibold text-muted">{trv(item.neighborhood)}</p>
               <DeleteButton
                 busy={busyId === item.id}
-                label="حذف الخبر نهائياً؟"
+                label={tr("حذف الخبر نهائياً؟")}
                 onDelete={async () => {
                   setBusyId(item.id);
                   try {
                     await deleteMyNews({ data: { id: item.id } });
                     await refresh();
                   } catch {
-                    setError("تعذّر الحذف.");
+                    setError(tr("تعذّر الحذف."));
                   } finally {
                     setBusyId("");
                   }
@@ -213,18 +214,18 @@ function MyPostsPage() {
         </ul>
       )}
 
-      <h2 className="mt-8 mb-3 text-xl font-bold">طلبات نشاطي في الدليل</h2>
+      <h2 className="mt-8 mb-3 text-xl font-bold">{tr("طلبات نشاطي في الدليل")}</h2>
       {businesses === null ? (
-        <p className="stamp p-4 font-semibold">جاري التحميل…</p>
+        <p className="stamp p-4 font-semibold">{tr("جاري التحميل…")}</p>
       ) : businesses.length === 0 ? (
-        <p className="stamp p-4 font-semibold">لم ترسل أي طلب نشاط بعد.</p>
+        <p className="stamp p-4 font-semibold">{tr("لم ترسل أي طلب نشاط بعد.")}</p>
       ) : (
         <ul className="flex flex-col gap-3">
           {businesses.map((item) => (
             <li key={item.id} className="stamp p-4">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="chip">{item.category}</span>
-                <span className={STATUS_CHIP[item.status]}>{AD_STATUS_LABEL[item.status]}</span>
+                <span className="chip">{trv(item.category)}</span>
+                <span className={STATUS_CHIP[item.status]}>{trv(AD_STATUS_LABEL[item.status])}</span>
               </div>
               <h3 className="mt-2 text-lg font-bold">
                 {item.status === "approved" ? (
@@ -233,20 +234,20 @@ function MyPostsPage() {
                     params={{ slug: `biz-${item.id}` }}
                     className="underline decoration-primary-deep"
                   >
-                    {item.name}
+                    {trv(item.name)}
                   </Link>
                 ) : (
                   item.name
                 )}
               </h3>
-              <p className="text-sm font-semibold text-muted">{item.area}</p>
+              <p className="text-sm font-semibold text-muted">{trv(item.area)}</p>
               <PhotoStrip keys={item.photo ? [item.photo] : []} size="size-16" />
               <DeleteButton
                 busy={busyId === item.id}
                 label={
                   item.status === "approved"
-                    ? "حذف الطلب يزيل النشاط من الدليل. متأكد؟"
-                    : "سحب الطلب وحذفه؟"
+                    ? tr("حذف الطلب يزيل النشاط من الدليل. متأكد؟")
+                    : tr("سحب الطلب وحذفه؟")
                 }
                 onDelete={async () => {
                   setBusyId(item.id);
@@ -254,7 +255,7 @@ function MyPostsPage() {
                     await deleteMyBusiness({ data: { id: item.id } });
                     await refresh();
                   } catch {
-                    setError("تعذّر الحذف.");
+                    setError(tr("تعذّر الحذف."));
                   } finally {
                     setBusyId("");
                   }
@@ -288,7 +289,7 @@ function DeleteButton({
       }}
     >
       <Trash2 className="size-4" aria-hidden />
-      حذف
+      {tr("حذف")}
     </button>
   );
 }

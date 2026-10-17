@@ -22,6 +22,7 @@ import {
   type SiteSettings,
   type Toggle,
 } from "@/lib/site-settings/types";
+import { tr, trv } from "@/lib/i18n/core";
 
 const PARTS = {
   theme: "المظهر والألوان",
@@ -57,7 +58,7 @@ async function uploadImage(file: File): Promise<string> {
     key?: string;
     message?: string;
   };
-  if (!res.ok || !data.ok || !data.key) throw new Error(data.message || "تعذّر رفع الصورة.");
+  if (!res.ok || !data.ok || !data.key) throw new Error(data.message || tr("تعذّر رفع الصورة."));
   return data.key;
 }
 
@@ -72,12 +73,12 @@ export function SiteSettingsAdmin() {
 
   useEffect(() => {
     void adminGetSiteSettings().then((r) => {
-      if (!r.authed) setMsg("هذا القسم لمالك الموقع فقط.");
+      if (!r.authed) setMsg(tr("هذا القسم لمالك الموقع فقط."));
       setS(r.settings);
     });
   }, []);
 
-  if (!s) return <p className="stamp p-4 font-semibold">{msg || "جاري التحميل…"}</p>;
+  if (!s) return <p className="stamp p-4 font-semibold">{msg || tr("جاري التحميل…")}</p>;
 
   const set = (patch: Partial<SiteSettings>) => {
     setS({ ...s, ...patch });
@@ -89,20 +90,20 @@ export function SiteSettingsAdmin() {
     setSaving(true);
     const res = await adminSaveSiteSettings({ data: s });
     setSaving(false);
-    if (!res.ok || !res.settings) return setMsg(res.message || "تعذّر الحفظ.");
+    if (!res.ok || !res.settings) return setMsg(res.message || tr("تعذّر الحفظ."));
     setS(res.settings);
     setDirty(false);
-    setMsg("تم الحفظ ✓ تظهر التغييرات في الموقع خلال دقيقة تقريباً.");
+    setMsg(tr("تم الحفظ ✓ تظهر التغييرات في الموقع خلال دقيقة تقريباً."));
     await router.invalidate();
   };
 
   const reset = async () => {
-    if (!confirm("استعادة كل الإعدادات الافتراضية؟ سيتم حذف كل التخصيصات.")) return;
+    if (!confirm(tr("استعادة كل الإعدادات الافتراضية؟ سيتم حذف كل التخصيصات."))) return;
     const res = await adminResetSiteSettings();
-    if (!res.ok) return setMsg("تعذّر الاستعادة.");
+    if (!res.ok) return setMsg(tr("تعذّر الاستعادة."));
     setS(DEFAULT_SETTINGS);
     setDirty(false);
-    setMsg("تمت استعادة الإعدادات الافتراضية ✓");
+    setMsg(tr("تمت استعادة الإعدادات الافتراضية ✓"));
     await router.invalidate();
   };
 
@@ -116,14 +117,14 @@ export function SiteSettingsAdmin() {
             className={part === p ? "chip chip-ink shrink-0" : "chip shrink-0"}
             onClick={() => setPart(p)}
           >
-            {PARTS[p]}
+            {trv(PARTS[p])}
           </button>
         ))}
       </div>
 
       {part === "theme" ? <ThemePart s={s} set={set} /> : null}
       {part === "home" ? (
-        <Card title="أقسام الصفحة الرئيسية" hint="أظهر أو أخفِ الأقسام ورتّبها بالأسهم.">
+        <Card title={tr("أقسام الصفحة الرئيسية")} hint={tr("أظهر أو أخفِ الأقسام ورتّبها بالأسهم.")}>
           <ToggleList list={s.home} labels={HOME_SECTIONS} onChange={(home) => set({ home })} />
         </Card>
       ) : null}
@@ -131,10 +132,10 @@ export function SiteSettingsAdmin() {
       {part === "texts" ? <TextsPart s={s} set={set} setMsg={setMsg} /> : null}
       {part === "menus" ? (
         <>
-          <Card title="شريط التنقل السفلي وقائمة الأقسام العلوية">
+          <Card title={tr("شريط التنقل السفلي وقائمة الأقسام العلوية")}>
             <ToggleList list={s.nav} labels={NAV_ITEMS} onChange={(nav) => set({ nav })} />
           </Card>
-          <Card title="أيقونات الأقسام في الرئيسية">
+          <Card title={tr("أيقونات الأقسام في الرئيسية")}>
             <ToggleList list={s.tiles} labels={TILE_ITEMS} onChange={(tiles) => set({ tiles })} />
           </Card>
         </>
@@ -143,13 +144,13 @@ export function SiteSettingsAdmin() {
       {part === "google" ? <GooglePart s={s} set={set} /> : null}
 
       <div className="sticky bottom-20 z-20 mt-4 flex flex-col gap-2 rounded-2xl bg-paper p-3 shadow-[var(--shadow-lift)] md:bottom-4">
-        {msg ? <p className="font-bold">{msg}</p> : null}
+        {msg ? <p className="font-bold">{trv(msg)}</p> : null}
         <div className="grid grid-cols-2 gap-2">
           <button type="button" className="btn" disabled={saving || !dirty} onClick={save}>
-            {saving ? "جاري الحفظ…" : dirty ? "حفظ التغييرات" : "لا تغييرات"}
+            {saving ? tr("جاري الحفظ…") : dirty ? tr("حفظ التغييرات") : tr("لا تغييرات")}
           </button>
           <button type="button" className="btn btn-ghost" onClick={reset}>
-            استعادة الافتراضي
+            {tr("استعادة الافتراضي")}
           </button>
         </div>
       </div>
@@ -163,8 +164,8 @@ function Card({ title, hint, children }: { title: string; hint?: string; childre
   return (
     <section className="stamp mb-4 flex flex-col gap-3 p-4">
       <div>
-        <h2 className="text-lg font-bold">{title}</h2>
-        {hint ? <p className="text-sm font-semibold text-muted">{hint}</p> : null}
+        <h2 className="text-lg font-bold">{trv(title)}</h2>
+        {hint ? <p className="text-sm font-semibold text-muted">{trv(hint)}</p> : null}
       </div>
       {children}
     </section>
@@ -174,7 +175,7 @@ function Card({ title, hint, children }: { title: string; hint?: string; childre
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
     <label className="block font-bold">
-      {label}
+      {trv(label)}
       <div className="mt-1">{children}</div>
     </label>
   );
@@ -196,19 +197,19 @@ function ToggleList<T extends string>({
           key={item.id}
           className={`flex items-center gap-2 rounded-xl border border-line px-3 py-2 ${item.visible ? "" : "opacity-50"}`}
         >
-          <span className="min-w-0 flex-1 font-bold">{labels[item.id]}</span>
-          <IconBtn label="أعلى" onClick={() => onChange(move(list, i, -1))} disabled={i === 0}>
+          <span className="min-w-0 flex-1 font-bold">{trv(labels[item.id])}</span>
+          <IconBtn label={tr("أعلى")} onClick={() => onChange(move(list, i, -1))} disabled={i === 0}>
             <ArrowUp className="size-4" />
           </IconBtn>
           <IconBtn
-            label="أسفل"
+            label={tr("أسفل")}
             onClick={() => onChange(move(list, i, 1))}
             disabled={i === list.length - 1}
           >
             <ArrowDown className="size-4" />
           </IconBtn>
           <IconBtn
-            label={item.visible ? "إخفاء" : "إظهار"}
+            label={item.visible ? tr("إخفاء") : tr("إظهار")}
             onClick={() =>
               onChange(list.map((x) => (x.id === item.id ? { ...x, visible: !x.visible } : x)))
             }
@@ -235,8 +236,8 @@ function IconBtn({
   return (
     <button
       type="button"
-      aria-label={label}
-      title={label}
+      aria-label={trv(label)}
+      title={trv(label)}
       disabled={disabled}
       onClick={onClick}
       className="grid size-9 place-items-center rounded-lg border border-line bg-paper disabled:opacity-30"
@@ -249,7 +250,7 @@ function IconBtn({
 function ThemePart({ s, set }: PartProps) {
   const t = s.theme;
   const color = (k: keyof typeof t, label: string) => (
-    <Field label={label}>
+    <Field label={trv(label)}>
       <div className="flex items-center gap-2">
         <input
           type="color"
@@ -269,7 +270,7 @@ function ThemePart({ s, set }: PartProps) {
   );
   return (
     <>
-      <Card title="الألوان" hint="الألوان الفاتحة للون الأساسي تبقى أوضح مع النص الداكن.">
+      <Card title={tr("الألوان")} hint={tr("الألوان الفاتحة للون الأساسي تبقى أوضح مع النص الداكن.")}>
         <div className="flex flex-wrap gap-2">
           {THEME_PRESETS.map((p) => (
             <button
@@ -279,25 +280,25 @@ function ThemePart({ s, set }: PartProps) {
               onClick={() => set({ theme: p.theme })}
             >
               <span className="size-4 rounded-full" style={{ background: p.theme.primary }} />
-              {p.name}
+              {trv(p.name)}
             </button>
           ))}
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
-          {color("primary", "اللون الأساسي (الأزرار والتحديد)")}
-          {color("accent", "لون التنبيه والعاجل")}
-          {color("background", "لون الخلفية")}
-          {color("ink", "لون النص")}
+          {color("primary", tr("اللون الأساسي (الأزرار والتحديد)"))}
+          {color("accent", tr("لون التنبيه والعاجل"))}
+          {color("background", tr("لون الخلفية"))}
+          {color("ink", tr("لون النص"))}
         </div>
         <button
           type="button"
           className="btn btn-ghost"
           onClick={() => set({ theme: THEME_DEFAULT })}
         >
-          إرجاع الألوان الافتراضية
+          {tr("إرجاع الألوان الافتراضية")}
         </button>
       </Card>
-      <Card title="معاينة مباشرة">
+      <Card title={tr("معاينة مباشرة")}>
         <div
           className="rounded-2xl p-4"
           style={{
@@ -307,13 +308,13 @@ function ThemePart({ s, set }: PartProps) {
           }}
         >
           <div className="stamp p-4">
-            <span className="chip chip-deep">رهط</span>
-            <p className="mt-2 text-lg font-bold">عنوان خبر للمعاينة</p>
-            <p className="text-sm font-semibold text-muted">منذ 5 دقائق · رهط بوست</p>
+            <span className="chip chip-deep">{tr("رهط")}</span>
+            <p className="mt-2 text-lg font-bold">{tr("عنوان خبر للمعاينة")}</p>
+            <p className="text-sm font-semibold text-muted">{tr("منذ 5 دقائق · رهط بوست")}</p>
             <div className="mt-3 flex flex-wrap gap-2">
-              <span className="btn">زر أساسي</span>
-              <span className="chip chip-alert">عاجل</span>
-              <span className="see-all">عرض الكل</span>
+              <span className="btn">{tr("زر أساسي")}</span>
+              <span className="chip chip-alert">{tr("عاجل")}</span>
+              <span className="see-all">{tr("عرض الكل")}</span>
             </div>
           </div>
         </div>
@@ -336,17 +337,17 @@ function ImagePick({
   const [busy, setBusy] = useState(false);
   return (
     <div className="flex flex-col gap-2">
-      <span className="font-bold">{label}</span>
+      <span className="font-bold">{trv(label)}</span>
       <div className="flex items-center gap-3">
         {value ? (
           <img src={mediaUrl(value)} alt="" className="size-16 rounded-xl object-cover" />
         ) : (
           <span className="grid size-16 place-items-center rounded-xl bg-primary-soft text-xs font-bold">
-            افتراضي
+            {tr("افتراضي")}
           </span>
         )}
         <label className="btn btn-ghost px-3">
-          {busy ? "جاري الرفع…" : "اختيار صورة"}
+          {busy ? tr("جاري الرفع…") : tr("اختيار صورة")}
           <input
             type="file"
             accept="image/*"
@@ -359,7 +360,7 @@ function ImagePick({
               try {
                 onChange(await uploadImage(f));
               } catch (err) {
-                setMsg(err instanceof Error ? err.message : "تعذّر رفع الصورة.");
+                setMsg(err instanceof Error ? err.message : tr("تعذّر رفع الصورة."));
               } finally {
                 setBusy(false);
               }
@@ -368,7 +369,7 @@ function ImagePick({
         </label>
         {value ? (
           <button type="button" className="btn btn-ghost px-3" onClick={() => onChange("")}>
-            إزالة
+            {tr("إزالة")}
           </button>
         ) : null}
       </div>
@@ -379,7 +380,7 @@ function ImagePick({
 function TextsPart({ s, set, setMsg }: PartProps & { setMsg: (m: string) => void }) {
   const t = s.texts;
   const text = (k: keyof typeof t, label: string, max: number, multi = false) => (
-    <Field label={label}>
+    <Field label={trv(label)}>
       {multi ? (
         <textarea
           className="field min-h-20"
@@ -400,25 +401,25 @@ function TextsPart({ s, set, setMsg }: PartProps & { setMsg: (m: string) => void
   );
   return (
     <>
-      <Card title="نصوص الموقع">
-        {text("siteName", "اسم الموقع (في الشريط العلوي)", 40)}
-        {text("tagline", "الشعار تحت الاسم", 60)}
-        {text("addButton", "نص زر الإضافة", 16)}
-        {text("footer", "نص أسفل الصفحة", 400, true)}
-        {text("contactEmail", "بريد التواصل (يظهر أسفل الصفحة)", 120)}
+      <Card title={tr("نصوص الموقع")}>
+        {text("siteName", tr("اسم الموقع (في الشريط العلوي)"), 40)}
+        {text("tagline", tr("الشعار تحت الاسم"), 60)}
+        {text("addButton", tr("نص زر الإضافة"), 16)}
+        {text("footer", tr("نص أسفل الصفحة"), 400, true)}
+        {text("contactEmail", tr("بريد التواصل (يظهر أسفل الصفحة)"), 120)}
       </Card>
       <Card
-        title="الشعار والأيقونة"
-        hint="صورة مربعة JPG أو WebP. تُستبدل صورة الشعار في الشريط العلوي وأيقونة المتصفح."
+        title={tr("الشعار والأيقونة")}
+        hint={tr("صورة مربعة JPG أو WebP. تُستبدل صورة الشعار في الشريط العلوي وأيقونة المتصفح.")}
       >
         <ImagePick
-          label="الشعار"
+          label={tr("الشعار")}
           value={s.logoKey}
           onChange={(logoKey) => set({ logoKey })}
           setMsg={setMsg}
         />
         <ImagePick
-          label="أيقونة المتصفح (favicon)"
+          label={tr("أيقونة المتصفح (favicon)")}
           value={s.faviconKey}
           onChange={(faviconKey) => set({ faviconKey })}
           setMsg={setMsg}
@@ -438,32 +439,32 @@ function SliderPart({ s, set, setMsg }: PartProps & { setMsg: (m: string) => voi
       slides: slides.map((x, j) => (j === i && x.type === "custom" ? { ...x, ...patch } : x)),
     });
   return (
-    <Card title="شرائح السلايدر" hint="رتّب الشرائح بالأسهم. الشرائح الجاهزة تتحدث تلقائياً.">
+    <Card title={tr("شرائح السلايدر")} hint={tr("رتّب الشرائح بالأسهم. الشرائح الجاهزة تتحدث تلقائياً.")}>
       <ul className="flex flex-col gap-3">
         {slides.map((x, i) => (
           <li key={x.id} className="rounded-xl border border-line p-3">
             <div className="flex items-center gap-2">
               <span className="min-w-0 flex-1 font-bold">
                 {x.type === "builtin"
-                  ? `شريحة جاهزة: ${BUILTIN_SLIDES[x.id]}`
-                  : x.title || "شريحة جديدة"}
+                  ? tr("شريحة جاهزة: {0}", BUILTIN_SLIDES[x.id])
+                  : x.title || tr("شريحة جديدة")}
               </span>
               <IconBtn
-                label="أعلى"
+                label={tr("أعلى")}
                 onClick={() => set({ slides: move(slides, i, -1) })}
                 disabled={i === 0}
               >
                 <ArrowUp className="size-4" />
               </IconBtn>
               <IconBtn
-                label="أسفل"
+                label={tr("أسفل")}
                 onClick={() => set({ slides: move(slides, i, 1) })}
                 disabled={i === slides.length - 1}
               >
                 <ArrowDown className="size-4" />
               </IconBtn>
               <IconBtn
-                label="حذف"
+                label={tr("حذف")}
                 onClick={() => set({ slides: slides.filter((_, j) => j !== i) })}
               >
                 <Trash2 className="size-4" />
@@ -471,7 +472,7 @@ function SliderPart({ s, set, setMsg }: PartProps & { setMsg: (m: string) => voi
             </div>
             {x.type === "custom" ? (
               <div className="mt-3 flex flex-col gap-2">
-                <Field label="العنوان">
+                <Field label={tr("العنوان")}>
                   <input
                     className="field"
                     value={x.title}
@@ -479,7 +480,7 @@ function SliderPart({ s, set, setMsg }: PartProps & { setMsg: (m: string) => voi
                     onChange={(e) => update(i, { title: e.target.value })}
                   />
                 </Field>
-                <Field label="نص قصير (اختياري)">
+                <Field label={tr("نص قصير (اختياري)")}>
                   <input
                     className="field"
                     value={x.subtitle}
@@ -487,7 +488,7 @@ function SliderPart({ s, set, setMsg }: PartProps & { setMsg: (m: string) => voi
                     onChange={(e) => update(i, { subtitle: e.target.value })}
                   />
                 </Field>
-                <Field label="الرابط (صفحة في الموقع مثل /buses أو رابط https)">
+                <Field label={tr("الرابط (صفحة في الموقع مثل /buses أو رابط https)")}>
                   <input
                     className="field"
                     dir="ltr"
@@ -497,7 +498,7 @@ function SliderPart({ s, set, setMsg }: PartProps & { setMsg: (m: string) => voi
                   />
                 </Field>
                 <ImagePick
-                  label="الصورة"
+                  label={tr("الصورة")}
                   value={x.imageKey}
                   onChange={(imageKey) => update(i, { imageKey })}
                   setMsg={setMsg}
@@ -520,7 +521,7 @@ function SliderPart({ s, set, setMsg }: PartProps & { setMsg: (m: string) => voi
           })
         }
       >
-        إضافة شريحة
+        {tr("إضافة شريحة")}
       </button>
       {missing.length ? (
         <div className="flex flex-wrap gap-2">
@@ -531,7 +532,7 @@ function SliderPart({ s, set, setMsg }: PartProps & { setMsg: (m: string) => voi
               className="chip"
               onClick={() => set({ slides: [...slides, { type: "builtin", id }] })}
             >
-              + {BUILTIN_SLIDES[id]}
+              + {trv(BUILTIN_SLIDES[id])}
             </button>
           ))}
         </div>
@@ -546,8 +547,8 @@ function LinksPart({ s, set }: PartProps) {
     set({ quickLinks: links.map((x, j) => (j === i ? { ...x, ...patch } : x)) });
   return (
     <Card
-      title="روابط سريعة في الرئيسية"
-      hint="بطاقات صغيرة بروابط تختارها. رتّب مكانها من «أقسام الرئيسية»."
+      title={tr("روابط سريعة في الرئيسية")}
+      hint={tr("بطاقات صغيرة بروابط تختارها. رتّب مكانها من «أقسام الرئيسية».")}
     >
       <ul className="flex flex-col gap-3">
         {links.map((l, i) => (
@@ -559,24 +560,24 @@ function LinksPart({ s, set }: PartProps) {
                 maxLength={4}
                 placeholder="🔗"
                 onChange={(e) => update(i, { emoji: e.target.value })}
-                aria-label="رمز"
+                aria-label={tr("رمز")}
               />
               <input
                 className="field flex-1"
                 value={l.title}
                 maxLength={60}
-                placeholder="العنوان"
+                placeholder={tr("العنوان")}
                 onChange={(e) => update(i, { title: e.target.value })}
               />
               <IconBtn
-                label="أعلى"
+                label={tr("أعلى")}
                 onClick={() => set({ quickLinks: move(links, i, -1) })}
                 disabled={i === 0}
               >
                 <ArrowUp className="size-4" />
               </IconBtn>
               <IconBtn
-                label="حذف"
+                label={tr("حذف")}
                 onClick={() => set({ quickLinks: links.filter((_, j) => j !== i) })}
               >
                 <Trash2 className="size-4" />
@@ -586,7 +587,7 @@ function LinksPart({ s, set }: PartProps) {
               className="field"
               value={l.subtitle}
               maxLength={100}
-              placeholder="وصف قصير (اختياري)"
+              placeholder={tr("وصف قصير (اختياري)")}
               onChange={(e) => update(i, { subtitle: e.target.value })}
             />
             <input
@@ -594,7 +595,7 @@ function LinksPart({ s, set }: PartProps) {
               dir="ltr"
               value={l.url}
               maxLength={300}
-              placeholder="/directory أو https://…"
+              placeholder={tr("/directory أو https://…")}
               onChange={(e) => update(i, { url: e.target.value })}
             />
           </li>
@@ -610,10 +611,10 @@ function LinksPart({ s, set }: PartProps) {
           })
         }
       >
-        إضافة رابط
+        {tr("إضافة رابط")}
       </button>
       <p className="text-sm font-semibold text-muted">
-        الروابط بدون عنوان أو برابط غير صحيح لا تُحفظ.
+        {tr("الروابط بدون عنوان أو برابط غير صحيح لا تُحفظ.")}
       </p>
     </Card>
   );
@@ -625,20 +626,20 @@ function GooglePart({ s, set }: PartProps) {
   const check = (on: boolean, label: string, onChange: (v: boolean) => void) => (
     <label className="flex items-center gap-2 font-bold">
       <input type="checkbox" checked={on} onChange={(e) => onChange(e.target.checked)} />
-      {label}
+      {trv(label)}
     </label>
   );
   const bad = (v: string, re: RegExp) =>
     v && !re.test(v.trim()) ? (
-      <p className="text-sm font-bold text-alert">الصيغة غير صحيحة — لن تُحفظ.</p>
+      <p className="text-sm font-bold text-alert">{tr("الصيغة غير صحيحة — لن تُحفظ.")}</p>
     ) : null;
   return (
     <>
       <Card
         title="Google AdSense"
-        hint="أدخل المعرّفات فقط (لا تلصق أكواد). لا تظهر الإعلانات في لوحة الإدارة وصفحات الحساب."
+        hint={tr("أدخل المعرّفات فقط (لا تلصق أكواد). لا تظهر الإعلانات في لوحة الإدارة وصفحات الحساب.")}
       >
-        <Field label="معرّف الناشر (ca-pub-…)">
+        <Field label={tr("معرّف الناشر (ca-pub-…)")}>
           <input
             className="field"
             dir="ltr"
@@ -648,22 +649,22 @@ function GooglePart({ s, set }: PartProps) {
           />
         </Field>
         {bad(g.adsensePub, /^ca-pub-\d{10,20}$/)}
-        {check(g.adsenseEnabled, "تفعيل الإعلانات", (v) => up({ adsenseEnabled: v }))}
-        {check(g.autoAds, "الإعلانات التلقائية (Auto ads) — فعّلها أيضاً من حساب AdSense", (v) =>
+        {check(g.adsenseEnabled, tr("تفعيل الإعلانات"), (v) => up({ adsenseEnabled: v }))}
+        {check(g.autoAds, tr("الإعلانات التلقائية (Auto ads) — فعّلها أيضاً من حساب AdSense"), (v) =>
           up({ autoAds: v }),
         )}
         <p className="text-sm font-semibold text-muted">
-          ملف ads.txt يُنشأ تلقائياً على rahatpost.com/ads.txt من معرّف الناشر.
+          {tr("ملف ads.txt يُنشأ تلقائياً على rahatpost.com/ads.txt من معرّف الناشر.")}
         </p>
         <div className="flex flex-col gap-2">
-          <p className="font-bold">وحدات إعلانية يدوية</p>
+          <p className="font-bold">{tr("وحدات إعلانية يدوية")}</p>
           {g.slots.map((a, i) => (
             <div key={a.id} className="flex items-center gap-2">
               <input
                 className="field flex-1"
                 dir="ltr"
                 value={a.slot}
-                placeholder="رقم الوحدة (data-ad-slot)"
+                placeholder={tr("رقم الوحدة (data-ad-slot)")}
                 onChange={(e) =>
                   up({
                     slots: g.slots.map((x, j) => (j === i ? { ...x, slot: e.target.value } : x)),
@@ -683,11 +684,11 @@ function GooglePart({ s, set }: PartProps) {
               >
                 {(Object.keys(AD_PLACEMENTS) as AdPlacement[]).map((p) => (
                   <option key={p} value={p}>
-                    {AD_PLACEMENTS[p]}
+                    {trv(AD_PLACEMENTS[p])}
                   </option>
                 ))}
               </select>
-              <IconBtn label="حذف" onClick={() => up({ slots: g.slots.filter((_, j) => j !== i) })}>
+              <IconBtn label={tr("حذف")} onClick={() => up({ slots: g.slots.filter((_, j) => j !== i) })}>
                 <Trash2 className="size-4" />
               </IconBtn>
             </div>
@@ -700,12 +701,12 @@ function GooglePart({ s, set }: PartProps) {
               up({ slots: [...g.slots, { id: newId(), slot: "", placement: "home" }] })
             }
           >
-            إضافة وحدة إعلانية
+            {tr("إضافة وحدة إعلانية")}
           </button>
         </div>
       </Card>
       <Card title="Google Analytics 4">
-        <Field label="معرّف القياس (G-…)">
+        <Field label={tr("معرّف القياس (G-…)")}>
           <input
             className="field"
             dir="ltr"
@@ -715,10 +716,10 @@ function GooglePart({ s, set }: PartProps) {
           />
         </Field>
         {bad(g.gaId, /^G-[A-Z0-9]{4,16}$/)}
-        {check(g.gaEnabled, "تفعيل Google Analytics", (v) => up({ gaEnabled: v }))}
+        {check(g.gaEnabled, tr("تفعيل Google Analytics"), (v) => up({ gaEnabled: v }))}
       </Card>
-      <Card title="Google Tag Manager (اختياري)">
-        <Field label="معرّف الحاوية (GTM-…)">
+      <Card title={tr("Google Tag Manager (اختياري)")}>
+        <Field label={tr("معرّف الحاوية (GTM-…)")}>
           <input
             className="field"
             dir="ltr"
@@ -731,9 +732,9 @@ function GooglePart({ s, set }: PartProps) {
       </Card>
       <Card
         title="Google Search Console"
-        hint="من «طريقة التحقق: علامة HTML» انسخ قيمة content فقط."
+        hint={tr("من «طريقة التحقق: علامة HTML» انسخ قيمة content فقط.")}
       >
-        <Field label="رمز التحقق">
+        <Field label={tr("رمز التحقق")}>
           <input
             className="field"
             dir="ltr"

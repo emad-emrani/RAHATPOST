@@ -1,4 +1,5 @@
 import { CalculationMethod, Coordinates, Madhab, PrayerTimes } from "adhan";
+import { tr } from "@/lib/i18n/core";
 
 /**
  * Prayer times for Rahat, computed locally (adhan, no external API).
@@ -70,6 +71,6 @@ export function countdownAr(ms: number): string {
   const totalMin = Math.max(0, Math.ceil(ms / 60_000));
   const h = Math.floor(totalMin / 60);
   const m = totalMin % 60;
-  if (h === 0) return m <= 1 ? "بعد أقل من دقيقة" : `بعد ${m} دقيقة`;
-  return m === 0 ? `بعد ${h} ساعة` : `بعد ${h} س ${m} د`;
+  if (h === 0) return m <= 1 ? tr("بعد أقل من دقيقة") : tr("بعد {0} دقيقة", m);
+  return m === 0 ? tr("بعد {0} ساعة", h) : tr("بعد {0} س {1} د", h, m);
 }

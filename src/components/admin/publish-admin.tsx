@@ -4,6 +4,7 @@ import { mediaUrl } from "@/lib/media/types";
 import { newsCategories } from "@/lib/news/types";
 import { adminSaveStaffNews, adminListStaffNews, adminUpdateStaffNews } from "@/lib/staff-news/api";
 import type { StaffNews } from "@/lib/staff-news/types";
+import { tr, trv } from "@/lib/i18n/core";
 
 /** «نشر خبر»: the team publishes news directly (server functions behind the admin cookie). */
 export function PublishAdmin() {
@@ -22,8 +23,8 @@ export function PublishAdmin() {
   const refresh = useCallback(async () => {
     const res = await adminListStaffNews();
     setItems(res.items);
-    if (!res.authed) setMsg("انتهت الجلسة. سجّل الدخول من جديد.");
-    else if (!res.ok) setMsg("تعذّر تحميل الأخبار المنشورة.");
+    if (!res.authed) setMsg(tr("انتهت الجلسة. سجّل الدخول من جديد."));
+    else if (!res.ok) setMsg(tr("تعذّر تحميل الأخبار المنشورة."));
   }, []);
 
   useEffect(() => {
@@ -32,7 +33,7 @@ export function PublishAdmin() {
 
   const upload = async (file: File | undefined) => {
     if (!file) return;
-    if (!file.type.startsWith("image/")) return setMsg("اختر ملف صورة.");
+    if (!file.type.startsWith("image/")) return setMsg(tr("اختر ملف صورة."));
     setUploading(true);
     setMsg("");
     try {
@@ -48,10 +49,10 @@ export function PublishAdmin() {
         key?: string;
         message?: string;
       };
-      if (!res.ok || !data.ok || !data.key) throw new Error(data.message || "تعذّر رفع الصورة.");
+      if (!res.ok || !data.ok || !data.key) throw new Error(data.message || tr("تعذّر رفع الصورة."));
       setImageKey(data.key);
     } catch (err) {
-      setMsg(err instanceof Error ? err.message : "تعذّر رفع الصورة.");
+      setMsg(err instanceof Error ? err.message : tr("تعذّر رفع الصورة."));
     } finally {
       setUploading(false);
     }
@@ -65,16 +66,16 @@ export function PublishAdmin() {
       const res = await adminSaveStaffNews({
         data: { title, category, body, imageKey, breaking, ...(editId ? { id: editId } : {}) },
       });
-      if (!res.ok) return setMsg(res.message || "تعذّر النشر.");
+      if (!res.ok) return setMsg(res.message || tr("تعذّر النشر."));
       setTitle("");
       setBody("");
       setBreaking(false);
       setImageKey("");
       setEditId("");
-      setMsg(editId ? "تم حفظ التعديل ✓" : "تم نشر الخبر ✓ (يظهر في الموقع خلال دقيقة)");
+      setMsg(editId ? tr("تم حفظ التعديل ✓") : tr("تم نشر الخبر ✓ (يظهر في الموقع خلال دقيقة)"));
       await refresh();
     } catch {
-      setMsg("تعذّر النشر. حاول مرة أخرى.");
+      setMsg(tr("تعذّر النشر. حاول مرة أخرى."));
     } finally {
       setSaving(false);
     }
@@ -92,11 +93,11 @@ export function PublishAdmin() {
   };
 
   const act = async (id: string, action: "delete" | "breaking-on" | "breaking-off") => {
-    if (action === "delete" && !confirm("حذف الخبر نهائياً؟")) return;
+    if (action === "delete" && !confirm(tr("حذف الخبر نهائياً؟"))) return;
     setBusyId(id);
     try {
       const res = await adminUpdateStaffNews({ data: { id, action } });
-      if (!res.ok) setMsg("تعذّر تنفيذ العملية.");
+      if (!res.ok) setMsg(tr("تعذّر تنفيذ العملية."));
       await refresh();
     } finally {
       setBusyId("");
@@ -106,9 +107,9 @@ export function PublishAdmin() {
   return (
     <>
       <form className="stamp flex flex-col gap-3 p-4" onSubmit={publish}>
-        <h2 className="text-lg font-bold">{editId ? "تعديل الخبر" : "نشر خبر جديد أو عاجل"}</h2>
+        <h2 className="text-lg font-bold">{editId ? tr("تعديل الخبر") : tr("نشر خبر جديد أو عاجل")}</h2>
         <label className="block font-bold">
-          العنوان
+          {tr("العنوان")}
           <input
             className="field mt-1"
             value={title}
@@ -118,7 +119,7 @@ export function PublishAdmin() {
           />
         </label>
         <label className="block font-bold">
-          التصنيف
+          {tr("التصنيف")}
           <select
             className="field mt-1"
             value={category}
@@ -126,13 +127,13 @@ export function PublishAdmin() {
           >
             {newsCategories.map((c) => (
               <option key={c} value={c}>
-                {c}
+                {trv(c)}
               </option>
             ))}
           </select>
         </label>
         <label className="block font-bold">
-          نص الخبر
+          {tr("نص الخبر")}
           <textarea
             className="field mt-1 min-h-40"
             value={body}
@@ -142,7 +143,7 @@ export function PublishAdmin() {
           />
         </label>
         <label className="block font-bold">
-          صورة (اختياري)
+          {tr("صورة (اختياري)")}
           <input
             type="file"
             accept="image/*"
@@ -151,12 +152,12 @@ export function PublishAdmin() {
             onChange={(e) => upload(e.target.files?.[0])}
           />
         </label>
-        {uploading ? <p className="text-sm font-semibold text-muted">جاري رفع الصورة…</p> : null}
+        {uploading ? <p className="text-sm font-semibold text-muted">{tr("جاري رفع الصورة…")}</p> : null}
         {imageKey ? (
           <div className="flex items-center gap-3">
-            <span className="chip">تم رفع الصورة ✓</span>
+            <span className="chip">{tr("تم رفع الصورة ✓")}</span>
             <button type="button" className="btn btn-ghost px-3" onClick={() => setImageKey("")}>
-              إزالة
+              {tr("إزالة")}
             </button>
           </div>
         ) : null}
@@ -166,24 +167,24 @@ export function PublishAdmin() {
             checked={breaking}
             onChange={(e) => setBreaking(e.target.checked)}
           />
-          خبر عاجل (يظهر في شريط «عاجل» بالصفحة الرئيسية)
+          {tr("خبر عاجل (يظهر في شريط «عاجل» بالصفحة الرئيسية)")}
         </label>
         <button type="submit" className="btn" disabled={saving || uploading}>
-          {saving ? "جاري الحفظ…" : editId ? "حفظ التعديل" : "نشر الخبر"}
+          {saving ? tr("جاري الحفظ…") : editId ? tr("حفظ التعديل") : tr("نشر الخبر")}
         </button>
         {editId ? (
           <button type="button" className="btn btn-ghost" onClick={() => startEdit(null)}>
-            إلغاء التعديل
+            {tr("إلغاء التعديل")}
           </button>
         ) : null}
-        {msg ? <p className="font-bold">{msg}</p> : null}
+        {msg ? <p className="font-bold">{trv(msg)}</p> : null}
       </form>
 
-      <h2 className="mt-6 mb-3 text-lg font-bold">الأخبار المنشورة ({items?.length ?? 0})</h2>
+      <h2 className="mt-6 mb-3 text-lg font-bold">{tr("الأخبار المنشورة (")}{items?.length ?? 0})</h2>
       {!items ? (
-        <p className="stamp p-4 font-semibold">جاري التحميل…</p>
+        <p className="stamp p-4 font-semibold">{tr("جاري التحميل…")}</p>
       ) : items.length === 0 ? (
-        <p className="stamp p-4 font-semibold">لا أخبار منشورة بعد.</p>
+        <p className="stamp p-4 font-semibold">{tr("لا أخبار منشورة بعد.")}</p>
       ) : (
         <ul className="flex flex-col gap-3">
           {items.map((n) => (
@@ -197,9 +198,9 @@ export function PublishAdmin() {
               ) : null}
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap gap-2">
-                  {n.breaking ? <span className="chip chip-alert">عاجل</span> : null}
-                  <span className="chip">{n.category}</span>
-                  <span className="chip">{n.authorName ? `كتبه: ${n.authorName}` : "الإدارة"}</span>
+                  {n.breaking ? <span className="chip chip-alert">{tr("عاجل")}</span> : null}
+                  <span className="chip">{trv(n.category)}</span>
+                  <span className="chip">{n.authorName ? tr("كتبه: {0}", n.authorName) : tr("الإدارة")}</span>
                 </div>
                 <a
                   href={`/news/rp-${n.id}`}
@@ -207,7 +208,7 @@ export function PublishAdmin() {
                   rel="noreferrer"
                   className="mt-2 block text-lg font-bold underline"
                 >
-                  {n.title}
+                  {trv(n.title)}
                 </a>
                 <p className="text-sm font-semibold text-muted">
                   {new Date(n.createdAt).toLocaleString("ar-u-nu-latn", {
@@ -216,7 +217,7 @@ export function PublishAdmin() {
                 </p>
                 <div className="mt-3 grid grid-cols-3 gap-2">
                   <button type="button" className="btn btn-ghost" onClick={() => startEdit(n)}>
-                    تعديل
+                    {tr("تعديل")}
                   </button>
                   <button
                     type="button"
@@ -224,7 +225,7 @@ export function PublishAdmin() {
                     disabled={busyId === n.id}
                     onClick={() => act(n.id, n.breaking ? "breaking-off" : "breaking-on")}
                   >
-                    {n.breaking ? "إلغاء العاجل" : "جعله عاجلاً"}
+                    {n.breaking ? tr("إلغاء العاجل") : tr("جعله عاجلاً")}
                   </button>
                   <button
                     type="button"
@@ -232,7 +233,7 @@ export function PublishAdmin() {
                     disabled={busyId === n.id}
                     onClick={() => act(n.id, "delete")}
                   >
-                    حذف
+                    {tr("حذف")}
                   </button>
                 </div>
               </div>

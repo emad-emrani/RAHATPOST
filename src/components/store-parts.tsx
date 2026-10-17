@@ -33,6 +33,7 @@ import {
   type SectionIcon,
   type StoreCategory,
 } from "@/lib/store/types";
+import { tr, trv } from "@/lib/i18n/core";
 
 export function Price({
   p,
@@ -55,7 +56,7 @@ export function Price({
         </s>
       ) : null}
       {p.duration !== "none" ? (
-        <span className="text-sm font-semibold text-muted">/ {DURATIONS[p.duration]}</span>
+        <span className="text-sm font-semibold text-muted">/ {trv(DURATIONS[p.duration])}</span>
       ) : null}
     </span>
   );
@@ -63,7 +64,7 @@ export function Price({
 
 export function ProductImage({ p, className }: { p: PublicProduct; className: string }) {
   return p.imageKey ? (
-    <img src={mediaUrl(p.imageKey)} alt={p.name} loading="lazy" decoding="async" className={`${className} object-cover`} />
+    <img src={mediaUrl(p.imageKey)} alt={trv(p.name)} loading="lazy" decoding="async" className={`${className} object-cover`} />
   ) : (
     <span className={`${className} grid place-items-center bg-primary-soft`}>
       <ShoppingBag className="size-10 text-primary-ink" aria-hidden />
@@ -75,12 +76,12 @@ export function Badges({ p }: { p: PublicProduct }) {
   const now = effectivePrice(p);
   return (
     <span className="flex flex-wrap gap-1">
-      {p.isSample ? <span className="chip chip-deep">مثال</span> : null}
-      {now < p.priceAgorot ? <span className="chip chip-alert">تخفيض</span> : null}
-      {!p.inStock ? <span className="chip">نفد</span> : null}
+      {p.isSample ? <span className="chip chip-deep">{tr("مثال")}</span> : null}
+      {now < p.priceAgorot ? <span className="chip chip-alert">{tr("تخفيض")}</span> : null}
+      {!p.inStock ? <span className="chip">{tr("نفد")}</span> : null}
       {p.badges.map((b) => (
         <span key={b} className="chip chip-ink">
-          {b}
+          {trv(b)}
         </span>
       ))}
     </span>
@@ -105,7 +106,7 @@ export function WhatsAppCashButton({
     return (
       <Link to="/login" search={{ redirect }} className="btn btn-ghost w-full">
         <MessageCircle className="size-4" aria-hidden />
-        الدفع نقداً عبر واتساب (سجّل الدخول)
+        {tr("الدفع نقداً عبر واتساب (سجّل الدخول)")}
       </Link>
     );
   return (
@@ -123,16 +124,16 @@ export function WhatsAppCashButton({
             onDone?.();
             if (r.url) window.location.assign(r.url);
           } catch {
-            setError("تعذّر إنشاء الطلب.");
+            setError(tr("تعذّر إنشاء الطلب."));
           } finally {
             setBusy(false);
           }
         }}
       >
         <MessageCircle className="size-4" aria-hidden />
-        {busy ? "جاري إنشاء الطلب…" : "الدفع نقداً عبر واتساب"}
+        {busy ? tr("جاري إنشاء الطلب…") : tr("الدفع نقداً عبر واتساب")}
       </button>
-      {error ? <p className="font-bold text-red-700">{error}</p> : null}
+      {error ? <p className="font-bold text-red-700">{trv(error)}</p> : null}
     </>
   );
 }
@@ -143,13 +144,13 @@ export function BuyButtons({ p, compact = false }: { p: PublicProduct; compact?:
   if (p.isSample)
     return (
       <button type="button" className="btn btn-ghost w-full" disabled>
-        منتج تجريبي
+        {tr("منتج تجريبي")}
       </button>
     );
   if (!p.inStock)
     return (
       <button type="button" className="btn btn-ghost w-full" disabled>
-        غير متوفر حالياً
+        {tr("غير متوفر حالياً")}
       </button>
     );
   return (
@@ -164,7 +165,7 @@ export function BuyButtons({ p, compact = false }: { p: PublicProduct; compact?:
         }}
       >
         <ShoppingCart className="size-4" aria-hidden />
-        {added ? "أُضيف ✓" : "أضف للسلة"}
+        {added ? tr("أُضيف ✓") : tr("أضف للسلة")}
       </button>
       <button
         type="button"
@@ -174,7 +175,7 @@ export function BuyButtons({ p, compact = false }: { p: PublicProduct; compact?:
           void navigate({ to: "/cart" });
         }}
       >
-        اشترِ الآن
+        {tr("اشترِ الآن")}
       </button>
     </div>
   );
@@ -189,10 +190,10 @@ export function ProductCard({ p, currency }: { p: PublicProduct; currency: Curre
       <div className="flex flex-1 flex-col gap-1.5 p-3">
         <Badges p={p} />
         <Link to="/store/$slug" params={{ slug: p.slug }} className="font-bold leading-snug">
-          {p.name}
+          {trv(p.name)}
         </Link>
         {p.shortDesc ? (
-          <p className="line-clamp-2 text-sm font-semibold text-muted">{p.shortDesc}</p>
+          <p className="line-clamp-2 text-sm font-semibold text-muted">{trv(p.shortDesc)}</p>
         ) : null}
         <div className="mt-auto pt-1">
           <Price p={p} currency={currency} />
@@ -206,13 +207,13 @@ export function ProductCard({ p, currency }: { p: PublicProduct; currency: Curre
 /** Links that keep the old directory and guides reachable from the store. */
 export function StoreFooterLinks() {
   return (
-    <nav className="stamp mt-6 flex flex-col gap-1 p-3" aria-label="روابط أخرى">
+    <nav className="stamp mt-6 flex flex-col gap-1 p-3" aria-label={tr("روابط أخرى")}>
       <Link
         to="/directory"
         className="flex min-h-12 items-center gap-2 rounded-xl px-2 font-bold hover:bg-surface"
       >
         <Store className="size-5 text-primary-ink" aria-hidden />
-        دليل المحلات والخدمات في رهط
+        {tr("دليل المحلات والخدمات في رهط")}
       </Link>
       <Link
         to="/directory/guide/$guide"
@@ -220,14 +221,14 @@ export function StoreFooterLinks() {
         className="flex min-h-12 items-center gap-2 rounded-xl px-2 font-bold hover:bg-surface"
       >
         <BookOpen className="size-5 text-primary-ink" aria-hidden />
-        دليل خدمة البريد
+        {tr("دليل خدمة البريد")}
       </Link>
       <Link
         to="/my-orders"
         className="flex min-h-12 items-center gap-2 rounded-xl px-2 font-bold hover:bg-surface"
       >
         <ShoppingBag className="size-5 text-primary-ink" aria-hidden />
-        طلباتي
+        {tr("طلباتي")}
       </Link>
     </nav>
   );
@@ -276,15 +277,15 @@ export function SectionTile({ c }: { c: StoreCategory }) {
     >
       <SectionCover c={c} className="aspect-[4/3] w-full" />
       <span className="flex flex-col gap-0.5 p-3">
-        <span className="font-bold leading-snug">{c.name}</span>
+        <span className="font-bold leading-snug">{trv(c.name)}</span>
         <span className="text-xs font-semibold text-muted">
           {c.productCount
             ? c.productCount === 1
-              ? "خيار واحد"
+              ? tr("خيار واحد")
               : c.productCount === 2
-                ? "خياران"
-                : `${c.productCount} ${c.productCount < 11 ? "خيارات" : "خياراً"}`
-            : "قريباً"}
+                ? tr("خياران")
+                : `${c.productCount} ${c.productCount < 11 ? tr("خيارات") : tr("خياراً")}`
+            : tr("قريباً")}
         </span>
       </span>
     </Link>
@@ -294,11 +295,11 @@ export function SectionTile({ c }: { c: StoreCategory }) {
 export function Breadcrumbs({ items }: { items: { label: string; slug?: string }[] }) {
   return (
     <nav
-      aria-label="مسار التصفح"
+      aria-label={tr("مسار التصفح")}
       className="mb-3 flex flex-wrap items-center gap-1 text-sm font-bold"
     >
       <Link to="/store" className="inline-flex min-h-10 items-center text-muted">
-        المتجر
+        {tr("المتجر")}
       </Link>
       {items.map((it, i) => (
         <span key={i} className="inline-flex items-center gap-1">
@@ -309,10 +310,10 @@ export function Breadcrumbs({ items }: { items: { label: string; slug?: string }
               params={{ slug: it.slug }}
               className="inline-flex min-h-10 items-center text-muted"
             >
-              {it.label}
+              {trv(it.label)}
             </Link>
           ) : (
-            <span aria-current="page">{it.label}</span>
+            <span aria-current="page">{trv(it.label)}</span>
           )}
         </span>
       ))}

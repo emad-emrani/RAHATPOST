@@ -588,3 +588,14 @@
   box-shadow: 0 0 0 2px var(--color-ink), 0 4px 10px rgb(0 0 0 / 0.25);
   white-space: nowrap;
 }
+
+/* Language support: arrows point the reading direction in LTR, Hebrew gets a Hebrew-capable font. */
+html[dir="ltr"] .lucide-chevron-left,
+html[dir="ltr"] .lucide-chevron-right,
+html[dir="ltr"] .lucide-arrow-left,
+html[dir="ltr"] .lucide-arrow-right {
+  transform: scaleX(-1);
+}
+html[lang="he"] body {
+  font-family: "Segoe UI", "Arial Hebrew", Arial, "IBM Plex Sans Arabic", sans-serif;
+}

@@ -9,6 +9,7 @@ import { mediaUrl } from "@/lib/media/types";
 import { AdGallery } from "@/components/ad-gallery";
 import { breadcrumbLd, seo, SITE_URL, snippet } from "@/lib/seo";
 import { ReportButton } from "@/components/report";
+import { tr, trv } from "@/lib/i18n/core";
 
 type ViewAd = {
   id: string;
@@ -41,10 +42,10 @@ export const Route = createFileRoute("/ads/$id")({
     const ad = loaderData?.ad;
     const path = `/ads/${params.id}`;
     return seo({
-      title: `${ad?.title ?? "الإعلان غير متوفر"} · إعلانات رهط | رهط بوست`,
+      title: tr("{0} · إعلانات رهط | رهط بوست", ad?.title ?? "الإعلان غير متوفر"),
       description: ad
-        ? snippet(`${ad.type} في رهط${ad.neighborhood ? ` (${ad.neighborhood})` : ""}: ${ad.body}`)
-        : "هذا الإعلان غير متوفر.",
+        ? snippet(tr("{0} في رهط{1}: {2}", ad.type, ad.neighborhood ? ` (${ad.neighborhood})` : "", ad.body))
+        : tr("هذا الإعلان غير متوفر."),
       path,
       // Real approved ads are indexed; placeholder samples and missing ads are not.
       robots: ad && !ad.sample ? "index" : "noindex",
@@ -53,7 +54,7 @@ export const Route = createFileRoute("/ads/$id")({
       jsonLd: ad
         ? [
             breadcrumbLd([
-              { name: "إعلانات رهط", path: "/ads" },
+              { name: tr("إعلانات رهط"), path: "/ads" },
               { name: snippet(ad.title, 80), path },
             ]),
           ]
@@ -69,9 +70,9 @@ function AdPage() {
   if (!ad) {
     return (
       <Shell>
-        <p className="stamp p-4 font-semibold">هذا الإعلان غير موجود أو انتهت مدته.</p>
+        <p className="stamp p-4 font-semibold">{tr("هذا الإعلان غير موجود أو انتهت مدته.")}</p>
         <Link to="/ads" className="btn mt-4">
-          رجوع للإعلانات
+          {tr("رجوع للإعلانات")}
         </Link>
       </Shell>
     );
@@ -83,17 +84,17 @@ function AdPage() {
   return (
     <Shell>
       <article className={ad.quiet ? "stamp-flat p-4" : "stamp p-4"}>
-        {ad.photos?.length ? <AdGallery keys={ad.photos} title={ad.title} /> : null}
-        <span className={ad.quiet ? "chip" : "chip chip-deep"}>{ad.type}</span>
-        {ad.sample ? <span className="chip ms-1">نموذج</span> : null}
-        <h1 className="mt-3 text-2xl font-bold">{ad.title}</h1>
-        <p className="font-semibold text-muted">{ad.neighborhood}</p>
-        {ad.price ? <p className="mt-2 text-xl font-bold">{ad.price}</p> : null}
-        <p className="mt-3 text-lg whitespace-pre-line">{ad.body}</p>
+        {ad.photos?.length ? <AdGallery keys={ad.photos} title={trv(ad.title)} /> : null}
+        <span className={ad.quiet ? "chip" : "chip chip-deep"}>{trv(ad.type)}</span>
+        {ad.sample ? <span className="chip ms-1">{tr("نموذج")}</span> : null}
+        <h1 className="mt-3 text-2xl font-bold">{trv(ad.title)}</h1>
+        <p className="font-semibold text-muted">{trv(ad.neighborhood)}</p>
+        {ad.price ? <p className="mt-2 text-xl font-bold">{trv(ad.price)}</p> : null}
+        <p className="mt-3 text-lg whitespace-pre-line">{trv(ad.body)}</p>
         {ad.posterName ? (
           <p className="mt-4 flex items-center gap-2 text-sm font-semibold text-muted">
             <UserRound className="size-4" aria-hidden />
-            نشره: {ad.posterName}
+            {tr("نشره:")} {trv(ad.posterName)}
             {ad.createdAt
               ? ` · ${new Date(ad.createdAt).toLocaleDateString("ar-u-nu-latn", { timeZone: "Asia/Jerusalem" })}`
               : ""}
@@ -101,7 +102,7 @@ function AdPage() {
         ) : null}
         {ad.sample ? (
           <p className="mt-4 rounded-xl bg-surface p-3 text-sm font-semibold text-muted">
-            هذا إعلان نموذجي لعرض الشكل فقط، وليس إعلاناً حقيقياً، لذلك لا يوجد رقم للتواصل.
+            {tr("هذا إعلان نموذجي لعرض الشكل فقط، وليس إعلاناً حقيقياً، لذلك لا يوجد رقم للتواصل.")}
           </p>
         ) : (
           <div className="mt-4 grid grid-cols-2 gap-2">
@@ -112,7 +113,7 @@ function AdPage() {
               target="_blank"
               rel="noopener noreferrer"
             >
-              واتساب
+              {tr("واتساب")}
             </a>
           </div>
         )}
@@ -120,7 +121,7 @@ function AdPage() {
       {ad.sample ? null : (
         <>
           <p className="mt-4 text-sm font-semibold text-muted">
-            إعلان من مستخدم وليس من رهط بوست. لا تدفع مسبقاً قبل أن ترى الشيء أو تلتقي بصاحبه.
+            {tr("إعلان من مستخدم وليس من رهط بوست. لا تدفع مسبقاً قبل أن ترى الشيء أو تلتقي بصاحبه.")}
           </p>
           {AD_ID_RE.test(ad.id) ? <ReportButton type="ad" id={ad.id} /> : null}
         </>

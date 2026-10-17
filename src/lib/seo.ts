@@ -1,3 +1,4 @@
+import { getI18nState } from "@/lib/i18n/core";
 /**
  * Per-route SEO head: Arabic title + description, canonical URL on the apex domain, robots,
  * Open Graph / Twitter tags and JSON-LD. Used from each route's `head()` so everything is in the
@@ -58,12 +59,17 @@ function safeImage(src: string | undefined): string | undefined {
 export function seo(input: SeoInput): { meta: Meta[]; links: { rel: string; href: string }[] } {
   const url = absoluteUrl(input.path);
   const image = safeImage(input.image) ?? OG_IMAGE;
+  // Translated views (?lang=…) are for visitors; only the default-language pages get indexed.
+  const st = getI18nState();
+  const translated = st.lang !== (st.langs.find((l) => l.isDefault)?.code ?? "ar");
   const robots =
     input.robots === "private"
       ? "noindex, nofollow"
-      : input.robots === "noindex"
+      : translated
         ? "noindex, follow"
-        : "index, follow, max-image-preview:large";
+        : input.robots === "noindex"
+          ? "noindex, follow"
+          : "index, follow, max-image-preview:large";
   const meta: Meta[] = [
     { title: input.title },
     { name: "description", content: input.description },

@@ -18,6 +18,7 @@ import {
   type StatsResult,
 } from "@/lib/analytics/api";
 import { formatPrice } from "@/lib/store/types";
+import { tr, trv } from "@/lib/i18n/core";
 
 const PRESETS = [
   { key: "today", label: "اليوم", start: "today" },
@@ -31,7 +32,7 @@ const num = (n: number) => n.toLocaleString("ar-u-nu-latn");
 function Card({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className="stamp p-4">
-      <h2 className="mb-3 text-lg font-bold">{title}</h2>
+      <h2 className="mb-3 text-lg font-bold">{trv(title)}</h2>
       {children}
     </section>
   );
@@ -50,25 +51,25 @@ function Stat({
 }) {
   return (
     <div className={`rounded-xl p-3 ${alert ? "bg-red-50" : "bg-surface"}`}>
-      <p className="text-xs font-bold text-muted">{label}</p>
+      <p className="text-xs font-bold text-muted">{trv(label)}</p>
       <p className="text-2xl font-bold" dir="ltr">
-        {value}
+        {trv(value)}
       </p>
-      {hint ? <p className="text-xs font-semibold text-muted">{hint}</p> : null}
+      {hint ? <p className="text-xs font-semibold text-muted">{trv(hint)}</p> : null}
     </div>
   );
 }
 
 function Bars({ rows }: { rows: { name: string; value: number; sub?: string }[] }) {
   const max = Math.max(1, ...rows.map((r) => r.value));
-  if (!rows.length) return <p className="font-semibold text-muted">لا بيانات بعد.</p>;
+  if (!rows.length) return <p className="font-semibold text-muted">{tr("لا بيانات بعد.")}</p>;
   return (
     <ul className="flex flex-col gap-2">
       {rows.map((r, i) => (
         <li key={i}>
           <div className="flex justify-between gap-2 text-sm font-bold">
             <span className="min-w-0 truncate" dir="auto" title={r.sub ?? r.name}>
-              {r.name}
+              {trv(r.name)}
             </span>
             <span dir="ltr">{num(r.value)}</span>
           </div>
@@ -108,8 +109,8 @@ export function StatsAdmin() {
     if (preset !== "custom") void load(PRESETS.find((p) => p.key === preset)!.start, "today");
   }, [preset, load]);
 
-  if (!data) return <p className="stamp p-4 font-semibold">جاري التحميل…</p>;
-  if (!data.authed) return <p className="stamp p-4 font-bold">انتهت الجلسة.</p>;
+  if (!data) return <p className="stamp p-4 font-semibold">{tr("جاري التحميل…")}</p>;
+  if (!data.authed) return <p className="stamp p-4 font-bold">{tr("انتهت الجلسة.")}</p>;
   const ga = data.ga;
   const s = data.internal;
 
@@ -123,7 +124,7 @@ export function StatsAdmin() {
             className={preset === p.key ? "chip chip-ink" : "chip bg-paper"}
             onClick={() => setPreset(p.key)}
           >
-            {p.label}
+            {trv(p.label)}
           </button>
         ))}
         <button
@@ -131,12 +132,12 @@ export function StatsAdmin() {
           className={preset === "custom" ? "chip chip-ink" : "chip bg-paper"}
           onClick={() => setPreset("custom")}
         >
-          مخصّص
+          {tr("مخصّص")}
         </button>
         <button
           type="button"
           className="btn btn-ghost ms-auto px-3"
-          aria-label="تحديث"
+          aria-label={tr("تحديث")}
           disabled={busy}
           onClick={() => void load(...range())}
         >
@@ -146,7 +147,7 @@ export function StatsAdmin() {
       {preset === "custom" ? (
         <div className="stamp grid grid-cols-2 gap-2 p-3">
           <label className="font-bold">
-            من
+            {tr("من")}
             <input
               type="date"
               className="field mt-1"
@@ -155,7 +156,7 @@ export function StatsAdmin() {
             />
           </label>
           <label className="font-bold">
-            إلى
+            {tr("إلى")}
             <input
               type="date"
               className="field mt-1"
@@ -169,7 +170,7 @@ export function StatsAdmin() {
             disabled={!custom.start || !custom.end || busy}
             onClick={() => void load(custom.start, custom.end)}
           >
-            عرض
+            {tr("عرض")}
           </button>
         </div>
       ) : null}
@@ -177,56 +178,56 @@ export function StatsAdmin() {
       {!data.gaConfigured ? (
         <GaSetupSteps />
       ) : data.gaError ? (
-        <p className="stamp p-4 font-bold text-red-700">{data.gaError}</p>
+        <p className="stamp p-4 font-bold text-red-700">{trv(data.gaError)}</p>
       ) : ga ? (
         <>
-          <Card title="الآن">
+          <Card title={tr("الآن")}>
             <div className="grid grid-cols-2 gap-2">
-              <Stat label="زوار نشطون الآن (آخر 30 دقيقة)" value={num(ga.realtime.active)} />
+              <Stat label={tr("زوار نشطون الآن (آخر 30 دقيقة)")} value={num(ga.realtime.active)} />
               <div className="rounded-xl bg-surface p-3">
-                <p className="mb-1 text-xs font-bold text-muted">الصفحات النشطة</p>
+                <p className="mb-1 text-xs font-bold text-muted">{tr("الصفحات النشطة")}</p>
                 {ga.realtime.pages.slice(0, 4).map((p, i) => (
                   <p key={i} className="truncate text-sm font-semibold" dir="auto">
-                    {p.name} · {p.users}
+                    {trv(p.name)} · {trv(p.users)}
                   </p>
                 ))}
               </div>
             </div>
           </Card>
-          <Card title="ملخّص سريع">
+          <Card title={tr("ملخّص سريع")}>
             <div className="grid grid-cols-3 gap-2 text-center">
               {(
                 [
-                  ["اليوم", ga.quick.today],
-                  ["7 أيام", ga.quick.d7],
-                  ["30 يوماً", ga.quick.d30],
+                  [tr("اليوم"), ga.quick.today],
+                  [tr("7 أيام"), ga.quick.d7],
+                  [tr("30 يوماً"), ga.quick.d30],
                 ] as const
               ).map(([l, q]) => (
                 <div key={l} className="rounded-xl bg-surface p-2">
-                  <p className="text-xs font-bold text-muted">{l}</p>
+                  <p className="text-xs font-bold text-muted">{trv(l)}</p>
                   <p className="text-lg font-bold" dir="ltr">
                     {num(q.users)}
                   </p>
                   <p className="text-[11px] font-semibold text-muted">
-                    مستخدم · {num(q.sessions)} جلسة · {num(q.views)} مشاهدة
+                    {tr("مستخدم ·")} {num(q.sessions)} {tr("جلسة ·")} {num(q.views)} {tr("مشاهدة")}
                   </p>
                 </div>
               ))}
             </div>
           </Card>
-          <Card title="الفترة المختارة">
+          <Card title={tr("الفترة المختارة")}>
             <div className="mb-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
               <Stat
-                label="المستخدمون"
+                label={tr("المستخدمون")}
                 value={num(ga.totals.users)}
-                hint={`${num(ga.totals.newUsers)} جديد`}
+                hint={tr("{0} جديد", num(ga.totals.newUsers))}
               />
-              <Stat label="الجلسات" value={num(ga.totals.sessions)} />
-              <Stat label="مشاهدات الصفحات" value={num(ga.totals.views)} />
+              <Stat label={tr("الجلسات")} value={num(ga.totals.sessions)} />
+              <Stat label={tr("مشاهدات الصفحات")} value={num(ga.totals.views)} />
               <Stat
-                label="متوسط التفاعل"
+                label={tr("متوسط التفاعل")}
                 value={`${Math.round(ga.totals.engagementSec / Math.max(1, ga.totals.users))}s`}
-                hint="لكل مستخدم"
+                hint={tr("لكل مستخدم")}
               />
             </div>
             <div className="h-64" dir="ltr">
@@ -240,7 +241,7 @@ export function StatsAdmin() {
                   <Line
                     type="monotone"
                     dataKey="users"
-                    name="مستخدمون"
+                    name={tr("مستخدمون")}
                     stroke="#b45309"
                     strokeWidth={2}
                     dot={false}
@@ -248,7 +249,7 @@ export function StatsAdmin() {
                   <Line
                     type="monotone"
                     dataKey="sessions"
-                    name="جلسات"
+                    name={tr("جلسات")}
                     stroke="#263238"
                     strokeWidth={2}
                     dot={false}
@@ -256,7 +257,7 @@ export function StatsAdmin() {
                   <Line
                     type="monotone"
                     dataKey="views"
-                    name="مشاهدات"
+                    name={tr("مشاهدات")}
                     stroke="#f2c94c"
                     strokeWidth={2}
                     dot={false}
@@ -265,33 +266,33 @@ export function StatsAdmin() {
               </ResponsiveContainer>
             </div>
           </Card>
-          <Card title="الصفحات الأكثر مشاهدة">
+          <Card title={tr("الصفحات الأكثر مشاهدة")}>
             <Bars
               rows={ga.pages.map((p) => ({ name: p.title || p.path, sub: p.path, value: p.views }))}
             />
           </Card>
           <div className="grid gap-4 md:grid-cols-2">
-            <Card title="مصادر الزيارات">
+            <Card title={tr("مصادر الزيارات")}>
               <Bars rows={ga.sources.map((r) => ({ name: r.source, value: r.sessions }))} />
             </Card>
-            <Card title="القنوات">
+            <Card title={tr("القنوات")}>
               <Bars rows={ga.channels.map((r) => ({ name: r.name, value: r.sessions }))} />
             </Card>
-            <Card title="الدول">
+            <Card title={tr("الدول")}>
               <Bars rows={ga.countries.map((r) => ({ name: r.name, value: r.users }))} />
             </Card>
-            <Card title="المدن">
+            <Card title={tr("المدن")}>
               <Bars rows={ga.cities.map((r) => ({ name: r.name, value: r.users }))} />
             </Card>
-            <Card title="الأجهزة">
+            <Card title={tr("الأجهزة")}>
               <Bars rows={ga.devices.map((r) => ({ name: r.name, value: r.users }))} />
             </Card>
-            <Card title="جدد مقابل عائدين">
+            <Card title={tr("جدد مقابل عائدين")}>
               <Bars rows={ga.newVsReturning.map((r) => ({ name: r.name, value: r.users }))} />
             </Card>
           </div>
           <p className="text-xs font-semibold text-muted">
-            المصدر: Google Analytics 4 · تُحدَّث كل 5 دقائق تقريباً (آخر جلب:{" "}
+            {tr("المصدر: Google Analytics 4 · تُحدَّث كل 5 دقائق تقريباً (آخر جلب:")}{" "}
             {new Date(ga.fetchedAt).toLocaleTimeString("ar-u-nu-latn", {
               timeZone: "Asia/Jerusalem",
             })}
@@ -304,61 +305,61 @@ export function StatsAdmin() {
 
       {s ? (
         <>
-          <Card title="بحاجة لمراجعة">
+          <Card title={tr("بحاجة لمراجعة")}>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
               <Stat
-                label="أخبار القراء"
+                label={tr("أخبار القراء")}
                 value={num(s.pending.readerNews)}
                 alert={s.pending.readerNews > 0}
               />
-              <Stat label="إعلانات" value={num(s.pending.ads)} alert={s.pending.ads > 0} />
+              <Stat label={tr("إعلانات")} value={num(s.pending.ads)} alert={s.pending.ads > 0} />
               <Stat
-                label="طلبات الدليل"
+                label={tr("طلبات الدليل")}
                 value={num(s.pending.businesses)}
                 alert={s.pending.businesses > 0}
               />
               <Stat
-                label="تعليقات"
+                label={tr("تعليقات")}
                 value={num(s.pending.comments)}
                 alert={s.pending.comments > 0}
               />
-              <Stat label="بلاغات" value={num(s.pending.reports)} alert={s.pending.reports > 0} />
+              <Stat label={tr("بلاغات")} value={num(s.pending.reports)} alert={s.pending.reports > 0} />
             </div>
           </Card>
-          <Card title="المحتوى والأعضاء">
+          <Card title={tr("المحتوى والأعضاء")}>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
               <Stat
-                label="الأعضاء"
+                label={tr("الأعضاء")}
                 value={num(s.members)}
-                hint={`+${num(s.newMembers7d)} هذا الأسبوع`}
+                hint={tr("+{0} هذا الأسبوع", num(s.newMembers7d))}
               />
-              <Stat label="فريق الإدارة" value={num(s.team)} />
-              <Stat label="أخبار الفريق" value={num(s.staffNews)} />
-              <Stat label="أخبار القراء المنشورة" value={num(s.readerNews)} />
-              <Stat label="إعلانات منشورة" value={num(s.ads)} />
-              <Stat label="أنشطة في الدليل" value={num(s.businesses)} />
-              <Stat label="تعليقات" value={num(s.comments)} />
-              <Stat label="مشتركو الإشعارات" value={num(s.pushSubscribers)} />
+              <Stat label={tr("فريق الإدارة")} value={num(s.team)} />
+              <Stat label={tr("أخبار الفريق")} value={num(s.staffNews)} />
+              <Stat label={tr("أخبار القراء المنشورة")} value={num(s.readerNews)} />
+              <Stat label={tr("إعلانات منشورة")} value={num(s.ads)} />
+              <Stat label={tr("أنشطة في الدليل")} value={num(s.businesses)} />
+              <Stat label={tr("تعليقات")} value={num(s.comments)} />
+              <Stat label={tr("مشتركو الإشعارات")} value={num(s.pushSubscribers)} />
             </div>
           </Card>
-          <Card title="المتجر">
+          <Card title={tr("المتجر")}>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
               <Stat
-                label="منتجات حقيقية مفعّلة"
+                label={tr("منتجات حقيقية مفعّلة")}
                 value={num(s.store.products)}
-                hint={`${num(s.store.samples)} مثال`}
+                hint={tr("{0} مثال", num(s.store.samples))}
               />
               <Stat
-                label="طلبات بانتظار الدفع"
+                label={tr("طلبات بانتظار الدفع")}
                 value={num(s.store.orders.pending ?? 0)}
                 alert={(s.store.orders.pending ?? 0) > 0}
               />
               <Stat
-                label="طلبات مدفوعة/مسلّمة"
+                label={tr("طلبات مدفوعة/مسلّمة")}
                 value={num((s.store.orders.paid ?? 0) + (s.store.orders.delivered ?? 0))}
-                hint={`${num(s.store.orders7d)} طلب هذا الأسبوع`}
+                hint={tr("{0} طلب هذا الأسبوع", num(s.store.orders7d))}
               />
-              <Stat label="الإيرادات المؤكدة" value={formatPrice(s.store.revenueAgorot)} />
+              <Stat label={tr("الإيرادات المؤكدة")} value={formatPrice(s.store.revenueAgorot)} />
             </div>
           </Card>
         </>
@@ -370,37 +371,32 @@ export function StatsAdmin() {
 
 function GaSetupSteps() {
   return (
-    <Card title="ربط Google Analytics بلوحة الإدارة">
+    <Card title={tr("ربط Google Analytics بلوحة الإدارة")}>
       <p className="mb-2 font-semibold">
-        لعرض الزيارات هنا، يحتاج مالك الموقع إلى ربط حساب خدمة من Google Cloud مرة واحدة:
+        {tr("لعرض الزيارات هنا، يحتاج مالك الموقع إلى ربط حساب خدمة من Google Cloud مرة واحدة:")}
       </p>
       <ol className="list-decimal space-y-2 ps-5 text-sm font-semibold">
-        <li>افتح console.cloud.google.com وأنشئ مشروعاً (أو اختر مشروعاً موجوداً).</li>
+        <li>{tr("افتح console.cloud.google.com وأنشئ مشروعاً (أو اختر مشروعاً موجوداً).")}</li>
         <li>
-          من «APIs & Services» ← «Library» ابحث عن <b dir="ltr">Google Analytics Data API</b> واضغط
-          «Enable».
+          {tr("من «APIs & Services» ← «Library» ابحث عن")} <b dir="ltr">Google Analytics Data API</b> {tr("واضغط «Enable».")}
         </li>
         <li>
-          من «IAM & Admin» ← «Service Accounts» اضغط «Create service account»، اكتب اسماً مثل
-          rahatpost-stats ثم «Done» (بدون أدوار).
+          {tr("من «IAM & Admin» ← «Service Accounts» اضغط «Create service account»، اكتب اسماً مثل rahatpost-stats ثم «Done» (بدون أدوار).")}
         </li>
         <li>
-          افتح حساب الخدمة ← تبويب «Keys» ← «Add key» ← «Create new key» ← اختر JSON. سيُنزَّل ملف؛
-          احتفظ به سراً.
+          {tr("افتح حساب الخدمة ← تبويب «Keys» ← «Add key» ← «Create new key» ← اختر JSON. سيُنزَّل ملف؛ احتفظ به سراً.")}
         </li>
-        <li>انسخ بريد حساب الخدمة (ينتهي بـ iam.gserviceaccount.com).</li>
+        <li>{tr("انسخ بريد حساب الخدمة (ينتهي بـ iam.gserviceaccount.com).")}</li>
         <li>
-          في Google Analytics: «الإدارة» (Admin ⚙️) ← «إدارة الوصول إلى الموقع» (Property access
-          management) ← «+» ← أضف البريد بدور «مُشاهد» (Viewer) وأزل علامة إرسال الإشعار.
+          {tr("في Google Analytics: «الإدارة» (Admin ⚙️) ← «إدارة الوصول إلى الموقع» (Property access management) ← «+» ← أضف البريد بدور «مُشاهد» (Viewer) وأزل علامة إرسال الإشعار.")}
         </li>
         <li>
-          في GA: «الإدارة» ← «تفاصيل الموقع» (Property details): انسخ «معرّف الموقع» (Property ID،
-          أرقام فقط — ليس G-…).
+          {tr("في GA: «الإدارة» ← «تفاصيل الموقع» (Property details): انسخ «معرّف الموقع» (Property ID، أرقام فقط — ليس G-…).")}
         </li>
-        <li>في الأسفل (للمالك): الصق معرّف الموقع ومحتوى ملف JSON، احفظ ثم «اختبار الاتصال».</li>
+        <li>{tr("في الأسفل (للمالك): الصق معرّف الموقع ومحتوى ملف JSON، احفظ ثم «اختبار الاتصال».")}</li>
       </ol>
       <p className="mt-2 text-xs font-semibold text-muted">
-        يُحفظ مفتاح JSON مشفّراً ولا يُعرض مرة أخرى. صلاحية «مُشاهد» للقراءة فقط.
+        {tr("يُحفظ مفتاح JSON مشفّراً ولا يُعرض مرة أخرى. صلاحية «مُشاهد» للقراءة فقط.")}
       </p>
     </Card>
   );
@@ -440,14 +436,14 @@ function GaSettings({ onSaved }: { onSaved: () => void }) {
     }
   };
   return (
-    <Card title="إعدادات Google Analytics (للمالك)">
+    <Card title={tr("إعدادات Google Analytics (للمالك)")}>
       <div className="flex flex-col gap-3">
         <p className="text-sm font-semibold text-muted">
-          معرّف القياس على الموقع: <b dir="ltr">G-2B1R786GM0</b> · مُعرّف مصدر البيانات:{" "}
+          {tr("معرّف القياس على الموقع:")} <b dir="ltr">G-2B1R786GM0</b> {tr("· مُعرّف مصدر البيانات:")}{" "}
           <b dir="ltr">16149603850</b>
         </p>
         <label className="font-bold">
-          معرّف الموقع (Property ID)
+          {tr("معرّف الموقع (Property ID)")}
           <input
             className="field mt-1"
             dir="ltr"
@@ -458,7 +454,7 @@ function GaSettings({ onSaved }: { onSaved: () => void }) {
           />
         </label>
         <label className="font-bold">
-          موقع Search Console
+          {tr("موقع Search Console")}
           <input
             className="field mt-1"
             dir="ltr"
@@ -468,7 +464,7 @@ function GaSettings({ onSaved }: { onSaved: () => void }) {
           />
         </label>
         <label className="font-bold">
-          مفتاح حساب الخدمة (محتوى ملف JSON)
+          {tr("مفتاح حساب الخدمة (محتوى ملف JSON)")}
           <textarea
             className="field mt-1 min-h-28 font-mono text-xs"
             dir="ltr"
@@ -476,7 +472,7 @@ function GaSettings({ onSaved }: { onSaved: () => void }) {
             spellCheck={false}
             placeholder={
               v.saSaved
-                ? `•••• محفوظ${v.saEmail ? ` (${v.saEmail})` : ""} — الصق ملفاً جديداً لاستبداله`
+                ? tr("•••• محفوظ{0} — الصق ملفاً جديداً لاستبداله", v.saEmail ? ` (${v.saEmail})` : "")
                 : '{"type": "service_account", ...}'
             }
             value={json}
@@ -484,31 +480,31 @@ function GaSettings({ onSaved }: { onSaved: () => void }) {
           />
         </label>
         {!v.canEncrypt ? (
-          <p className="font-bold text-red-700">لا يوجد مفتاح تشفير على الخادم.</p>
+          <p className="font-bold text-red-700">{tr("لا يوجد مفتاح تشفير على الخادم.")}</p>
         ) : null}
-        {msg ? <p className="font-bold">{msg}</p> : null}
+        {msg ? <p className="font-bold">{trv(msg)}</p> : null}
         <div className="grid grid-cols-2 gap-2">
           <button type="button" className="btn" onClick={() => void save()}>
-            حفظ
+            {tr("حفظ")}
           </button>
           <button
             type="button"
             className="btn btn-ghost"
             onClick={async () => {
-              setMsg("جاري الاختبار…");
+              setMsg(tr("جاري الاختبار…"));
               setMsg((await adminTestGa()).message);
             }}
           >
-            اختبار الاتصال
+            {tr("اختبار الاتصال")}
           </button>
         </div>
         {v.saSaved ? (
           <button
             type="button"
             className="btn btn-ghost"
-            onClick={() => confirm("حذف مفتاح حساب الخدمة؟") && void save(true)}
+            onClick={() => confirm(tr("حذف مفتاح حساب الخدمة؟")) && void save(true)}
           >
-            حذف المفتاح المحفوظ
+            {tr("حذف المفتاح المحفوظ")}
           </button>
         ) : null}
       </div>
@@ -525,24 +521,24 @@ function GscTable({
   rows: { key: string; clicks: number; impressions: number; ctr: number; position: number }[];
   label: string;
 }) {
-  if (!rows.length) return <p className="font-semibold text-muted">لا بيانات بعد.</p>;
+  if (!rows.length) return <p className="font-semibold text-muted">{tr("لا بيانات بعد.")}</p>;
   return (
     <div className="-mx-4 overflow-x-auto px-4">
       <table className="w-full min-w-[22rem] text-sm">
         <thead>
           <tr className="text-xs text-muted">
-            <th className="py-1 text-start">{label}</th>
-            <th className="px-1">نقرات</th>
-            <th className="px-1">ظهور</th>
+            <th className="py-1 text-start">{trv(label)}</th>
+            <th className="px-1">{tr("نقرات")}</th>
+            <th className="px-1">{tr("ظهور")}</th>
             <th className="px-1">CTR</th>
-            <th className="px-1">الترتيب</th>
+            <th className="px-1">{tr("الترتيب")}</th>
           </tr>
         </thead>
         <tbody>
           {rows.map((r, i) => (
             <tr key={i} className="border-t border-line font-semibold">
-              <td className="max-w-[12rem] truncate py-1.5" dir="auto" title={r.key}>
-                {r.key}
+              <td className="max-w-[12rem] truncate py-1.5" dir="auto" title={trv(r.key)}>
+                {trv(r.key)}
               </td>
               <td className="px-1 text-center" dir="ltr">
                 {num(r.clicks)}
@@ -571,13 +567,13 @@ function GscSection({ data }: { data: StatsResult }) {
   const g = data.gsc;
   if (data.gscError)
     return (
-      <Card title="بحث Google (Search Console)">
+      <Card title={tr("بحث Google (Search Console)")}>
         <p className="font-bold text-red-700" dir="auto">
-          {data.gscError}
+          {trv(data.gscError)}
         </p>
         <ol className="mt-2 list-decimal space-y-1 ps-5 text-sm font-semibold">
           <li>
-            فعّل «Google Search Console API»:{" "}
+            {tr("فعّل «Google Search Console API»:")}{" "}
             <a
               className="break-all underline"
               dir="ltr"
@@ -589,33 +585,33 @@ function GscSection({ data }: { data: StatsResult }) {
             </a>
           </li>
           <li>
-            في Search Console ← «الإعدادات» ← «المستخدمون والأذونات» ← «إضافة مستخدم»: أضف{" "}
-            <b dir="ltr">rahatpost-stats@rahatpost.iam.gserviceaccount.com</b> بإذن «مقيّد».
+            {tr("في Search Console ← «الإعدادات» ← «المستخدمون والأذونات» ← «إضافة مستخدم»: أضف")}{" "}
+            <b dir="ltr">rahatpost-stats@rahatpost.iam.gserviceaccount.com</b> {tr("بإذن «مقيّد».")}
           </li>
-          <li>انتظر بضع دقائق ثم اضغط زر التحديث.</li>
+          <li>{tr("انتظر بضع دقائق ثم اضغط زر التحديث.")}</li>
         </ol>
       </Card>
     );
   if (!g)
     return (
-      <Card title="بحث Google (Search Console)">
+      <Card title={tr("بحث Google (Search Console)")}>
         <p className="font-semibold text-muted">
-          أضف مفتاح حساب الخدمة في إعدادات Google Analytics أدناه لعرض بيانات البحث.
+          {tr("أضف مفتاح حساب الخدمة في إعدادات Google Analytics أدناه لعرض بيانات البحث.")}
         </p>
       </Card>
     );
   return (
     <>
-      <Card title="بحث Google (Search Console)">
+      <Card title={tr("بحث Google (Search Console)")}>
         <p className="mb-2 text-xs font-semibold text-muted" dir="ltr">
-          {g.site} · {g.range.start} → {g.range.end}
+          {trv(g.site)} · {trv(g.range.start)} → {trv(g.range.end)}
         </p>
         <div className="mb-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-          <Stat label="النقرات" value={num(g.totals.clicks)} />
-          <Stat label="مرات الظهور" value={num(g.totals.impressions)} />
-          <Stat label="نسبة النقر CTR" value={pct(g.totals.ctr)} />
+          <Stat label={tr("النقرات")} value={num(g.totals.clicks)} />
+          <Stat label={tr("مرات الظهور")} value={num(g.totals.impressions)} />
+          <Stat label={tr("نسبة النقر CTR")} value={pct(g.totals.ctr)} />
           <Stat
-            label="متوسط الترتيب"
+            label={tr("متوسط الترتيب")}
             value={g.totals.position ? g.totals.position.toFixed(1) : "—"}
           />
         </div>
@@ -631,7 +627,7 @@ function GscSection({ data }: { data: StatsResult }) {
                 <Line
                   type="monotone"
                   dataKey="clicks"
-                  name="نقرات"
+                  name={tr("نقرات")}
                   stroke="#b45309"
                   strokeWidth={2}
                   dot={false}
@@ -639,7 +635,7 @@ function GscSection({ data }: { data: StatsResult }) {
                 <Line
                   type="monotone"
                   dataKey="impressions"
-                  name="ظهور"
+                  name={tr("ظهور")}
                   stroke="#263238"
                   strokeWidth={2}
                   dot={false}
@@ -649,50 +645,50 @@ function GscSection({ data }: { data: StatsResult }) {
           </div>
         ) : (
           <p className="font-semibold text-muted">
-            لا بيانات بحث بعد. تظهر عادةً بعد يومين إلى ثلاثة من التحقق من الموقع.
+            {tr("لا بيانات بحث بعد. تظهر عادةً بعد يومين إلى ثلاثة من التحقق من الموقع.")}
           </p>
         )}
       </Card>
-      <Card title="أكثر عبارات البحث">
-        <GscTable rows={g.queries} label="العبارة" />
+      <Card title={tr("أكثر عبارات البحث")}>
+        <GscTable rows={g.queries} label={tr("العبارة")} />
       </Card>
-      <Card title="الصفحات في نتائج البحث">
-        <GscTable rows={g.pages} label="الصفحة" />
+      <Card title={tr("الصفحات في نتائج البحث")}>
+        <GscTable rows={g.pages} label={tr("الصفحة")} />
       </Card>
       <div className="grid gap-4 md:grid-cols-2">
-        <Card title="الدول (بحث)">
+        <Card title={tr("الدول (بحث)")}>
           <GscTable
             rows={g.countries.map((r) => ({ ...r, key: r.key.toUpperCase() }))}
-            label="الدولة"
+            label={tr("الدولة")}
           />
         </Card>
-        <Card title="الأجهزة (بحث)">
+        <Card title={tr("الأجهزة (بحث)")}>
           <GscTable
             rows={g.devices.map((r) => ({ ...r, key: DEVICE[r.key] ?? r.key }))}
-            label="الجهاز"
+            label={tr("الجهاز")}
           />
         </Card>
       </div>
-      <Card title="خرائط الموقع (Sitemaps)">
+      <Card title={tr("خرائط الموقع (Sitemaps)")}>
         {g.sitemaps.length ? (
           <ul className="flex flex-col gap-2 text-sm font-semibold">
             {g.sitemaps.map((m) => (
               <li key={m.path} className="rounded-xl bg-surface p-3">
                 <p className="break-all font-bold" dir="ltr">
-                  {m.path}
+                  {trv(m.path)}
                 </p>
                 <p>
-                  {m.pending ? "قيد المعالجة · " : ""}روابط مُرسلة: {num(m.submitted)} · أخطاء:{" "}
-                  {num(m.errors)} · تحذيرات: {num(m.warnings)}
+                  {m.pending ? tr("قيد المعالجة · ") : ""}{tr("روابط مُرسلة:")} {num(m.submitted)} {tr("· أخطاء:")}{" "}
+                  {num(m.errors)} {tr("· تحذيرات:")} {num(m.warnings)}
                 </p>
                 <p className="text-xs text-muted">
-                  آخر إرسال:{" "}
+                  {tr("آخر إرسال:")}{" "}
                   {m.lastSubmitted
                     ? new Date(m.lastSubmitted).toLocaleString("ar-u-nu-latn", {
                         timeZone: "Asia/Jerusalem",
                       })
                     : "—"}{" "}
-                  · آخر قراءة من Google:{" "}
+                  {tr("· آخر قراءة من Google:")}{" "}
                   {m.lastDownloaded
                     ? new Date(m.lastDownloaded).toLocaleString("ar-u-nu-latn", {
                         timeZone: "Asia/Jerusalem",
@@ -704,13 +700,12 @@ function GscSection({ data }: { data: StatsResult }) {
           </ul>
         ) : (
           <p className="font-semibold text-muted">
-            لم تُرسل خريطة موقع بعد. أرسل https://rahatpost.com/sitemap.xml من Search Console ←
-            «خرائط الموقع».
+            {tr("لم تُرسل خريطة موقع بعد. أرسل https://rahatpost.com/sitemap.xml من Search Console ← «خرائط الموقع».")}
           </p>
         )}
       </Card>
       <p className="text-xs font-semibold text-muted">
-        المصدر: Google Search Console · تُحدَّث كل ساعة تقريباً (آخر جلب:{" "}
+        {tr("المصدر: Google Search Console · تُحدَّث كل ساعة تقريباً (آخر جلب:")}{" "}
         {new Date(g.fetchedAt).toLocaleTimeString("ar-u-nu-latn", { timeZone: "Asia/Jerusalem" })})
       </p>
     </>

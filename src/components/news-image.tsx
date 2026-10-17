@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { CategoryIcon } from "@/components/category-icon";
 import type { NewsItem } from "@/lib/news/types";
+import { trv } from "@/lib/i18n/core";
 
 type Props = {
   item: Pick<NewsItem, "image" | "thumb" | "title" | "category">;
@@ -41,7 +42,7 @@ export function NewsImage({
         <img
           ref={ref}
           src={src}
-          alt={item.title}
+          alt={trv(item.title)}
           loading={eager ? "eager" : "lazy"}
           fetchPriority={eager ? "high" : "auto"}
           decoding="async"
