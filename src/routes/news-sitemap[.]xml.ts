@@ -23,12 +23,17 @@ async function items(): Promise<Item[]> {
   } catch (e) {
     console.error("[news-sitemap] reader", e);
   }
-  return out
-    .filter((i) => Number.isFinite(Date.parse(i.date)) && Date.parse(i.date) >= cutoff)
-    .slice(0, 1000);
+  const valid = out
+    .filter((i) => Number.isFinite(Date.parse(i.date)))
+    .sort((a, b) => Date.parse(b.date) - Date.parse(a.date));
+  const recent = valid.filter((i) => Date.parse(i.date) >= cutoff).slice(0, 1000);
+  // Never emit an empty <urlset>: fall back to the latest 10 articles.
+  return recent.length ? recent : valid.slice(0, 10);
 }
 
 function render(list: Item[]): string {
+  if (!list.length)
+    return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:news="http://www.google.com/schemas/sitemap-news/0.9">\n  <url>\n    <loc>${esc(SITE_URL + "/")}</loc>\n  </url>\n</urlset>\n`;
   const urls = list
     .map(
       (i) => `  <url>
