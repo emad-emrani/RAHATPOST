@@ -159,8 +159,12 @@ export type GeminiPublic = {
   stylePrompt: string;
   hasOwnKey: boolean;
   hasEnvKey: boolean;
-  order: ("gemini" | "grok" | "mymemory")[];
-  providers: { gemini: boolean; grok: boolean; mymemory: boolean };
+  order: ("gemini" | "grok" | "microsoft" | "mymemory")[];
+  providers: { gemini: boolean; grok: boolean; microsoft: boolean; mymemory: boolean };
+  myMemoryEmail: string;
+  azureRegion: string;
+  hasAzureOwnKey: boolean;
+  hasAzureEnvKey: boolean;
   grokModel: string;
   hasGrokOwnKey: boolean;
   hasGrokEnvKey: boolean;
@@ -193,6 +197,8 @@ export const adminGetGemini = createServerFn({ method: "POST" }).handler(
         enabled: s.enabled, uses: s.uses, model: s.model, temperature: s.temperature, stylePrompt: s.stylePrompt,
         hasOwnKey: Boolean(s.apiKeyBox), hasEnvKey: Boolean(process.env.GEMINI_API_KEY?.trim()),
         order: s.order, providers: s.providers, grokModel: s.grokModel, aiImages: s.aiImages,
+        myMemoryEmail: s.myMemoryEmail, azureRegion: s.azureRegion,
+        hasAzureOwnKey: Boolean(s.azureKeyBox), hasAzureEnvKey: Boolean(process.env.AZURE_TRANSLATOR_KEY?.trim()),
         hasGrokOwnKey: Boolean(s.grokKeyBox), hasGrokEnvKey: Boolean(process.env.XAI_API_KEY?.trim()),
       },
       usage: { today, errors },
@@ -204,7 +210,7 @@ export const adminGetGemini = createServerFn({ method: "POST" }).handler(
 );
 
 export const adminSaveGemini = createServerFn({ method: "POST" })
-  .inputValidator((v: unknown) => v as Partial<GeminiPublic> & { apiKey?: string; clearKey?: boolean; grokKey?: string; clearGrokKey?: boolean })
+  .inputValidator((v: unknown) => v as Partial<GeminiPublic> & { apiKey?: string; clearKey?: boolean; grokKey?: string; clearGrokKey?: boolean; azureKey?: string; clearAzureKey?: boolean })
   .handler(async ({ data }): Promise<{ ok: boolean; message?: string }> => {
     if (!(await staff())) return { ok: false, message: "غير مصرح." };
     const g = await import("./gemini.server");
@@ -220,10 +226,13 @@ export const adminSaveGemini = createServerFn({ method: "POST" })
       model: /^[\w.-]{3,80}$/.test(data.model ?? "") ? data.model! : cur.model,
       temperature: Math.min(2, Math.max(0, Number(data.temperature ?? cur.temperature) || 0)),
       stylePrompt: String(data.stylePrompt ?? cur.stylePrompt).slice(0, 2000) || g.DEFAULT_STYLE,
-      order: Array.isArray(data.order) && data.order.length === 3 && g.PROVIDERS.every((p) => data.order!.includes(p)) ? data.order : cur.order,
+      myMemoryEmail: typeof data.myMemoryEmail === "string" && (data.myMemoryEmail === "" || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.myMemoryEmail.trim())) ? data.myMemoryEmail.trim().slice(0, 120) : cur.myMemoryEmail,
+      azureRegion: typeof data.azureRegion === "string" && /^[a-z0-9-]{0,40}$/i.test(data.azureRegion.trim()) ? data.azureRegion.trim() : cur.azureRegion,
+      order: Array.isArray(data.order) && data.order.length === g.PROVIDERS.length && g.PROVIDERS.every((p) => data.order!.includes(p)) ? data.order : cur.order,
       providers: {
         gemini: data.providers?.gemini ?? cur.providers.gemini,
         grok: data.providers?.grok ?? cur.providers.grok,
+        microsoft: data.providers?.microsoft ?? cur.providers.microsoft,
         mymemory: data.providers?.mymemory ?? cur.providers.mymemory,
       },
       grokModel: /^[\w.-]{3,80}$/.test(data.grokModel ?? "") ? data.grokModel! : cur.grokModel,
@@ -236,6 +245,12 @@ export const adminSaveGemini = createServerFn({ method: "POST" })
         : cur.aiImages,
     };
     if (data.clearGrokKey) delete next.grokKeyBox;
+    if (data.clearAzureKey) delete next.azureKeyBox;
+    if (data.azureKey?.trim()) {
+      const { canEncrypt, encryptSecret } = await import("@/lib/store/secrets.server");
+      if (!canEncrypt()) return { ok: false, message: "لا يمكن تشفير المفتاح على هذا الخادم." };
+      next.azureKeyBox = encryptSecret(data.azureKey.trim().slice(0, 300));
+    }
     if (data.grokKey?.trim()) {
       const { canEncrypt, encryptSecret } = await import("@/lib/store/secrets.server");
       if (!canEncrypt()) return { ok: false, message: "لا يمكن تشفير المفتاح على هذا الخادم." };
@@ -252,7 +267,7 @@ export const adminSaveGemini = createServerFn({ method: "POST" })
   });
 
 export const adminTestGemini = createServerFn({ method: "POST" })
-  .inputValidator((v: unknown) => v as { text: string; lang: string; provider?: "gemini" | "grok" | "mymemory" | "" })
+  .inputValidator((v: unknown) => v as { text: string; lang: string; provider?: "gemini" | "grok" | "microsoft" | "mymemory" | "" })
   .handler(async ({ data }): Promise<{ ok: boolean; text?: string; message?: string; ms?: number; provider?: string }> => {
     if (!(await staff())) return { ok: false, message: "غير مصرح." };
     const g = await import("./gemini.server");

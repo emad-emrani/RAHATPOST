@@ -15,7 +15,7 @@ const USES = [
   ["auto", "ترجمة الأخبار التلقائية"],
 ] as const;
 
-const PNAME = { gemini: "Gemini", grok: "Grok (xAI)", mymemory: "MyMemory" } as const;
+const PNAME = { gemini: "Gemini", grok: "Grok (xAI)", microsoft: "Microsoft Translator", mymemory: "MyMemory" } as const;
 
 export function GeminiAdmin() {
   const [s, setS] = useState<GeminiPublic | null>(null);
@@ -24,8 +24,9 @@ export function GeminiAdmin() {
   const [cache, setCache] = useState<{ lang: string; n: number }[]>([]);
   const [key, setKey] = useState("");
   const [grokKey, setGrokKey] = useState("");
+  const [azureKey, setAzureKey] = useState("");
   const [grokModels, setGrokModels] = useState<string[]>([]);
-  const [testProv, setTestProv] = useState<"" | "gemini" | "grok" | "mymemory">("");
+  const [testProv, setTestProv] = useState<"" | "gemini" | "grok" | "microsoft" | "mymemory">("");
   const [msg, setMsg] = useState("");
   const [testText, setTestText] = useState("مرحباً بكم في رهط بوست، أخبار رهط والنقب.");
   const [testLang, setTestLang] = useState("en");
@@ -46,12 +47,13 @@ export function GeminiAdmin() {
   }, [load]);
 
   if (!s) return <p className="stamp p-4 font-semibold">{msg || tr("جاري التحميل…")}</p>;
-  const save = async (extra: { apiKey?: string; clearKey?: boolean; grokKey?: string; clearGrokKey?: boolean } = {}) => {
+  const save = async (extra: { apiKey?: string; clearKey?: boolean; grokKey?: string; clearGrokKey?: boolean; azureKey?: string; clearAzureKey?: boolean } = {}) => {
     setBusy(true);
     const r = await adminSaveGemini({ data: { ...s, ...extra } });
     setBusy(false);
     setKey("");
     setGrokKey("");
+    setAzureKey("");
     setMsg(r.ok ? tr("تم الحفظ.") : trv(r.message ?? tr("تعذّر الحفظ.")));
     if (r.ok) await load();
   };
@@ -146,8 +148,25 @@ export function GeminiAdmin() {
             ) : null}
           </div>
         </div>
+        <div className="flex flex-col gap-1 text-sm font-bold">
+          {tr("مفتاح Microsoft Translator (اختياري)")}
+          <p className="text-xs font-semibold text-muted">
+            {s.hasAzureOwnKey ? tr("يوجد مفتاح محفوظ ومشفّر.") : s.hasAzureEnvKey ? tr("يُستخدم المفتاح من إعدادات الخادم (AZURE_TRANSLATOR_KEY).") : tr("لا يوجد مفتاح.")}
+          </p>
+          <div className="flex gap-2">
+            <input className="field flex-1" type="password" autoComplete="off" dir="ltr" placeholder="Azure key" value={azureKey} onChange={(e) => setAzureKey(e.target.value)} />
+            <input className="field w-36" dir="ltr" placeholder="region" value={s.azureRegion} onChange={(e) => setS({ ...s, azureRegion: e.target.value })} />
+            {s.hasAzureOwnKey ? (
+              <button type="button" className="btn btn-ghost px-3" onClick={() => save({ clearAzureKey: true })}>{tr("حذف المفتاح")}</button>
+            ) : null}
+          </div>
+        </div>
+        <label className="flex flex-col gap-1 text-sm font-bold">
+          {tr("بريد MyMemory (يرفع الحصة المجانية اليومية)")}
+          <input className="field" dir="ltr" type="email" value={s.myMemoryEmail} onChange={(e) => setS({ ...s, myMemoryEmail: e.target.value })} />
+        </label>
         <div className="flex items-center gap-2">
-          <button type="button" className="btn" disabled={busy} onClick={() => save({ ...(key.trim() ? { apiKey: key } : {}), ...(grokKey.trim() ? { grokKey } : {}) })}>{tr("حفظ")}</button>
+          <button type="button" className="btn" disabled={busy} onClick={() => save({ ...(key.trim() ? { apiKey: key } : {}), ...(grokKey.trim() ? { grokKey } : {}), ...(azureKey.trim() ? { azureKey } : {}) })}>{tr("حفظ")}</button>
           {msg ? <p className="text-sm font-semibold" role="status">{trv(msg)}</p> : null}
         </div>
       </section>

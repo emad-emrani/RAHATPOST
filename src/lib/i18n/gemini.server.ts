@@ -5,8 +5,8 @@
 import { decryptSecret } from "@/lib/store/secrets.server";
 
 export type GeminiUse = "israel" | "site" | "auto";
-export type ProviderId = "gemini" | "grok" | "mymemory";
-export const PROVIDERS: ProviderId[] = ["gemini", "grok", "mymemory"];
+export type ProviderId = "gemini" | "grok" | "microsoft" | "mymemory";
+export const PROVIDERS: ProviderId[] = ["gemini", "grok", "microsoft", "mymemory"];
 export type GeminiSettings = {
   /** Provider chain, tried in order; on 429/error/timeout the next one is used. */
   order: ProviderId[];
@@ -21,6 +21,11 @@ export type GeminiSettings = {
   stylePrompt: string;
   /** AES-GCM box (never sent to the browser). */
   apiKeyBox?: string;
+  /** MyMemory "de" contact email (raises the free daily quota). */
+  myMemoryEmail: string;
+  /** Microsoft Translator (Azure): AES-GCM key box + region (env AZURE_TRANSLATOR_KEY / _REGION otherwise). */
+  azureKeyBox?: string;
+  azureRegion: string;
   /** Optional AI illustrations for news items without a photo (off by default). */
   aiImages: { enabled: boolean; provider: "gemini" | "grok"; dailyCap: number };
 };
@@ -29,8 +34,10 @@ export const DEFAULT_STYLE =
   "Translate naturally and accurately for a local community news website. Keep names of people, places and organizations in their common form in the target language. Return only the translation, no explanations or quotes.";
 
 export const DEFAULT_GEMINI: GeminiSettings = {
-  order: ["gemini", "grok", "mymemory"],
-  providers: { gemini: true, grok: true, mymemory: true },
+  order: ["gemini", "grok", "microsoft", "mymemory"],
+  providers: { gemini: true, grok: true, microsoft: true, mymemory: true },
+  myMemoryEmail: process.env.MYMEMORY_EMAIL?.trim() || "amad.wwf@gmail.com",
+  azureRegion: process.env.AZURE_TRANSLATOR_REGION?.trim() || "",
   grokModel: process.env.XAI_MODEL?.trim() || "grok-4-fast-non-reasoning",
   enabled: true,
   uses: { israel: true, site: true, auto: true },
@@ -52,7 +59,13 @@ export async function loadGeminiSettings(fresh = false): Promise<GeminiSettings>
     if (rows[0]?.data) {
       const d = rows[0].data;
       const order = (Array.isArray(d.order) ? d.order : []).filter((x): x is ProviderId => PROVIDERS.includes(x as ProviderId));
-      for (const x of PROVIDERS) if (!order.includes(x)) order.push(x);
+      // New providers join at their default position (e.g. Microsoft right before MyMemory).
+      for (const x of PROVIDERS)
+        if (!order.includes(x)) {
+          const at = x === "microsoft" ? order.indexOf("mymemory") : -1;
+          if (at >= 0) order.splice(at, 0, x);
+          else order.push(x);
+        }
       s = {
         ...DEFAULT_GEMINI,
         ...d,
@@ -82,6 +95,11 @@ export function apiKeyOf(s: GeminiSettings): string {
   return own || process.env.GEMINI_API_KEY?.trim() || "";
 }
 
+export function azureKeyOf(s: GeminiSettings): { key: string; region: string } {
+  const own = s.azureKeyBox ? decryptSecret(s.azureKeyBox) : "";
+  return { key: own || process.env.AZURE_TRANSLATOR_KEY?.trim() || "", region: s.azureRegion || process.env.AZURE_TRANSLATOR_REGION?.trim() || "" };
+}
+
 export function grokKeyOf(s: GeminiSettings): string {
   const own = s.grokKeyBox ? decryptSecret(s.grokKeyBox) : "";
   return own || process.env.XAI_API_KEY?.trim() || "";
@@ -91,6 +109,7 @@ function available(s: GeminiSettings, p: ProviderId, json: boolean): boolean {
   if (!s.providers[p] || Date.now() < (paused[p] ?? 0)) return false;
   if (p === "gemini") return Boolean(apiKeyOf(s));
   if (p === "grok") return Boolean(grokKeyOf(s));
+  if (p === "microsoft") return !json && Boolean(azureKeyOf(s).key);
   return !json; // MyMemory: plain text with a known language pair only
 }
 
@@ -119,13 +138,15 @@ export async function aiGenerate(
   const chain = opts.only ? [opts.only] : s.order;
   for (const p of chain) {
     if (!opts.only && !available(s, p, Boolean(opts.json))) continue;
-    if (p === "mymemory" && (!opts.pair || opts.json)) continue;
+    if ((p === "mymemory" || p === "microsoft") && (!opts.pair || opts.json)) continue;
     const out =
       p === "gemini"
         ? await geminiGenerate(s, kind, system, text, opts)
         : p === "grok"
           ? await grokGenerate(s, kind, system, text, opts)
-          : await myMemory(kind, text, opts.pair!);
+          : p === "microsoft"
+            ? await microsoft(s, kind, text, opts.pair!)
+            : await myMemory(kind, text, opts.pair!, s.myMemoryEmail);
     if (out) return { text: out, provider: p };
   }
   return undefined;
@@ -166,13 +187,40 @@ async function grokGenerate(s: GeminiSettings, kind: string, system: string, tex
   }
 }
 
-async function myMemory(kind: string, text: string, pair: { from: string; to: string }): Promise<string | undefined> {
+async function microsoft(s: GeminiSettings, kind: string, text: string, pair: { from: string; to: string }): Promise<string | undefined> {
+  const k = `microsoft/${kind}`;
+  const { key, region } = azureKeyOf(s);
+  if (!key || !text.trim()) return undefined;
+  try {
+    const params = new URLSearchParams({ "api-version": "3.0", from: pair.from, to: pair.to, textType: "plain" });
+    const res = await fetch(`https://api.cognitive.microsofttranslator.com/translate?${params}`, {
+      method: "POST",
+      signal: AbortSignal.timeout(8_000),
+      headers: { "content-type": "application/json", "Ocp-Apim-Subscription-Key": key, ...(region ? { "Ocp-Apim-Subscription-Region": region } : {}) },
+      body: JSON.stringify([{ Text: text.slice(0, 5000) }]),
+    });
+    if (res.status === 429 || res.status === 403) paused.microsoft = Date.now() + 30 * 60_000;
+    if (!res.ok) {
+      void logUsage(k, { calls: 1, errors: 1 }, `HTTP ${res.status}`);
+      return undefined;
+    }
+    const d = (await res.json()) as { translations?: { text?: string }[] }[];
+    const out = d?.[0]?.translations?.[0]?.text?.trim();
+    void logUsage(k, { calls: 1, ...(out ? {} : { errors: 1 }) });
+    return out || undefined;
+  } catch (e) {
+    void logUsage(k, { calls: 1, errors: 1 }, e instanceof Error ? e.message : String(e));
+    return undefined;
+  }
+}
+
+async function myMemory(kind: string, text: string, pair: { from: string; to: string }, contact?: string): Promise<string | undefined> {
   const k = `mymemory/${kind}`;
   const q = text.trim().slice(0, 480);
   if (!q) return undefined;
   try {
     const params = new URLSearchParams({ q, langpair: `${pair.from}|${pair.to}` });
-    const email = process.env.MYMEMORY_EMAIL?.trim();
+    const email = contact?.trim() || process.env.MYMEMORY_EMAIL?.trim();
     if (email) params.set("de", email);
     const res = await fetch(`https://api.mymemory.translated.net/get?${params}`, { signal: AbortSignal.timeout(6_000) });
     if (res.status === 429) paused.mymemory = Date.now() + 3 * 60 * 60_000;

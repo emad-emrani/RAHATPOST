@@ -2451,6 +2451,10 @@
   "en": "Email",
   "he": "אימייל"
  },
+ "بريد MyMemory (يرفع الحصة المجانية اليومية)": {
+  "en": "MyMemory email (raises the free daily quota)",
+  "he": "אימייל MyMemory (מגדיל את המכסה היומית החינמית)"
+ },
  "بريد إلكتروني غير صالح.": {
   "en": "Invalid email.",
   "he": "אימייל לא תקין."
@@ -5281,6 +5285,10 @@
   "en": "API key (optional)",
   "he": "מפתח API (אופציונלי)"
  },
+ "مفتاح Microsoft Translator (اختياري)": {
+  "en": "Microsoft Translator key (optional)",
+  "he": "מפתח Microsoft Translator (אופציונלי)"
+ },
  "مفتاح xAI (اختياري)": {
   "en": "xAI key (optional)",
   "he": "מפתח xAI (אופציונלי)"
@@ -5965,6 +5973,10 @@
  "يُحفظ مفتاح JSON مشفّراً ولا يُعرض مرة أخرى. صلاحية «مُشاهد» للقراءة فقط.": {
   "en": "The JSON key is stored encrypted and never shown again. The Viewer role is read-only.",
   "he": "מפתח ה-JSON נשמר מוצפן ולא יוצג שוב. תפקיד Viewer הוא לקריאה בלבד."
+ },
+ "يُستخدم المفتاح من إعدادات الخادم (AZURE_TRANSLATOR_KEY).": {
+  "en": "Using the server key (AZURE_TRANSLATOR_KEY).",
+  "he": "נעשה שימוש במפתח מהגדרות השרת (AZURE_TRANSLATOR_KEY)."
  },
  "يُستخدم المفتاح من إعدادات الخادم (GEMINI_API_KEY).": {
   "en": "Using the key from the server settings (GEMINI_API_KEY).",
