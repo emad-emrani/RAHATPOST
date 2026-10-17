@@ -6,7 +6,7 @@ export const NEWS_SOURCES = ["جنوب", "عرب 48", "الصنارة", "حيف�
 /** Newest first by publish time (stable for equal times). */
 export function newestFirst(items: NewsItem[]): NewsItem[] {
   const time = (item: NewsItem) => Date.parse(item.publishedAt) || 0;
-  return [...items].sort((a, b) => time(b) - time(a));
+  return [...items].sort((a, b) => Number(!!b.pinned) - Number(!!a.pinned) || time(b) - time(a));
 }
 
 export function NewsUnavailable() {

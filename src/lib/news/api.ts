@@ -64,17 +64,22 @@ export const getNews = createServerFn({ method: "GET" }).handler(
     const { loadNews } = await import("./feeds.server");
     const { setResponseHeader } = await import("@tanstack/react-start/server");
     const { withCommentCounts } = await import("@/lib/comments/counts.server");
-    const [feed, readerOnly, staff] = await Promise.all([
+    const { applyNews, loadOverrides } = await import("./overrides.server");
+    const [rawFeed, readerOnly, staff, overrides] = await Promise.all([
       loadNews(),
       readerNewsItems(),
       staffNewsItems(),
+      loadOverrides(),
     ]);
+    const feed = { ...rawFeed, items: applyNews(rawFeed.items, overrides) };
     const readers = [...staff, ...readerOnly];
     const merged: NewsFeedResult = readers.length
       ? {
           ...feed,
           items: [...readers, ...feed.items].sort(
-            (a, b) => Date.parse(b.publishedAt) - Date.parse(a.publishedAt),
+            (a, b) =>
+              Number(!!b.pinned) - Number(!!a.pinned) ||
+              Date.parse(b.publishedAt) - Date.parse(a.publishedAt),
           ),
         }
       : feed;

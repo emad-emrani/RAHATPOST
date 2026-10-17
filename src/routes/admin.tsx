@@ -8,6 +8,7 @@ import { adminDecideAd, adminListAds } from "@/lib/ads/api";
 import type { OwnAd } from "@/lib/ads/types";
 import { adminDecide, adminList, adminLogin, adminLogout } from "@/lib/directory/api";
 import type { BusinessSubmission } from "@/lib/directory/types";
+import { AutoNewsAdmin } from "@/components/admin/auto-news-admin";
 import { MembersAdmin } from "@/components/admin/members-admin";
 import { adminWhoami } from "@/lib/team/api";
 import type { AdminLevel } from "@/lib/admin-auth";
@@ -29,6 +30,7 @@ const STATUS: Record<BusinessSubmission["status"], string> = {
 };
 
 type Section =
+  | "auto"
   | "publish"
   | "members"
   | "news"
@@ -174,6 +176,7 @@ function AdminPage() {
         {(
           [
             ["publish", "نشر خبر"],
+            ["auto", "الأخبار التلقائية"],
             ["news", "أخبار القراء"],
             ["ads", "الإعلانات"],
             ["directory", "طلبات الدليل"],
@@ -203,6 +206,8 @@ function AdminPage() {
       </div>
       {section === "publish" || level === "writer" ? (
         <PublishAdmin />
+      ) : section === "auto" ? (
+        <AutoNewsAdmin />
       ) : section === "members" && level === "owner" ? (
         <MembersAdmin />
       ) : section === "comments" ? (

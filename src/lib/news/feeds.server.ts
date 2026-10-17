@@ -62,6 +62,8 @@ const SOURCES: FeedSource[] = [
   },
 ];
 
+export const NEWS_SOURCE_NAMES = SOURCES.map((s) => s.name);
+
 /** Feeds are re-checked every 3 minutes so new stories reach the home page quickly. */
 const TTL_MS = 3 * 60_000;
 /** Up to this age a stale copy is served instantly while a refresh runs in the background. */

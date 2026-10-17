@@ -20,6 +20,8 @@ export type NewsItem = {
   reader?: { name: string; neighborhood: string; sourceUrl?: string };
   /** Written by the رهط بوست team in /admin (full text in `body`). */
   staff?: boolean;
+  /** Pinned to the top by the admin. */
+  pinned?: boolean;
   /** Writer of a staff article (team member), when not the owner. */
   author?: string;
   /** Full text — only reader posts (original content); feed items carry an excerpt only. */
@@ -59,6 +61,9 @@ export type IsraelNewsItem = {
   publishedAt: string; // ISO 8601
   category: string;
   titleHe: string;
+  /** Admin overrides («الأخبار التلقائية»). */
+  pinned?: boolean;
+  breaking?: boolean;
   summaryHe: string;
   /** Machine translation of the title (Hebrew → Arabic); absent until translated. */
   titleAr?: string;

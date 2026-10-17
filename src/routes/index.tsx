@@ -84,8 +84,9 @@ function Home() {
   const israelItems = useMemo(() => israel?.items ?? [], [israel]);
   // Translated headlines first (each group stays newest first), then Hebrew-only ones.
   const israelTop = [
-    ...israelItems.filter((item) => item.titleAr),
-    ...israelItems.filter((item) => !item.titleAr),
+    ...israelItems.filter((item) => item.pinned),
+    ...israelItems.filter((item) => item.titleAr && !item.pinned),
+    ...israelItems.filter((item) => !item.titleAr && !item.pinned),
   ].slice(0, 4);
   const classifieds = listAds(adsData);
   const places = useMemo(() => [...approved, ...osmEntries()], [approved]);
@@ -103,6 +104,7 @@ function Home() {
   // banner); the news section continues with the next ones.
   const ranked = newestFirst(news.items);
   const breaking = news.items.find((item) => item.breaking);
+  const israelBreaking = israelItems.find((item) => item.breaking);
   const top = ranked[0];
   const remaining = ranked.slice(1);
   const lead = remaining[0] ?? top;
@@ -149,6 +151,20 @@ function Home() {
             <span className="mt-2 block text-lg font-bold">{breaking.title}</span>
             <span className="text-sm font-semibold">
               {relativeTimeAr(breaking.publishedAt, now)} · {breaking.source}
+            </span>
+          </Link>
+        ) : israelBreaking ? (
+          <Link
+            to="/israel-news/$slug"
+            params={{ slug: israelBreaking.slug }}
+            className="alert-card press block px-4 py-3"
+          >
+            <span className="chip bg-white/20 text-white">عاجل</span>
+            <span className="mt-2 block text-lg font-bold">
+              {israelBreaking.titleAr ?? israelBreaking.titleHe}
+            </span>
+            <span className="text-sm font-semibold">
+              {relativeTimeAr(israelBreaking.publishedAt, now)} · {israelBreaking.source}
             </span>
           </Link>
         ) : null}

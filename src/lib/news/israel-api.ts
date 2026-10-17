@@ -7,7 +7,7 @@ async function cacheHeaders(ok: boolean) {
     setResponseHeader(
       "Cache-Control",
       ok
-        ? "public, max-age=0, s-maxage=300, stale-while-revalidate=900"
+        ? "public, max-age=0, s-maxage=60, stale-while-revalidate=300"
         : "public, max-age=0, s-maxage=30",
     );
   } catch {
@@ -20,7 +20,9 @@ export const getIsraelNews = createServerFn({ method: "GET" }).handler(
   async (): Promise<IsraelNewsResult> => {
     const { loadIsraelNews } = await import("./israel.server");
     const { withCommentCounts } = await import("@/lib/comments/counts.server");
-    const loaded = await loadIsraelNews();
+    const { applyIsrael, loadOverrides } = await import("./overrides.server");
+    const [raw, overrides] = await Promise.all([loadIsraelNews(), loadOverrides()]);
+    const loaded = { ...raw, items: applyIsrael(raw.items, overrides) };
     const result = { ...loaded, items: await withCommentCounts(loaded.items, "israel-news") };
     await cacheHeaders(result.items.length > 0);
     return result;
@@ -35,7 +37,13 @@ export const getIsraelNewsItem = createServerFn({ method: "GET" })
   })
   .handler(async ({ data }): Promise<{ result: IsraelNewsResult; item: IsraelNewsItem | null }> => {
     const { loadIsraelNewsItem } = await import("./israel.server");
-    const out = await loadIsraelNewsItem(data);
+    const { applyIsrael, loadOverrides } = await import("./overrides.server");
+    const [raw, overrides] = await Promise.all([loadIsraelNewsItem(data), loadOverrides()]);
+    const items = applyIsrael(raw.result.items, overrides);
+    const out = {
+      result: { ...raw.result, items },
+      item: items.find((i) => i.slug === data) ?? null,
+    };
     await cacheHeaders(out.result.items.length > 0);
     return out;
   });
