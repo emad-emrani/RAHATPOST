@@ -4,7 +4,7 @@ import { Comments } from "@/components/comments";
 import { Shell } from "@/components/shell";
 import { NewsUnavailable } from "@/components/news";
 import { NewsImage } from "@/components/news-image";
-import { getNews } from "@/lib/news/api";
+import { getNews, getTechNews } from "@/lib/news/api";
 import { relativeTimeAr, useNow } from "@/lib/news/format";
 import type { NewsItem } from "@/lib/news/types";
 import { breadcrumbLd, newsArticleLd, seo, snippet } from "@/lib/seo";
@@ -15,7 +15,13 @@ import { localized, localizedIsrael } from "@/lib/i18n/localize";
 
 export const Route = createFileRoute("/news/$slug")({
   loader: async ({ params }) => {
-    const data = await localized(await getNews(), (d) => [{ items: d.items, fields: ["title", "summary", "body"] }], "auto");
+    let data = await localized(await getNews(), (d) => [{ items: d.items, fields: ["title", "summary", "body"] }], "auto");
+    if (!data.items.some((item) => item.slug === params.slug)) {
+      // «أخبار تقنية» items share the article page.
+      const tech = await getTechNews().catch(() => null);
+      const hit = tech?.items.find((item) => item.slug === params.slug);
+      if (tech && hit) data = await localized({ ...tech, items: [hit, ...tech.items.filter((i) => i !== hit).slice(0, 6)] }, (d) => [{ items: d.items, fields: ["title", "summary"] }], "auto");
+    }
     return {
       now: data.now,
       empty: data.items.length === 0,

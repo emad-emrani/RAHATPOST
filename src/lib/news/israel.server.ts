@@ -53,6 +53,7 @@ const SOURCES: Source[] = [
   },
 ];
 
+export const ISRAEL_BUILTIN = SOURCES;
 export const ISRAEL_SOURCES = SOURCES.map(({ name, nameHe, home }) => ({ name, nameHe, home }));
 
 const TTL_MS = 4 * 60_000;
@@ -164,27 +165,54 @@ function startRefresh(): Promise<Feed> {
  * when we have one, and refresh the feeds in the background. Only a brand-new deploy with an
  * empty snapshot waits for the feeds.
  */
+/** Force the next request to refetch (after the admin edits feeds). */
+export function expireIsrael() {
+  if (cache) cache.at = 0;
+}
+
 async function loadFeed(): Promise<Feed> {
+  const { sectionConfig } = await import("./feed-config.server");
+  const cfg = await sectionConfig("israel");
+  if (!cfg.section.enabled) return { items: [], failedSources: [], fetchedAt: null, at: Date.now() };
   if (!cache && !snapshotTried) {
     snapshotTried = true;
     const snap = await readSnapshot();
     if (snap && !cache) cache = snap;
   }
   if (cache && cache.items.length > 0) {
-    if (Date.now() - cache.at >= TTL_MS) void startRefresh();
+    if (Date.now() - cache.at >= cfg.section.refreshMin * 60_000) void startRefresh();
     return cache;
   }
   return startRefresh();
 }
 
 async function refresh(): Promise<Feed> {
+  const { sectionConfig, recordFeedStats } = await import("./feed-config.server");
+  const { feeds } = await sectionConfig("israel");
+  const groups = new Map<string, Source>();
+  for (const f of feeds) {
+    if (!f.enabled) continue;
+    const base = SOURCES.find((b) => b.id === f.sourceId);
+    const g = groups.get(f.sourceId) ?? (base
+      ? { ...base, name: f.source || base.name, home: f.home || base.home, urls: [] }
+      : { id: f.sourceId, name: f.source, nameHe: f.source, home: f.home, urls: [], ogImage: true });
+    g.urls.push(f.url);
+    groups.set(f.sourceId, g);
+  }
+  const active = [...groups.values()];
+  const stats: { url: string; count: number; error?: string }[] = [];
   const settled = await Promise.all(
-    SOURCES.map(async (source) => {
+    active.map(async (source) => {
       const pages = await Promise.allSettled(source.urls.map((url) => fetchText(url)));
       const items: Base[] = [];
-      for (const page of pages) {
-        if (page.status !== "fulfilled") continue;
-        for (const raw of parseFeed(page.value, { smallImages: source.smallImages })) {
+      for (const [i, page] of pages.entries()) {
+        if (page.status !== "fulfilled") {
+          stats.push({ url: source.urls[i], count: 0, error: String(page.reason?.message ?? page.reason).slice(0, 200) });
+          continue;
+        }
+        const raws = parseFeed(page.value, { smallImages: source.smallImages });
+        stats.push({ url: source.urls[i], count: raws.length });
+        for (const raw of raws) {
           const item = normalize(source, raw);
           if (item) items.push(item);
         }
@@ -195,6 +223,7 @@ async function refresh(): Promise<Feed> {
     }),
   );
 
+  recordFeedStats("israel", stats);
   const failedSources = settled.filter((s) => s.failed).map((s) => s.source.name);
   const seen = new Set<string>();
   const items = settled
@@ -209,7 +238,7 @@ async function refresh(): Promise<Feed> {
     })
     .slice(0, MAX_ITEMS);
 
-  await fillOgImages(items, new Set(SOURCES.filter((s) => s.ogImage).map((s) => s.name)));
+  await fillOgImages(items, new Set(active.filter((s) => s.ogImage).map((s) => s.name)));
 
   if (items.length === 0 && cache) {
     cache = { ...cache, failedSources, at: Date.now() - TTL_MS + 60_000 };

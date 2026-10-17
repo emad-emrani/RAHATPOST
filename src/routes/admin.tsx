@@ -19,10 +19,12 @@ import {
   Users,
   X,
   type LucideIcon,
+  Cpu,
+  CloudSun,
 } from "lucide-react";
 import { createFileRoute } from "@tanstack/react-router";
 import { PhotoStrip } from "@/components/photo-picker";
-import { useCallback, useEffect, useState } from "react";
+import { Fragment, useCallback, useEffect, useState } from "react";
 import { Shell } from "@/components/shell";
 import { CommentsAdmin } from "@/components/admin/comments-admin";
 import { AlertsAdmin, DutyAdmin, PushAdmin, ReportsAdmin } from "@/components/admin/content-admin";
@@ -31,6 +33,7 @@ import type { OwnAd } from "@/lib/ads/types";
 import { adminDecide, adminList, adminLogin, adminLogout } from "@/lib/directory/api";
 import type { BusinessSubmission } from "@/lib/directory/types";
 import { AutoNewsAdmin } from "@/components/admin/auto-news-admin";
+import { SectionAdmin } from "@/components/admin/section-admin";
 import { SiteSettingsAdmin } from "@/components/admin/site-settings-admin";
 import { MembersAdmin } from "@/components/admin/members-admin";
 import { adminWhoami } from "@/lib/team/api";
@@ -73,12 +76,20 @@ type Section =
   | "alerts"
   | "push"
   | "languages"
-  | "gemini";
+  | "gemini"
+  | "sec-news"
+  | "sec-israel"
+  | "sec-tech"
+  | "sec-weather";
 
 const ALL_TABS: { key: Section; label: string; icon: LucideIcon }[] = [
   { key: "stats", label: "الإحصائيات", icon: BarChart3 },
   { key: "publish", label: "نشر خبر", icon: PenSquare },
   { key: "auto", label: "الأخبار التلقائية", icon: Rss },
+  { key: "sec-news", label: "الأخبار المحلية", icon: Newspaper },
+  { key: "sec-israel", label: "أخبار إسرائيل", icon: Rss },
+  { key: "sec-tech", label: "أخبار تقنية", icon: Cpu },
+  { key: "sec-weather", label: "الطقس", icon: CloudSun },
   { key: "news", label: "أخبار القراء", icon: Newspaper },
   { key: "ads", label: "الإعلانات", icon: Megaphone },
   { key: "store", label: "المتجر", icon: ShoppingBag },
@@ -114,12 +125,15 @@ function AdminMenu({
       <p className="px-3 pb-2 text-sm font-semibold text-muted">
         {level === "owner" ? tr("المالك") : `${name} · ${level === "writer" ? tr("كاتب") : tr("مشرف")}`}
       </p>
-      {tabs.map(({ key, label, icon: Icon }) => (
+      {tabs.map(({ key, label, icon: Icon }, i) => (
+        <Fragment key={key}>
+        {key.startsWith("sec-") && !tabs[i - 1]?.key.startsWith("sec-") ? (
+          <p className="px-3 pt-2 text-xs font-bold text-muted">{tr("الأقسام التلقائية")}</p>
+        ) : null}
         <button
-          key={key}
           type="button"
           aria-current={section === key ? "page" : undefined}
-          className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-start font-bold transition-colors ${
+          className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-start font-bold transition-colors ${key.startsWith("sec-") ? "ps-6 text-sm" : ""} ${
             section === key ? "bg-primary text-ink" : "hover:bg-primary-soft"
           }`}
           onClick={() => onSelect(key)}
@@ -127,6 +141,7 @@ function AdminMenu({
           <Icon className="size-5 shrink-0" aria-hidden />
           {trv(label)}
         </button>
+        </Fragment>
       ))}
       <hr className="my-2 border-line" />
       <button
@@ -352,6 +367,8 @@ function AdminPage() {
             <StoreAdmin isOwner={level === "owner"} />
           ) : current === "settings" ? (
             <SiteSettingsAdmin />
+          ) : current.startsWith("sec-") ? (
+            <SectionAdmin key={current} id={current.slice(4) as "news"} />
           ) : current === "auto" ? (
             <AutoNewsAdmin />
           ) : current === "members" ? (

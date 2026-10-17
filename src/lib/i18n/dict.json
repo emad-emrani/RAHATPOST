@@ -301,6 +301,14 @@
   "en": "?",
   "he": "?"
  },
+ "آخر أخبار التقنية والتكنولوجيا بالعربية: الهواتف الذكية، الذكاء الاصطناعي، التطبيقات والأجهزة، من أبرز المواقع التقنية العربية مع رابط المصدر.": {
+  "en": "The latest tech news in Arabic: smartphones, AI, apps and devices, from leading Arabic tech sites with a link to the source.",
+  "he": "חדשות הטכנולוגיה האחרונות בערבית: סמארטפונים, בינה מלאכותית, אפליקציות ומכשירים, מאתרי הטכנולוגיה הערביים המובילים עם קישור למקור."
+ },
+ "آخر أخبار التقنية والتكنولوجيا من المواقع التقنية العربية": {
+  "en": "The latest technology news from Arabic tech sites",
+  "he": "חדשות הטכנולוגיה האחרונות מאתרי טכנולוגיה ערביים"
+ },
  "آخر أخبار رهط والنقب على مدار اليوم: بلدية رهط، التعليم، الصحة، الرياضة والمجتمع من المواقع العربية المحلية، وأخبار يكتبها أهالي رهط في «من القراء».": {
   "en": "The latest Rahat and Negev news all day: Rahat municipality, education, health, sports and community from local Arabic sites, and news written by Rahat residents in \"From readers\".",
   "he": "החדשות האחרונות מרהט והנגב לאורך היום: עיריית רהט, חינוך, בריאות, ספורט וקהילה מאתרים ערביים מקומיים, וחדשות שכותבים תושבי רהט ב\"מהקוראים\"."
@@ -333,6 +341,10 @@
   "en": "Last checked:",
   "he": "נבדק לאחרונה:"
  },
+ "آخر جلب: {0} · العناصر: {1} · آخر نجاح: {2}": {
+  "en": "Last fetch: {0} · Items: {1} · Last success: {2}",
+  "he": "שליפה אחרונה: {0} · פריטים: {1} · הצלחה אחרונה: {2}"
+ },
  "آخر خبر": {
   "en": "Latest story",
   "he": "החדשה האחרונה"
@@ -340,6 +352,10 @@
  "آخر خبر ·": {
   "en": "Latest ·",
   "he": "אחרונות ·"
+ },
+ "آخر خطأ: {0}": {
+  "en": "Last error: {0}",
+  "he": "שגיאה אחרונה: {0}"
  },
  "آخر موقع قبل {0} د": {
   "en": "Last location {0} min ago",
@@ -381,6 +397,14 @@
  "أخبار القراء المنشورة": {
   "en": "Published reader news",
   "he": "חדשות קוראים שפורסמו"
+ },
+ "أخبار تقنية": {
+  "en": "Tech news",
+  "he": "חדשות טכנולוגיה"
+ },
+ "أخبار تقنية اليوم · آخر أخبار التكنولوجيا · رهط بوست": {
+  "en": "Tech news today · Latest technology news · Rahat Post",
+  "he": "חדשות טכנולוגיה היום · רהט פוסט"
  },
  "أخبار رهط": {
   "en": "Rahat news",
@@ -616,6 +640,10 @@
   "en": "Directory businesses",
   "he": "עסקים במדריך"
  },
+ "أنليمتد تك": {
+  "en": "Unlimited Tech",
+  "he": "Unlimited Tech"
+ },
  "أهم عناوين أخبار إسرائيل من واي نت والقناة 12 ومعاريف وغلوبس، مترجمة آلياً إلى العربية لأهالي رهط والنقب، مع رابط الخبر الأصلي بالعبرية.": {
   "en": "Top Israel news headlines from Ynet, Channel 12, Maariv and Globes, machine-translated into Arabic for the people of Rahat and the Negev, with a link to the original Hebrew story.",
   "he": "כותרות חדשות ישראל המובילות מ-ynet, חדשות 12, מעריב וגלובס, בתרגום מכונה לערבית לתושבי רהט והנגב, עם קישור לכתבה המקורית בעברית."
@@ -775,6 +803,10 @@
  "إضافة لغة": {
   "en": "Add language",
   "he": "הוסף שפה"
+ },
+ "إضافة مصدر": {
+  "en": "Add source",
+  "he": "הוספת מקור"
  },
  "إضافة مناوبة": {
   "en": "Add on-duty shift",
@@ -989,6 +1021,10 @@
   "en": "Permanently delete my account",
   "he": "מחק את החשבון שלי לצמיתות"
  },
+ "اختبار": {
+  "en": "Test",
+  "he": "בדיקה"
+ },
  "اختبار الاتصال": {
   "en": "Test connection",
   "he": "בדיקת חיבור"
@@ -1059,6 +1095,10 @@
   "en": "Restore defaults",
   "he": "שחזר ברירת מחדל"
  },
+ "استعادة المصادر الافتراضية؟": {
+  "en": "Restore the default sources?",
+  "he": "לשחזר את מקורות ברירת המחדל?"
+ },
  "استعادة كل الإعدادات الافتراضية؟ سيتم حذف كل التخصيصات.": {
   "en": "Restore all default settings? All customizations will be deleted.",
   "he": "לשחזר את כל הגדרות ברירת המחדל? כל ההתאמות יימחקו."
@@ -1070,6 +1110,14 @@
  "اسم المسوف (Supplier / Terminal)": {
   "en": "Supplier name (Supplier / Terminal)",
   "he": "שם ספק (Supplier / Terminal)"
+ },
+ "اسم المصدر": {
+  "en": "Source name",
+  "he": "שם המקור"
+ },
+ "اسم المصدر قصير.": {
+  "en": "Source name is too short.",
+  "he": "שם המקור קצר מדי."
  },
  "اسم الموقع (في الشريط العلوي)": {
   "en": "Site name (in the top bar)",
@@ -1260,6 +1308,10 @@
   "en": "News taken from other sites is shown with its headline and a short excerpt with a link to the original source, and the Israel news translation is automatic and may contain errors. Bus times, the on-duty pharmacy and alerts are for help only; in emergencies call 100 or 101.",
   "he": "חדשות מאתרים אחרים מוצגות עם הכותרת וקטע קצר וקישור למקור, ותרגום חדשות ישראל אוטומטי ועלול להכיל שגיאות. זמני אוטובוסים, בית המרקחת התורן וההתראות לעזרה בלבד; בחירום התקשר 100 או 101."
  },
+ "الأخبار المحلية": {
+  "en": "Local news",
+  "he": "חדשות מקומיות"
+ },
  "الأخبار المنشورة (": {
   "en": "Published news (",
   "he": "חדשות שפורסמו ("
@@ -1303,6 +1355,10 @@
  "الأقسام": {
   "en": "Sections",
   "he": "מדורים"
+ },
+ "الأقسام التلقائية": {
+  "en": "Auto sections",
+  "he": "מדורים אוטומטיים"
  },
  "الأقسام والكتالوجات": {
   "en": "Sections & catalogs",
@@ -1424,6 +1480,10 @@
   "en": "Native name (Français)",
   "he": "שם בשפת המקור (Français)"
  },
+ "الاسم قصير.": {
+  "en": "Name is too short.",
+  "he": "השם קצר מדי."
+ },
  "الافتراضية": {
   "en": "Default",
   "he": "ברירת מחדל"
@@ -1452,6 +1512,10 @@
   "en": "Municipality",
   "he": "העירייה"
  },
+ "البوابة العربية للأخبار التقنية": {
+  "en": "AIT News",
+  "he": "AIT News"
+ },
  "البيانات ©": {
   "en": "Data ©",
   "he": "נתונים ©"
@@ -1468,6 +1532,10 @@
  "التالي": {
   "en": "Next",
   "he": "הבא"
+ },
+ "التحديث كل (دقائق)": {
+  "en": "Refresh every (minutes)",
+  "he": "רענון כל (דקות)"
  },
  "الترتيب": {
   "en": "Position",
@@ -1849,6 +1917,10 @@
   "en": "Invalid format — it won't be saved.",
   "he": "פורמט לא תקין — לא יישמר."
  },
+ "الطقس": {
+  "en": "Weather",
+  "he": "מזג אוויר"
+ },
  "الطقس في رهط": {
   "en": "Weather in Rahat",
   "he": "מזג האוויר ברהט"
@@ -1917,6 +1989,10 @@
   "en": "Addresses, opening hours and directions",
   "he": "כתובות, שעות פעילות והוראות הגעה"
  },
+ "العناوين ومقتطفات قصيرة من مصادرها، مع رابط للخبر الأصلي.": {
+  "en": "Headlines and short excerpts from their sources, with a link to the original story.",
+  "he": "כותרות וקטעים קצרים מהמקורות, עם קישור לכתבה המקורית."
+ },
  "العنوان": {
   "en": "Title",
   "he": "כותרת"
@@ -1964,6 +2040,10 @@
  "القسم الفارغ لا يظهر للزوار حتى تضيف له منتجاً مفعّلاً، إلا إذا فعّلت «أظهره كـ قريباً». أضف الخطط (شهري، 3 أشهر، سنوي…) كمنتجات داخل القسم.": {
   "en": "An empty section isn't shown to visitors until you add an active product, unless you enable \"Show as Coming soon\". Add plans (monthly, 3 months, yearly…) as products inside the section.",
   "he": "מדור ריק לא מוצג למבקרים עד שתוסיף לו מוצר פעיל, אלא אם הפעלת \"הצג כבקרוב\". הוסף תוכניות (חודשי, 3 חודשים, שנתי…) כמוצרים בתוך המדור."
+ },
+ "القسم مفعّل (عند الإيقاف يختفي من الموقع)": {
+  "en": "Section enabled (hidden from the site when off)",
+  "he": "המדור פעיל (כשהוא כבוי הוא נעלם מהאתר)"
  },
  "القمار": {},
  "القنوات": {
@@ -2101,6 +2181,10 @@
  "المصادر": {
   "en": "Sources",
   "he": "מקורות"
+ },
+ "المصادر (RSS)": {
+  "en": "Sources (RSS)",
+  "he": "מקורות (RSS)"
  },
  "المصدر الذي أرفقه الناشر": {
   "en": "Source attached by the poster",
@@ -2506,6 +2590,10 @@
   "he": "מבצע"
  },
  "تداول العملات": {},
+ "ترتيب الأقسام في الصفحة الرئيسية يُضبط من «إعدادات الموقع».": {
+  "en": "Home section order is set in “Site settings”.",
+  "he": "סדר המדורים בעמוד הבית נקבע ב«הגדרות האתר»."
+ },
  "ترتيب التعليقات": {
   "en": "Sort comments",
   "he": "מיון תגובות"
@@ -2883,6 +2971,10 @@
   "en": "Change language",
   "he": "שינוי שפה"
  },
+ "تفعيل": {
+  "en": "Enable",
+  "he": "הפעלה"
+ },
  "تفعيل Google Analytics": {
   "en": "Enable Google Analytics",
   "he": "הפעל Google Analytics"
@@ -2900,6 +2992,10 @@
   "he": "הפעל תשלום מקוון"
  },
  "تفو": {},
+ "تقنية": {
+  "en": "Tech",
+  "he": "טכנולוגיה"
+ },
  "تل السبع": {
   "en": "Tel as-Sabi",
   "he": "תל שבע"
@@ -3230,6 +3326,10 @@
   "en": "Delete the service account key?",
   "he": "למחוק את מפתח חשבון השירות?"
  },
+ "حذف هذا المصدر؟": {
+  "en": "Delete this source?",
+  "he": "למחוק את המקור הזה?"
+ },
  "حذف هذه المناوبة؟": {
   "en": "Delete this shift?",
   "he": "למחוק תורנות זו?"
@@ -3390,6 +3490,10 @@
   "en": "Error",
   "he": "שגיאה"
  },
+ "خطأ: {0}": {
+  "en": "Error: {0}",
+  "he": "שגיאה: {0}"
+ },
  "خطوط أخرى تصل هذه المحطة الآن": {
   "en": "Other lines arriving at this stop now",
   "he": "קווים נוספים המגיעים לתחנה זו עכשיו"
@@ -3519,6 +3623,10 @@
   "en": "Link (optional)",
   "he": "קישור (אופציונלי)"
  },
+ "رابط RSS": {
+  "en": "RSS URL",
+  "he": "קישור RSS"
+ },
  "رابط Search Console مثل https://rahatpost.com/ أو sc-domain:rahatpost.com": {
   "en": "A Search Console URL like https://rahatpost.com/ or sc-domain:rahatpost.com",
   "he": "כתובת Search Console כמו https://rahatpost.com/ או sc-domain:rahatpost.com"
@@ -3538,6 +3646,18 @@
  "رابط المصدر غير صحيح (يبدأ بـ https://).": {
   "en": "Invalid source link (starts with https://).",
   "he": "קישור מקור לא תקין (מתחיל ב-https://)."
+ },
+ "رابط الموقع (اختياري)": {
+  "en": "Site URL (optional)",
+  "he": "קישור לאתר (אופציונלי)"
+ },
+ "رابط الموقع غير صالح.": {
+  "en": "Invalid site URL.",
+  "he": "קישור האתר לא תקין."
+ },
+ "رابط غير صالح.": {
+  "en": "Invalid URL.",
+  "he": "קישור לא תקין."
  },
  "رابط واحد كحد أقصى": {
   "en": "One link at most",
@@ -4119,6 +4239,10 @@
   "en": "Thunderstorm",
   "he": "סופת רעמים"
  },
+ "عالم التقنية": {
+  "en": "Tech World",
+  "he": "Tech World"
+ },
  "عام": {
   "en": "General",
   "he": "כללי"
@@ -4135,6 +4259,10 @@
  "عرب 48": {
   "en": "Arab48",
   "he": "ערב 48"
+ },
+ "عرب هاردوير": {
+  "en": "Arab Hardware",
+  "he": "Arab Hardware"
  },
  "عرص": {},
  "عرض": {
@@ -4553,6 +4681,10 @@
   "en": "No errors.",
   "he": "אין שגיאות."
  },
+ "لا توجد مصادر.": {
+  "en": "No sources.",
+  "he": "אין מקורות."
+ },
  "لا توجد منتجات بعد": {
   "en": "No products yet",
   "he": "אין עדיין מוצרים"
@@ -4728,6 +4860,10 @@
  "لم يكتمل تسجيل الدخول. حاول مرة أخرى.": {
   "en": "Sign-in wasn't completed. Please try again.",
   "he": "ההתחברות לא הושלמה. נסה שוב."
+ },
+ "لم يُجلب بعد.": {
+  "en": "Not fetched yet.",
+  "he": "טרם נשלף."
  },
  "لم يُحدَّث جدول اليوم": {
   "en": "Today's schedule hasn't been updated",
@@ -5371,6 +5507,10 @@
   "en": "My location",
   "he": "המיקום שלי"
  },
+ "موقوف": {
+  "en": "Disabled",
+  "he": "מושבת"
+ },
  "مُبلّغ عنها": {
   "en": "Reported",
   "he": "דווחו"
@@ -5742,6 +5882,14 @@
  "يظهر بعلامة «موثّق» بعد المراجعة": {
   "en": "Shown with a \"Verified\" badge after review",
   "he": "מוצג עם תג \"מאומת\" לאחר בדיקה"
+ },
+ "يظهر في الصفحة الرئيسية": {
+  "en": "Show on home page",
+  "he": "מוצג בעמוד הבית"
+ },
+ "يعمل: {0} خبر، {1} بصورة، الأحدث {2}": {
+  "en": "Working: {0} items, {1} with images, latest {2}",
+  "he": "עובד: {0} פריטים, {1} עם תמונה, האחרון {2}"
  },
  "يفتح الصفحة": {
   "en": "Opens page",

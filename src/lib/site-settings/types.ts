@@ -11,6 +11,7 @@ export const HOME_SECTIONS = {
   quicklinks: "روابط سريعة",
   news: "آخر الأخبار",
   israel: "أخبار إسرائيل",
+  tech: "أخبار تقنية",
   post: "خدمة البريد",
   install: "تثبيت التطبيق والإشعارات",
   buses: "الباصات",
@@ -186,7 +187,12 @@ function toggles<T extends string>(input: unknown, all: readonly T[]): Toggle<T>
       if (all.includes(id) && !out.some((o) => o.id === id))
         out.push({ id, visible: (x as { visible?: unknown }).visible !== false });
     }
-  for (const id of all) if (!out.some((o) => o.id === id)) out.push({ id, visible: true });
+  // New ids land right after their predecessor in the default order (e.g. «أخبار تقنية» after «أخبار إسرائيل»).
+  all.forEach((id, i) => {
+    if (out.some((o) => o.id === id)) return;
+    const prev = i > 0 ? out.findIndex((o) => o.id === all[i - 1]) : -1;
+    out.splice(prev >= 0 ? prev + 1 : out.length, 0, { id, visible: true });
+  });
   return out;
 }
 

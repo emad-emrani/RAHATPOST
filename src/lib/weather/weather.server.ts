@@ -102,6 +102,12 @@ function startRefresh(): Promise<Weather | null> {
 }
 
 export async function getRahatWeather(): Promise<Weather | null> {
+  try {
+    const { sectionConfig } = await import("@/lib/news/feed-config.server");
+    if (!(await sectionConfig("weather")).section.enabled) return null;
+  } catch {
+    // config unavailable: keep serving weather
+  }
   if (!cache && !snapshotTried) {
     snapshotTried = true;
     const { readSnapshot } = await import("@/lib/snapshot.server");
@@ -109,7 +115,8 @@ export async function getRahatWeather(): Promise<Weather | null> {
     if (snap && typeof snap.temp === "number" && !cache) cache = snap;
   }
   if (cache && Date.now() - cache.fetchedAt < STALE_MS) {
-    if (Date.now() - cache.fetchedAt >= TTL_MS) void startRefresh();
+    const { sectionTtl } = await import("@/lib/news/feed-config.server");
+    if (Date.now() - cache.fetchedAt >= (await sectionTtl("weather").catch(() => TTL_MS))) void startRefresh();
     return cache;
   }
   return startRefresh();

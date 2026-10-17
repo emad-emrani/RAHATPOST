@@ -42,6 +42,7 @@ import { Route as NewsIndexRouteImport } from './routes/news.index'
 import { Route as NewsSlugRouteImport } from './routes/news.$slug'
 import { Route as StoreIndexRouteImport } from './routes/store.index'
 import { Route as StoreSlugRouteImport } from './routes/store.$slug'
+import { Route as TechNewsIndexRouteImport } from './routes/tech-news.index'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiStoreWebhookProviderRouteImport } from './routes/api/store-webhook.$provider'
 import { Route as BusesMapLineRouteImport } from './routes/buses_.map.$line'
@@ -216,6 +217,11 @@ const StoreSlugRoute = StoreSlugRouteImport.update({
   path: '/store/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TechNewsIndexRoute = TechNewsIndexRouteImport.update({
+  id: '/tech-news/',
+  path: '/tech-news/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
@@ -281,6 +287,7 @@ export interface FileRoutesByFullPath {
   '/israel-news/': typeof IsraelNewsIndexRoute
   '/news/': typeof NewsIndexRoute
   '/store/': typeof StoreIndexRoute
+  '/tech-news/': typeof TechNewsIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/store-webhook/$provider': typeof ApiStoreWebhookProviderRoute
   '/buses/map/$line': typeof BusesMapLineRoute
@@ -322,6 +329,7 @@ export interface FileRoutesByTo {
   '/israel-news': typeof IsraelNewsIndexRoute
   '/news': typeof NewsIndexRoute
   '/store': typeof StoreIndexRoute
+  '/tech-news': typeof TechNewsIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/store-webhook/$provider': typeof ApiStoreWebhookProviderRoute
   '/buses/map/$line': typeof BusesMapLineRoute
@@ -364,6 +372,7 @@ export interface FileRoutesById {
   '/israel-news/': typeof IsraelNewsIndexRoute
   '/news/': typeof NewsIndexRoute
   '/store/': typeof StoreIndexRoute
+  '/tech-news/': typeof TechNewsIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/store-webhook/$provider': typeof ApiStoreWebhookProviderRoute
   '/buses_/map/$line': typeof BusesMapLineRoute
@@ -407,6 +416,7 @@ export interface FileRouteTypes {
     | '/israel-news/'
     | '/news/'
     | '/store/'
+    | '/tech-news/'
     | '/api/auth/$'
     | '/api/store-webhook/$provider'
     | '/buses/map/$line'
@@ -448,6 +458,7 @@ export interface FileRouteTypes {
     | '/israel-news'
     | '/news'
     | '/store'
+    | '/tech-news'
     | '/api/auth/$'
     | '/api/store-webhook/$provider'
     | '/buses/map/$line'
@@ -489,6 +500,7 @@ export interface FileRouteTypes {
     | '/israel-news/'
     | '/news/'
     | '/store/'
+    | '/tech-news/'
     | '/api/auth/$'
     | '/api/store-webhook/$provider'
     | '/buses_/map/$line'
@@ -531,6 +543,7 @@ export interface RootRouteChildren {
   IsraelNewsIndexRoute: typeof IsraelNewsIndexRoute
   NewsIndexRoute: typeof NewsIndexRoute
   StoreIndexRoute: typeof StoreIndexRoute
+  TechNewsIndexRoute: typeof TechNewsIndexRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiStoreWebhookProviderRoute: typeof ApiStoreWebhookProviderRoute
   BusesMapLineRoute: typeof BusesMapLineRoute
@@ -772,6 +785,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StoreSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/tech-news/': {
+      id: '/tech-news/'
+      path: '/tech-news'
+      fullPath: '/tech-news/'
+      preLoaderRoute: typeof TechNewsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/auth/$': {
       id: '/api/auth/$'
       path: '/api/auth/$'
@@ -852,6 +872,7 @@ const rootRouteChildren: RootRouteChildren = {
   IsraelNewsIndexRoute: IsraelNewsIndexRoute,
   NewsIndexRoute: NewsIndexRoute,
   StoreIndexRoute: StoreIndexRoute,
+  TechNewsIndexRoute: TechNewsIndexRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiStoreWebhookProviderRoute: ApiStoreWebhookProviderRoute,
   BusesMapLineRoute: BusesMapLineRoute,

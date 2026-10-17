@@ -20,7 +20,7 @@ import { NotifyPrompt } from "@/components/notify";
 import { NewsUnavailable, newestFirst } from "@/components/news";
 import { getApprovedEntries } from "@/lib/directory/api";
 import { osmEntries, type DirectoryEntry } from "@/lib/directory/types";
-import { getNews } from "@/lib/news/api";
+import { getAutoSectionFlags, getNews, getTechNews } from "@/lib/news/api";
 import { newsByline, relativeTimeAr, useNow } from "@/lib/news/format";
 import type { IsraelNewsItem, IsraelNewsResult, NewsItem } from "@/lib/news/types";
 import { getIsraelNews } from "@/lib/news/israel-api";
@@ -48,7 +48,7 @@ export const Route = createFileRoute("/")({
       jsonLd: [organizationLd, websiteLd],
     }),
   loader: async () => {
-    const [news, approved, ads, israel, weather, board, store] = await Promise.all([
+    const [news, approved, ads, israel, weather, board, store, tech, flags] = await Promise.all([
       getNews(),
       getApprovedEntries(),
       getPublicAds(),
@@ -56,13 +56,16 @@ export const Route = createFileRoute("/")({
       weatherWithin(2_000),
       getBoard(),
       getStore(),
+      getTechNews().catch(() => null),
+      getAutoSectionFlags().catch(() => ({}) as Record<string, boolean>),
     ]);
-    const [lNews, lIsrael, lStore] = await Promise.all([
+    const [lNews, lIsrael, lStore, lTech] = await Promise.all([
       localized(news, (d) => [{ items: d.items, fields: ["title", "summary", "body"] }], "auto"),
       localizedIsrael(israel, (d) => d?.items ?? []),
       localized(store, (d) => [{ items: d.products, fields: ["name", "shortDesc", "description"] }, { items: d.categories, fields: ["name", "description"] }]),
+      tech ? localized(tech, (d) => [{ items: d.items.slice(0, 5), fields: ["title", "summary"] }], "auto") : null,
     ]);
-    return { news: lNews, approved: approved.entries, ads, israel: lIsrael, weather, board, store: lStore };
+    return { news: lNews, approved: approved.entries, ads, israel: lIsrael, weather, board, store: lStore, tech: lTech, flags };
   },
   // New items must show up within a minute or two: short CDN cache, revalidated in the background.
   headers: () => ({ "Cache-Control": HOME_CACHE }),
@@ -92,7 +95,9 @@ async function israelNewsForHome(): Promise<IsraelNewsResult | null> {
 }
 
 function Home() {
-  const { news, approved, ads: adsData, israel, weather, board, store } = Route.useLoaderData();
+  const { news, approved, ads: adsData, israel, weather, board, store, tech, flags } = Route.useLoaderData();
+  const showSec = (id: string) => flags[id] !== false;
+  const techTop = tech?.home ? tech.items.slice(0, 5) : [];
   const settings = useSiteSettings();
   const israelItems = useMemo(() => israel?.items ?? [], [israel]);
   // Translated headlines first (each group stays newest first), then Hebrew-only ones.
@@ -144,7 +149,7 @@ function Home() {
   }, [query, news.items, places, classifieds, israelItems]);
 
   const blocks: Record<HomeSectionId, ReactNode> = {
-    weather: <HomeTodayChips weather={weather} serverNow={news.now} />,
+    weather: !showSec("weather") ? null : <HomeTodayChips weather={weather} serverNow={news.now} />,
     slider: <HomeCarousel lead={top} leadTime={top ? relativeTimeAr(top.publishedAt, now) : ""} />,
     search: (
       <label className="search-field block">
@@ -161,7 +166,7 @@ function Home() {
     ),
     tiles: <HomeTiles />,
     quicklinks: <QuickLinks />,
-    news: (
+    news: !showSec("news") ? null : (
       <>
         <section>
           <SectionTitle title={tr("آخر الأخبار")} to="/news" more={tr("كل الأخبار")} />
@@ -220,8 +225,29 @@ function Home() {
         <AdSlots placement="home" />
       </>
     ),
+    tech:
+      techTop.length > 0 ? (
+        <section>
+          <SectionTitle title={tr("أخبار تقنية")} to="/tech-news" more={tr("عرض الكل")} />
+          <ul className="stack-list">
+            {techTop.map((item) => (
+              <li key={item.slug}>
+                <Link to="/news/$slug" params={{ slug: item.slug }} className="flex items-center gap-3 px-4 py-3">
+                  <NewsImage item={item} className="size-16 rounded-xl" />
+                  <span className="min-w-0 flex-1">
+                    <span className="block font-bold leading-snug">{trv(item.title)}</span>
+                    <span className="text-sm font-semibold text-muted">
+                      {relativeTimeAr(item.publishedAt, now)} · {trv(item.source)}
+                    </span>
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null,
     israel:
-      israelTop.length > 0 && israel ? (
+      showSec("israel") && israelTop.length > 0 && israel ? (
         <section>
           <SectionTitle title={tr("أخبار إسرائيل")} to="/israel-news" more={tr("عرض الكل")} />
           <IsraelLead item={israelTop[0]} now={now} />
