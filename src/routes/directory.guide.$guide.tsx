@@ -4,6 +4,7 @@ import { Accordion, BranchCard, ExtLink, GuideBlocks, GuideIcon } from "@/compon
 import { Shell } from "@/components/shell";
 import { formatCheckedAt, getGuide, guidePath } from "@/data/guides";
 import { breadcrumbLd, seo } from "@/lib/seo";
+import { tr, trv } from "@/lib/i18n/core";
 
 export const Route = createFileRoute("/directory/guide/$guide")({
   loader: ({ params }) => ({ slug: getGuide(params.guide) ? params.guide : null }),
@@ -11,8 +12,8 @@ export const Route = createFileRoute("/directory/guide/$guide")({
     const g = getGuide(params.guide);
     if (!g) {
       return seo({
-        title: "الدليل غير موجود · رهط بوست",
-        description: "هذا الدليل غير موجود.",
+        title: tr("الدليل غير موجود · رهط بوست"),
+        description: tr("هذا الدليل غير موجود."),
         path: `/directory/guide/${params.guide}`,
         robots: "noindex",
       });
@@ -24,7 +25,7 @@ export const Route = createFileRoute("/directory/guide/$guide")({
       path,
       jsonLd: [
         breadcrumbLd([
-          { name: "دليل رهط", path: "/directory" },
+          { name: tr("دليل رهط"), path: "/directory" },
           { name: g.title, path },
         ]),
         {
@@ -49,9 +50,9 @@ function GuidePage() {
   if (!guide) {
     return (
       <Shell>
-        <p className="stamp p-4 font-semibold">هذا الدليل غير موجود.</p>
+        <p className="stamp p-4 font-semibold">{tr("هذا الدليل غير موجود.")}</p>
         <Link to="/directory" className="btn mt-4">
-          رجوع للدليل
+          {tr("رجوع للدليل")}
         </Link>
       </Shell>
     );
@@ -64,21 +65,21 @@ function GuidePage() {
       <article className="flex flex-col gap-5">
         <header>
           <Link to="/directory" className="chip mb-2">
-            دليل رهط
+            {tr("دليل رهط")}
           </Link>
-          <h1 className="text-2xl font-bold leading-snug">{guide.title}</h1>
+          <h1 className="text-2xl font-bold leading-snug">{trv(guide.title)}</h1>
           <p className="mt-1 flex items-center gap-1 text-sm font-semibold text-muted">
             <CalendarCheck className="size-4" aria-hidden />
-            آخر تحقق: {checked}
+            {tr("آخر تحقق:")} {trv(checked)}
           </p>
-          <p className="mt-3 text-lg leading-relaxed">{guide.intro}</p>
+          <p className="mt-3 text-lg leading-relaxed">{trv(guide.intro)}</p>
         </header>
 
-        <nav aria-label="أقسام الدليل" className="scroll-row -mx-4 px-4 pb-1">
+        <nav aria-label={tr("أقسام الدليل")} className="scroll-row -mx-4 px-4 pb-1">
           {guide.sections.map((s) => (
             <a key={s.id} href={`#${s.id}`} className="chip whitespace-nowrap">
               <GuideIcon icon={s.icon} className="size-4" />
-              {s.title}
+              {trv(s.title)}
             </a>
           ))}
         </nav>
@@ -89,12 +90,12 @@ function GuidePage() {
               <span className="icon-badge size-10 rounded-xl">
                 <GuideIcon icon={section.icon} className="size-5" />
               </span>
-              {section.title}
+              {trv(section.title)}
             </h2>
-            {section.intro ? <p className="mb-3 text-lg leading-relaxed">{section.intro}</p> : null}
+            {section.intro ? <p className="mb-3 text-lg leading-relaxed">{trv(section.intro)}</p> : null}
             <div className="flex flex-col gap-3">
               {section.items?.map((item) => (
-                <Accordion key={item.id} id={`${section.id}-${item.id}`} title={item.title}>
+                <Accordion key={item.id} id={`${section.id}-${item.id}`} title={trv(item.title)}>
                   <GuideBlocks blocks={item.blocks} />
                 </Accordion>
               ))}
@@ -114,12 +115,12 @@ function GuidePage() {
 
         <p className="stamp flex gap-2 p-4 font-semibold leading-relaxed">
           <Info className="mt-1 size-5 shrink-0" aria-hidden />
-          <span>{guide.disclaimer}</span>
+          <span>{trv(guide.disclaimer)}</span>
         </p>
 
         <section id="sources" className="stamp p-4">
-          <h2 className="text-xl font-bold">المصادر</h2>
-          <p className="mb-2 text-sm font-semibold text-muted">آخر تحقق من كل المصادر: {checked}</p>
+          <h2 className="text-xl font-bold">{tr("المصادر")}</h2>
+          <p className="mb-2 text-sm font-semibold text-muted">{tr("آخر تحقق من كل المصادر:")} {trv(checked)}</p>
           <ol className="flex flex-col gap-1 text-base">
             {guide.sources.map((s) => (
               <li key={s.href} className="ms-5 list-decimal">
@@ -129,7 +130,7 @@ function GuidePage() {
                   rel="noopener noreferrer"
                   className="font-semibold underline decoration-1 underline-offset-4"
                 >
-                  {s.label}
+                  {trv(s.label)}
                 </a>
               </li>
             ))}

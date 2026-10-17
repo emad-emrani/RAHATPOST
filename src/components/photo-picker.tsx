@@ -1,6 +1,7 @@
 import { ImagePlus, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { MAX_MEDIA_BYTES, mediaUrl, type MediaKind } from "@/lib/media/types";
+import { tr, trv } from "@/lib/i18n/core";
 
 const MAX_SIDE = 1600;
 
@@ -80,10 +81,10 @@ export function PhotoPicker({ kind, max, value, onChange, label, hint, onBusyCha
     const room = max - keys.current.length - busy;
     const picked = Array.from(files).slice(0, Math.max(0, room));
     if (files.length > picked.length)
-      setError(`يمكن إضافة ${max === 1 ? "صورة واحدة" : `${max} صور`} فقط.`);
+      setError(tr("يمكن إضافة {0} فقط.", max === 1 ? "صورة واحدة" : `${max} صور`));
     for (const file of picked) {
       if (!file.type.startsWith("image/")) {
-        setError("اختر ملف صورة.");
+        setError(tr("اختر ملف صورة."));
         continue;
       }
       setBusyCount((n) => n + 1);
@@ -109,10 +110,10 @@ export function PhotoPicker({ kind, max, value, onChange, label, hint, onBusyCha
           /[\u0600-\u06ff]/.test(msg)
             ? msg
             : msg === "decode"
-              ? "تعذّر قراءة هذه الصورة. جرّب صورة JPG أو PNG."
+              ? tr("تعذّر قراءة هذه الصورة. جرّب صورة JPG أو PNG.")
               : msg === "too-big"
-                ? "الصورة كبيرة جداً حتى بعد الضغط."
-                : "تعذّر رفع الصورة. حاول مرة أخرى.",
+                ? tr("الصورة كبيرة جداً حتى بعد الضغط.")
+                : tr("تعذّر رفع الصورة. حاول مرة أخرى."),
         );
       } finally {
         setBusyCount((n) => n - 1);
@@ -134,14 +135,14 @@ export function PhotoPicker({ kind, max, value, onChange, label, hint, onBusyCha
   const full = value.length + busy >= max;
   return (
     <div>
-      <p className="font-bold">{label}</p>
-      {hint ? <p className="text-sm font-semibold text-muted">{hint}</p> : null}
+      <p className="font-bold">{trv(label)}</p>
+      {hint ? <p className="text-sm font-semibold text-muted">{trv(hint)}</p> : null}
       <ul className="mt-2 flex flex-wrap gap-2">
         {value.map((key, i) => (
           <li key={key} className="relative">
             <img
               src={mediaUrl(key)}
-              alt={`صورة ${i + 1}`}
+              alt={tr("صورة {0}", i + 1)}
               className="thumb size-24 border border-line"
               loading="lazy"
             />
@@ -149,7 +150,7 @@ export function PhotoPicker({ kind, max, value, onChange, label, hint, onBusyCha
               type="button"
               className="absolute -top-2 -start-2 grid size-8 place-items-center rounded-full border border-line bg-paper shadow"
               onClick={() => remove(key)}
-              aria-label={`حذف الصورة ${i + 1}`}
+              aria-label={tr("حذف الصورة {0}", i + 1)}
             >
               <X className="size-4" aria-hidden />
             </button>
@@ -161,7 +162,7 @@ export function PhotoPicker({ kind, max, value, onChange, label, hint, onBusyCha
             className="thumb grid size-24 animate-pulse place-items-center text-xs font-bold text-muted"
             aria-live="polite"
           >
-            جاري الرفع…
+            {tr("جاري الرفع…")}
           </li>
         ))}
         {full ? null : (
@@ -170,11 +171,11 @@ export function PhotoPicker({ kind, max, value, onChange, label, hint, onBusyCha
               type="button"
               className="grid size-24 place-items-center rounded-xl border-2 border-dashed border-primary-deep bg-primary-soft text-primary-ink"
               onClick={() => input.current?.click()}
-              aria-label={max === 1 ? "إضافة صورة" : "إضافة صور"}
+              aria-label={max === 1 ? tr("إضافة صورة") : tr("إضافة صور")}
             >
               <span className="flex flex-col items-center gap-1 text-xs font-bold">
                 <ImagePlus className="size-7" aria-hidden />
-                أضف صورة
+                {tr("أضف صورة")}
               </span>
             </button>
           </li>
@@ -192,7 +193,7 @@ export function PhotoPicker({ kind, max, value, onChange, label, hint, onBusyCha
       />
       {error ? (
         <p role="alert" className="mt-1 text-sm font-bold text-ink">
-          {error}
+          {trv(error)}
         </p>
       ) : null}
     </div>
@@ -209,7 +210,7 @@ export function PhotoStrip({ keys, size = "size-20" }: { keys: string[]; size?: 
           <a href={mediaUrl(key)} target="_blank" rel="noopener noreferrer">
             <img
               src={mediaUrl(key)}
-              alt={`صورة ${i + 1}`}
+              alt={tr("صورة {0}", i + 1)}
               className={`thumb ${size} border border-line`}
               loading="lazy"
             />

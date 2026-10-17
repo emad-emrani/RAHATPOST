@@ -12,21 +12,26 @@ import { getStoreProduct } from "@/lib/store/api";
 import { absoluteUrl, breadcrumbLd, seo, SITE_NAME, snippet } from "@/lib/seo";
 import { mediaUrl } from "@/lib/media/types";
 import { effectivePrice } from "@/lib/store/types";
+import { tr, trv } from "@/lib/i18n/core";
+import { localized, localizedIsrael } from "@/lib/i18n/localize";
 
 export const Route = createFileRoute("/store/$slug")({
   loader: async ({ params }) => {
     const r = await getStoreProduct({ data: { slug: params.slug } });
     if (!r.product) throw notFound();
-    return r;
+    return localized(r, (d) => [
+      { items: [d.product], fields: ["name", "shortDesc", "description"] },
+      { items: d.categories, fields: ["name", "description"] },
+    ]);
   },
   head: ({ loaderData, params }) => {
     const p = loaderData?.product;
-    if (!p) return { meta: [{ title: "غير موجود · رهط بوست" }] };
+    if (!p) return { meta: [{ title: tr("غير موجود · رهط بوست") }] };
     const path = `/store/${params.slug}`;
     const image = p.imageKey ? absoluteUrl(mediaUrl(p.imageKey)) : undefined;
     const description = snippet(p.shortDesc || p.description || p.name);
     return seo({
-      title: `${p.name} | متجر رهط بوست`,
+      title: tr("{0} | متجر رهط بوست", p.name),
       description,
       path,
       image,
@@ -56,7 +61,7 @@ export const Route = createFileRoute("/store/$slug")({
               },
             },
             breadcrumbLd([
-              { name: "المتجر", path: "/store" },
+              { name: tr("المتجر"), path: "/store" },
               { name: p.name, path },
             ]),
           ],
@@ -65,9 +70,9 @@ export const Route = createFileRoute("/store/$slug")({
   component: ProductPage,
   notFoundComponent: () => (
     <Shell>
-      <p className="stamp p-4 font-bold">هذا المنتج غير متوفر.</p>
+      <p className="stamp p-4 font-bold">{tr("هذا المنتج غير متوفر.")}</p>
       <Link to="/store" className="btn mt-3">
-        إلى المتجر
+        {tr("إلى المتجر")}
       </Link>
     </Shell>
   ),
@@ -91,16 +96,16 @@ function ProductPage() {
         <ProductImage p={p} className="aspect-[16/10] w-full" />
         <div className="flex flex-col gap-3 p-4">
           <Badges p={p} />
-          <h1 className="text-2xl font-bold">{p.name}</h1>
+          <h1 className="text-2xl font-bold">{trv(p.name)}</h1>
           <Price p={p} currency={settings.currency} big />
-          {p.shortDesc ? <p className="font-semibold">{p.shortDesc}</p> : null}
+          {p.shortDesc ? <p className="font-semibold">{trv(p.shortDesc)}</p> : null}
           <BuyButtons p={p} />
           {p.inStock && !p.isSample ? (
             <WhatsAppCashButton items={[{ id: p.id, qty: 1 }]} redirect={`/store/${p.slug}`} />
           ) : null}
-          {p.description ? <p className="whitespace-pre-line">{p.description}</p> : null}
+          {p.description ? <p className="whitespace-pre-line">{trv(p.description)}</p> : null}
           <p className="text-sm font-semibold text-muted">
-            منتج رقمي: يظهر لك محتواه (الكود أو الرابط) في «طلباتي» فور تأكيد الدفع.
+            {tr("منتج رقمي: يظهر لك محتواه (الكود أو الرابط) في «طلباتي» فور تأكيد الدفع.")}
           </p>
         </div>
       </article>

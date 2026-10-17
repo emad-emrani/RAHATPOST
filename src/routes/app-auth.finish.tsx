@@ -2,11 +2,12 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Shell } from "@/components/shell";
 import { safeAppRedirect } from "@/lib/auth/native";
+import { tr } from "@/lib/i18n/core";
 
 /** Store app sign-in, step 3 — inside the app's WebView: redeem the token (sets the session cookie). */
 export const Route = createFileRoute("/app-auth/finish")({
   head: () => ({
-    meta: [{ title: "تسجيل الدخول · رهط بوست" }, { name: "robots", content: "noindex" }],
+    meta: [{ title: tr("تسجيل الدخول · رهط بوست") }, { name: "robots", content: "noindex" }],
   }),
   validateSearch: (s: Record<string, unknown>): { token?: string; redirect?: string } => ({
     token: typeof s.token === "string" ? s.token.slice(0, 128) : undefined,
@@ -31,14 +32,14 @@ function Finish() {
         // Full reload so every component picks up the new session.
         window.location.replace(safeAppRedirect(redirect));
       } catch {
-        setError("انتهت صلاحية رابط الدخول أو استُخدم من قبل. حاول تسجيل الدخول مرة أخرى.");
+        setError(tr("انتهت صلاحية رابط الدخول أو استُخدم من قبل. حاول تسجيل الدخول مرة أخرى."));
       }
     })();
   }, [token, redirect]);
   return (
     <Shell>
       <p className="stamp p-4 font-bold" role={error ? "alert" : undefined}>
-        {error || "جاري تسجيل الدخول…"}
+        {error || tr("جاري تسجيل الدخول…")}
       </p>
     </Shell>
   );

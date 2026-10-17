@@ -11,6 +11,7 @@ import { GmapsStopButtons } from "@/components/gmaps-buttons";
 import { lineInfo, stopName } from "@/lib/buses/schedule";
 import type { ArrivalsResult } from "@/lib/buses/types";
 import { seo } from "@/lib/seo";
+import { tr, trv } from "@/lib/i18n/core";
 
 type Vehicle = { ref: string; dir: string; lat: number; lon: number; at: string };
 
@@ -27,8 +28,8 @@ export const Route = createFileRoute("/buses_/map/$line")({
   },
   head: ({ params }) =>
     seo({
-      title: `خريطة خط ${params.line} · باصات رهط · رهط بوست`,
-      description: `مسار خط الباص ${params.line} في رهط ومحطاته على الخريطة، مع مواقع الباصات المباشرة.`,
+      title: tr("خريطة خط {0} · باصات رهط · رهط بوست", params.line),
+      description: tr("مسار خط الباص {0} في رهط ومحطاته على الخريطة، مع مواقع الباصات المباشرة.", params.line),
       path: `/buses/map/${params.line}`,
     }),
   component: BusMapPage,
@@ -176,7 +177,7 @@ function BusMapPage() {
         zIndexOffset: 1000,
       })
         .addTo(busLayer.current)
-        .bindTooltip(age < 1 ? "موقع مباشر الآن" : `آخر موقع قبل ${age} د`, { direction: "top" });
+        .bindTooltip(age < 1 ? tr("موقع مباشر الآن") : tr("آخر موقع قبل {0} د", age), { direction: "top" });
     }
   }, [vehicles, ready, line]);
 
@@ -196,10 +197,10 @@ function BusMapPage() {
           fillOpacity: 1,
         })
           .addTo(meLayer.current)
-          .bindTooltip("موقعك");
+          .bindTooltip(tr("موقعك"));
         map.current.setView(p, 15);
       },
-      () => alert("تعذّر تحديد موقعك. اسمح للموقع باستخدام الموقع الجغرافي."),
+      () => alert(tr("تعذّر تحديد موقعك. اسمح للموقع باستخدام الموقع الجغرافي.")),
       { enableHighAccuracy: true, timeout: 10_000 },
     );
   };
@@ -215,19 +216,19 @@ function BusMapPage() {
   return (
     <div className="fixed inset-0 z-40 flex flex-col bg-paper">
       <header className="edge-b flex items-center gap-3 px-3 py-2">
-        <Link to="/buses" className="btn btn-ghost px-3" aria-label="رجوع إلى الباصات">
+        <Link to="/buses" className="btn btn-ghost px-3" aria-label={tr("رجوع إلى الباصات")}>
           <ArrowRight className="size-5" aria-hidden />
         </Link>
         <div className="min-w-0 flex-1">
-          <h1 className="truncate text-lg font-bold">خريطة خط {line}</h1>
+          <h1 className="truncate text-lg font-bold">{tr("خريطة خط")} {trv(line)}</h1>
           <p className="truncate text-xs font-semibold text-muted">
-            {from && to ? `${from} ↔ ${to}` : "باصات رهط"}
+            {from && to ? `${from} ↔ ${to}` : tr("باصات رهط")}
           </p>
         </div>
         <button
           type="button"
           className="btn btn-ghost px-3"
-          aria-label="تحديث"
+          aria-label={tr("تحديث")}
           onClick={() => void refresh()}
         >
           <RefreshCw className="size-5" aria-hidden />
@@ -241,7 +242,7 @@ function BusMapPage() {
             rel="noopener noreferrer"
             className="btn btn-ghost w-full px-3 text-sm"
           >
-            المسار في خرائط جوجل (من {stopName(d.from)} إلى {stopName(d.to)})
+            {tr("المسار في خرائط جوجل (من")} {stopName(d.from)} {tr("إلى")} {stopName(d.to)})
           </a>
         </div>
       ) : null}
@@ -254,7 +255,7 @@ function BusMapPage() {
               className={x.dir === dir ? "chip chip-ink shrink-0" : "chip shrink-0"}
               onClick={() => setDir(x.dir)}
             >
-              إلى {stopName(x.to)}
+              {tr("إلى")} {stopName(x.to)}
             </button>
           ))}
         </div>
@@ -265,26 +266,26 @@ function BusMapPage() {
           type="button"
           onClick={locate}
           className="absolute end-3 top-3 z-[500] grid size-11 place-items-center rounded-full bg-paper shadow-[var(--shadow-lift)]"
-          aria-label="موقعي"
+          aria-label={tr("موقعي")}
         >
           <LocateFixed className="size-5" aria-hidden />
         </button>
         <div className="absolute inset-x-3 top-3 z-[500] me-14 rounded-xl bg-paper/95 px-3 py-2 text-sm font-bold shadow-[var(--shadow-card)]">
           {status === "loading"
-            ? "جاري جلب مواقع الباصات…"
+            ? tr("جاري جلب مواقع الباصات…")
             : status === "error"
-              ? "تعذّر جلب المواقع المباشرة الآن. المسار والمحطات من الجدول الرسمي."
+              ? tr("تعذّر جلب المواقع المباشرة الآن. المسار والمحطات من الجدول الرسمي.")
               : shown
-                ? `${shown} باص على الخط الآن · مواقع حقيقية من نظام وزارة المواصلات · ${fmt(new Date(updated).toISOString())}`
-                : "لا يوجد باص يرسل موقعه على هذا الخط الآن. اضغط على محطة لرؤية أوقات الوصول."}
+                ? tr("{0} باص على الخط الآن · مواقع حقيقية من نظام وزارة المواصلات · {1}", shown, fmt(new Date(updated).toISOString()))
+                : tr("لا يوجد باص يرسل موقعه على هذا الخط الآن. اضغط على محطة لرؤية أوقات الوصول.")}
         </div>
       </div>
       {stop ? (
         <div className="edge-t max-h-[40vh] overflow-y-auto bg-paper p-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
           <div className="flex items-center justify-between gap-2">
-            <p className="font-bold">محطة {stopName(stop.code)}</p>
+            <p className="font-bold">{tr("محطة")} {stopName(stop.code)}</p>
             <button type="button" className="chip" onClick={() => setStop(null)}>
-              إغلاق
+              {tr("إغلاق")}
             </button>
           </div>
           {busSchedule.stops[stop.code] ? (
@@ -294,11 +295,11 @@ function BusMapPage() {
             />
           ) : null}
           {!stop.data ? (
-            <p className="mt-2 font-semibold text-muted">جاري جلب أوقات الوصول…</p>
+            <p className="mt-2 font-semibold text-muted">{tr("جاري جلب أوقات الوصول…")}</p>
           ) : !stop.data.ok ? (
-            <p className="mt-2 font-semibold text-muted">تعذّر جلب أوقات الوصول الآن.</p>
+            <p className="mt-2 font-semibold text-muted">{tr("تعذّر جلب أوقات الوصول الآن.")}</p>
           ) : stop.data.arrivals.filter((a) => a.line === line).length === 0 ? (
-            <p className="mt-2 font-semibold text-muted">لا وصول متوقع لخط {line} قريباً.</p>
+            <p className="mt-2 font-semibold text-muted">{tr("لا وصول متوقع لخط")} {trv(line)} {tr("قريباً.")}</p>
           ) : (
             <ul className="mt-2 flex flex-col gap-1">
               {stop.data.arrivals
@@ -306,10 +307,10 @@ function BusMapPage() {
                 .map((a, i) => (
                   <li key={i} className="flex items-center justify-between font-semibold">
                     <span>
-                      {fmt(a.eta)} {a.destination ? `· إلى ${a.destination}` : ""}
+                      {fmt(a.eta)} {a.destination ? tr("· إلى {0}", a.destination) : ""}
                     </span>
                     <span className={a.live ? "chip chip-ink" : "chip"}>
-                      {a.live ? "مباشر" : "مجدول"}
+                      {a.live ? tr("مباشر") : tr("مجدول")}
                     </span>
                   </li>
                 ))}
@@ -318,8 +319,7 @@ function BusMapPage() {
         </div>
       ) : (
         <p className="edge-t px-4 py-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] text-xs font-semibold text-muted">
-          المسار والمحطات: بيانات GTFS من وزارة المواصلات. المواقع وأوقات الوصول: SIRI عبر
-          curlbus.app.
+          {tr("المسار والمحطات: بيانات GTFS من وزارة المواصلات. المواقع وأوقات الوصول: SIRI عبر curlbus.app.")}
         </p>
       )}
     </div>

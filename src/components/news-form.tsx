@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { tr, trv } from "@/lib/i18n/core";
 
 export type NewsFormData = {
   title: string;
@@ -12,7 +13,7 @@ export type NewsFormData = {
 /** Reader news form: title, text, optional source link, place. Returns an error message or null. */
 export function NewsForm({
   onSubmit,
-  submitLabel = "إرسال للمراجعة",
+  submitLabel = tr("إرسال للمراجعة"),
 }: {
   onSubmit: (data: NewsFormData) => Promise<string | null>;
   submitLabel?: string;
@@ -42,18 +43,18 @@ export function NewsForm({
           });
           if (message) setError(message);
         } catch {
-          setError("تعذّر الإرسال. حاول مرة أخرى.");
+          setError(tr("تعذّر الإرسال. حاول مرة أخرى."));
         } finally {
           setBusy(false);
         }
       }}
     >
       <label className="block font-bold">
-        عنوان الخبر
+        {tr("عنوان الخبر")}
         <input name="title" required minLength={5} maxLength={120} className="field mt-1" />
       </label>
       <label className="block font-bold">
-        نص الخبر: ماذا حدث، متى، ومن المعنيّون؟
+        {tr("نص الخبر: ماذا حدث، متى، ومن المعنيّون؟")}
         <textarea
           name="body"
           required
@@ -63,11 +64,11 @@ export function NewsForm({
         />
       </label>
       <label className="block font-bold">
-        أين؟ (الحي أو المكان)
+        {tr("أين؟ (الحي أو المكان)")}
         <input name="neighborhood" required minLength={2} maxLength={60} className="field mt-1" />
       </label>
       <label className="block font-bold">
-        رابط المصدر <span className="font-semibold text-muted">(اختياري)</span>
+        {tr("رابط المصدر")} <span className="font-semibold text-muted">{tr("(اختياري)")}</span>
         <input
           name="sourceUrl"
           type="url"
@@ -81,21 +82,20 @@ export function NewsForm({
       {/* Honeypot: hidden from people, bots tend to fill it. */}
       <div aria-hidden="true" className="absolute -z-10 h-0 w-0 overflow-hidden opacity-0">
         <label>
-          الموقع
+          {tr("الموقع")}
           <input name="website" tabIndex={-1} autoComplete="off" />
         </label>
       </div>
       <p className="text-sm font-semibold text-muted">
-        يُنشر الخبر باسمك بعد أن يراجعه فريق رهط بوست. اكتب ما تعرفه بدقة ولا تنشر معلومات شخصية عن
-        أحد.
+        {tr("يُنشر الخبر باسمك بعد أن يراجعه فريق رهط بوست. اكتب ما تعرفه بدقة ولا تنشر معلومات شخصية عن أحد.")}
       </p>
       {error ? (
         <p role="alert" className="font-bold">
-          {error}
+          {trv(error)}
         </p>
       ) : null}
       <button type="submit" className="btn" disabled={busy}>
-        {busy ? "جاري الإرسال…" : submitLabel}
+        {busy ? tr("جاري الإرسال…") : submitLabel}
       </button>
     </form>
   );

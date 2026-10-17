@@ -7,6 +7,7 @@ import {
   type AutoSource,
 } from "@/lib/news/auto-admin";
 import { newsCategories } from "@/lib/news/types";
+import { tr, trv } from "@/lib/i18n/core";
 
 const KIND = { news: "أخبار محلية", israel: "أخبار إسرائيل" } as const;
 const CATEGORIES = [...newsCategories, "إسرائيل"];
@@ -29,7 +30,7 @@ export function AutoNewsAdmin() {
     setItems(res.items);
     setSources(res.sources);
     setMsg(
-      !res.authed ? "انتهت الجلسة. سجّل الدخول من جديد." : res.ok ? "" : "تعذّر تحميل الأخبار.",
+      !res.authed ? tr("انتهت الجلسة. سجّل الدخول من جديد.") : res.ok ? "" : tr("تعذّر تحميل الأخبار."),
     );
   }, []);
   useEffect(() => {
@@ -63,7 +64,7 @@ export function AutoNewsAdmin() {
     };
     const next = { ...base, ...patch };
     const res = await adminSaveAutoNews({ data: { slug: i.slug, kind: i.kind, ...next } });
-    if (!res.ok) setMsg(res.message || "تعذّر الحفظ.");
+    if (!res.ok) setMsg(res.message || tr("تعذّر الحفظ."));
     else setItems((all) => (all ?? []).map((x) => (x.slug === i.slug ? { ...x, ov: next } : x)));
     setBusy("");
   };
@@ -74,7 +75,7 @@ export function AutoNewsAdmin() {
       data: { kind: s.kind, name: s.name, enabled: !s.enabled },
     });
     if (res.ok) setSources((all) => all.map((x) => (x === s ? { ...x, enabled: !s.enabled } : x)));
-    else setMsg("تعذّر تغيير المصدر.");
+    else setMsg(tr("تعذّر تغيير المصدر."));
     setBusy("");
   };
 
@@ -83,13 +84,13 @@ export function AutoNewsAdmin() {
   return (
     <>
       <div className="stamp mb-4 p-4">
-        <h2 className="text-lg font-bold">المصادر</h2>
+        <h2 className="text-lg font-bold">{tr("المصادر")}</h2>
         <p className="text-sm font-semibold text-muted">
-          إيقاف مصدر يخفي كل أخباره من الموقع. التغييرات تظهر خلال دقيقة تقريباً.
+          {tr("إيقاف مصدر يخفي كل أخباره من الموقع. التغييرات تظهر خلال دقيقة تقريباً.")}
         </p>
         {(["news", "israel"] as const).map((k) => (
           <div key={k} className="mt-3">
-            <p className="font-bold">{KIND[k]}</p>
+            <p className="font-bold">{trv(KIND[k])}</p>
             <div className="mt-1 flex flex-wrap gap-2">
               {sources
                 .filter((s) => s.kind === k)
@@ -102,7 +103,7 @@ export function AutoNewsAdmin() {
                     onClick={() => toggleSource(s)}
                   >
                     {s.enabled ? "✓ " : "✕ "}
-                    {s.name}
+                    {trv(s.name)}
                   </button>
                 ))}
             </div>
@@ -113,7 +114,7 @@ export function AutoNewsAdmin() {
       <div className="stamp mb-4 grid grid-cols-2 gap-2 p-4">
         <input
           className="field col-span-2"
-          placeholder="ابحث في العناوين"
+          placeholder={tr("ابحث في العناوين")}
           value={q}
           onChange={(e) => setQ(e.target.value)}
         />
@@ -122,20 +123,20 @@ export function AutoNewsAdmin() {
           value={kind}
           onChange={(e) => setKind(e.target.value as typeof kind)}
         >
-          <option value="">كل الأقسام</option>
-          <option value="news">{KIND.news}</option>
-          <option value="israel">{KIND.israel}</option>
+          <option value="">{tr("كل الأقسام")}</option>
+          <option value="news">{trv(KIND.news)}</option>
+          <option value="israel">{trv(KIND.israel)}</option>
         </select>
         <select className="field" value={cat} onChange={(e) => setCat(e.target.value)}>
-          <option value="">كل التصنيفات</option>
+          <option value="">{tr("كل التصنيفات")}</option>
           {CATEGORIES.map((c) => (
-            <option key={c}>{c}</option>
+            <option key={c}>{trv(c)}</option>
           ))}
         </select>
         <select className="field" value={src} onChange={(e) => setSrc(e.target.value)}>
-          <option value="">كل المصادر</option>
+          <option value="">{tr("كل المصادر")}</option>
           {sourceNames.map((s) => (
-            <option key={s}>{s}</option>
+            <option key={s}>{trv(s)}</option>
           ))}
         </select>
         <select
@@ -143,20 +144,20 @@ export function AutoNewsAdmin() {
           value={state}
           onChange={(e) => setState(e.target.value as typeof state)}
         >
-          <option value="">كل الحالات</option>
-          <option value="hidden">المخفية</option>
-          <option value="pinned">المثبتة</option>
-          <option value="edited">المعدّلة</option>
+          <option value="">{tr("كل الحالات")}</option>
+          <option value="hidden">{tr("المخفية")}</option>
+          <option value="pinned">{tr("المثبتة")}</option>
+          <option value="edited">{tr("المعدّلة")}</option>
         </select>
       </div>
 
-      {msg ? <p className="stamp mb-3 p-3 font-bold">{msg}</p> : null}
+      {msg ? <p className="stamp mb-3 p-3 font-bold">{trv(msg)}</p> : null}
       {!items ? (
-        <p className="stamp p-4 font-semibold">جاري التحميل…</p>
+        <p className="stamp p-4 font-semibold">{tr("جاري التحميل…")}</p>
       ) : (
         <>
           <p className="mb-2 font-bold">
-            {list.length} من {items.length} خبر
+            {trv(list.length)} {tr("من")} {trv(items.length)} {tr("خبر")}
           </p>
           <ul className="flex flex-col gap-3">
             {list.slice(0, 150).map((i) => {
@@ -166,11 +167,11 @@ export function AutoNewsAdmin() {
               return (
                 <li key={i.slug} className={`stamp p-4 ${ov?.hidden ? "opacity-60" : ""}`}>
                   <div className="flex flex-wrap gap-2">
-                    <span className="chip">{KIND[i.kind]}</span>
-                    <span className="chip">{i.source}</span>
-                    {ov?.hidden ? <span className="chip chip-ink">مخفي</span> : null}
-                    {ov?.pinned ? <span className="chip chip-ink">📌 مثبّت</span> : null}
-                    {breaking ? <span className="chip chip-alert">عاجل</span> : null}
+                    <span className="chip">{trv(KIND[i.kind])}</span>
+                    <span className="chip">{trv(i.source)}</span>
+                    {ov?.hidden ? <span className="chip chip-ink">{tr("مخفي")}</span> : null}
+                    {ov?.pinned ? <span className="chip chip-ink">{tr("📌 مثبّت")}</span> : null}
+                    {breaking ? <span className="chip chip-alert">{tr("عاجل")}</span> : null}
                   </div>
                   {editing?.slug === i.slug ? (
                     <form
@@ -189,7 +190,7 @@ export function AutoNewsAdmin() {
                       />
                       <div className="grid grid-cols-3 gap-2">
                         <button type="submit" className="btn">
-                          حفظ
+                          {tr("حفظ")}
                         </button>
                         <button
                           type="button"
@@ -199,14 +200,14 @@ export function AutoNewsAdmin() {
                             setEditing(null);
                           }}
                         >
-                          الأصلي
+                          {tr("الأصلي")}
                         </button>
                         <button
                           type="button"
                           className="btn btn-ghost"
                           onClick={() => setEditing(null)}
                         >
-                          إلغاء
+                          {tr("إلغاء")}
                         </button>
                       </div>
                     </form>
@@ -221,11 +222,11 @@ export function AutoNewsAdmin() {
                     </a>
                   )}
                   {ov?.title ? (
-                    <p className="text-sm font-semibold text-muted">الأصلي: {i.title}</p>
+                    <p className="text-sm font-semibold text-muted">{tr("الأصلي:")} {trv(i.title)}</p>
                   ) : null}
                   {i.titleHe && i.titleHe !== i.title ? (
                     <p className="text-sm font-semibold text-muted" dir="rtl" lang="he">
-                      {i.titleHe}
+                      {trv(i.titleHe)}
                     </p>
                   ) : null}
                   <p className="text-sm font-semibold text-muted">
@@ -241,10 +242,10 @@ export function AutoNewsAdmin() {
                       onChange={(e) =>
                         save(i, { category: e.target.value === i.category ? null : e.target.value })
                       }
-                      aria-label="التصنيف"
+                      aria-label={tr("التصنيف")}
                     >
                       {[...new Set([i.category, ...CATEGORIES])].map((c) => (
-                        <option key={c}>{c}</option>
+                        <option key={c}>{trv(c)}</option>
                       ))}
                     </select>
                     <button
@@ -253,7 +254,7 @@ export function AutoNewsAdmin() {
                       disabled={busy === i.slug}
                       onClick={() => save(i, { hidden: !ov?.hidden })}
                     >
-                      {ov?.hidden ? "إظهار" : "إخفاء"}
+                      {ov?.hidden ? tr("إظهار") : tr("إخفاء")}
                     </button>
                     <button
                       type="button"
@@ -261,7 +262,7 @@ export function AutoNewsAdmin() {
                       disabled={busy === i.slug}
                       onClick={() => save(i, { pinned: !ov?.pinned })}
                     >
-                      {ov?.pinned ? "إلغاء التثبيت" : "تثبيت"}
+                      {ov?.pinned ? tr("إلغاء التثبيت") : tr("تثبيت")}
                     </button>
                     <button
                       type="button"
@@ -271,14 +272,14 @@ export function AutoNewsAdmin() {
                         save(i, { breaking: breaking === i.breaking ? !i.breaking : null })
                       }
                     >
-                      {breaking ? "إلغاء العاجل" : "عاجل"}
+                      {breaking ? tr("إلغاء العاجل") : tr("عاجل")}
                     </button>
                     <button
                       type="button"
                       className="btn btn-ghost"
                       onClick={() => setEditing({ slug: i.slug, title: ov?.title ?? i.title })}
                     >
-                      تعديل العنوان
+                      {tr("تعديل العنوان")}
                     </button>
                   </div>
                 </li>

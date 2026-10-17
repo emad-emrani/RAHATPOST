@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import { mediaUrl } from "@/lib/media/types";
+import { tr } from "@/lib/i18n/core";
 
 /** Swipeable photo gallery for an ad (snap per photo, dots, tap opens the full photo). */
 export function AdGallery({ keys, title }: { keys: string[]; title: string }) {
@@ -14,7 +15,7 @@ export function AdGallery({ keys, title }: { keys: string[]; title: string }) {
       <ul
         ref={row}
         className="gallery rounded-t-[var(--radius-card)]"
-        aria-label="صور الإعلان"
+        aria-label={tr("صور الإعلان")}
         onScroll={(e) => {
           const el = e.currentTarget;
           const i = Math.round(Math.abs(el.scrollLeft) / Math.max(1, el.clientWidth));
@@ -26,7 +27,7 @@ export function AdGallery({ keys, title }: { keys: string[]; title: string }) {
             <a href={mediaUrl(key)} target="_blank" rel="noopener noreferrer">
               <img
                 src={mediaUrl(key)}
-                alt={`${title} — صورة ${i + 1} من ${keys.length}`}
+                alt={tr("{0} — صورة {1} من {2}", title, i + 1, keys.length)}
                 className="aspect-[4/3] w-full bg-surface object-cover"
                 loading={i === 0 ? "eager" : "lazy"}
                 decoding="async"
@@ -44,7 +45,7 @@ export function AdGallery({ keys, title }: { keys: string[]; title: string }) {
               className={
                 i === index ? "size-3 rounded-full bg-primary-deep" : "size-3 rounded-full bg-line"
               }
-              aria-label={`الصورة ${i + 1}`}
+              aria-label={tr("الصورة {0}", i + 1)}
               aria-current={i === index ? "true" : undefined}
               onClick={() => go(i)}
             />

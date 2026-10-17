@@ -12,6 +12,7 @@ import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { submitBusiness } from "@/lib/directory/api";
 import { ownerCategories } from "@/lib/directory/types";
 import { seo } from "@/lib/seo";
+import { tr, trv } from "@/lib/i18n/core";
 
 const modes = ["خبر", "إعلان", "نشاط"] as const;
 type Mode = (typeof modes)[number];
@@ -25,8 +26,8 @@ const SIGN_IN_TITLE: Record<Mode, string> = {
 export const Route = createFileRoute("/submit")({
   head: () =>
     seo({
-      title: "أضف خبراً أو إعلاناً أو نشاطاً · رهط بوست",
-      description: "أرسل خبراً من رهط، أو إعلاناً مبوباً، أو أضف نشاطك التجاري إلى دليل رهط.",
+      title: tr("أضف خبراً أو إعلاناً أو نشاطاً · رهط بوست"),
+      description: tr("أرسل خبراً من رهط، أو إعلاناً مبوباً، أو أضف نشاطك التجاري إلى دليل رهط."),
       path: "/submit",
       robots: "noindex",
     }),
@@ -58,7 +59,7 @@ function SubmitPage() {
 
   return (
     <Shell>
-      <h1 className="mb-3 text-2xl font-bold">أضف</h1>
+      <h1 className="mb-3 text-2xl font-bold">{tr("أضف")}</h1>
       <div className="mb-4 grid grid-cols-3 gap-2">
         {modes.map((item) => (
           <button
@@ -75,47 +76,46 @@ function SubmitPage() {
               setError("");
             }}
           >
-            {item}
+            {trv(item)}
           </button>
         ))}
       </div>
       {sent ? (
         <div className="stamp flex flex-col gap-3 p-4">
-          <p className="text-lg font-bold">وصلنا. لن يُنشر قبل المراجعة.</p>
-          <p className="font-semibold text-muted">تتابع حالته من صفحة «منشوراتي».</p>
+          <p className="text-lg font-bold">{tr("وصلنا. لن يُنشر قبل المراجعة.")}</p>
+          <p className="font-semibold text-muted">{tr("تتابع حالته من صفحة «منشوراتي».")}</p>
           <Link to="/my-posts" className="btn">
-            منشوراتي
+            {tr("منشوراتي")}
           </Link>
         </div>
       ) : isPending ? (
-        <p className="stamp p-4 font-semibold">جاري التحميل…</p>
+        <p className="stamp p-4 font-semibold">{tr("جاري التحميل…")}</p>
       ) : !user ? (
         <div className="stamp flex flex-col gap-3 p-4">
-          <p className="text-lg font-bold">{SIGN_IN_TITLE[mode]}</p>
+          <p className="text-lg font-bold">{trv(SIGN_IN_TITLE[mode])}</p>
           <p className="font-semibold text-muted">
-            لا نقبل منشورات بلا حساب، حتى نعرف من نشر ونمنع الرسائل المزعجة. بعد الدخول تعود إلى هذه
-            الصفحة مباشرة، وتتابع ما أرسلته وحالته من «منشوراتي».
+            {tr("لا نقبل منشورات بلا حساب، حتى نعرف من نشر ونمنع الرسائل المزعجة. بعد الدخول تعود إلى هذه الصفحة مباشرة، وتتابع ما أرسلته وحالته من «منشوراتي».")}
           </p>
           <SignInButtons config={authConfig} redirect={back} />
           <p className="text-sm font-semibold text-muted">
-            نعرض اسمك من الحساب مع ما تنشره فقط، ولا ننشر شيئاً على حسابك.
+            {tr("نعرض اسمك من الحساب مع ما تنشره فقط، ولا ننشر شيئاً على حسابك.")}
           </p>
         </div>
       ) : mode === "خبر" ? (
         <NewsForm
           onSubmit={async (data) => {
             const res = await createMyNews({ data });
-            if (!res.ok) return res.message ?? "تعذّر الإرسال.";
+            if (!res.ok) return res.message ?? tr("تعذّر الإرسال.");
             setSent(true);
             return null;
           }}
         />
       ) : mode === "إعلان" ? (
         <AdForm
-          submitLabel="إرسال للمراجعة"
+          submitLabel={tr("إرسال للمراجعة")}
           onSubmit={async (data) => {
             const res = await createMyAd({ data });
-            if (!res.ok) return res.message ?? "تعذّر الإرسال.";
+            if (!res.ok) return res.message ?? tr("تعذّر الإرسال.");
             setSent(true);
             return null;
           }}
@@ -128,7 +128,7 @@ function SubmitPage() {
             event.preventDefault();
             setError("");
             if (uploading) {
-              setError("انتظر حتى يكتمل رفع الصورة.");
+              setError(tr("انتظر حتى يكتمل رفع الصورة."));
               return;
             }
             const form = new FormData(event.currentTarget);
@@ -150,12 +150,12 @@ function SubmitPage() {
               if (res.ok) {
                 setSent(true);
                 setBizPhotos([]);
-              } else setError(res.message ?? "تعذّر الإرسال.");
+              } else setError(res.message ?? tr("تعذّر الإرسال."));
             } catch (err) {
               setError(
                 err instanceof Error && /[\u0600-\u06ff]/.test(err.message)
                   ? err.message
-                  : "تحقق من الحقول وحاول مرة أخرى.",
+                  : tr("تحقق من الحقول وحاول مرة أخرى."),
               );
             } finally {
               setBusy(false);
@@ -164,50 +164,49 @@ function SubmitPage() {
         >
           {mode === "نشاط" ? (
             <>
-              <Field label="اسم النشاط" name="name" max={80} defaultValue={search.name} />
+              <Field label={tr("اسم النشاط")} name="name" max={80} defaultValue={search.name} />
               <label className="block font-bold">
-                التصنيف
+                {tr("التصنيف")}
                 <select name="category" required className="field mt-1" defaultValue="">
                   <option value="" disabled>
-                    اختر التصنيف
+                    {tr("اختر التصنيف")}
                   </option>
                   {ownerCategories.map((c) => (
                     <option key={c} value={c}>
-                      {c}
+                      {trv(c)}
                     </option>
                   ))}
                 </select>
               </label>
-              <Field label="الحي" name="area" max={60} />
-              <Field label="سطر وصف" name="about" max={160} />
+              <Field label={tr("الحي")} name="area" max={60} />
+              <Field label={tr("سطر وصف")} name="about" max={160} />
               <PhotoPicker
                 kind="business"
                 max={1}
                 value={bizPhotos}
                 onChange={setBizPhotos}
                 onBusyChange={setUploading}
-                label="شعار أو صورة للمحل (اختياري)"
-                hint="صورة واحدة تظهر في صفحة نشاطك بعد الموافقة."
+                label={tr("شعار أو صورة للمحل (اختياري)")}
+                hint={tr("صورة واحدة تظهر في صفحة نشاطك بعد الموافقة.")}
               />
               {/* Honeypot: hidden from people, bots tend to fill it. */}
               <div aria-hidden="true" className="absolute -z-10 h-0 w-0 overflow-hidden opacity-0">
                 <label>
-                  الموقع
+                  {tr("الموقع")}
                   <input name="website" tabIndex={-1} autoComplete="off" />
                 </label>
               </div>
             </>
           ) : null}
-          <Field label="هاتف للتواصل" name="phone" type="tel" max={20} />
+          <Field label={tr("هاتف للتواصل")} name="phone" type="tel" max={20} />
           {mode === "نشاط" ? (
             <p className="text-sm font-semibold text-muted">
-              يظهر النشاط في الدليل بعلامة «موثّق» بعد أن نراجعه ونتأكد منه، مع الرقم الذي تكتبه
-              هنا.
+              {tr("يظهر النشاط في الدليل بعلامة «موثّق» بعد أن نراجعه ونتأكد منه، مع الرقم الذي تكتبه هنا.")}
             </p>
           ) : null}
-          {error ? <p className="font-bold text-ink">{error}</p> : null}
+          {error ? <p className="font-bold text-ink">{trv(error)}</p> : null}
           <button type="submit" className="btn" disabled={busy || uploading}>
-            {busy ? "جاري الإرسال…" : uploading ? "جاري رفع الصورة…" : "إرسال للمراجعة"}
+            {busy ? tr("جاري الإرسال…") : uploading ? tr("جاري رفع الصورة…") : tr("إرسال للمراجعة")}
           </button>
         </form>
       )}
@@ -232,7 +231,7 @@ function Field({
 }) {
   return (
     <label className="block font-bold">
-      {label}
+      {trv(label)}
       {long ? (
         <textarea name={name} required maxLength={max} className="field mt-1 min-h-28" />
       ) : (

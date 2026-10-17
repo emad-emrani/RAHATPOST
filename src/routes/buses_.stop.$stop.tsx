@@ -10,6 +10,7 @@ import { stopName } from "@/lib/buses/schedule";
 import { GmapsStopButtons } from "@/components/gmaps-buttons";
 import { useNavigate } from "@tanstack/react-router";
 import { seo } from "@/lib/seo";
+import { tr, trv } from "@/lib/i18n/core";
 
 type StopLive = Awaited<ReturnType<typeof getStopLive>>;
 
@@ -30,8 +31,8 @@ export const Route = createFileRoute("/buses_/stop/$stop")({
   },
   head: ({ loaderData }) =>
     seo({
-      title: `محطة ${loaderData?.name ?? ""} على الخريطة · باصات رهط`,
-      description: `الباصات القادمة إلى محطة ${loaderData?.name ?? ""} في رهط ومواقعها المباشرة على الخريطة.`,
+      title: tr("محطة {0} على الخريطة · باصات رهط", loaderData?.name ?? ""),
+      description: tr("الباصات القادمة إلى محطة {0} في رهط ومواقعها المباشرة على الخريطة.", loaderData?.name ?? ""),
       path: `/buses/stop/${loaderData?.code ?? ""}`,
       robots: "noindex",
     }),
@@ -75,7 +76,7 @@ function StopMapPage() {
       fillOpacity: 1,
     })
       .addTo(map)
-      .bindTooltip(`محطة ${name}`, { permanent: true, direction: "top", offset: [0, -10] });
+      .bindTooltip(tr("محطة {0}", name), { permanent: true, direction: "top", offset: [0, -10] });
     // All stations of the lines serving this stop (tap → that stop's live map).
     const seen = new Set<string>([code]);
     for (const { line, dir } of lines) {
@@ -105,7 +106,7 @@ function StopMapPage() {
           if (path && routes.current)
             L.polyline(path, { color: color(line), weight: 4, opacity: 0.7 })
               .addTo(routes.current)
-              .bindTooltip(`خط ${line}`, { sticky: true });
+              .bindTooltip(tr("خط {0}", line), { sticky: true });
         });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -146,7 +147,7 @@ function StopMapPage() {
         zIndexOffset: 1000,
       })
         .addTo(buses.current)
-        .bindTooltip(`خط ${v.line} · يصل خلال ${mins} د`, { direction: "top" });
+        .bindTooltip(tr("خط {0} · يصل خلال {1} د", v.line, mins), { direction: "top" });
       pts.push([v.lat, v.lon]);
     }
     if (pts.length > 1) map.fitBounds(L.latLngBounds(pts), { padding: [40, 40], maxZoom: 16 });
@@ -166,10 +167,10 @@ function StopMapPage() {
           fillOpacity: 1,
         })
           .addTo(me.current)
-          .bindTooltip("موقعك");
+          .bindTooltip(tr("موقعك"));
         map.fitBounds(L.latLngBounds([p, [lat, lon]]), { padding: [40, 40], maxZoom: 17 });
       },
-      () => alert("تعذّر تحديد موقعك."),
+      () => alert(tr("تعذّر تحديد موقعك.")),
       { enableHighAccuracy: true, timeout: 10_000 },
     );
 
@@ -180,20 +181,20 @@ function StopMapPage() {
   return (
     <div className="fixed inset-0 z-40 flex flex-col bg-paper">
       <header className="edge-b flex items-center gap-3 px-3 py-2">
-        <Link to="/buses" className="btn btn-ghost px-3" aria-label="رجوع إلى الباصات">
+        <Link to="/buses" className="btn btn-ghost px-3" aria-label={tr("رجوع إلى الباصات")}>
           <ArrowRight className="size-5" aria-hidden />
         </Link>
         <div className="min-w-0 flex-1">
-          <h1 className="truncate text-lg font-bold">محطة {name}</h1>
+          <h1 className="truncate text-lg font-bold">{tr("محطة")} {trv(name)}</h1>
           <p className="truncate text-xs font-semibold text-muted">
-            رقم المحطة {code}
-            {lines.length ? ` · الخطوط: ${[...served].join("، ")}` : ""}
+            {tr("رقم المحطة")} {trv(code)}
+            {lines.length ? tr(" · الخطوط: {0}", [...served].join("، ")) : ""}
           </p>
         </div>
         <button
           type="button"
           className="btn btn-ghost px-3"
-          aria-label="تحديث"
+          aria-label={tr("تحديث")}
           onClick={() => void refresh()}
         >
           <RefreshCw className="size-5" aria-hidden />
@@ -205,25 +206,25 @@ function StopMapPage() {
           type="button"
           onClick={locate}
           className="absolute end-3 top-3 z-[500] grid size-11 place-items-center rounded-full bg-paper shadow-[var(--shadow-lift)]"
-          aria-label="موقعي"
+          aria-label={tr("موقعي")}
         >
           <LocateFixed className="size-5" aria-hidden />
         </button>
         <div className="absolute inset-x-3 top-3 z-[500] me-14 rounded-xl bg-paper/95 px-3 py-2 text-sm font-bold shadow-[var(--shadow-card)]">
           {!data && !error
-            ? "جاري جلب الباصات القادمة…"
+            ? tr("جاري جلب الباصات القادمة…")
             : error
-              ? "تعذّر جلب البيانات المباشرة الآن."
+              ? tr("تعذّر جلب البيانات المباشرة الآن.")
               : data!.vehicles.length
-                ? `${data!.vehicles.length} باص قادم يرسل موقعه الآن · مواقع حقيقية من وزارة المواصلات`
-                : "لا يوجد باص قادم يرسل موقعه الآن — الأوقات أدناه من النظام المباشر أو الجدول."}
+                ? tr("{0} باص قادم يرسل موقعه الآن · مواقع حقيقية من وزارة المواصلات", data!.vehicles.length)
+                : tr("لا يوجد باص قادم يرسل موقعه الآن — الأوقات أدناه من النظام المباشر أو الجدول.")}
         </div>
       </div>
       <div className="edge-t max-h-[42vh] overflow-y-auto bg-paper p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
         <GmapsStopButtons lat={lat} lon={lon} />
-        <p className="mb-2 mt-3 font-bold">الباصات القادمة</p>
+        <p className="mb-2 mt-3 font-bold">{tr("الباصات القادمة")}</p>
         {data && data.arrivals.length === 0 ? (
-          <p className="font-semibold text-muted">لا وصول متوقع قريباً لهذه المحطة.</p>
+          <p className="font-semibold text-muted">{tr("لا وصول متوقع قريباً لهذه المحطة.")}</p>
         ) : null}
         <ul className="flex flex-col gap-2">
           {(data?.arrivals ?? []).map((a, i) => (
@@ -235,17 +236,17 @@ function StopMapPage() {
                 className="chip chip-ink shrink-0"
                 style={{ boxShadow: `inset 0 -3px 0 ${color(a.line)}` }}
               >
-                خط {a.line}
+                {tr("خط")} {trv(a.line)}
               </span>
               <span className="min-w-0 flex-1 truncate text-sm font-bold">
-                {a.destination ? `إلى ${a.destination}` : ""}
+                {a.destination ? tr("إلى {0}", a.destination) : ""}
               </span>
               <span className="shrink-0 text-end">
                 <span className="block font-bold">
-                  {mins(a.eta) < 1 ? "الآن" : `${mins(a.eta)} د`}
+                  {mins(a.eta) < 1 ? tr("الآن") : tr("{0} د", mins(a.eta))}
                 </span>
                 <span className={a.live ? "chip chip-ok" : "chip"}>
-                  {a.vehicle ? "على الخريطة" : a.live ? "مباشر" : "مجدول"}
+                  {a.vehicle ? tr("على الخريطة") : a.live ? tr("مباشر") : tr("مجدول")}
                 </span>
               </span>
               {served.has(a.line) && a.operator === busSchedule.agency ? (
@@ -254,7 +255,7 @@ function StopMapPage() {
                   params={{ line: a.line }}
                   search={{ stop: code }}
                   className="grid size-9 shrink-0 place-items-center rounded-lg border border-line"
-                  aria-label={`خريطة خط ${a.line}`}
+                  aria-label={tr("خريطة خط {0}", a.line)}
                 >
                   <MapIcon className="size-4" aria-hidden />
                 </Link>
@@ -263,8 +264,7 @@ function StopMapPage() {
           ))}
         </ul>
         <p className="mt-2 text-xs font-semibold text-muted">
-          المسارات: GTFS وزارة المواصلات. المواقع والأوقات المباشرة: SIRI عبر curlbus.app (آخر 5
-          دقائق فقط).
+          {tr("المسارات: GTFS وزارة المواصلات. المواقع والأوقات المباشرة: SIRI عبر curlbus.app (آخر 5 دقائق فقط).")}
         </p>
       </div>
     </div>

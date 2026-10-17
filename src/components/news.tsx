@@ -1,4 +1,5 @@
 import type { NewsItem } from "@/lib/news/types";
+import { tr } from "@/lib/i18n/core";
 
 export const NEWS_SOURCES = ["جنوب", "عرب 48", "الصنارة", "حيفا نت"];
 
@@ -12,9 +13,9 @@ export function newestFirst(items: NewsItem[]): NewsItem[] {
 export function NewsUnavailable() {
   return (
     <div className="stamp p-4">
-      <p className="text-lg font-bold">تعذّر جلب الأخبار الآن</p>
+      <p className="text-lg font-bold">{tr("تعذّر جلب الأخبار الآن")}</p>
       <p className="font-semibold text-muted">
-        مصادر الأخبار لا تستجيب حالياً. حاول مرة أخرى بعد قليل.
+        {tr("مصادر الأخبار لا تستجيب حالياً. حاول مرة أخرى بعد قليل.")}
       </p>
     </div>
   );
@@ -23,8 +24,7 @@ export function NewsUnavailable() {
 export function NewsCredit() {
   return (
     <p className="mt-6 text-sm font-semibold text-muted">
-      الأخبار من مواقع: {NEWS_SOURCES.join("، ")}. العناوين والمقتطفات لأصحابها، والخبر الكامل في
-      موقع المصدر.
+      {tr("الأخبار من مواقع:")} {NEWS_SOURCES.join(tr("، "))}{tr(". العناوين والمقتطفات لأصحابها، والخبر الكامل في موقع المصدر.")}
     </p>
   );
 }

@@ -1,11 +1,12 @@
 import { ExternalLink, MapPin, Phone, Pill, Siren, TriangleAlert } from "lucide-react";
 import { useEffect, useState } from "react";
 import { directionsUrl, type CivicAlert, type DutyShift } from "@/lib/board/types";
+import { tr, trv } from "@/lib/i18n/core";
 
 /** Duty pharmacy card for today's date; without a shift it says so instead of inventing one. */
 export function DutyCard({
   duty,
-  label = "صيدلية الحراسة اليوم",
+  label = tr("صيدلية الحراسة اليوم"),
   heading = "h2",
 }: {
   duty: DutyShift | null;
@@ -20,10 +21,10 @@ export function DutyCard({
           <Pill className="size-6" aria-hidden />
         </span>
         <div className="min-w-0">
-          <p className="text-sm font-bold text-muted">{label}</p>
-          <H className="text-xl font-bold">لم يُحدَّث جدول اليوم</H>
+          <p className="text-sm font-bold text-muted">{trv(label)}</p>
+          <H className="text-xl font-bold">{tr("لم يُحدَّث جدول اليوم")}</H>
           <p className="text-sm font-semibold text-muted">
-            اتصل بصيدليتك أو بنجمة داود الحمراء 101 للاستفسار.
+            {tr("اتصل بصيدليتك أو بنجمة داود الحمراء 101 للاستفسار.")}
           </p>
         </div>
       </section>
@@ -36,16 +37,16 @@ export function DutyCard({
           <Pill className="size-6" aria-hidden />
         </span>
         <div className="min-w-0">
-          <p className="text-sm font-bold text-muted">{label}</p>
-          <H className="text-2xl font-bold">{duty.name}</H>
-          <p className="font-semibold">{duty.address}</p>
-          <p className="text-sm font-bold text-muted">{duty.hours}</p>
+          <p className="text-sm font-bold text-muted">{trv(label)}</p>
+          <H className="text-2xl font-bold">{trv(duty.name)}</H>
+          <p className="font-semibold">{trv(duty.address)}</p>
+          <p className="text-sm font-bold text-muted">{trv(duty.hours)}</p>
         </div>
       </div>
       <div className="mt-3 grid grid-cols-2 gap-2">
         <a className="btn" href={`tel:${duty.phone.replaceAll("-", "")}`}>
           <Phone className="size-4" aria-hidden />
-          اتصال
+          {tr("اتصال")}
         </a>
         <a
           className="btn btn-ghost"
@@ -54,7 +55,7 @@ export function DutyCard({
           rel="noopener noreferrer"
         >
           <MapPin className="size-4" aria-hidden />
-          الاتجاهات
+          {tr("الاتجاهات")}
         </a>
       </div>
     </section>
@@ -96,12 +97,12 @@ export function AlertsBanner({ alerts }: { alerts: CivicAlert[] }) {
           >
             <p className="chip w-fit">
               <Icon className="size-4" aria-hidden />
-              {urgent ? "تنبيه عاجل" : "تنبيه بلدي"}
+              {urgent ? tr("تنبيه عاجل") : tr("تنبيه بلدي")}
             </p>
-            <h2 className="mt-2 text-xl font-bold">{a.title}</h2>
-            <p className="whitespace-pre-line font-semibold">{a.body}</p>
+            <h2 className="mt-2 text-xl font-bold">{trv(a.title)}</h2>
+            <p className="whitespace-pre-line font-semibold">{trv(a.body)}</p>
             <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
-              <p className="text-sm font-bold">حتى {UNTIL.format(new Date(a.endsAt))}</p>
+              <p className="text-sm font-bold">{tr("حتى")} {UNTIL.format(new Date(a.endsAt))}</p>
               {a.link ? (
                 <a
                   href={a.link}
@@ -109,7 +110,7 @@ export function AlertsBanner({ alerts }: { alerts: CivicAlert[] }) {
                   rel="noopener noreferrer nofollow"
                   className="inline-flex items-center gap-1 text-sm font-bold underline"
                 >
-                  التفاصيل
+                  {tr("التفاصيل")}
                   <ExternalLink className="size-4" aria-hidden />
                 </a>
               ) : null}

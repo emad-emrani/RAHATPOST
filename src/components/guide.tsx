@@ -13,6 +13,7 @@ import {
   TriangleAlert,
 } from "lucide-react";
 import type { Guide, GuideBlock, GuideBranch, GuideLink, GuideSection } from "@/data/guides/types";
+import { tr, trv } from "@/lib/i18n/core";
 
 const sectionIcons: Record<GuideSection["icon"], typeof Receipt> = {
   receipt: Receipt,
@@ -38,8 +39,8 @@ export function GuideCard({ guide, compact = false }: { guide: Guide; compact?: 
         <BookOpen className="size-7" aria-hidden />
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block text-lg font-bold leading-snug">{guide.title}</span>
-        <span className="block text-sm font-semibold text-muted">{guide.cardSubtitle}</span>
+        <span className="block text-lg font-bold leading-snug">{trv(guide.title)}</span>
+        <span className="block text-sm font-semibold text-muted">{trv(guide.cardSubtitle)}</span>
       </span>
       <ChevronLeft className="size-5 shrink-0" aria-hidden />
     </Link>
@@ -56,9 +57,9 @@ export function ExtLink({ link }: { link: GuideLink }) {
     >
       <ExternalLink className="mt-1 size-4 shrink-0" aria-hidden />
       <span className="min-w-0">
-        <span className="block underline decoration-2 underline-offset-4">{link.label}</span>
+        <span className="block underline decoration-2 underline-offset-4">{trv(link.label)}</span>
         {link.note ? (
-          <span className="block text-sm font-semibold text-muted">{link.note}</span>
+          <span className="block text-sm font-semibold text-muted">{trv(link.note)}</span>
         ) : null}
       </span>
     </a>
@@ -68,13 +69,13 @@ export function ExtLink({ link }: { link: GuideLink }) {
 function Block({ block }: { block: GuideBlock }) {
   switch (block.kind) {
     case "p":
-      return <p>{block.text}</p>;
+      return <p>{trv(block.text)}</p>;
     case "list":
       return (
         <ul className="flex flex-col gap-1">
           {block.items.map((t) => (
             <li key={t} className="ms-5 list-disc">
-              {t}
+              {trv(t)}
             </li>
           ))}
         </ul>
@@ -84,7 +85,7 @@ function Block({ block }: { block: GuideBlock }) {
         <ol className="flex flex-col gap-1">
           {block.items.map((t) => (
             <li key={t} className="ms-5 list-decimal">
-              {t}
+              {trv(t)}
             </li>
           ))}
         </ol>
@@ -99,7 +100,7 @@ function Block({ block }: { block: GuideBlock }) {
           ) : (
             <Info className="mt-1 size-5 shrink-0" aria-hidden />
           )}
-          <span>{block.text}</span>
+          <span>{trv(block.text)}</span>
         </p>
       );
     case "links":
@@ -128,7 +129,7 @@ export function Accordion({
   return (
     <details id={id} className="stamp group scroll-mt-24" open={open}>
       <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-4 text-lg font-bold [&::-webkit-details-marker]:hidden">
-        <span className="min-w-0">{title}</span>
+        <span className="min-w-0">{trv(title)}</span>
         <ChevronDown
           className="size-5 shrink-0 transition-transform group-open:rotate-180"
           aria-hidden
@@ -157,33 +158,32 @@ export function BranchCard({ branch }: { branch: GuideBranch }) {
       id={`branch-${branch.id}`}
       title={
         <span className="block">
-          <span className="block">{branch.name}</span>
+          <span className="block">{trv(branch.name)}</span>
           <span className="block text-sm font-semibold text-muted">
-            {branch.kind} · {branch.address}
+            {trv(branch.kind)} · {trv(branch.address)}
           </span>
         </span>
       }
     >
       <p className="text-base font-semibold text-muted">
-        الاسم الرسمي: <span lang="he">{branch.officialName}</span> (رقم {branch.id}) · العنوان
-        الرسمي: <span lang="he">{branch.officialAddress}</span>
+        {tr("الاسم الرسمي:")} <span lang="he">{trv(branch.officialName)}</span> {tr("(رقم")} {trv(branch.id)}{tr(") · العنوان الرسمي:")} <span lang="he">{trv(branch.officialAddress)}</span>
       </p>
       <div>
         <h4 className="mb-1 flex items-center gap-2 font-bold">
           <Clock className="size-4" aria-hidden />
-          ساعات العمل
+          {tr("ساعات العمل")}
         </h4>
         <table className="w-full text-base">
           <tbody>
             {branch.hours.map((h) => (
               <tr key={h.day} className="border-b border-line last:border-0">
                 <th scope="row" className="py-1 text-start font-semibold">
-                  {h.day}
+                  {trv(h.day)}
                 </th>
                 <td className="py-1 text-left font-bold">
                   {h.time.split("، ").map((range) => (
                     <span key={range} className="block" dir={/\d/.test(range) ? "ltr" : undefined}>
-                      {range}
+                      {trv(range)}
                     </span>
                   ))}
                 </td>
@@ -194,13 +194,13 @@ export function BranchCard({ branch }: { branch: GuideBranch }) {
       </div>
       {branch.notes?.map((n) => (
         <p key={n} className="font-semibold">
-          {n}
+          {trv(n)}
         </p>
       ))}
       <div className="flex flex-wrap gap-2">
         {branch.services.map((s) => (
           <span key={s} className="chip">
-            {s}
+            {trv(s)}
           </span>
         ))}
       </div>
@@ -209,12 +209,12 @@ export function BranchCard({ branch }: { branch: GuideBranch }) {
           {branch.phone ? (
             <a href={`tel:${branch.phone}`} className="inline-flex items-center gap-1 underline">
               <Phone className="size-4" aria-hidden />
-              <span dir="ltr">{branch.phone}</span>
+              <span dir="ltr">{trv(branch.phone)}</span>
             </a>
           ) : null}
           {branch.fax ? (
             <span>
-              فاكس: <span dir="ltr">{branch.fax}</span>
+              {tr("فاكس:")} <span dir="ltr">{trv(branch.fax)}</span>
             </span>
           ) : null}
         </p>
@@ -222,7 +222,7 @@ export function BranchCard({ branch }: { branch: GuideBranch }) {
       <div className="grid grid-cols-2 gap-2">
         <a className="btn" href={branch.directionsUrl} target="_blank" rel="noopener noreferrer">
           <MapPin className="size-4" aria-hidden />
-          الاتجاهات
+          {tr("الاتجاهات")}
         </a>
         {branch.appointmentUrl ? (
           <a
@@ -231,11 +231,11 @@ export function BranchCard({ branch }: { branch: GuideBranch }) {
             target="_blank"
             rel="noopener noreferrer"
           >
-            حجز دور
+            {tr("حجز دور")}
           </a>
         ) : (
           <a className="btn btn-ghost" href={branch.url} target="_blank" rel="noopener noreferrer">
-            صفحة الفرع
+            {tr("صفحة الفرع")}
           </a>
         )}
       </div>
@@ -246,7 +246,7 @@ export function BranchCard({ branch }: { branch: GuideBranch }) {
           target="_blank"
           rel="noopener noreferrer"
         >
-          صفحة الفرع الرسمية (الساعات المحدّثة)
+          {tr("صفحة الفرع الرسمية (الساعات المحدّثة)")}
           <ExternalLink className="size-3" aria-hidden />
         </a>
       ) : null}
@@ -263,20 +263,20 @@ export function HomePostCard({ guide }: { guide: Guide }) {
     {
       section: "pay",
       icon: "receipt",
-      title: "ادفع في البريد",
-      text: "فواتير، أرنونا، مخالفات وضرائب — في الفرع أو أونلاين",
+      title: tr("ادفع في البريد"),
+      text: tr("فواتير، أرنونا، مخالفات وضرائب — في الفرع أو أونلاين"),
     },
     {
       section: "branches",
       icon: "map-pin",
-      title: "فروع البريد في رهط",
-      text: "العناوين وساعات الدوام والاتجاهات",
+      title: tr("فروع البريد في رهط"),
+      text: tr("العناوين وساعات الدوام والاتجاهات"),
     },
     {
       section: "bank",
       icon: "landmark",
-      title: "بنك البريد",
-      text: "مخصصات، تحويل أموال، صرف شيكات وعملات",
+      title: tr("بنك البريد"),
+      text: tr("مخصصات، تحويل أموال، صرف شيكات وعملات"),
     },
   ];
   const present = new Set(guide.sections.map((s) => s.id));
@@ -297,8 +297,8 @@ export function HomePostCard({ guide }: { guide: Guide }) {
                   <GuideIcon icon={row.icon} className="size-6" />
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block font-bold leading-snug">{row.title}</span>
-                  <span className="block text-sm font-semibold text-muted">{row.text}</span>
+                  <span className="block font-bold leading-snug">{trv(row.title)}</span>
+                  <span className="block text-sm font-semibold text-muted">{trv(row.text)}</span>
                 </span>
                 <ChevronLeft className="size-5 shrink-0 text-muted" aria-hidden />
               </Link>
@@ -308,7 +308,7 @@ export function HomePostCard({ guide }: { guide: Guide }) {
       <div className="px-4 pb-4 pt-1">
         <Link to="/directory/guide/$guide" params={{ guide: guide.slug }} className="btn w-full">
           <BookOpen className="size-5" aria-hidden />
-          افتح دليل البريد
+          {tr("افتح دليل البريد")}
         </Link>
       </div>
     </div>

@@ -2,6 +2,7 @@ import { useRouterState } from "@tanstack/react-router";
 import { useEffect, useRef } from "react";
 import { useSiteSettings } from "@/lib/site-settings/context";
 import type { AdPlacement } from "@/lib/site-settings/types";
+import { tr } from "@/lib/i18n/core";
 
 /** Pages that never get ads or third-party tracking. */
 export const NO_THIRD_PARTY = /^\/(admin|login|app-auth|my-)/;
@@ -78,8 +79,8 @@ function AdUnit({ client, slot }: { client: string; slot: string }) {
     }
   }, []);
   return (
-    <div className="overflow-hidden" aria-label="إعلان">
-      <p className="mb-1 text-xs font-semibold text-muted">إعلان</p>
+    <div className="overflow-hidden" aria-label={tr("إعلان")}>
+      <p className="mb-1 text-xs font-semibold text-muted">{tr("إعلان")}</p>
       <ins
         className="adsbygoogle block"
         style={{ display: "block" }}

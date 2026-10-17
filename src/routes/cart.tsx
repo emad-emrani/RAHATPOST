@@ -12,9 +12,10 @@ import {
   type PublicProduct,
   type PublicStoreSettings,
 } from "@/lib/store/types";
+import { tr, trv } from "@/lib/i18n/core";
 
 export const Route = createFileRoute("/cart")({
-  head: () => ({ meta: [{ title: "السلة · رهط بوست" }, { name: "robots", content: "noindex" }] }),
+  head: () => ({ meta: [{ title: tr("السلة · رهط بوست") }, { name: "robots", content: "noindex" }] }),
   component: CartPage,
 });
 
@@ -40,7 +41,7 @@ function CartPage() {
     }
     void getCartProducts({ data: { ids: idsKey.split(",") } })
       .then(setData)
-      .catch(() => setError("تعذّر تحميل السلة."));
+      .catch(() => setError(tr("تعذّر تحميل السلة.")));
   }, [idsKey]);
 
   // Drop lines whose product is gone or inactive.
@@ -68,7 +69,7 @@ function CartPage() {
       if (r.next === "redirect" && r.url) window.location.assign(r.url);
       else void navigate({ to: "/my-orders", search: { order: r.orderId, pay: "manual" } });
     } catch {
-      setError("تعذّر إتمام الطلب. حاول مرة أخرى.");
+      setError(tr("تعذّر إتمام الطلب. حاول مرة أخرى."));
     } finally {
       setBusy(false);
     }
@@ -76,15 +77,15 @@ function CartPage() {
 
   return (
     <Shell>
-      <h1 className="mb-4 text-2xl font-bold">السلة</h1>
+      <h1 className="mb-4 text-2xl font-bold">{tr("السلة")}</h1>
       {!data ? (
-        <p className="stamp p-4 font-semibold">جاري التحميل…</p>
+        <p className="stamp p-4 font-semibold">{tr("جاري التحميل…")}</p>
       ) : rows.length === 0 ? (
         <div className="stamp flex flex-col items-center gap-3 p-8 text-center">
           <ShoppingCart className="size-10 text-primary-ink" aria-hidden />
-          <p className="text-lg font-bold">سلتك فارغة</p>
+          <p className="text-lg font-bold">{tr("سلتك فارغة")}</p>
           <Link to="/store" className="btn">
-            تصفّح المتجر
+            {tr("تصفّح المتجر")}
           </Link>
         </div>
       ) : (
@@ -99,25 +100,25 @@ function CartPage() {
                     params={{ slug: p.slug }}
                     className="font-bold leading-snug"
                   >
-                    {p.name}
+                    {trv(p.name)}
                   </Link>
                   <span className="text-sm font-semibold text-muted" dir="ltr">
-                    {formatPrice(effectivePrice(p), currency)} × {l.qty}
+                    {formatPrice(effectivePrice(p), currency)} × {trv(l.qty)}
                   </span>
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
                       className="btn btn-ghost size-10 p-0"
-                      aria-label="زيادة"
+                      aria-label={tr("زيادة")}
                       onClick={() => setQty(p.id, l.qty + 1)}
                     >
                       <Plus className="size-4" aria-hidden />
                     </button>
-                    <span className="min-w-6 text-center font-bold">{l.qty}</span>
+                    <span className="min-w-6 text-center font-bold">{trv(l.qty)}</span>
                     <button
                       type="button"
                       className="btn btn-ghost size-10 p-0"
-                      aria-label="إنقاص"
+                      aria-label={tr("إنقاص")}
                       disabled={l.qty <= 1}
                       onClick={() => setQty(p.id, l.qty - 1)}
                     >
@@ -126,7 +127,7 @@ function CartPage() {
                     <button
                       type="button"
                       className="btn btn-ghost ms-auto size-10 p-0"
-                      aria-label="حذف"
+                      aria-label={tr("حذف")}
                       onClick={() => removeFromCart(p.id)}
                     >
                       <Trash2 className="size-4" aria-hidden />
@@ -138,27 +139,26 @@ function CartPage() {
           </ul>
           <div className="stamp mt-4 flex flex-col gap-3 p-4">
             <div className="flex items-center justify-between text-lg font-bold">
-              <span>المجموع</span>
+              <span>{tr("المجموع")}</span>
               <span dir="ltr">{formatPrice(total, currency)}</span>
             </div>
             {data.settings.provider === "manual" ? (
               <p className="rounded-xl bg-primary-soft p-3 text-sm font-bold">
-                الدفع الإلكتروني غير مفعّل بعد: يُحفظ طلبك وسيتم التواصل معك لإتمام الدفع. لا يُخصم
-                أي مبلغ الآن.
+                {tr("الدفع الإلكتروني غير مفعّل بعد: يُحفظ طلبك وسيتم التواصل معك لإتمام الدفع. لا يُخصم أي مبلغ الآن.")}
               </p>
             ) : (
               <p className="text-sm font-semibold text-muted">
-                ستنتقل إلى صفحة دفع آمنة لدى شركة الدفع.
+                {tr("ستنتقل إلى صفحة دفع آمنة لدى شركة الدفع.")}
               </p>
             )}
-            {error ? <p className="font-bold text-red-700">{error}</p> : null}
+            {error ? <p className="font-bold text-red-700">{trv(error)}</p> : null}
             {isPending ? null : user ? (
               <button type="button" className="btn" disabled={busy} onClick={pay}>
                 {busy
-                  ? "جاري إنشاء الطلب…"
+                  ? tr("جاري إنشاء الطلب…")
                   : data.settings.provider === "manual"
-                    ? "أرسل الطلب"
-                    : "إلى الدفع"}
+                    ? tr("أرسل الطلب")
+                    : tr("إلى الدفع")}
               </button>
             ) : null}
             {!isPending && user ? (
@@ -170,7 +170,7 @@ function CartPage() {
             ) : null}
             {isPending || user ? null : (
               <Link to="/login" search={{ redirect: "/cart" }} className="btn">
-                سجّل الدخول بحساب Google لإتمام الطلب
+                {tr("سجّل الدخول بحساب Google لإتمام الطلب")}
               </Link>
             )}
           </div>

@@ -14,7 +14,6 @@
 
 type Translation = { title?: string; summary?: string; provider?: string };
 
-const GEMINI_MODEL = process.env.GEMINI_MODEL?.trim() || "gemini-3.8-flash";
 const GEMINI_TIMEOUT_MS = 15_000;
 const GEMINI_PROMPT =
   "أنت مترجم أخبار محترف. ترجم النص العبري التالي إلى العربية الفصحى بأسلوب إخباري واضح وطبيعي. " +
@@ -150,7 +149,7 @@ async function translateJob(job: TranslateJob, have: Translation): Promise<void>
 async function translateText(
   text: string,
 ): Promise<{ text: string; provider: string } | undefined> {
-  if (hasGemini() && Date.now() >= geminiPausedUntil) {
+  {
     const g = await translateGemini(text);
     if (g) return { text: g, provider: "gemini" };
   }
@@ -158,7 +157,6 @@ async function translateText(
   return m ? { text: m, provider: "mymemory" } : undefined;
 }
 
-let geminiPausedUntil = 0;
 
 function looksArabic(out: string): boolean {
   const arabic = (out.match(/[\u0600-\u06FF]/g) ?? []).length;
@@ -169,50 +167,14 @@ function looksArabic(out: string): boolean {
 async function translateGemini(text: string): Promise<string | undefined> {
   const q = text.trim().slice(0, 4_000);
   if (!q) return undefined;
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), GEMINI_TIMEOUT_MS);
-  try {
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`,
-      {
-        method: "POST",
-        signal: controller.signal,
-        headers: {
-          "content-type": "application/json",
-          "x-goog-api-key": process.env.GEMINI_API_KEY!.trim(),
-        },
-        body: JSON.stringify({
-          systemInstruction: { parts: [{ text: GEMINI_PROMPT }] },
-          contents: [{ role: "user", parts: [{ text: q }] }],
-          generationConfig: { temperature: 0.2 },
-        }),
-      },
-    );
-    if (res.status === 429) {
-      geminiPausedUntil = Date.now() + 10 * 60_000;
-      console.warn("[translate] Gemini rate limited; falling back to MyMemory for 10 min");
-      return undefined;
-    }
-    if (!res.ok) {
-      console.warn("[translate] Gemini error", res.status);
-      return undefined;
-    }
-    const data = (await res.json()) as {
-      candidates?: { content?: { parts?: { text?: string; thought?: boolean }[] } }[];
-    };
-    const out = (data.candidates?.[0]?.content?.parts ?? [])
-      .filter((p) => !p.thought && p.text)
-      .map((p) => p.text)
-      .join("")
-      .trim()
-      .replace(/^["«“]+|["»”]+$/g, "")
-      .trim();
-    return out && looksArabic(out) ? out : undefined;
-  } catch {
-    return undefined;
-  } finally {
-    clearTimeout(timer);
-  }
+  const { geminiFor, geminiGenerate } = await import("@/lib/i18n/gemini.server");
+  const s = await geminiFor("israel");
+  if (!s) return undefined;
+  const out = (await geminiGenerate(s, "israel", GEMINI_PROMPT, q, { timeoutMs: GEMINI_TIMEOUT_MS }))
+    ?.trim()
+    .replace(/^["«“]+|["»”]+$/g, "")
+    .trim();
+  return out && looksArabic(out) ? out : undefined;
 }
 
 async function translateMyMemory(text: string): Promise<string | undefined> {

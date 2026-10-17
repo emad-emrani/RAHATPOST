@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { tr } from "@/lib/i18n/core";
 
 function plural(n: number, one: string, two: string, few: string, many: string) {
   if (n === 1) return one;
@@ -13,12 +14,12 @@ export function relativeTimeAr(iso: string, now: number): string {
   if (Number.isNaN(t)) return "";
   const diff = Math.max(0, now - t);
   const min = Math.floor(diff / 60_000);
-  if (min < 1) return "الآن";
-  if (min < 60) return `منذ ${plural(min, "دقيقة", "دقيقتين", "دقائق", "دقيقة")}`;
+  if (min < 1) return tr("الآن");
+  if (min < 60) return tr("منذ {0}", plural(min, "دقيقة", "دقيقتين", "دقائق", "دقيقة"));
   const hours = Math.floor(min / 60);
-  if (hours < 24) return `منذ ${plural(hours, "ساعة", "ساعتين", "ساعات", "ساعة")}`;
+  if (hours < 24) return tr("منذ {0}", plural(hours, "ساعة", "ساعتين", "ساعات", "ساعة"));
   const days = Math.floor(hours / 24);
-  if (days < 30) return `منذ ${plural(days, "يوم", "يومين", "أيام", "يوماً")}`;
+  if (days < 30) return tr("منذ {0}", plural(days, "يوم", "يومين", "أيام", "يوماً"));
   return new Date(t).toLocaleDateString("ar-u-nu-latn", { timeZone: "Asia/Jerusalem" });
 }
 
@@ -38,5 +39,5 @@ export function useNow(serverNow: number): number {
 
 /** "Source" line for a news item: the publisher, or «من القراء · <poster>» for reader posts. */
 export function newsByline(item: { source: string; reader?: { name: string } }): string {
-  return item.reader ? `من القراء · ${item.reader.name}` : item.source;
+  return item.reader ? tr("من القراء · {0}", item.reader.name) : item.source;
 }

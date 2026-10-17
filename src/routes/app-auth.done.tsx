@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Shell } from "@/components/shell";
 import { appReturnUrl, safeAppRedirect } from "@/lib/auth/native";
+import { tr, trv } from "@/lib/i18n/core";
 
 /**
  * Store app sign-in, step 2 — still in the system browser, now signed in: get a single-use token
@@ -9,7 +10,7 @@ import { appReturnUrl, safeAppRedirect } from "@/lib/auth/native";
  */
 export const Route = createFileRoute("/app-auth/done")({
   head: () => ({
-    meta: [{ title: "العودة إلى التطبيق · رهط بوست" }, { name: "robots", content: "noindex" }],
+    meta: [{ title: tr("العودة إلى التطبيق · رهط بوست") }, { name: "robots", content: "noindex" }],
   }),
   validateSearch: (s: Record<string, unknown>): { redirect?: string } => ({
     redirect: typeof s.redirect === "string" ? s.redirect.slice(0, 200) : undefined,
@@ -38,7 +39,7 @@ function Done() {
           window.location.href = deep;
         }, 400);
       } catch {
-        setError("لم يكتمل تسجيل الدخول. ارجع إلى التطبيق وحاول مرة أخرى.");
+        setError(tr("لم يكتمل تسجيل الدخول. ارجع إلى التطبيق وحاول مرة أخرى."));
       }
     })();
   }, [redirect]);
@@ -48,19 +49,19 @@ function Done() {
         {error ? (
           <>
             <p role="alert" className="font-bold">
-              {error}
+              {trv(error)}
             </p>
             <Link to="/login" className="btn btn-ghost">
-              تسجيل الدخول في المتصفح
+              {tr("تسجيل الدخول في المتصفح")}
             </Link>
           </>
         ) : (
           <>
-            <p className="text-lg font-bold">تم تسجيل الدخول.</p>
-            <p className="font-semibold text-muted">إذا لم يُفتح التطبيق تلقائياً، اضغط الزر.</p>
+            <p className="text-lg font-bold">{tr("تم تسجيل الدخول.")}</p>
+            <p className="font-semibold text-muted">{tr("إذا لم يُفتح التطبيق تلقائياً، اضغط الزر.")}</p>
             {link ? (
               <a href={link} className="btn">
-                العودة إلى التطبيق
+                {tr("العودة إلى التطبيق")}
               </a>
             ) : null}
           </>

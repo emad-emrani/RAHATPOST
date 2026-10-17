@@ -1,4 +1,5 @@
 import { authClient } from "./client";
+import { tr } from "@/lib/i18n/core";
 
 export type AppUser = {
   id: string;
@@ -15,7 +16,7 @@ export function useCurrentUserState(): { user: AppUser | null; isPending: boolea
     user: u
       ? {
           id: u.id,
-          displayName: u.name || u.email || "مستخدم",
+          displayName: u.name || u.email || tr("مستخدم"),
           email: u.email ?? null,
           image: u.image ?? null,
         }

@@ -1,6 +1,7 @@
 import { Download, Share, SquarePlus, X } from "lucide-react";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { listenForNativeAuth } from "@/lib/auth/native";
+import { tr } from "@/lib/i18n/core";
 
 /* --------------------------------------------------------------------------------------------
  * Install as an app (PWA): Chromium's beforeinstallprompt on Android/desktop, a short
@@ -109,7 +110,7 @@ export function InstallBanner() {
 
   return (
     <>
-      <section className="stamp p-3" aria-label="تثبيت التطبيق">
+      <section className="stamp p-3" aria-label={tr("تثبيت التطبيق")}>
         <div className="flex items-center gap-3">
           <img
             src="/icons/icon-192.png"
@@ -119,13 +120,13 @@ export function InstallBanner() {
             className="size-12 shrink-0 rounded-xl"
           />
           <div className="min-w-0 flex-1">
-            <p className="font-bold leading-snug">رهط بوست على شاشتك الرئيسية</p>
-            <p className="text-sm font-semibold text-muted">افتحه كتطبيق بلمسة، بدون متجر.</p>
+            <p className="font-bold leading-snug">{tr("رهط بوست على شاشتك الرئيسية")}</p>
+            <p className="text-sm font-semibold text-muted">{tr("افتحه كتطبيق بلمسة، بدون متجر.")}</p>
           </div>
           <button
             type="button"
             className="grid size-12 shrink-0 place-items-center rounded-xl text-muted"
-            aria-label="إخفاء"
+            aria-label={tr("إخفاء")}
             onClick={dismiss}
           >
             <X className="size-5" aria-hidden />
@@ -140,7 +141,7 @@ export function InstallBanner() {
           }}
         >
           <Download className="size-4" aria-hidden />
-          ثبّت التطبيق
+          {tr("ثبّت التطبيق")}
         </button>
       </section>
       {sheet ? <IosInstallSheet onClose={() => setSheet(false)} /> : null}
@@ -155,13 +156,12 @@ export function InstallButton() {
   const [done, setDone] = useState(false);
   if (mode === "installed" || done)
     return (
-      <p className="stamp p-4 font-bold">التطبيق مثبّت على هذا الجهاز. افتحه من الشاشة الرئيسية.</p>
+      <p className="stamp p-4 font-bold">{tr("التطبيق مثبّت على هذا الجهاز. افتحه من الشاشة الرئيسية.")}</p>
     );
   if (mode === "none")
     return (
       <p className="stamp p-4 font-semibold">
-        افتح هذه الصفحة في Chrome على أندرويد أو في Safari على آيفون لتثبيت التطبيق. على الكمبيوتر
-        استخدم زر التثبيت في شريط عنوان Chrome أو Edge.
+        {tr("افتح هذه الصفحة في Chrome على أندرويد أو في Safari على آيفون لتثبيت التطبيق. على الكمبيوتر استخدم زر التثبيت في شريط عنوان Chrome أو Edge.")}
       </p>
     );
   return (
@@ -175,7 +175,7 @@ export function InstallButton() {
         }}
       >
         <Download className="size-5" aria-hidden />
-        ثبّت التطبيق
+        {tr("ثبّت التطبيق")}
       </button>
       {sheet ? <IosInstallSheet onClose={() => setSheet(false)} /> : null}
     </>
@@ -199,12 +199,12 @@ export function IosInstallSheet({ onClose }: { onClose: () => void }) {
       >
         <div className="mb-3 flex items-center justify-between gap-3">
           <h2 id="ios-install-title" className="text-xl font-bold">
-            ثبّت رهط بوست على آيفون
+            {tr("ثبّت رهط بوست على آيفون")}
           </h2>
           <button
             type="button"
             className="grid size-12 place-items-center rounded-xl"
-            aria-label="إغلاق"
+            aria-label={tr("إغلاق")}
             onClick={onClose}
           >
             <X className="size-5" aria-hidden />
@@ -216,7 +216,7 @@ export function IosInstallSheet({ onClose }: { onClose: () => void }) {
               <Share className="size-5" aria-hidden />
             </span>
             <span className="font-semibold">
-              اضغط زر <b>المشاركة</b> في Safari (المربّع مع السهم، أسفل الشاشة أو أعلاها).
+              {tr("اضغط زر")} <b>{tr("المشاركة")}</b> {tr("في Safari (المربّع مع السهم، أسفل الشاشة أو أعلاها).")}
             </span>
           </li>
           <li className="flex items-center gap-3">
@@ -224,18 +224,18 @@ export function IosInstallSheet({ onClose }: { onClose: () => void }) {
               <SquarePlus className="size-5" aria-hidden />
             </span>
             <span className="font-semibold">
-              اختر <b>«إضافة إلى الشاشة الرئيسية»</b> (قد تحتاج للتمرير للأسفل).
+              {tr("اختر")} <b>{tr("«إضافة إلى الشاشة الرئيسية»")}</b> {tr("(قد تحتاج للتمرير للأسفل).")}
             </span>
           </li>
           <li className="flex items-center gap-3">
             <span className="icon-badge shrink-0 font-bold">3</span>
             <span className="font-semibold">
-              اضغط <b>«إضافة»</b>. ستجد أيقونة رهط بوست على شاشتك الرئيسية.
+              {tr("اضغط")} <b>{tr("«إضافة»")}</b>{tr(". ستجد أيقونة رهط بوست على شاشتك الرئيسية.")}
             </span>
           </li>
         </ol>
         <button type="button" className="btn mt-5 w-full" onClick={onClose}>
-          فهمت
+          {tr("فهمت")}
         </button>
       </div>
     </div>

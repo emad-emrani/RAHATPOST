@@ -10,6 +10,7 @@ import { mediaUrl } from "@/lib/media/types";
 import { ReportButton } from "@/components/report";
 import { GuideCard } from "@/components/guide";
 import { guidesForPlace } from "@/data/guides";
+import { tr, trv } from "@/lib/i18n/core";
 
 export const Route = createFileRoute("/directory/$slug")({
   loader: async ({ params }) => {
@@ -28,8 +29,8 @@ export const Route = createFileRoute("/directory/$slug")({
     const path = `/directory/${params.slug}`;
     if (!p) {
       return seo({
-        title: "النشاط غير موجود · دليل رهط",
-        description: "هذا النشاط غير موجود في دليل رهط.",
+        title: tr("النشاط غير موجود · دليل رهط"),
+        description: tr("هذا النشاط غير موجود في دليل رهط."),
         path,
         robots: "noindex",
       });
@@ -38,10 +39,10 @@ export const Route = createFileRoute("/directory/$slug")({
     const description =
       snippet(p.description) ||
       snippet(
-        `${p.name}: ${p.category} في رهط${where ? ` (${where})` : ""}. الموقع على الخريطة${p.phone ? " ورقم الهاتف" : ""}${p.openingHours ? " وساعات العمل" : ""} في دليل رهط بوست.`,
+        tr("{0}: {1} في رهط{2}. الموقع على الخريطة{3}{4} في دليل رهط بوست.", p.name, p.category, where ? ` (${where})` : "", p.phone ? " ورقم الهاتف" : "", p.openingHours ? " وساعات العمل" : ""),
       );
     return seo({
-      title: `${p.name} · ${p.category} في رهط | دليل رهط بوست`,
+      title: tr("{0} · {1} في رهط | دليل رهط بوست", p.name, p.category),
       description,
       path,
       image: p.photo ? `${SITE_URL}${mediaUrl(p.photo)}` : undefined,
@@ -53,7 +54,7 @@ export const Route = createFileRoute("/directory/$slug")({
           phone: p.source === "osm" ? p.phone : undefined,
         }),
         breadcrumbLd([
-          { name: "دليل رهط", path: "/directory" },
+          { name: tr("دليل رهط"), path: "/directory" },
           { name: p.name, path },
         ]),
       ],
@@ -68,9 +69,9 @@ function BusinessPage() {
   if (!place) {
     return (
       <Shell>
-        <p className="stamp p-4 font-semibold">هذا النشاط غير موجود في الدليل.</p>
+        <p className="stamp p-4 font-semibold">{tr("هذا النشاط غير موجود في الدليل.")}</p>
         <Link to="/directory" className="btn mt-4">
-          رجوع للدليل
+          {tr("رجوع للدليل")}
         </Link>
       </Shell>
     );
@@ -86,23 +87,23 @@ function BusinessPage() {
           <a href={mediaUrl(place.photo)} target="_blank" rel="noopener noreferrer">
             <img
               src={mediaUrl(place.photo)}
-              alt={`صورة ${place.name}`}
+              alt={tr("صورة {0}", place.name)}
               className="-mx-4 -mt-4 mb-4 aspect-[16/9] w-[calc(100%+2rem)] max-w-none rounded-t-[var(--radius-card)] bg-surface object-cover"
               decoding="async"
             />
           </a>
         ) : null}
-        <span className="chip">{place.category}</span>
-        {place.verified ? <span className="chip chip-ink ms-2">موثّق</span> : null}
-        <h1 className="mt-3 text-2xl font-bold">{place.name}</h1>
-        {place.altName ? <p className="font-semibold text-muted">{place.altName}</p> : null}
+        <span className="chip">{trv(place.category)}</span>
+        {place.verified ? <span className="chip chip-ink ms-2">{tr("موثّق")}</span> : null}
+        <h1 className="mt-3 text-2xl font-bold">{trv(place.name)}</h1>
+        {place.altName ? <p className="font-semibold text-muted">{trv(place.altName)}</p> : null}
         {place.address || place.area ? (
           <p className="mt-1 font-semibold">{place.address || place.area}</p>
         ) : null}
-        {place.description ? <p className="mt-3 text-lg">{place.description}</p> : null}
+        {place.description ? <p className="mt-3 text-lg">{trv(place.description)}</p> : null}
         {place.openingHours ? (
           <p className="mt-3 font-bold">
-            ساعات العمل: <span dir="ltr">{place.openingHours}</span>
+            {tr("ساعات العمل:")} <span dir="ltr">{trv(place.openingHours)}</span>
           </p>
         ) : null}
 
@@ -116,12 +117,12 @@ function BusinessPage() {
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                واتساب
+                {tr("واتساب")}
               </a>
             ) : null}
           </div>
         ) : (
-          <p className="mt-4 font-semibold text-muted">لا يوجد رقم هاتف مسجّل لهذا المكان.</p>
+          <p className="mt-4 font-semibold text-muted">{tr("لا يوجد رقم هاتف مسجّل لهذا المكان.")}</p>
         )}
 
         <a
@@ -131,7 +132,7 @@ function BusinessPage() {
           rel="noopener noreferrer"
         >
           <MapPin className="size-4" aria-hidden />
-          الاتجاهات
+          {tr("الاتجاهات")}
         </a>
         {place.website ? (
           <a
@@ -141,7 +142,7 @@ function BusinessPage() {
             rel="noopener noreferrer"
           >
             <Globe className="size-4" aria-hidden />
-            الموقع الإلكتروني
+            {tr("الموقع الإلكتروني")}
           </a>
         ) : null}
         {place.osm ? (
@@ -151,7 +152,7 @@ function BusinessPage() {
             target="_blank"
             rel="noopener noreferrer"
           >
-            عرض أو تصحيح في OpenStreetMap
+            {tr("عرض أو تصحيح في OpenStreetMap")}
             <ExternalLink className="size-3" aria-hidden />
           </a>
         ) : null}
@@ -163,7 +164,7 @@ function BusinessPage() {
       ))}
       {place.source === "osm" ? (
         <Link to="/submit" search={{ mode: "نشاط", name: place.name }} className="btn mt-4 w-full">
-          هذا نشاطي
+          {tr("هذا نشاطي")}
         </Link>
       ) : null}
       {place.source === "osm" ? <OsmCredit /> : null}

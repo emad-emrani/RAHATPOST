@@ -4,13 +4,14 @@ import { InstallButton } from "@/components/install-app";
 import { NotificationsCard } from "@/components/notify";
 import { Shell } from "@/components/shell";
 import { seo } from "@/lib/seo";
+import { tr } from "@/lib/i18n/core";
 
 export const Route = createFileRoute("/app")({
   head: () =>
     seo({
-      title: "تطبيق رهط بوست: ثبّته على هاتفك",
+      title: tr("تطبيق رهط بوست: ثبّته على هاتفك"),
       description:
-        "ثبّت تطبيق رهط بوست على هاتفك (أندرويد وآيفون) بضغطة واحدة: أخبار رهط والنقب، باصات رهط، الدليل والإعلانات، ويعمل حتى بدون اتصال.",
+        tr("ثبّت تطبيق رهط بوست على هاتفك (أندرويد وآيفون) بضغطة واحدة: أخبار رهط والنقب، باصات رهط، الدليل والإعلانات، ويعمل حتى بدون اتصال."),
       path: "/app",
     }),
   component: AppPage,
@@ -29,8 +30,8 @@ function AppPage() {
             className="size-16 rounded-2xl"
           />
           <div>
-            <h1 className="text-2xl font-bold">تطبيق رهط بوست</h1>
-            <p className="font-semibold text-muted">مجاني، بدون متجر، ويتحدّث تلقائياً</p>
+            <h1 className="text-2xl font-bold">{tr("تطبيق رهط بوست")}</h1>
+            <p className="font-semibold text-muted">{tr("مجاني، بدون متجر، ويتحدّث تلقائياً")}</p>
           </div>
         </div>
         <InstallButton />
@@ -43,21 +44,21 @@ function AppPage() {
               <Smartphone className="size-5" aria-hidden />
             </span>
             <span className="font-semibold">
-              أيقونة على الشاشة الرئيسية، ويفتح بملء الشاشة كتطبيق.
+              {tr("أيقونة على الشاشة الرئيسية، ويفتح بملء الشاشة كتطبيق.")}
             </span>
           </li>
           <li className="stamp flex items-center gap-3 p-4">
             <span className="icon-badge shrink-0">
               <WifiOff className="size-5" aria-hidden />
             </span>
-            <span className="font-semibold">الصفحات التي فتحتها مؤخراً تعمل حتى بدون إنترنت.</span>
+            <span className="font-semibold">{tr("الصفحات التي فتحتها مؤخراً تعمل حتى بدون إنترنت.")}</span>
           </li>
           <li className="stamp flex items-center gap-3 p-4">
             <span className="icon-badge shrink-0">
               <LogIn className="size-5" aria-hidden />
             </span>
             <span className="font-semibold">
-              تسجيل الدخول بحساب Google يعمل داخل التطبيق أيضاً.
+              {tr("تسجيل الدخول بحساب Google يعمل داخل التطبيق أيضاً.")}
             </span>
           </li>
         </ul>

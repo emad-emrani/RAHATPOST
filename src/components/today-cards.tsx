@@ -22,6 +22,7 @@ import {
   PRAYER_METHOD_LABEL,
 } from "@/lib/prayer/times";
 import { weatherKind, weatherLabel, type Weather } from "@/lib/weather/types";
+import { tr, trv } from "@/lib/i18n/core";
 
 /** Ticks every 30 s after hydration; the first render uses the server's time (no mismatch). */
 function useTick(serverNow: number): number {
@@ -61,7 +62,7 @@ function WeatherIcon({
 export function OpenMeteoCredit() {
   return (
     <p className="mt-2 text-xs font-semibold text-muted">
-      بيانات الطقس:{" "}
+      {tr("بيانات الطقس:")}{" "}
       <a
         href="https://open-meteo.com/"
         target="_blank"
@@ -87,7 +88,7 @@ export function PrayerCard({ serverNow }: { serverNow: number }) {
       <div className="flex items-start justify-between gap-3">
         <div>
           <h2 id="prayer-title" className="text-xl font-bold">
-            أوقات الصلاة في رهط
+            {tr("أوقات الصلاة في رهط")}
           </h2>
           <p className="text-sm font-semibold text-muted">
             {new Intl.DateTimeFormat("ar-u-nu-latn", {
@@ -99,7 +100,7 @@ export function PrayerCard({ serverNow }: { serverNow: number }) {
           </p>
         </div>
         <p className="chip chip-ink shrink-0">
-          {next.name} {countdownAr(next.at - now)}
+          {trv(next.name)} {countdownAr(next.at - now)}
         </p>
       </div>
       <ul className="mt-3 grid grid-cols-3 gap-2">
@@ -115,7 +116,7 @@ export function PrayerCard({ serverNow }: { serverNow: number }) {
               }
               aria-current={active ? "true" : undefined}
             >
-              <span className="block text-sm font-bold">{s.name}</span>
+              <span className="block text-sm font-bold">{trv(s.name)}</span>
               <span className="block text-xl font-bold leading-tight" dir="ltr">
                 {formatPrayerTime(s.at)}
               </span>
@@ -124,7 +125,7 @@ export function PrayerCard({ serverNow }: { serverNow: number }) {
         })}
       </ul>
       <p className="mt-2 text-xs font-semibold text-muted">
-        محسوبة لموقع رهط · {PRAYER_METHOD_LABEL}. قد تختلف دقيقة أو دقيقتين عن تقويم مسجدك.
+        {tr("محسوبة لموقع رهط ·")} {trv(PRAYER_METHOD_LABEL)}{tr(". قد تختلف دقيقة أو دقيقتين عن تقويم مسجدك.")}
       </p>
     </section>
   );
@@ -137,7 +138,7 @@ export function WeatherCard({ weather }: { weather: Weather | null }) {
   return (
     <section className="stamp p-4" aria-labelledby="weather-title">
       <h2 id="weather-title" className="text-xl font-bold">
-        الطقس في رهط
+        {tr("الطقس في رهط")}
       </h2>
       <div className="mt-2 flex items-center gap-4">
         <span className="icon-badge size-16 rounded-2xl">
@@ -145,16 +146,16 @@ export function WeatherCard({ weather }: { weather: Weather | null }) {
         </span>
         <div className="min-w-0 flex-1">
           <p className="text-4xl font-bold leading-none" dir="ltr">
-            {weather.temp}°
+            {trv(weather.temp)}°
           </p>
           <p className="mt-1 font-bold">{weatherLabel(weather.code)}</p>
         </div>
         <div className="shrink-0 text-sm font-bold">
           <p>
-            العظمى <bdi dir="ltr">{weather.high}°</bdi>
+            {tr("العظمى")} <bdi dir="ltr">{trv(weather.high)}°</bdi>
           </p>
           <p>
-            الصغرى <bdi dir="ltr">{weather.low}°</bdi>
+            {tr("الصغرى")} <bdi dir="ltr">{trv(weather.low)}°</bdi>
           </p>
         </div>
       </div>
@@ -162,28 +163,28 @@ export function WeatherCard({ weather }: { weather: Weather | null }) {
         {weather.rainChance !== null ? (
           <li className="chip">
             <Umbrella className="size-4" aria-hidden />
-            احتمال المطر اليوم <bdi dir="ltr">{weather.rainChance}%</bdi>
+            {tr("احتمال المطر اليوم")} <bdi dir="ltr">{trv(weather.rainChance)}%</bdi>
           </li>
         ) : null}
         {weather.feelsLike !== null ? (
           <li className="chip">
-            الإحساس <bdi dir="ltr">{weather.feelsLike}°</bdi>
+            {tr("الإحساس")} <bdi dir="ltr">{trv(weather.feelsLike)}°</bdi>
           </li>
         ) : null}
         {weather.humidity !== null ? (
           <li className="chip">
             <Droplets className="size-4" aria-hidden />
-            الرطوبة <bdi dir="ltr">{weather.humidity}%</bdi>
+            {tr("الرطوبة")} <bdi dir="ltr">{trv(weather.humidity)}%</bdi>
           </li>
         ) : null}
         {weather.wind !== null ? (
           <li className="chip">
-            الرياح <bdi dir="ltr">{weather.wind}</bdi> كم/س
+            {tr("الرياح")} <bdi dir="ltr">{trv(weather.wind)}</bdi> {tr("كم/س")}
           </li>
         ) : null}
       </ul>
       {weather.hours.length > 0 ? (
-        <ul className="scroll-row -mx-4 mt-3 px-4" aria-label="الساعات القادمة">
+        <ul className="scroll-row -mx-4 mt-3 px-4" aria-label={tr("الساعات القادمة")}>
           {weather.hours.map((h) => {
             const hour = Number(h.time.slice(11, 13));
             return (
@@ -196,11 +197,11 @@ export function WeatherCard({ weather }: { weather: Weather | null }) {
                 </span>
                 <WeatherIcon code={h.code} isDay={hour >= 6 && hour < 18} className="my-1 size-5" />
                 <span className="font-bold" dir="ltr">
-                  {h.temp}°
+                  {trv(h.temp)}°
                 </span>
                 {h.rain !== null && h.rain > 0 ? (
                   <span className="text-xs font-semibold text-muted" dir="ltr">
-                    {h.rain}%
+                    {trv(h.rain)}%
                   </span>
                 ) : null}
               </li>
@@ -231,17 +232,17 @@ export function HomeTodayChips({
         <Link
           to="/today"
           className="today-chip"
-          aria-label={`الطقس في رهط: ${weather.temp} درجة، ${weatherLabel(weather.code)}`}
+          aria-label={tr("الطقس في رهط: {0} درجة، {1}", weather.temp, weatherLabel(weather.code))}
         >
           <WeatherIcon code={weather.code} isDay={weather.isDay} className="size-5" />
-          <bdi dir="ltr">{weather.temp}°</bdi>
+          <bdi dir="ltr">{trv(weather.temp)}°</bdi>
           <span className="text-muted">{weatherLabel(weather.code)}</span>
         </Link>
       ) : null}
       <Link to="/today" className="today-chip">
         <Moon className="size-5" aria-hidden />
         <span>
-          {next.name} <bdi dir="ltr">{formatPrayerTime(next.at)}</bdi>
+          {trv(next.name)} <bdi dir="ltr">{formatPrayerTime(next.at)}</bdi>
         </span>
         <span className="text-muted">{countdownAr(next.at - now)}</span>
       </Link>

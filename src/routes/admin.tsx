@@ -2,6 +2,8 @@ import {
   BarChart3,
   Bell,
   Flag,
+  Globe,
+  Sparkles,
   LogOut,
   Megaphone,
   Menu,
@@ -36,12 +38,15 @@ import type { AdminLevel } from "@/lib/admin-auth";
 import { PublishAdmin } from "@/components/admin/publish-admin";
 import { StoreAdmin } from "@/components/admin/store-admin";
 import { StatsAdmin } from "@/components/admin/stats-admin";
+import { LanguagesAdmin } from "@/components/admin/languages-admin";
+import { GeminiAdmin } from "@/components/admin/gemini-admin";
 import { adminDecideNews, adminListNews } from "@/lib/reader-news/api";
 import type { OwnReaderNews } from "@/lib/reader-news/types";
+import { tr, trv } from "@/lib/i18n/core";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({
-    meta: [{ title: "إدارة · رهط بوست" }, { name: "robots", content: "noindex, nofollow" }],
+    meta: [{ title: tr("إدارة · رهط بوست") }, { name: "robots", content: "noindex, nofollow" }],
   }),
   component: AdminPage,
 });
@@ -66,7 +71,9 @@ type Section =
   | "reports"
   | "duty"
   | "alerts"
-  | "push";
+  | "push"
+  | "languages"
+  | "gemini";
 
 const ALL_TABS: { key: Section; label: string; icon: LucideIcon }[] = [
   { key: "stats", label: "الإحصائيات", icon: BarChart3 },
@@ -83,6 +90,8 @@ const ALL_TABS: { key: Section; label: string; icon: LucideIcon }[] = [
   { key: "push", label: "الإشعارات", icon: Bell },
   { key: "members", label: "الأعضاء والصلاحيات", icon: Users },
   { key: "settings", label: "إعدادات الموقع", icon: Settings },
+  { key: "languages", label: "اللغات", icon: Globe },
+  { key: "gemini", label: "Gemini", icon: Sparkles },
 ];
 
 function AdminMenu({
@@ -101,9 +110,9 @@ function AdminMenu({
   name: string;
 }) {
   return (
-    <nav aria-label="أقسام الإدارة" className="flex flex-col gap-1">
+    <nav aria-label={tr("أقسام الإدارة")} className="flex flex-col gap-1">
       <p className="px-3 pb-2 text-sm font-semibold text-muted">
-        {level === "owner" ? "المالك" : `${name} · ${level === "writer" ? "كاتب" : "مشرف"}`}
+        {level === "owner" ? tr("المالك") : `${name} · ${level === "writer" ? tr("كاتب") : tr("مشرف")}`}
       </p>
       {tabs.map(({ key, label, icon: Icon }) => (
         <button
@@ -116,7 +125,7 @@ function AdminMenu({
           onClick={() => onSelect(key)}
         >
           <Icon className="size-5 shrink-0" aria-hidden />
-          {label}
+          {trv(label)}
         </button>
       ))}
       <hr className="my-2 border-line" />
@@ -126,7 +135,7 @@ function AdminMenu({
         onClick={onLogout}
       >
         <LogOut className="size-5 shrink-0" aria-hidden />
-        خروج
+        {tr("خروج")}
       </button>
     </nav>
   );
@@ -169,7 +178,7 @@ function AdminPage() {
       return;
     }
     setItems(res.items);
-    setError(res.ok ? "" : "تعذّر تحميل الطلبات من التخزين.");
+    setError(res.ok ? "" : tr("تعذّر تحميل الطلبات من التخزين."));
     setState("ready");
   }, []);
 
@@ -180,7 +189,7 @@ function AdminPage() {
   if (state === "loading") {
     return (
       <Shell>
-        <p className="stamp p-4 font-semibold">جاري التحميل…</p>
+        <p className="stamp p-4 font-semibold">{tr("جاري التحميل…")}</p>
       </Shell>
     );
   }
@@ -188,7 +197,7 @@ function AdminPage() {
   if (state === "login") {
     return (
       <Shell>
-        <h1 className="mb-3 text-2xl font-bold">الإدارة</h1>
+        <h1 className="mb-3 text-2xl font-bold">{tr("الإدارة")}</h1>
         <form
           className="stamp flex flex-col gap-3 p-4"
           onSubmit={async (event) => {
@@ -198,11 +207,11 @@ function AdminPage() {
             if (res.ok) {
               setError("");
               await refresh();
-            } else setError(res.message ?? "تعذّر الدخول.");
+            } else setError(res.message ?? tr("تعذّر الدخول."));
           }}
         >
           <label className="block font-bold">
-            كلمة المرور
+            {tr("كلمة المرور")}
             <input
               name="password"
               type="password"
@@ -212,20 +221,20 @@ function AdminPage() {
               dir="ltr"
             />
           </label>
-          {error ? <p className="font-bold">{error}</p> : null}
+          {error ? <p className="font-bold">{trv(error)}</p> : null}
           <button type="submit" className="btn">
-            دخول
+            {tr("دخول")}
           </button>
         </form>
         <div className="stamp mt-4 flex flex-col gap-2 p-4">
-          <p className="font-bold">أعضاء الفريق (مشرف / كاتب)</p>
+          <p className="font-bold">{tr("أعضاء الفريق (مشرف / كاتب)")}</p>
           {who.signedIn ? (
             <p className="font-semibold text-muted">
-              حسابك ليس له صلاحية في لوحة الإدارة. اطلب من مالك الموقع إضافتك.
+              {tr("حسابك ليس له صلاحية في لوحة الإدارة. اطلب من مالك الموقع إضافتك.")}
             </p>
           ) : (
             <a className="btn btn-ghost" href="/login?redirect=%2Fadmin">
-              دخول بحساب Google
+              {tr("دخول بحساب Google")}
             </a>
           )}
         </div>
@@ -234,13 +243,13 @@ function AdminPage() {
   }
 
   const act = async (id: string, action: "approved" | "rejected" | "pending" | "delete") => {
-    if (action === "delete" && !confirm("حذف الطلب نهائياً؟")) return;
+    if (action === "delete" && !confirm(tr("حذف الطلب نهائياً؟"))) return;
     setBusyId(id);
     try {
       await adminDecide({ data: { id, action } });
       await refresh();
     } catch {
-      setError("تعذّر تنفيذ العملية.");
+      setError(tr("تعذّر تنفيذ العملية."));
     } finally {
       setBusyId("");
     }
@@ -279,16 +288,16 @@ function AdminPage() {
             <button
               type="button"
               className="btn btn-ghost px-3 lg:hidden"
-              aria-label="فتح القائمة"
+              aria-label={tr("فتح القائمة")}
               aria-expanded={menuOpen}
               onClick={() => setMenuOpen(true)}
             >
               <Menu className="size-5" aria-hidden />
             </button>
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold text-muted">الإدارة</p>
+              <p className="text-sm font-semibold text-muted">{tr("الإدارة")}</p>
               <h1 className="truncate text-2xl font-bold">
-                {tabs.find((t) => t.key === current)?.label ?? "الإدارة"}
+                {trv(tabs.find((t) => t.key === current)?.label ?? "الإدارة")}
               </h1>
             </div>
           </div>
@@ -297,21 +306,21 @@ function AdminPage() {
               className="fixed inset-0 z-50 lg:hidden"
               role="dialog"
               aria-modal="true"
-              aria-label="قائمة الإدارة"
+              aria-label={tr("قائمة الإدارة")}
             >
               <button
                 type="button"
                 className="absolute inset-0 h-full w-full bg-black/40"
-                aria-label="إغلاق القائمة"
+                aria-label={tr("إغلاق القائمة")}
                 onClick={() => setMenuOpen(false)}
               />
-              <div className="absolute inset-y-0 right-0 flex w-72 max-w-[85vw] flex-col overflow-y-auto bg-paper p-3 shadow-xl">
+              <div className="absolute inset-y-0 start-0 flex w-72 max-w-[85vw] flex-col overflow-y-auto bg-paper p-3 shadow-xl">
                 <div className="mb-2 flex items-center justify-between px-2">
-                  <p className="text-lg font-bold">لوحة التحكم</p>
+                  <p className="text-lg font-bold">{tr("لوحة التحكم")}</p>
                   <button
                     type="button"
                     className="btn btn-ghost px-3"
-                    aria-label="إغلاق"
+                    aria-label={tr("إغلاق")}
                     onClick={() => setMenuOpen(false)}
                   >
                     <X className="size-5" aria-hidden />
@@ -333,6 +342,10 @@ function AdminPage() {
           ) : null}
           {current === "publish" ? (
             <PublishAdmin />
+          ) : current === "languages" ? (
+            <LanguagesAdmin />
+          ) : current === "gemini" ? (
+            <GeminiAdmin />
           ) : current === "stats" ? (
             <StatsAdmin />
           ) : current === "store" ? (
@@ -367,24 +380,24 @@ function AdminPage() {
                     className={tab === s ? "chip chip-ink shrink-0" : "chip shrink-0 bg-paper"}
                     onClick={() => setTab(s)}
                   >
-                    {STATUS[s]} ({items.filter((i) => i.status === s).length})
+                    {trv(STATUS[s])} ({trv(items.filter((i) => i.status === s).length)})
                   </button>
                 ))}
               </div>
-              {error ? <p className="stamp mb-3 p-3 font-bold">{error}</p> : null}
+              {error ? <p className="stamp mb-3 p-3 font-bold">{trv(error)}</p> : null}
               {list.length === 0 ? (
-                <p className="stamp p-4 font-semibold">لا طلبات هنا.</p>
+                <p className="stamp p-4 font-semibold">{tr("لا طلبات هنا.")}</p>
               ) : (
                 <ul className="flex flex-col gap-3">
                   {list.map((item) => (
                     <li key={item.id} className="stamp p-4">
-                      <span className="chip">{item.category}</span>
-                      <h2 className="mt-2 text-xl font-bold">{item.name}</h2>
-                      <p className="font-semibold">{item.area}</p>
-                      <p className="mt-1">{item.about}</p>
+                      <span className="chip">{trv(item.category)}</span>
+                      <h2 className="mt-2 text-xl font-bold">{trv(item.name)}</h2>
+                      <p className="font-semibold">{trv(item.area)}</p>
+                      <p className="mt-1">{trv(item.about)}</p>
                       <PhotoStrip keys={item.photo ? [item.photo] : []} />
                       <p className="mt-1 font-bold" dir="ltr">
-                        {item.phone}
+                        {trv(item.phone)}
                       </p>
                       <p className="text-sm font-semibold text-muted">
                         {item.posterName ? `${item.posterName} · ` : ""}
@@ -400,7 +413,7 @@ function AdminPage() {
                             disabled={busyId === item.id}
                             onClick={() => act(item.id, "approved")}
                           >
-                            موافقة
+                            {tr("موافقة")}
                           </button>
                         ) : null}
                         {item.status !== "rejected" ? (
@@ -410,7 +423,7 @@ function AdminPage() {
                             disabled={busyId === item.id}
                             onClick={() => act(item.id, "rejected")}
                           >
-                            رفض
+                            {tr("رفض")}
                           </button>
                         ) : null}
                         <button
@@ -419,7 +432,7 @@ function AdminPage() {
                           disabled={busyId === item.id}
                           onClick={() => act(item.id, "delete")}
                         >
-                          حذف
+                          {tr("حذف")}
                         </button>
                       </div>
                     </li>
@@ -444,7 +457,7 @@ function AdsAdmin() {
     const res = await adminListAds();
     setItems(res.items);
     setError(
-      !res.authed ? "انتهت الجلسة. سجّل الدخول من جديد." : res.ok ? "" : "تعذّر تحميل الإعلانات.",
+      !res.authed ? tr("انتهت الجلسة. سجّل الدخول من جديد.") : res.ok ? "" : tr("تعذّر تحميل الإعلانات."),
     );
   }, []);
 
@@ -453,19 +466,19 @@ function AdsAdmin() {
   }, [refresh]);
 
   const act = async (id: string, action: "approved" | "rejected" | "delete") => {
-    if (action === "delete" && !confirm("حذف الإعلان نهائياً؟")) return;
+    if (action === "delete" && !confirm(tr("حذف الإعلان نهائياً؟"))) return;
     setBusyId(id);
     try {
       await adminDecideAd({ data: { id, action } });
       await refresh();
     } catch {
-      setError("تعذّر تنفيذ العملية.");
+      setError(tr("تعذّر تنفيذ العملية."));
     } finally {
       setBusyId("");
     }
   };
 
-  if (!items) return <p className="stamp p-4 font-semibold">جاري التحميل…</p>;
+  if (!items) return <p className="stamp p-4 font-semibold">{tr("جاري التحميل…")}</p>;
   const list = items.filter((i) => i.status === tab);
 
   return (
@@ -478,30 +491,30 @@ function AdsAdmin() {
             className={tab === s ? "chip chip-ink shrink-0" : "chip shrink-0"}
             onClick={() => setTab(s)}
           >
-            {STATUS[s]} ({items.filter((i) => i.status === s).length})
+            {trv(STATUS[s])} ({trv(items.filter((i) => i.status === s).length)})
           </button>
         ))}
       </div>
-      {error ? <p className="stamp mb-3 p-3 font-bold">{error}</p> : null}
+      {error ? <p className="stamp mb-3 p-3 font-bold">{trv(error)}</p> : null}
       {list.length === 0 ? (
-        <p className="stamp p-4 font-semibold">لا إعلانات هنا.</p>
+        <p className="stamp p-4 font-semibold">{tr("لا إعلانات هنا.")}</p>
       ) : (
         <ul className="flex flex-col gap-3">
           {list.map((ad) => (
             <li key={ad.id} className="stamp p-4">
-              <span className="chip">{ad.type}</span>
-              <h2 className="mt-2 text-xl font-bold">{ad.title}</h2>
+              <span className="chip">{trv(ad.type)}</span>
+              <h2 className="mt-2 text-xl font-bold">{trv(ad.title)}</h2>
               <p className="font-semibold">
-                {ad.neighborhood}
+                {trv(ad.neighborhood)}
                 {ad.price ? ` · ${ad.price}` : ""}
               </p>
-              <p className="mt-1 whitespace-pre-line">{ad.description}</p>
+              <p className="mt-1 whitespace-pre-line">{trv(ad.description)}</p>
               <PhotoStrip keys={ad.photos} />
               <p className="mt-1 font-bold" dir="ltr">
-                {ad.phone}
+                {trv(ad.phone)}
               </p>
               <p className="text-sm font-semibold text-muted">
-                {ad.posterName} ·{" "}
+                {trv(ad.posterName)} ·{" "}
                 {new Date(ad.updatedAt).toLocaleString("ar-u-nu-latn", {
                   timeZone: "Asia/Jerusalem",
                 })}
@@ -514,7 +527,7 @@ function AdsAdmin() {
                     disabled={busyId === ad.id}
                     onClick={() => act(ad.id, "approved")}
                   >
-                    موافقة
+                    {tr("موافقة")}
                   </button>
                 ) : null}
                 {ad.status !== "rejected" ? (
@@ -524,7 +537,7 @@ function AdsAdmin() {
                     disabled={busyId === ad.id}
                     onClick={() => act(ad.id, "rejected")}
                   >
-                    رفض
+                    {tr("رفض")}
                   </button>
                 ) : null}
                 <button
@@ -533,7 +546,7 @@ function AdsAdmin() {
                   disabled={busyId === ad.id}
                   onClick={() => act(ad.id, "delete")}
                 >
-                  حذف
+                  {tr("حذف")}
                 </button>
               </div>
             </li>
@@ -554,7 +567,7 @@ function NewsAdmin() {
     const res = await adminListNews();
     setItems(res.items);
     setError(
-      !res.authed ? "انتهت الجلسة. سجّل الدخول من جديد." : res.ok ? "" : "تعذّر تحميل الأخبار.",
+      !res.authed ? tr("انتهت الجلسة. سجّل الدخول من جديد.") : res.ok ? "" : tr("تعذّر تحميل الأخبار."),
     );
   }, []);
 
@@ -563,19 +576,19 @@ function NewsAdmin() {
   }, [refresh]);
 
   const act = async (id: string, action: "approved" | "rejected" | "delete") => {
-    if (action === "delete" && !confirm("حذف الخبر نهائياً؟")) return;
+    if (action === "delete" && !confirm(tr("حذف الخبر نهائياً؟"))) return;
     setBusyId(id);
     try {
       await adminDecideNews({ data: { id, action } });
       await refresh();
     } catch {
-      setError("تعذّر تنفيذ العملية.");
+      setError(tr("تعذّر تنفيذ العملية."));
     } finally {
       setBusyId("");
     }
   };
 
-  if (!items) return <p className="stamp p-4 font-semibold">جاري التحميل…</p>;
+  if (!items) return <p className="stamp p-4 font-semibold">{tr("جاري التحميل…")}</p>;
   const list = items.filter((i) => i.status === tab);
 
   return (
@@ -588,20 +601,20 @@ function NewsAdmin() {
             className={tab === s ? "chip chip-ink shrink-0" : "chip shrink-0"}
             onClick={() => setTab(s)}
           >
-            {STATUS[s]} ({items.filter((i) => i.status === s).length})
+            {trv(STATUS[s])} ({trv(items.filter((i) => i.status === s).length)})
           </button>
         ))}
       </div>
-      {error ? <p className="stamp mb-3 p-3 font-bold">{error}</p> : null}
+      {error ? <p className="stamp mb-3 p-3 font-bold">{trv(error)}</p> : null}
       {list.length === 0 ? (
-        <p className="stamp p-4 font-semibold">لا أخبار هنا.</p>
+        <p className="stamp p-4 font-semibold">{tr("لا أخبار هنا.")}</p>
       ) : (
         <ul className="flex flex-col gap-3">
           {list.map((item) => (
             <li key={item.id} className="stamp p-4">
-              <span className="chip">{item.neighborhood}</span>
-              <h2 className="mt-2 text-xl font-bold">{item.title}</h2>
-              <p className="mt-1 whitespace-pre-line">{item.body}</p>
+              <span className="chip">{trv(item.neighborhood)}</span>
+              <h2 className="mt-2 text-xl font-bold">{trv(item.title)}</h2>
+              <p className="mt-1 whitespace-pre-line">{trv(item.body)}</p>
               {item.sourceUrl ? (
                 <a
                   href={item.sourceUrl}
@@ -610,11 +623,11 @@ function NewsAdmin() {
                   className="mt-1 block break-all text-sm font-bold underline"
                   dir="ltr"
                 >
-                  {item.sourceUrl}
+                  {trv(item.sourceUrl)}
                 </a>
               ) : null}
               <p className="mt-1 text-sm font-semibold text-muted">
-                {item.posterName} ·{" "}
+                {trv(item.posterName)} ·{" "}
                 {new Date(item.updatedAt).toLocaleString("ar-u-nu-latn", {
                   timeZone: "Asia/Jerusalem",
                 })}
@@ -627,7 +640,7 @@ function NewsAdmin() {
                     disabled={busyId === item.id}
                     onClick={() => act(item.id, "approved")}
                   >
-                    موافقة
+                    {tr("موافقة")}
                   </button>
                 ) : null}
                 {item.status !== "rejected" ? (
@@ -637,7 +650,7 @@ function NewsAdmin() {
                     disabled={busyId === item.id}
                     onClick={() => act(item.id, "rejected")}
                   >
-                    رفض
+                    {tr("رفض")}
                   </button>
                 ) : null}
                 <button
@@ -646,7 +659,7 @@ function NewsAdmin() {
                   disabled={busyId === item.id}
                   onClick={() => act(item.id, "delete")}
                 >
-                  حذف
+                  {tr("حذف")}
                 </button>
               </div>
             </li>

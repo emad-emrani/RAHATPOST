@@ -1,4 +1,5 @@
 import { COMMENT_MAX, COMMENT_MIN } from "./types";
+import { tr } from "@/lib/i18n/core";
 
 /**
  * Small curated filter for comments (Arabic incl. Palestinian/Negev dialect spellings, Hebrew,
@@ -143,18 +144,18 @@ export function countLinks(text: string): number {
 /** Arabic error message for a comment that can't be posted, or "" when it is fine. */
 export function checkComment(body: string): string {
   const len = [...body].length;
-  if (len < COMMENT_MIN) return "التعليق قصير جداً.";
-  if (len > COMMENT_MAX) return `التعليق طويل. الحد ${COMMENT_MAX} حرف.`;
-  if (countLinks(body) > 1) return "يُسمح برابط واحد فقط في التعليق.";
+  if (len < COMMENT_MIN) return tr("التعليق قصير جداً.");
+  if (len > COMMENT_MAX) return tr("التعليق طويل. الحد {0} حرف.", COMMENT_MAX);
+  if (countLinks(body) > 1) return tr("يُسمح برابط واحد فقط في التعليق.");
   const norm = normalize(body);
   const tokens = norm.split(/[^\p{L}\p{N}]+/u).filter(Boolean);
   const spaced = ` ${tokens.join(" ")} `;
   if (tokens.some(badToken) || BAD_PHRASES.some((p) => spaced.includes(` ${normalize(p)} `)))
-    return "التعليق يحتوي على كلمات غير لائقة. عدّله وحاول مجدداً.";
+    return tr("التعليق يحتوي على كلمات غير لائقة. عدّله وحاول مجدداً.");
   if (SPAM_PHRASES.some((p) => norm.includes(normalize(p))))
-    return "يبدو التعليق كإعلان أو رسالة مزعجة. للإعلانات استخدم قسم الإعلانات.";
-  if (/(.)\1{9,}/u.test(body)) return "التعليق يحتوي على تكرار كثير.";
+    return tr("يبدو التعليق كإعلان أو رسالة مزعجة. للإعلانات استخدم قسم الإعلانات.");
+  if (/(.)\1{9,}/u.test(body)) return tr("التعليق يحتوي على تكرار كثير.");
   if ((body.match(/\d/g) ?? []).length >= 9 && /0\d[\d\s-]{7,}/.test(body))
-    return "لا تنشر أرقام هواتف في التعليقات. للإعلانات استخدم قسم الإعلانات.";
+    return tr("لا تنشر أرقام هواتف في التعليقات. للإعلانات استخدم قسم الإعلانات.");
   return "";
 }

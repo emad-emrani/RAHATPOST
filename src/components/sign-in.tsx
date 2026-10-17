@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { authClient, signInWith, type SocialProvider } from "@/lib/auth/client";
+import { tr, trv } from "@/lib/i18n/core";
 
 export type AuthConfig = {
   google: boolean;
@@ -69,7 +70,7 @@ export function SignInButtons({
     try {
       await signInWith(provider, redirect);
     } catch {
-      setError("تعذّر بدء تسجيل الدخول. حاول مرة أخرى.");
+      setError(tr("تعذّر بدء تسجيل الدخول. حاول مرة أخرى."));
       setBusy("");
     }
   };
@@ -86,7 +87,7 @@ export function SignInButtons({
           onClick={() => go("apple")}
         >
           <AppleMark />
-          {busy === "apple" ? "جاري التحويل…" : "المتابعة باستخدام Apple"}
+          {busy === "apple" ? tr("جاري التحويل…") : tr("المتابعة باستخدام Apple")}
         </button>
       ) : null}
       {config.google ? (
@@ -97,7 +98,7 @@ export function SignInButtons({
           onClick={() => go("google")}
         >
           <GoogleMark />
-          {busy === "google" ? "جاري التحويل…" : "المتابعة باستخدام Google"}
+          {busy === "google" ? tr("جاري التحويل…") : tr("المتابعة باستخدام Google")}
         </button>
       ) : null}
       {config.facebook ? (
@@ -108,14 +109,14 @@ export function SignInButtons({
           onClick={() => go("facebook")}
         >
           <FacebookMark />
-          {busy === "facebook" ? "جاري التحويل…" : "المتابعة باستخدام Facebook"}
+          {busy === "facebook" ? tr("جاري التحويل…") : tr("المتابعة باستخدام Facebook")}
         </button>
       ) : null}
       {config.devLogin ? <DevLogin redirect={redirect} /> : null}
-      {none ? <p className="font-semibold">تسجيل الدخول غير متاح حالياً. حاول لاحقاً.</p> : null}
+      {none ? <p className="font-semibold">{tr("تسجيل الدخول غير متاح حالياً. حاول لاحقاً.")}</p> : null}
       {error ? (
         <p role="alert" className="font-bold">
-          {error}
+          {trv(error)}
         </p>
       ) : null}
     </>
@@ -137,12 +138,12 @@ function DevLogin({ redirect }: { redirect: string }) {
         let res = await authClient.signIn.email({ email, password });
         if (res.error)
           res = (await authClient.signUp.email({ email, password, name })) as typeof res;
-        if (res.error) setMsg(res.error.message ?? "خطأ");
+        if (res.error) setMsg(res.error.message ?? tr("خطأ"));
         else window.location.href = redirect;
       }}
     >
-      <p className="text-sm font-bold">دخول تجريبي (محلي فقط)</p>
-      <input name="name" placeholder="الاسم" className="field" />
+      <p className="text-sm font-bold">{tr("دخول تجريبي (محلي فقط)")}</p>
+      <input name="name" placeholder={tr("الاسم")} className="field" />
       <input name="email" type="email" required placeholder="email" dir="ltr" className="field" />
       <input
         name="password"
@@ -154,9 +155,9 @@ function DevLogin({ redirect }: { redirect: string }) {
         className="field"
       />
       <button type="submit" className="btn btn-ghost">
-        دخول تجريبي
+        {tr("دخول تجريبي")}
       </button>
-      {msg ? <p className="text-sm font-bold">{msg}</p> : null}
+      {msg ? <p className="text-sm font-bold">{trv(msg)}</p> : null}
     </form>
   );
 }

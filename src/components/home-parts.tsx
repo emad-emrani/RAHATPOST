@@ -6,6 +6,7 @@ import { newsByline } from "@/lib/news/format";
 import type { NewsItem } from "@/lib/news/types";
 import { mediaUrl } from "@/lib/media/types";
 import { useSiteSettings } from "@/lib/site-settings/context";
+import { tr, trv } from "@/lib/i18n/core";
 
 const tiles = [
   { to: "/news", label: "الأخبار", icon: Newspaper },
@@ -25,7 +26,7 @@ export function HomeTiles() {
     .filter((t): t is (typeof tiles)[number] => Boolean(t));
   if (!list.length) return null;
   return (
-    <nav className="scroll-row -mx-4 px-4" aria-label="الأقسام">
+    <nav className="scroll-row -mx-4 px-4" aria-label={tr("الأقسام")}>
       {list.map((t) => {
         const Icon = t.icon;
         return (
@@ -33,7 +34,7 @@ export function HomeTiles() {
             <span className="tile-icon">
               <Icon className="size-7" aria-hidden />
             </span>
-            {t.label}
+            {trv(t.label)}
           </Link>
         );
       })}
@@ -69,12 +70,12 @@ export function HomeCarousel({ lead, leadTime }: { lead?: NewsItem; leadTime: st
                 </span>
                 <span className="banner-shade" aria-hidden />
                 <span className="relative chip w-fit bg-white/20 text-white">
-                  آخر خبر · {newsByline(lead)}
+                  {tr("آخر خبر ·")} {newsByline(lead)}
                 </span>
                 <span className="relative line-clamp-3 text-xl font-bold leading-snug">
-                  {lead.title}
+                  {trv(lead.title)}
                 </span>
-                <span className="relative text-sm font-semibold text-white/90">{leadTime}</span>
+                <span className="relative text-sm font-semibold text-white/90">{trv(leadTime)}</span>
               </Link>
             ) : (
               <Link
@@ -82,9 +83,9 @@ export function HomeCarousel({ lead, leadTime }: { lead?: NewsItem; leadTime: st
                 params={{ slug: lead.slug }}
                 className="flex h-full flex-col justify-between gap-3"
               >
-                <span className="chip w-fit bg-ink/10">آخر خبر · {newsByline(lead)}</span>
-                <span className="line-clamp-3 text-xl font-bold leading-snug">{lead.title}</span>
-                <span className="text-sm font-semibold">{leadTime}</span>
+                <span className="chip w-fit bg-ink/10">{tr("آخر خبر ·")} {newsByline(lead)}</span>
+                <span className="line-clamp-3 text-xl font-bold leading-snug">{trv(lead.title)}</span>
+                <span className="text-sm font-semibold">{trv(leadTime)}</span>
                 <Newspaper className="banner-icon size-36" aria-hidden />
               </Link>
             ),
@@ -96,10 +97,10 @@ export function HomeCarousel({ lead, leadTime }: { lead?: NewsItem; leadTime: st
       className: "banner banner-dark",
       content: (
         <Link to="/buses" className="flex h-full flex-col justify-between gap-3">
-          <span className="chip w-fit bg-white/15 text-white">باصات رهط</span>
-          <span className="text-2xl font-bold leading-snug">متى يصل الباص؟</span>
+          <span className="chip w-fit bg-white/15 text-white">{tr("باصات رهط")}</span>
+          <span className="text-2xl font-bold leading-snug">{tr("متى يصل الباص؟")}</span>
           <span className="text-sm font-semibold text-white/85">
-            أوقات مباشرة وجدول محدّث يومياً
+            {tr("أوقات مباشرة وجدول محدّث يومياً")}
           </span>
           <Timer className="banner-icon size-36" aria-hidden />
         </Link>
@@ -114,9 +115,9 @@ export function HomeCarousel({ lead, leadTime }: { lead?: NewsItem; leadTime: st
           search={{ mode: "نشاط" }}
           className="flex h-full flex-col justify-between gap-3"
         >
-          <span className="chip w-fit bg-ink/10">الدليل</span>
-          <span className="text-2xl font-bold leading-snug">أضف نشاطك في دليل رهط</span>
-          <span className="text-sm font-semibold">يظهر بعلامة «موثّق» بعد المراجعة</span>
+          <span className="chip w-fit bg-ink/10">{tr("الدليل")}</span>
+          <span className="text-2xl font-bold leading-snug">{tr("أضف نشاطك في دليل رهط")}</span>
+          <span className="text-sm font-semibold">{tr("يظهر بعلامة «موثّق» بعد المراجعة")}</span>
           <Store className="banner-icon size-36" aria-hidden />
         </Link>
       ),
@@ -126,9 +127,9 @@ export function HomeCarousel({ lead, leadTime }: { lead?: NewsItem; leadTime: st
       className: "banner",
       content: (
         <Link to="/today" className="flex h-full flex-col justify-between gap-3">
-          <span className="chip w-fit bg-ink/10">لوحة اليوم</span>
-          <span className="text-2xl font-bold leading-snug">أرقام الطوارئ وصيدلية الحراسة</span>
-          <span className="text-sm font-semibold">الشرطة 100 · الإسعاف 101 · الإطفاء 102</span>
+          <span className="chip w-fit bg-ink/10">{tr("لوحة اليوم")}</span>
+          <span className="text-2xl font-bold leading-snug">{tr("أرقام الطوارئ وصيدلية الحراسة")}</span>
+          <span className="text-sm font-semibold">{tr("الشرطة 100 · الإسعاف 101 · الإطفاء 102")}</span>
           <Phone className="banner-icon size-36" aria-hidden />
         </Link>
       ),
@@ -143,7 +144,7 @@ export function HomeCarousel({ lead, leadTime }: { lead?: NewsItem; leadTime: st
             className: c.imageKey ? "banner banner-photo" : "banner",
             content: (
               <CustomSlide
-                title={c.title}
+                title={trv(c.title)}
                 subtitle={c.subtitle}
                 link={c.link}
                 imageKey={c.imageKey}
@@ -185,7 +186,7 @@ export function HomeCarousel({ lead, leadTime }: { lead?: NewsItem; leadTime: st
   return (
     <section
       aria-roledescription="carousel"
-      aria-label="أبرز المحتوى"
+      aria-label={tr("أبرز المحتوى")}
       onPointerEnter={() => setPaused(true)}
       onPointerLeave={() => setPaused(false)}
       onFocus={() => setPaused(true)}
@@ -197,9 +198,9 @@ export function HomeCarousel({ lead, leadTime }: { lead?: NewsItem; leadTime: st
             key={s.key}
             className={s.className}
             aria-roledescription="slide"
-            aria-label={`${i + 1} من ${slides.length}`}
+            aria-label={tr("{0} من {1}", i + 1, slides.length)}
           >
-            {s.content}
+            {trv(s.content)}
           </div>
         ))}
       </div>
@@ -209,7 +210,7 @@ export function HomeCarousel({ lead, leadTime }: { lead?: NewsItem; leadTime: st
             key={s.key}
             type="button"
             className="grid size-8 place-items-center"
-            aria-label={`الشريحة ${i + 1}`}
+            aria-label={tr("الشريحة {0}", i + 1)}
             aria-current={i === index}
             onClick={() => go(i)}
           >
@@ -248,23 +249,23 @@ function CustomSlide({
           <span className="banner-shade" aria-hidden />
         </>
       ) : null}
-      <span className="relative mt-auto line-clamp-3 text-2xl font-bold leading-snug">{title}</span>
+      <span className="relative mt-auto line-clamp-3 text-2xl font-bold leading-snug">{trv(title)}</span>
       {subtitle ? (
         <span className={`relative text-sm font-semibold ${imageKey ? "text-white/90" : ""}`}>
-          {subtitle}
+          {trv(subtitle)}
         </span>
       ) : null}
     </>
   );
   const cls = "flex h-full flex-col justify-end gap-2";
-  if (!link) return <div className={cls}>{inner}</div>;
+  if (!link) return <div className={cls}>{trv(inner)}</div>;
   return /^https?:/.test(link) ? (
     <a href={link} target="_blank" rel="noopener noreferrer" className={cls}>
-      {inner}
+      {trv(inner)}
     </a>
   ) : (
     <a href={link} className={cls}>
-      {inner}
+      {trv(inner)}
     </a>
   );
 }
@@ -274,7 +275,7 @@ export function QuickLinks() {
   const links = useSiteSettings().quickLinks;
   if (!links.length) return null;
   return (
-    <section aria-label="روابط سريعة">
+    <section aria-label={tr("روابط سريعة")}>
       <ul className="grid grid-cols-2 gap-3">
         {links.map((l) => {
           const external = /^https?:/.test(l.url);
@@ -285,11 +286,11 @@ export function QuickLinks() {
                 {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
                 className="stamp press flex h-full items-center gap-3 p-3"
               >
-                {l.emoji ? <span className="icon-badge text-2xl">{l.emoji}</span> : null}
+                {l.emoji ? <span className="icon-badge text-2xl">{trv(l.emoji)}</span> : null}
                 <span className="min-w-0">
-                  <span className="block font-bold leading-snug">{l.title}</span>
+                  <span className="block font-bold leading-snug">{trv(l.title)}</span>
                   {l.subtitle ? (
-                    <span className="text-sm font-semibold text-muted">{l.subtitle}</span>
+                    <span className="text-sm font-semibold text-muted">{trv(l.subtitle)}</span>
                   ) : null}
                 </span>
               </a>

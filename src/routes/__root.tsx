@@ -9,14 +9,20 @@ import { getSiteSettings } from "@/lib/site-settings/api";
 import { SiteSettingsProvider } from "@/lib/site-settings/context";
 import { DEFAULT_SETTINGS, themeCss } from "@/lib/site-settings/types";
 import { mediaUrl } from "@/lib/media/types";
+import { getI18n } from "@/lib/i18n/api";
+import { BUILTIN_LANGS, setI18nState, tr, type I18nState } from "@/lib/i18n/core";
+
+const ARABIC_STATE: I18nState = { lang: "ar", dir: "rtl", dict: {}, langs: BUILTIN_LANGS };
 
 export const Route = createRootRoute({
-  loader: async () => {
-    try {
-      return { settings: await getSiteSettings() };
-    } catch {
-      return { settings: DEFAULT_SETTINGS };
-    }
+  loader: async ({ location }) => {
+    const want = new URLSearchParams(location.searchStr ?? "").get("lang") ?? "";
+    const [settings, i18n] = await Promise.all([
+      getSiteSettings().catch(() => DEFAULT_SETTINGS),
+      getI18n({ data: want }).catch(() => ARABIC_STATE),
+    ]);
+    setI18nState(i18n);
+    return { settings, i18n };
   },
   staleTime: 30_000,
   shouldReload: false,
@@ -24,11 +30,15 @@ export const Route = createRootRoute({
     const st = loaderData?.settings ?? DEFAULT_SETTINGS;
     const base = baseHead();
     const gsc = st.google.gscCode;
+    const i18n = loaderData?.i18n ?? ARABIC_STATE;
+    const nonDefault = i18n.langs.find((l) => l.isDefault)?.code !== i18n.lang;
     return {
       meta: [
         ...base.meta.map((m) =>
           "name" in m && m.name === "theme-color" ? { ...m, content: st.theme.primary } : m,
         ),
+        // Translated views are for visitors; the Arabic pages stay the canonical, indexed ones.
+        ...(nonDefault ? [{ name: "robots", content: "noindex, follow" }] : []),
         ...(gsc && gsc !== __SITE_VERIFICATION__.google
           ? [{ name: "google-site-verification", content: gsc }]
           : []),
@@ -45,11 +55,14 @@ export const Route = createRootRoute({
 });
 
 function RootComponent() {
-  const { settings } = Route.useLoaderData();
+  const { settings, i18n } = Route.useLoaderData();
+  setI18nState(i18n);
   const css = themeCss(settings.theme);
+  const defLang = i18n.langs.find((l) => l.isDefault)?.code ?? "ar";
   return (
-    <html lang="ar" dir="rtl" suppressHydrationWarning>
+    <html lang={i18n.lang} dir={i18n.dir} suppressHydrationWarning>
       <head>
+        <script dangerouslySetInnerHTML={{ __html: langRedirectScript(i18n.lang, defLang, i18n.langs.map((l) => l.code)) }} />
         <HeadContent />
         {css ? <style id="site-theme" dangerouslySetInnerHTML={{ __html: css }} /> : null}
       </head>
@@ -69,17 +82,25 @@ function RootComponent() {
   );
 }
 
+/**
+ * Pages are cached per URL, so the server picks the language only from `?lang=`. If the visitor
+ * chose another language (cookie) and landed on a URL without it, switch once to the right URL.
+ */
+function langRedirectScript(lang: string, def: string, codes: string[]) {
+  return `(function(){try{var m=document.cookie.match(/(?:^|; )lang=([^;]+)/);var w=m?decodeURIComponent(m[1]):"";var ok=${JSON.stringify(codes)};if(!w||ok.indexOf(w)<0||w===${JSON.stringify(lang)})return;var u=new URL(location.href);if(u.searchParams.has("lang"))return;if(w===${JSON.stringify(def)})return;u.searchParams.set("lang",w);location.replace(u.toString());}catch(e){}})();`;
+}
+
 function baseHead() {
   return {
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       // Fallbacks; every public route sets its own title/description/canonical via seo().
-      { title: "رهط بوست | أخبار رهط والنقب" },
+      { title: tr("رهط بوست | أخبار رهط والنقب") },
       {
         name: "description",
         content:
-          "رهط بوست: أخبار رهط والنقب، مواعيد باصات رهط، دليل محلات وخدمات رهط، إعلانات مبوبة وأرقام الطوارئ.",
+          tr("رهط بوست: أخبار رهط والنقب، مواعيد باصات رهط، دليل محلات وخدمات رهط، إعلانات مبوبة وأرقام الطوارئ."),
       },
       { property: "og:locale", content: "ar_AR" },
       ...(__SITE_VERIFICATION__.google
@@ -90,11 +111,11 @@ function baseHead() {
         : []),
       { name: "theme-color", content: "#F2C94C" },
       // iOS home-screen app: own name, light status bar over the white app bar, standalone.
-      { name: "apple-mobile-web-app-title", content: "رهط بوست" },
+      { name: "apple-mobile-web-app-title", content: tr("رهط بوست") },
       { name: "apple-mobile-web-app-status-bar-style", content: "default" },
       { name: "apple-mobile-web-app-capable", content: "yes" },
       { name: "mobile-web-app-capable", content: "yes" },
-      { name: "application-name", content: "رهط بوست" },
+      { name: "application-name", content: tr("رهط بوست") },
       { name: "format-detection", content: "telephone=no" },
     ],
     links: [

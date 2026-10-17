@@ -16,15 +16,16 @@ import {
 } from "@/lib/buses/schedule";
 import type { ArrivalsResult } from "@/lib/buses/types";
 import { breadcrumbLd, seo } from "@/lib/seo";
+import { tr, trv } from "@/lib/i18n/core";
 
 export const Route = createFileRoute("/buses")({
   head: () =>
     seo({
-      title: "باصات رهط: مواعيد خطوط غاليم ووصول الباص المباشر · رهط بوست",
+      title: tr("باصات رهط: مواعيد خطوط غاليم ووصول الباص المباشر · رهط بوست"),
       description:
-        "مواعيد باصات رهط لحظة بلحظة: خطوط شركة غاليم داخل رهط وإلى تل السبع وكسيفة وعرعرة النقب، وصول الباص إلى المحطة مباشرة وجدول رحلات اليوم.",
+        tr("مواعيد باصات رهط لحظة بلحظة: خطوط شركة غاليم داخل رهط وإلى تل السبع وكسيفة وعرعرة النقب، وصول الباص إلى المحطة مباشرة وجدول رحلات اليوم."),
       path: "/buses",
-      jsonLd: [breadcrumbLd([{ name: "باصات رهط", path: "/buses" }])],
+      jsonLd: [breadcrumbLd([{ name: tr("باصات رهط"), path: "/buses" }])],
     }),
   // Server time as the first render's clock, so SSR and hydration agree.
   loader: () => ({ now: Date.now() }),
@@ -42,21 +43,21 @@ const UPDATED = new Intl.DateTimeFormat("ar-u-nu-latn", {
 }).format(new Date(busSchedule.generatedAt));
 
 function dayLabel(date: string, index: number) {
-  if (index === 0) return "اليوم";
-  if (index === 1) return "غداً";
+  if (index === 0) return tr("اليوم");
+  if (index === 1) return tr("غداً");
   const d = new Date(`${date}T12:00:00Z`);
   return `${WEEKDAYS[d.getUTCDay()]} ${d.getUTCDate()}/${d.getUTCMonth() + 1}`;
 }
 
 function minutesLabel(diff: number) {
-  if (diff <= 0) return "يصل الآن";
-  if (diff === 1) return "بعد دقيقة";
-  if (diff === 2) return "بعد دقيقتين";
-  if (diff <= 10) return `بعد ${diff} دقائق`;
-  if (diff < 60) return `بعد ${diff} دقيقة`;
+  if (diff <= 0) return tr("يصل الآن");
+  if (diff === 1) return tr("بعد دقيقة");
+  if (diff === 2) return tr("بعد دقيقتين");
+  if (diff <= 10) return tr("بعد {0} دقائق", diff);
+  if (diff < 60) return tr("بعد {0} دقيقة", diff);
   const h = Math.floor(diff / 60);
   const m = diff % 60;
-  return `بعد ${h === 1 ? "ساعة" : h === 2 ? "ساعتين" : `${h} ساعات`}${m ? ` و${m} د` : ""}`;
+  return tr("بعد {0}{1}", h === 1 ? "ساعة" : h === 2 ? "ساعتين" : `${h} ساعات`, m ? ` و${m} د` : "");
 }
 
 function BusesPage() {
@@ -73,17 +74,16 @@ function BusesPage() {
 
   return (
     <Shell>
-      <h1 className="text-2xl font-bold">باصات غاليم</h1>
+      <h1 className="text-2xl font-bold">{tr("باصات غاليم")}</h1>
       <p className="mt-1 font-semibold text-muted">
-        خطوط مدينة رهط والخطوط الخارجة منها. المواعيد تتحدّث تلقائياً كل يوم من بيانات وزارة
-        المواصلات، آخر تحديث {UPDATED}.
+        {tr("خطوط مدينة رهط والخطوط الخارجة منها. المواعيد تتحدّث تلقائياً كل يوم من بيانات وزارة المواصلات، آخر تحديث")} {trv(UPDATED)}.
       </p>
       <div className="mt-4 grid grid-cols-2 gap-2">
         <a className="btn" href={`tel:${galimPhone.replaceAll("-", "")}`}>
-          غاليم {galimPhone}
+          {tr("غاليم")} {trv(galimPhone)}
         </a>
         <a className="btn btn-ghost" href={galimSource} target="_blank" rel="noopener noreferrer">
-          موقع المشغّل
+          {tr("موقع المشغّل")}
         </a>
       </div>
 
@@ -172,7 +172,7 @@ function LiveArrivals({ now }: { now: number }) {
   const nearest = () => {
     setGeoError("");
     if (!navigator.geolocation || !dirInfo) {
-      setGeoError("الموقع غير متاح في هذا المتصفح.");
+      setGeoError(tr("الموقع غير متاح في هذا المتصفح."));
       return;
     }
     navigator.geolocation.getCurrentPosition(
@@ -191,7 +191,7 @@ function LiveArrivals({ now }: { now: number }) {
         }
         if (best) setStop(best);
       },
-      () => setGeoError("لم نتمكن من تحديد موقعك."),
+      () => setGeoError(tr("لم نتمكن من تحديد موقعك.")),
       { enableHighAccuracy: true, timeout: 10_000 },
     );
   };
@@ -208,26 +208,26 @@ function LiveArrivals({ now }: { now: number }) {
 
   return (
     <section className="stamp mt-6 p-4">
-      <h2 className="text-xl font-bold">متى يصل الباص؟</h2>
-      <p className="text-sm font-semibold text-muted">اختر الخط والاتجاه والمحطة.</p>
+      <h2 className="text-xl font-bold">{tr("متى يصل الباص؟")}</h2>
+      <p className="text-sm font-semibold text-muted">{tr("اختر الخط والاتجاه والمحطة.")}</p>
 
       <div className="mt-3 grid gap-2 sm:grid-cols-2">
         <label className="block">
-          <span className="text-sm font-bold">الخط</span>
+          <span className="text-sm font-bold">{tr("الخط")}</span>
           <select className="field mt-1" value={line} onChange={(e) => chooseLine(e.target.value)}>
             {busSchedule.lines.map((l) => (
               <option key={l.number} value={l.number}>
-                خط {l.number}
+                {tr("خط")} {trv(l.number)}
               </option>
             ))}
           </select>
         </label>
         <label className="block">
-          <span className="text-sm font-bold">المحطة</span>
+          <span className="text-sm font-bold">{tr("المحطة")}</span>
           <select className="field mt-1" value={stop} onChange={(e) => setStop(e.target.value)}>
             {dirInfo?.stops.map(([code]) => (
               <option key={code} value={code}>
-                {stopName(code)} · {code}
+                {stopName(code)} · {trv(code)}
               </option>
             ))}
           </select>
@@ -245,7 +245,7 @@ function LiveArrivals({ now }: { now: number }) {
               }
               onClick={() => chooseDir(d.dir)}
             >
-              إلى {stopName(d.to)}
+              {tr("إلى")} {stopName(d.to)}
             </button>
           ))}
         </div>
@@ -254,12 +254,12 @@ function LiveArrivals({ now }: { now: number }) {
       <div className="mt-3 flex flex-wrap gap-2">
         <button type="button" className="btn btn-ghost px-3" onClick={nearest}>
           <LocateFixed className="size-4" aria-hidden />
-          أقرب محطة لي
+          {tr("أقرب محطة لي")}
         </button>
         {stop ? (
           <Link to="/buses/stop/$stop" params={{ stop }} className="btn px-3">
             <MapIcon className="size-4" aria-hidden />
-            الخريطة المباشرة
+            {tr("الخريطة المباشرة")}
           </Link>
         ) : null}
         <button
@@ -269,10 +269,10 @@ function LiveArrivals({ now }: { now: number }) {
           disabled={loading}
         >
           <RefreshCw className={loading ? "size-4 animate-spin" : "size-4"} aria-hidden />
-          تحديث
+          {tr("تحديث")}
         </button>
       </div>
-      {geoError ? <p className="mt-2 text-sm font-semibold">{geoError}</p> : null}
+      {geoError ? <p className="mt-2 text-sm font-semibold">{trv(geoError)}</p> : null}
 
       <ul className="mt-4 flex flex-col gap-2">
         {liveForLine.map((a) => (
@@ -295,12 +295,12 @@ function LiveArrivals({ now }: { now: number }) {
         ))}
       </ul>
       {liveForLine.length === 0 && plannedOnly.length === 0 ? (
-        <p className="mt-2 font-semibold">لا رحلات أخرى لهذا الخط من هذه المحطة اليوم.</p>
+        <p className="mt-2 font-semibold">{tr("لا رحلات أخرى لهذا الخط من هذه المحطة اليوم.")}</p>
       ) : null}
 
       {otherLive.length > 0 ? (
         <>
-          <p className="mt-4 text-sm font-bold text-muted">خطوط أخرى تصل هذه المحطة الآن</p>
+          <p className="mt-4 text-sm font-bold text-muted">{tr("خطوط أخرى تصل هذه المحطة الآن")}</p>
           <ul className="mt-2 flex flex-col gap-2">
             {otherLive.slice(0, 4).map((a) => (
               <ArrivalRow
@@ -317,12 +317,12 @@ function LiveArrivals({ now }: { now: number }) {
 
       <p className="mt-4 text-sm font-semibold text-muted">
         {fresh === null
-          ? "جاري جلب البيانات المباشرة…"
+          ? tr("جاري جلب البيانات المباشرة…")
           : fresh.ok
             ? liveForLine.length + otherLive.length > 0
-              ? "«مباشر» يعني أن الباص يرسل موقعه الآن (بيانات وزارة المواصلات عبر curlbus، تتأخر حتى دقيقة تقريباً). «حسب الجدول» وقت مخطط وتقريبي."
-              : "لا يوجد باص يرسل موقعه الآن لهذه المحطة، فالأوقات المعروضة حسب الجدول وتقريبية."
-            : "تعذّر جلب البيانات المباشرة الآن، فالأوقات المعروضة حسب الجدول وتقريبية."}
+              ? tr("«مباشر» يعني أن الباص يرسل موقعه الآن (بيانات وزارة المواصلات عبر curlbus، تتأخر حتى دقيقة تقريباً). «حسب الجدول» وقت مخطط وتقريبي.")
+              : tr("لا يوجد باص يرسل موقعه الآن لهذه المحطة، فالأوقات المعروضة حسب الجدول وتقريبية.")
+            : tr("تعذّر جلب البيانات المباشرة الآن، فالأوقات المعروضة حسب الجدول وتقريبية.")}
       </p>
     </section>
   );
@@ -342,12 +342,12 @@ function ArrivalRow({
   return (
     <li className="flex items-center justify-between gap-3 rounded-xl border border-line bg-paper px-3 py-2">
       <span className="min-w-0">
-        <span className="chip chip-ink">خط {line}</span>
-        {dest ? <span className="ms-2 font-bold">إلى {dest}</span> : null}
+        <span className="chip chip-ink">{tr("خط")} {trv(line)}</span>
+        {dest ? <span className="ms-2 font-bold">{tr("إلى")} {trv(dest)}</span> : null}
       </span>
       <span className="shrink-0 text-end">
-        <span className="block font-bold">{when}</span>
-        <span className={live ? "chip chip-ok" : "chip"}>{live ? "مباشر" : "حسب الجدول"}</span>
+        <span className="block font-bold">{trv(when)}</span>
+        <span className={live ? "chip chip-ok" : "chip"}>{live ? tr("مباشر") : tr("حسب الجدول")}</span>
       </span>
     </li>
   );
@@ -364,22 +364,22 @@ function Timetable({ now, dates, today }: { now: number; dates: string[]; today:
 
   return (
     <section className="mt-8">
-      <h2 className="text-xl font-bold">جدول المواعيد</h2>
-      <p className="text-sm font-semibold text-muted">أوقات الانطلاق من أول محطة في كل اتجاه.</p>
+      <h2 className="text-xl font-bold">{tr("جدول المواعيد")}</h2>
+      <p className="text-sm font-semibold text-muted">{tr("أوقات الانطلاق من أول محطة في كل اتجاه.")}</p>
       <div className="scroll-row mt-3">
         <button
           type="button"
           className={scope === "city" ? "chip chip-ink shrink-0" : "chip shrink-0 bg-paper"}
           onClick={() => setScope("city")}
         >
-          داخل رهط
+          {tr("داخل رهط")}
         </button>
         <button
           type="button"
           className={scope === "between" ? "chip chip-ink shrink-0" : "chip shrink-0 bg-paper"}
           onClick={() => setScope("between")}
         >
-          خارج المدينة
+          {tr("خارج المدينة")}
         </button>
       </div>
       <div className="scroll-row mt-2">
@@ -397,7 +397,7 @@ function Timetable({ now, dates, today }: { now: number; dates: string[]; today:
 
       {!selected ? (
         <p className="stamp mt-4 p-4 font-semibold">
-          لا تتوفر مواعيد محدّثة حالياً. اتصل بغاليم للتأكد.
+          {tr("لا تتوفر مواعيد محدّثة حالياً. اتصل بغاليم للتأكد.")}
         </p>
       ) : (
         <ul className="mt-4 flex flex-col gap-3">
@@ -409,7 +409,7 @@ function Timetable({ now, dates, today }: { now: number; dates: string[]; today:
             return (
               <li key={line.number} className="stamp p-4">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="chip chip-ink">خط {line.number}</span>
+                  <span className="chip chip-ink">{tr("خط")} {trv(line.number)}</span>
                   {info ? (
                     <Link
                       to="/buses/map/$line"
@@ -417,23 +417,23 @@ function Timetable({ now, dates, today }: { now: number; dates: string[]; today:
                       className="btn btn-ghost px-3 py-1.5 text-sm"
                     >
                       <MapIcon className="size-4" aria-hidden />
-                      الخريطة
+                      {tr("الخريطة")}
                     </Link>
                   ) : null}
                 </div>
-                {line.note ? <p className="mt-2 font-semibold">{line.note}</p> : null}
+                {line.note ? <p className="mt-2 font-semibold">{trv(line.note)}</p> : null}
                 <h3 className="mt-2 text-xl font-bold">
-                  {line.from} ↔ {line.to}
+                  {trv(line.from)} ↔ {trv(line.to)}
                 </h3>
                 {dirs.length === 0 ? (
-                  <p className="mt-2 font-semibold">لا رحلات في هذا اليوم حسب الجدول.</p>
+                  <p className="mt-2 font-semibold">{tr("لا رحلات في هذا اليوم حسب الجدول.")}</p>
                 ) : (
                   dirs.map((d) => {
                     const mins = toMinutes(d.times);
                     return (
                       <div key={d.dir} className="mt-3">
                         <p className="text-sm font-bold text-muted">
-                          من {stopName(d.from)} إلى {stopName(d.to)}
+                          {tr("من")} {stopName(d.from)} {tr("إلى")} {stopName(d.to)}
                         </p>
                         <p className="font-bold leading-7">
                           {d.times.map((t, i) => {
@@ -441,7 +441,7 @@ function Timetable({ now, dates, today }: { now: number; dates: string[]; today:
                             return (
                               <span key={`${t}-${i}`} className={past ? "text-ink/40" : undefined}>
                                 {i > 0 ? " · " : ""}
-                                {t}
+                                {trv(t)}
                               </span>
                             );
                           })}
@@ -456,8 +456,7 @@ function Timetable({ now, dates, today }: { now: number; dates: string[]; today:
         </ul>
       )}
       <p className="mt-4 text-sm font-semibold text-muted">
-        مصدر المواعيد: بيانات GTFS المفتوحة من وزارة المواصلات، وتُحدَّث يومياً. قد تتغير المواعيد
-        في الأعياد والطوارئ.
+        {tr("مصدر المواعيد: بيانات GTFS المفتوحة من وزارة المواصلات، وتُحدَّث يومياً. قد تتغير المواعيد في الأعياد والطوارئ.")}
       </p>
     </section>
   );
