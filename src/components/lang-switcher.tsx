@@ -30,14 +30,14 @@ export function LangSwitcher() {
     <div ref={ref} className="relative shrink-0">
       <button
         type="button"
-        className="btn btn-ghost h-12 gap-1 px-2.5"
+        className="btn btn-ghost size-12 gap-1 p-0 sm:w-auto sm:px-2.5"
         aria-label={tr("تغيير اللغة")}
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
       >
         <Globe className="size-5" aria-hidden />
-        <span className="text-xs font-bold uppercase">{st.lang}</span>
+        <span className="hidden text-xs font-bold uppercase sm:inline">{st.lang}</span>
       </button>
       {open ? (
         <div role="menu" className="absolute end-0 top-full z-50 mt-1 min-w-40 rounded-2xl border border-line bg-paper p-1 shadow-xl">

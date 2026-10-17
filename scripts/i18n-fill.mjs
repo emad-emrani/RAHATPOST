@@ -13,7 +13,7 @@ if (!url || !key || process.env.I18N_FILL === "off") {
   console.log("[i18n-fill] skipped (no DATABASE_URL / GEMINI_API_KEY)");
   process.exit(0);
 }
-const deadline = Date.now() + Number(process.env.I18N_FILL_MS || 240_000);
+const deadline = Date.now() + Number(process.env.I18N_FILL_MS || 420_000);
 const MODEL = process.env.GEMINI_MODEL?.trim() || "gemini-3.8-flash";
 const dict = JSON.parse(await readFile(new URL("../src/lib/i18n/dict.json", import.meta.url), "utf8"));
 const keys = Object.keys(dict);
@@ -26,7 +26,7 @@ const BUILTIN = [
 
 async function translate(lang, chunk) {
   const sys = `You translate UI strings of "رهط بوست" (Rahat Post), a community website for the Bedouin city of Rahat in the Negev, Israel (news, buses, digital store, classifieds, admin panel) from Arabic into ${lang.name}. Input: JSON object id → Arabic string. Output: JSON object id → translation. Natural, concise UI wording. Keep placeholders like {0} {1}, emoji, numbers and URLs exactly. Site name: Hebrew "רהט פוסט", English "Rahat Post". Return only JSON.`;
-  for (let attempt = 0; attempt < 3; attempt++) {
+  for (let attempt = 0; attempt < 6 && Date.now() < deadline; attempt++) {
     try {
       const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`, {
         method: "POST",
@@ -40,7 +40,7 @@ async function translate(lang, chunk) {
       });
       if (!res.ok) {
         console.log("[i18n-fill] gemini", res.status);
-        await new Promise((r) => setTimeout(r, 3000));
+        await new Promise((r) => setTimeout(r, res.status === 429 ? 20_000 : 3_000));
         continue;
       }
       const d = await res.json();
@@ -67,11 +67,11 @@ try {
     const todo = keys.filter((k) => !dict[k]?.[lang.code] && !have.has(k));
     console.log(`[i18n-fill] ${lang.code}: ${todo.length} missing`);
     const chunks = [];
-    for (let i = 0; i < todo.length; i += 60) chunks.push(todo.slice(i, i + 60));
+    for (let i = 0; i < todo.length; i += 120) chunks.push(todo.slice(i, i + 120));
     let next = 0;
     let saved = 0;
     await Promise.all(
-      Array.from({ length: 6 }, async () => {
+      Array.from({ length: 2 }, async () => {
         while (next < chunks.length && Date.now() < deadline) {
           const chunk = chunks[next++];
           const out = await translate(lang, chunk);
