@@ -182,7 +182,7 @@ function Home() {
                 ) : null}
                 <span className="block p-4">
                   <span className="chip chip-deep">
-                    {lead.reader ? tr("من القراء") : lead.category}
+                    {lead.reader ? tr("من القراء") : trv(lead.category)}
                   </span>
                   <span className="mt-2 block text-xl font-bold">{trv(lead.title)}</span>
                   <span className="text-sm font-semibold text-muted">

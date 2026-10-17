@@ -18,6 +18,8 @@ const MODEL = process.env.GEMINI_MODEL?.trim() || "gemini-3.8-flash";
 const dict = JSON.parse(await readFile(new URL("../src/lib/i18n/dict.json", import.meta.url), "utf8"));
 const keys = Object.keys(dict);
 const client = new pg.Client({ connectionString: url });
+client.on("error", (e) => console.log("[i18n-fill] db error (non-fatal)", String(e).slice(0, 120)));
+let limited = 0;
 
 const BUILTIN = [
   { code: "he", name: "Hebrew (עברית)" },
@@ -38,6 +40,10 @@ async function translate(lang, chunk) {
         }),
         signal: AbortSignal.timeout(90_000),
       });
+      if (res.status === 429 && ++limited >= 4) {
+        console.log("[i18n-fill] Gemini quota/rate limit reached; stopping (runtime fallback stays Arabic)");
+        return {};
+      }
       if (!res.ok) {
         console.log("[i18n-fill] gemini", res.status);
         await new Promise((r) => setTimeout(r, res.status === 429 ? 20_000 : 3_000));
@@ -72,7 +78,7 @@ try {
     let saved = 0;
     await Promise.all(
       Array.from({ length: 2 }, async () => {
-        while (next < chunks.length && Date.now() < deadline) {
+        while (next < chunks.length && Date.now() < deadline && limited < 4) {
           const chunk = chunks[next++];
           const out = await translate(lang, chunk);
           for (const [i, t] of Object.entries(out)) {

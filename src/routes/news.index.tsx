@@ -74,7 +74,7 @@ function NewsPage() {
                     <NewsImage item={item} className="size-22 rounded-xl" iconClassName="size-7" />
                     <span className="min-w-0 flex-1">
                       <span className={item.breaking ? "chip chip-alert" : "chip chip-deep"}>
-                        {item.breaking ? tr("عاجل") : item.reader ? tr("من القراء") : item.category}
+                        {item.breaking ? tr("عاجل") : item.reader ? tr("من القراء") : trv(item.category)}
                       </span>
                       <span className="mt-1 line-clamp-3 block font-bold leading-snug">
                         {trv(item.title)}

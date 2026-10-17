@@ -118,7 +118,7 @@ function ArticlePage() {
         ) : null}
         <div className="p-4">
           <span className={article.breaking ? "chip chip-alert" : "chip chip-deep"}>
-            {article.breaking ? tr("عاجل") : article.reader ? tr("من القراء") : article.category}
+            {article.breaking ? tr("عاجل") : article.reader ? tr("من القراء") : trv(article.category)}
           </span>
           <h1 className="mt-3 text-2xl font-bold">{trv(article.title)}</h1>
           <p className="mt-1 font-semibold text-muted">
@@ -127,7 +127,7 @@ function ArticlePage() {
               ? tr("نشره: {0} · {1}", article.reader.name, article.reader.neighborhood)
               : article.author
                 ? tr("{0} · كتبه: {1}", article.source, article.author)
-                : article.source}
+                : trv(article.source)}
           </p>
           {article.reader || article.staff ? (
             <ReaderBody article={article} />
