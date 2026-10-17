@@ -8,7 +8,7 @@ import { NewsImage } from "@/components/news-image";
 import { HomePostCard } from "@/components/guide";
 import { getGuide } from "@/data/guides";
 import { CommentCount } from "@/components/comment-count";
-import { HomeCarousel, HomeTiles, QuickLinks } from "@/components/home-parts";
+import { HomeCarousel, HomeTiles, QuickLinks, type SectionSlide } from "@/components/home-parts";
 import { SectionTitle, Shell } from "@/components/shell";
 import { AlertsBanner, DutyCard } from "@/components/duty";
 import { getBoard } from "@/lib/board/api";
@@ -123,6 +123,35 @@ function Home() {
   const lead = remaining[0] ?? top;
   const rest = remaining.slice(1, 5);
 
+  // Slider: the latest item of every enabled section (sections with nothing are skipped).
+  const latestFeed = ranked.find((i) => !i.reader);
+  const latestReader = ranked.find((i) => i.reader);
+  const newsSlide = (key: string, label: string, i: NewsItem): SectionSlide => ({
+    key,
+    label,
+    link: { to: "/news/$slug", params: { slug: i.slug } },
+    item: { image: i.image, title: i.title, category: i.category, source: i.source },
+    meta: `${relativeTimeAr(i.publishedAt, now)} · ${newsByline(i)}`,
+  });
+  const israelFirst = israelTop[0];
+  const sectionSlides: SectionSlide[] = [
+    ...(showSec("news") && latestFeed ? [newsSlide("news", "آخر الأخبار", latestFeed)] : []),
+    ...(showSec("israel") && israelFirst
+      ? [
+          {
+            key: "israel",
+            label: "أخبار إسرائيل",
+            link: { to: "/israel-news/$slug" as const, params: { slug: israelFirst.slug } },
+            item: { image: israelFirst.image, title: israelFirst.titleAr ?? israelFirst.titleHe, category: israelFirst.category, source: israelFirst.source },
+            title: <IsraelTitle item={israelFirst} />,
+            meta: `${relativeTimeAr(israelFirst.publishedAt, now)} · ${trv(israelFirst.source)}`,
+          },
+        ]
+      : []),
+    ...(tech?.items[0] && showSec("tech") ? [newsSlide("tech", "أخبار تقنية", tech.items[0])] : []),
+    ...(latestReader ? [newsSlide("reader", "من القراء", latestReader)] : []),
+  ];
+
   const results = useMemo(() => {
     if (!query) return null;
     const hay = (value: string) => value.includes(query);
@@ -150,7 +179,7 @@ function Home() {
 
   const blocks: Record<HomeSectionId, ReactNode> = {
     weather: !showSec("weather") ? null : <HomeTodayChips weather={weather} serverNow={news.now} />,
-    slider: <HomeCarousel lead={top} leadTime={top ? relativeTimeAr(top.publishedAt, now) : ""} />,
+    slider: <HomeCarousel lead={top} leadTime={top ? relativeTimeAr(top.publishedAt, now) : ""} sections={sectionSlides} />,
     search: (
       <label className="search-field block">
         <span className="sr-only">{tr("بحث")}</span>

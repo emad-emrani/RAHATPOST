@@ -45,8 +45,46 @@ export function HomeTiles() {
 type Slide = { key: string; className: string; content: ReactNode };
 
 /** Snap-scrolling banner carousel with dots; auto-advances unless reduced motion is preferred. */
-export function HomeCarousel({ lead, leadTime }: { lead?: NewsItem; leadTime: string }) {
+/** One slide per news section: its latest item. */
+export type SectionSlide = {
+  key: string;
+  label: string;
+  link: { to: "/news/$slug" | "/israel-news/$slug"; params: { slug: string } };
+  item: { image?: string; title: string; category: string; source?: string };
+  /** Title element when it needs its own lang/dir (untranslated Hebrew). */
+  title?: ReactNode;
+  meta: string;
+};
+
+const SLIDE_BG: Record<string, string> = {
+  news: "linear-gradient(135deg, #b8860b, #6b4f0a)",
+  israel: "linear-gradient(135deg, #1e3a5f, #0f1f33)",
+  tech: "linear-gradient(135deg, #14532d, #0a2e19)",
+  reader: "linear-gradient(135deg, #7c2d12, #431407)",
+};
+
+function SectionSlideView({ s }: { s: SectionSlide }) {
+  return (
+    <Link to={s.link.to} params={s.link.params} className="flex h-full flex-col justify-between gap-3">
+      <span className="absolute inset-0" aria-hidden>
+        {s.item.image ? (
+          <NewsImage item={s.item} size="full" className="size-full" iconClassName="size-16" eager />
+        ) : (
+          // No photo: a plain section-coloured backdrop (the branded card would repeat the headline).
+          <span className="block size-full" style={{ background: SLIDE_BG[s.key] ?? SLIDE_BG.news }} />
+        )}
+      </span>
+      <span className="banner-shade" aria-hidden />
+      <span className="relative chip w-fit bg-white/20 text-white">{trv(s.label)}</span>
+      <span className="relative line-clamp-3 text-xl font-bold leading-snug">{s.title ?? trv(s.item.title)}</span>
+      <span className="relative text-sm font-semibold text-white/90">{s.meta}</span>
+    </Link>
+  );
+}
+
+export function HomeCarousel({ lead, leadTime, sections = [] }: { lead?: NewsItem; leadTime: string; sections?: SectionSlide[] }) {
   const config = useSiteSettings().slides;
+  const sectionSlides: Slide[] = sections.map((s) => ({ key: `sec-${s.key}`, className: "banner banner-photo", content: <SectionSlideView s={s} /> }));
   const builtins: Slide[] = [
     ...(lead
       ? [
@@ -135,10 +173,13 @@ export function HomeCarousel({ lead, leadTime }: { lead?: NewsItem; leadTime: st
       ),
     },
   ];
-  const slides: Slide[] = config
+  // Section slides first; the built-in «آخر خبر» slide is replaced by them when there are any.
+  const slides: Slide[] = [...sectionSlides, ...config
     .map((c): Slide | undefined =>
       c.type === "builtin"
-        ? builtins.find((b) => b.key === c.id)
+        ? sectionSlides.length && c.id === "news"
+          ? undefined
+          : builtins.find((b) => b.key === c.id)
         : {
             key: c.id,
             className: c.imageKey ? "banner banner-photo" : "banner",
@@ -152,7 +193,7 @@ export function HomeCarousel({ lead, leadTime }: { lead?: NewsItem; leadTime: st
             ),
           },
     )
-    .filter((x): x is Slide => Boolean(x));
+    .filter((x): x is Slide => Boolean(x))];
 
   const ref = useRef<HTMLDivElement>(null);
   const [index, setIndex] = useState(0);
