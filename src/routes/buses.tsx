@@ -256,6 +256,12 @@ function LiveArrivals({ now }: { now: number }) {
           <LocateFixed className="size-4" aria-hidden />
           أقرب محطة لي
         </button>
+        {stop ? (
+          <Link to="/buses/stop/$stop" params={{ stop }} className="btn px-3">
+            <MapIcon className="size-4" aria-hidden />
+            الخريطة المباشرة
+          </Link>
+        ) : null}
         <button
           type="button"
           className="btn btn-ghost px-3"

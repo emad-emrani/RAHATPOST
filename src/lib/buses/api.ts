@@ -47,3 +47,22 @@ export const getLineVehicles = createServerFn({ method: "GET" })
     }
     return { ...res, now: Date.now() };
   });
+
+/** One stop: arrivals + real positions of the incoming buses (for /buses/stop/$stop). */
+export const getStopLive = createServerFn({ method: "GET" })
+  .inputValidator((input: { stop: string }) => {
+    const stop = String(input?.stop ?? "");
+    if (!/^\d{3,6}$/.test(stop)) throw new Error("invalid stop code");
+    return { stop };
+  })
+  .handler(async ({ data }) => {
+    const { loadStopLive } = await import("./live.server");
+    const result = await loadStopLive(data.stop);
+    try {
+      const { setResponseHeader } = await import("@tanstack/react-start/server");
+      setResponseHeader("Cache-Control", result.ok ? "public, max-age=0, s-maxage=15" : "no-store");
+    } catch {
+      // outside a request
+    }
+    return result;
+  });

@@ -39,6 +39,7 @@ import { Route as NewsIndexRouteImport } from './routes/news.index'
 import { Route as NewsSlugRouteImport } from './routes/news.$slug'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as BusesMapLineRouteImport } from './routes/buses_.map.$line'
+import { Route as BusesStopStopRouteImport } from './routes/buses_.stop.$stop'
 import { Route as DirectoryGuideGuideRouteImport } from './routes/directory.guide.$guide'
 
 const IndexRoute = IndexRouteImport.update({
@@ -193,6 +194,11 @@ const BusesMapLineRoute = BusesMapLineRouteImport.update({
   path: '/buses/map/$line',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BusesStopStopRoute = BusesStopStopRouteImport.update({
+  id: '/buses_/stop/$stop',
+  path: '/buses/stop/$stop',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DirectoryGuideGuideRoute = DirectoryGuideGuideRouteImport.update({
   id: '/directory/guide/$guide',
   path: '/directory/guide/$guide',
@@ -230,6 +236,7 @@ export interface FileRoutesByFullPath {
   '/news/': typeof NewsIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/buses/map/$line': typeof BusesMapLineRoute
+  '/buses/stop/$stop': typeof BusesStopStopRoute
   '/directory/guide/$guide': typeof DirectoryGuideGuideRoute
 }
 export interface FileRoutesByTo {
@@ -263,6 +270,7 @@ export interface FileRoutesByTo {
   '/news': typeof NewsIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/buses/map/$line': typeof BusesMapLineRoute
+  '/buses/stop/$stop': typeof BusesStopStopRoute
   '/directory/guide/$guide': typeof DirectoryGuideGuideRoute
 }
 export interface FileRoutesById {
@@ -297,6 +305,7 @@ export interface FileRoutesById {
   '/news/': typeof NewsIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/buses_/map/$line': typeof BusesMapLineRoute
+  '/buses_/stop/$stop': typeof BusesStopStopRoute
   '/directory/guide/$guide': typeof DirectoryGuideGuideRoute
 }
 export interface FileRouteTypes {
@@ -332,6 +341,7 @@ export interface FileRouteTypes {
     | '/news/'
     | '/api/auth/$'
     | '/buses/map/$line'
+    | '/buses/stop/$stop'
     | '/directory/guide/$guide'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -365,6 +375,7 @@ export interface FileRouteTypes {
     | '/news'
     | '/api/auth/$'
     | '/buses/map/$line'
+    | '/buses/stop/$stop'
     | '/directory/guide/$guide'
   id:
     | '__root__'
@@ -398,6 +409,7 @@ export interface FileRouteTypes {
     | '/news/'
     | '/api/auth/$'
     | '/buses_/map/$line'
+    | '/buses_/stop/$stop'
     | '/directory/guide/$guide'
   fileRoutesById: FileRoutesById
 }
@@ -432,6 +444,7 @@ export interface RootRouteChildren {
   NewsIndexRoute: typeof NewsIndexRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   BusesMapLineRoute: typeof BusesMapLineRoute
+  BusesStopStopRoute: typeof BusesStopStopRoute
   DirectoryGuideGuideRoute: typeof DirectoryGuideGuideRoute
 }
 
@@ -647,6 +660,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BusesMapLineRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/buses_/stop/$stop': {
+      id: '/buses_/stop/$stop'
+      path: '/buses/stop/$stop'
+      fullPath: '/buses/stop/$stop'
+      preLoaderRoute: typeof BusesStopStopRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/directory/guide/$guide': {
       id: '/directory/guide/$guide'
       path: '/directory/guide/$guide'
@@ -689,6 +709,7 @@ const rootRouteChildren: RootRouteChildren = {
   NewsIndexRoute: NewsIndexRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   BusesMapLineRoute: BusesMapLineRoute,
+  BusesStopStopRoute: BusesStopStopRoute,
   DirectoryGuideGuideRoute: DirectoryGuideGuideRoute,
 }
 export const routeTree = rootRouteImport

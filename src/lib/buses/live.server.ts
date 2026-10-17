@@ -148,3 +148,55 @@ export async function loadVehicles(
   }
   return { ok, vehicles: [...best.values()] };
 }
+
+export type StopLive = {
+  ok: boolean;
+  now: number;
+  stop: string;
+  arrivals: (Arrival & { vehicle?: string })[];
+  /** Real reported positions (≤ 5 min old) of buses heading to this stop. */
+  vehicles: (Vehicle & { eta: string; operator: string })[];
+};
+
+/** Arrivals at one stop plus the live positions of the incoming buses (same SIRI data). */
+export async function loadStopLive(stop: string): Promise<StopLive> {
+  const now = Date.now();
+  try {
+    const visits = await stopVisits(stop);
+    const arrivals: StopLive["arrivals"] = [];
+    const vehicles: StopLive["vehicles"] = [];
+    for (const v of visits) {
+      const eta = parseTime(v.eta);
+      if (Number.isNaN(eta) || eta < now - 60_000) continue;
+      const recorded = parseTime(v.timestamp);
+      const name = v.static_info?.route?.destination?.name;
+      const lat = Number(v.location?.lat);
+      const lon = Number(v.location?.lon);
+      const fresh = !Number.isNaN(recorded) && now - recorded <= POSITION_MAX_AGE_MS;
+      const hasPos = Boolean(v.location) && Number.isFinite(lat) && Number.isFinite(lon) && fresh;
+      arrivals.push({
+        line: String(v.line_name ?? ""),
+        operator: String(v.operator_id ?? ""),
+        destination: name?.AR || name?.HE || "",
+        eta: new Date(eta).toISOString(),
+        live: hasPos || (!Number.isNaN(recorded) && now - recorded < LIVE_WINDOW_MS),
+        ...(hasPos && v.vehicle_ref ? { vehicle: v.vehicle_ref } : {}),
+      });
+      if (hasPos && v.vehicle_ref)
+        vehicles.push({
+          ref: v.vehicle_ref,
+          line: String(v.line_name ?? ""),
+          dir: String(v.direction_id ?? ""),
+          lat,
+          lon,
+          at: new Date(recorded).toISOString(),
+          eta: new Date(eta).toISOString(),
+          operator: String(v.operator_id ?? ""),
+        });
+    }
+    arrivals.sort((a, b) => Date.parse(a.eta) - Date.parse(b.eta));
+    return { ok: true, now, stop, arrivals: arrivals.slice(0, 15), vehicles };
+  } catch {
+    return { ok: false, now, stop, arrivals: [], vehicles: [] };
+  }
+}

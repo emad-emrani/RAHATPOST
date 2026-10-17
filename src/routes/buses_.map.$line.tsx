@@ -6,7 +6,8 @@ import type { LayerGroup, Map as LeafletMap } from "leaflet";
 import { busSchedule } from "@/data/bus-schedule";
 import { busLines } from "@/data/buses";
 import { getArrivals, getLineVehicles } from "@/lib/buses/api";
-import { shapeFile, type LineShapes } from "@/lib/buses/map";
+import { gmapsTransitRoute, shapeFile, type LineShapes } from "@/lib/buses/map";
+import { GmapsStopButtons } from "@/components/gmaps-buttons";
 import { lineInfo, stopName } from "@/lib/buses/schedule";
 import type { ArrivalsResult } from "@/lib/buses/types";
 import { seo } from "@/lib/seo";
@@ -14,6 +15,10 @@ import { seo } from "@/lib/seo";
 type Vehicle = { ref: string; dir: string; lat: number; lon: number; at: string };
 
 export const Route = createFileRoute("/buses_/map/$line")({
+  validateSearch: (search: Record<string, unknown>): { stop?: string } => ({
+    stop:
+      typeof search.stop === "string" && /^\d{3,6}$/.test(search.stop) ? search.stop : undefined,
+  }),
   loader: ({ params }) => {
     const info = lineInfo(params.line);
     if (!info) throw notFound();
@@ -34,7 +39,12 @@ const REFRESH_MS = 30_000;
 function BusMapPage() {
   const { line, from, to } = Route.useLoaderData();
   const info = lineInfo(line)!;
-  const [dir, setDir] = useState(info.dirs[0]?.dir ?? "1");
+  const { stop: focusStop } = Route.useSearch();
+  const [dir, setDir] = useState(
+    (focusStop && info.dirs.find((x) => x.stops.some(([c]) => c === focusStop))?.dir) ||
+      info.dirs[0]?.dir ||
+      "1",
+  );
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [status, setStatus] = useState<"loading" | "ok" | "error">("loading");
   const [updated, setUpdated] = useState(0);
@@ -110,7 +120,11 @@ function BusMapPage() {
             .bindTooltip(stopName(x.code), { direction: "top" })
             .on("click", () => openStop(x.code));
         }
-        map.current.fitBounds(poly.getBounds(), { padding: [24, 24] });
+        const focus = focusStop ? busSchedule.stops[focusStop] : undefined;
+        if (focus && d.stops.some(([c]) => c === focusStop)) {
+          map.current.setView([focus.lat, focus.lon], 16);
+          void openStop(focusStop!);
+        } else map.current.fitBounds(poly.getBounds(), { padding: [24, 24] });
       });
     return () => {
       cancelled = true;
@@ -219,6 +233,18 @@ function BusMapPage() {
           <RefreshCw className="size-5" aria-hidden />
         </button>
       </header>
+      {d && busSchedule.stops[d.from] && busSchedule.stops[d.to] ? (
+        <div className="px-3 pt-2">
+          <a
+            href={gmapsTransitRoute(busSchedule.stops[d.from], busSchedule.stops[d.to])}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn btn-ghost w-full px-3 text-sm"
+          >
+            المسار في خرائط جوجل (من {stopName(d.from)} إلى {stopName(d.to)})
+          </a>
+        </div>
+      ) : null}
       {info.dirs.length > 1 ? (
         <div className="scroll-row px-3 py-2">
           {info.dirs.map((x) => (
@@ -261,6 +287,12 @@ function BusMapPage() {
               إغلاق
             </button>
           </div>
+          {busSchedule.stops[stop.code] ? (
+            <GmapsStopButtons
+              lat={busSchedule.stops[stop.code].lat}
+              lon={busSchedule.stops[stop.code].lon}
+            />
+          ) : null}
           {!stop.data ? (
             <p className="mt-2 font-semibold text-muted">جاري جلب أوقات الوصول…</p>
           ) : !stop.data.ok ? (
