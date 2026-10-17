@@ -67,11 +67,9 @@ export function seo(input: SeoInput): { meta: Meta[]; links: { rel: string; href
       ? "noindex, nofollow"
       : translated
         ? "noindex, follow"
-        : input.robots === "private"
-      ? "noindex, nofollow"
-      : input.robots === "noindex"
-        ? "noindex, follow"
-        : "index, follow, max-image-preview:large";
+        : input.robots === "noindex"
+          ? "noindex, follow"
+          : "index, follow, max-image-preview:large";
   const meta: Meta[] = [
     { title: input.title },
     { name: "description", content: input.description },
