@@ -19,13 +19,14 @@ const GEMINI_PROMPT =
   "أنت مترجم أخبار محترف. ترجم النص العبري التالي إلى العربية الفصحى بأسلوب إخباري واضح وطبيعي. " +
   "حافظ على أسماء الأشخاص والأماكن والمؤسسات بصيغتها العربية المتعارف عليها (مثل: القدس، تل أبيب، رهط، النقب). " +
   "أعد الترجمة فقط دون أي شرح أو علامات تنصيص أو مقدمة.";
-const hasGemini = () => Boolean(process.env.GEMINI_API_KEY?.trim());
+const hasGemini = () => Boolean(process.env.GEMINI_API_KEY?.trim() || process.env.XAI_API_KEY?.trim());
 const ENDPOINT = "https://api.mymemory.translated.net/get";
 const TIMEOUT_MS = 6_000;
 /** MyMemory accepts at most 500 bytes per query; Hebrew is 2 bytes per letter in UTF-8. */
 const MAX_QUERY_BYTES = 480;
 
 const memory = new Map<string, Translation>();
+const isAi = (p?: string) => p === "gemini" || p === "grok";
 let pausedUntil = 0;
 let dbBroken = false;
 
@@ -79,7 +80,7 @@ export async function translateMissing(jobs: TranslateJob[], budgetMs: number): 
   const todo = jobs.filter((job) => {
     const t = cached.get(job.id);
     // Upgrade older machine translations (MyMemory) to Gemini when a key is configured.
-    if (t && hasGemini() && t.provider !== "gemini") return true;
+    if (t && hasGemini() && !isAi(t.provider)) return true;
     return !t?.title || (job.summary && !t.summary);
   });
   if (todo.length === 0) return;
@@ -93,7 +94,7 @@ export async function translateMissing(jobs: TranslateJob[], budgetMs: number): 
         continue;
       }
       const prev = cached.get(job.id);
-      const have = prev && hasGemini() && prev.provider !== "gemini" ? {} : (prev ?? {});
+      const have = prev && hasGemini() && !isAi(prev.provider) ? {} : (prev ?? {});
       const run = translateJob(job, have).finally(() =>
         inflight.delete(job.id),
       );
@@ -135,9 +136,9 @@ async function translateJob(job: TranslateJob, have: Translation): Promise<void>
       insert into news_translations (id, title_ar, summary_ar, provider)
       values (${job.id}, ${t.title ?? null}, ${t.summary ?? null}, ${provider})
       on conflict (id) do update set
-        title_ar = case when excluded.provider = 'gemini' then coalesce(excluded.title_ar, news_translations.title_ar)
+        title_ar = case when excluded.provider in ('gemini','grok') then coalesce(excluded.title_ar, news_translations.title_ar)
                    else coalesce(news_translations.title_ar, excluded.title_ar) end,
-        summary_ar = case when excluded.provider = 'gemini' then coalesce(excluded.summary_ar, news_translations.summary_ar)
+        summary_ar = case when excluded.provider in ('gemini','grok') then coalesce(excluded.summary_ar, news_translations.summary_ar)
                      else coalesce(news_translations.summary_ar, excluded.summary_ar) end,
         provider = excluded.provider,
         updated_at = now()`;
@@ -149,32 +150,25 @@ async function translateJob(job: TranslateJob, have: Translation): Promise<void>
 async function translateText(
   text: string,
 ): Promise<{ text: string; provider: string } | undefined> {
-  {
-    const g = await translateGemini(text);
-    if (g) return { text: g, provider: "gemini" };
+  const q = text.trim().slice(0, 4_000);
+  if (!q) return undefined;
+  const { aiGenerate, geminiFor } = await import("@/lib/i18n/gemini.server");
+  const s = await geminiFor("israel");
+  if (s) {
+    // Provider chain from admin «الذكاء الاصطناعي والترجمة»: Gemini → Grok → MyMemory by default.
+    const r = await aiGenerate(s, "israel", GEMINI_PROMPT, q, { timeoutMs: GEMINI_TIMEOUT_MS, pair: { from: "he", to: "ar" } });
+    const out = r?.text.trim().replace(/^["«“]+|["»”]+$/g, "").trim();
+    if (r && out && looksArabic(out)) return { text: r.provider === "mymemory" ? decode(out) : out, provider: r.provider };
+    return undefined;
   }
   const m = await translateMyMemory(clip(text));
   return m ? { text: m, provider: "mymemory" } : undefined;
 }
 
-
 function looksArabic(out: string): boolean {
   const arabic = (out.match(/[\u0600-\u06FF]/g) ?? []).length;
   const hebrew = (out.match(/[\u0590-\u05FF]/g) ?? []).length;
   return arabic >= 3 && hebrew <= arabic / 4 && !/<[a-z]/i.test(out);
-}
-
-async function translateGemini(text: string): Promise<string | undefined> {
-  const q = text.trim().slice(0, 4_000);
-  if (!q) return undefined;
-  const { geminiFor, geminiGenerate } = await import("@/lib/i18n/gemini.server");
-  const s = await geminiFor("israel");
-  if (!s) return undefined;
-  const out = (await geminiGenerate(s, "israel", GEMINI_PROMPT, q, { timeoutMs: GEMINI_TIMEOUT_MS }))
-    ?.trim()
-    .replace(/^["«“]+|["»”]+$/g, "")
-    .trim();
-  return out && looksArabic(out) ? out : undefined;
 }
 
 async function translateMyMemory(text: string): Promise<string | undefined> {

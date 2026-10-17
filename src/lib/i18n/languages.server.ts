@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { BUILTIN_LANGS, type LangDef } from "./core";
 import { BUILTIN_DICT, UI_KEYS } from "./builtin";
-import { geminiFor, geminiGenerate, logUsage } from "./gemini.server";
+import { aiGenerate, geminiFor, logUsage } from "./gemini.server";
 
 async function sql() {
   const { getSql } = await import("@/lib/db");
@@ -91,14 +91,14 @@ export async function translateMissingUi(lang: string, max = 120): Promise<{ don
   const batch = missing.slice(0, max);
   if (!batch.length) return { done: 0, remaining: 0, ok: true };
   const input = JSON.stringify(Object.fromEntries(batch.map((k, i) => [String(i), k])));
-  const out = await geminiGenerate(
+  const out = (await aiGenerate(
     s,
     "site",
     systemFor(s.stylePrompt, langName(langs.find((l) => l.code === lang), lang)) +
       " These are short website UI strings. Input is a JSON object of id → Arabic text. Return a JSON object with the same ids → translation. Keep placeholders like {0} {1}, emoji and punctuation.",
     input,
     { timeoutMs: 60_000, json: true },
-  );
+  ))?.text;
   let done = 0;
   if (out) {
     try {
@@ -162,14 +162,14 @@ export async function translateContent(texts: string[], lang: string, budgetMs =
           const langs = await loadLanguages();
           for (let i = 0; i < todo.length; i += 20) {
             const chunk = todo.slice(i, i + 20);
-            const out = await geminiGenerate(
+            const out = (await aiGenerate(
               s,
               kind,
               systemFor(s.stylePrompt, langName(langs.find((l) => l.code === lang), lang)) +
                 " Input is a JSON object of id → Arabic text (news headlines, excerpts, product names). Return a JSON object with the same ids → translation.",
               JSON.stringify(Object.fromEntries(chunk.map((t, j) => [String(j), t.slice(0, 4000)]))),
               { timeoutMs: 30_000, json: true },
-            );
+            ))?.text;
             if (!out) continue;
             try {
               const parsed = JSON.parse(out.replace(/^```(json)?|```$/g, "")) as Record<string, string>;

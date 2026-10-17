@@ -15,12 +15,17 @@ const USES = [
   ["auto", "ترجمة الأخبار التلقائية"],
 ] as const;
 
+const PNAME = { gemini: "Gemini", grok: "Grok (xAI)", mymemory: "MyMemory" } as const;
+
 export function GeminiAdmin() {
   const [s, setS] = useState<GeminiPublic | null>(null);
   const [usage, setUsage] = useState<GeminiUsage | null>(null);
   const [models, setModels] = useState<string[]>([]);
   const [cache, setCache] = useState<{ lang: string; n: number }[]>([]);
   const [key, setKey] = useState("");
+  const [grokKey, setGrokKey] = useState("");
+  const [grokModels, setGrokModels] = useState<string[]>([]);
+  const [testProv, setTestProv] = useState<"" | "gemini" | "grok" | "mymemory">("");
   const [msg, setMsg] = useState("");
   const [testText, setTestText] = useState("مرحباً بكم في رهط بوست، أخبار رهط والنقب.");
   const [testLang, setTestLang] = useState("en");
@@ -33,6 +38,7 @@ export function GeminiAdmin() {
     setS(r.settings);
     setUsage(r.usage ?? null);
     setModels(r.models ?? []);
+    setGrokModels(r.grokModels ?? []);
     setCache(r.cache ?? []);
   }, []);
   useEffect(() => {
@@ -40,19 +46,25 @@ export function GeminiAdmin() {
   }, [load]);
 
   if (!s) return <p className="stamp p-4 font-semibold">{msg || tr("جاري التحميل…")}</p>;
-  const save = async (extra: { apiKey?: string; clearKey?: boolean } = {}) => {
+  const save = async (extra: { apiKey?: string; clearKey?: boolean; grokKey?: string; clearGrokKey?: boolean } = {}) => {
     setBusy(true);
     const r = await adminSaveGemini({ data: { ...s, ...extra } });
     setBusy(false);
     setKey("");
+    setGrokKey("");
     setMsg(r.ok ? tr("تم الحفظ.") : trv(r.message ?? tr("تعذّر الحفظ.")));
     if (r.ok) await load();
   };
   const test = async () => {
     setTestOut(tr("جاري الاختبار…"));
-    const r = await adminTestGemini({ data: { text: testText, lang: testLang } });
-    setTestOut(r.ok ? `${r.text}\n\n(${r.ms} ms)` : trv(r.message ?? tr("فشل الطلب.")));
+    const r = await adminTestGemini({ data: { text: testText, lang: testLang, provider: testProv } });
+    setTestOut(r.ok ? `${r.text}\n\n(${r.provider} · ${r.ms} ms)` : trv(r.message ?? tr("فشل الطلب.")));
     await load();
+  };
+  const mv = (i: number, d: number) => {
+    const o = [...s.order];
+    [o[i], o[i + d]] = [o[i + d], o[i]];
+    setS({ ...s, order: o });
   };
   const langs = getI18nState().langs;
   const modelList = models.includes(s.model) ? models : [s.model, ...models];
@@ -61,7 +73,7 @@ export function GeminiAdmin() {
   return (
     <div className="flex flex-col gap-4">
       <section className="stamp flex flex-col gap-3 p-4">
-        <h2 className="text-lg font-bold">{tr("إعدادات Gemini")}</h2>
+        <h2 className="text-lg font-bold">{tr("الذكاء الاصطناعي والترجمة")}</h2>
         <label className="flex items-center gap-2 font-bold">
           <input type="checkbox" checked={s.enabled} onChange={(e) => setS({ ...s, enabled: e.target.checked })} />
           {tr("تفعيل الترجمة بالذكاء الاصطناعي")}
@@ -103,8 +115,39 @@ export function GeminiAdmin() {
             ) : null}
           </div>
         </div>
+        <div className="flex flex-col gap-2 text-sm font-bold">
+          {tr("ترتيب مزودي الترجمة (عند الفشل يُستخدم التالي)")}
+          {s.order.map((p, i) => (
+            <div key={p} className="flex items-center gap-2 rounded-xl bg-surface p-2">
+              <input type="checkbox" checked={s.providers[p]} onChange={(e) => setS({ ...s, providers: { ...s.providers, [p]: e.target.checked } })} />
+              <span className="flex-1" dir="ltr">{i + 1}. {PNAME[p]}</span>
+              <button type="button" className="btn btn-ghost px-2" disabled={i === 0} onClick={() => mv(i, -1)}>↑</button>
+              <button type="button" className="btn btn-ghost px-2" disabled={i === s.order.length - 1} onClick={() => mv(i, 1)}>↓</button>
+            </div>
+          ))}
+        </div>
+        <label className="flex flex-col gap-1 text-sm font-bold">
+          {tr("نموذج Grok")}
+          <select className="field" value={s.grokModel} dir="ltr" onChange={(e) => setS({ ...s, grokModel: e.target.value })}>
+            {(grokModels.includes(s.grokModel) ? grokModels : [s.grokModel, ...grokModels]).map((m) => (
+              <option key={m} value={m}>{m}</option>
+            ))}
+          </select>
+        </label>
+        <div className="flex flex-col gap-1 text-sm font-bold">
+          {tr("مفتاح xAI (اختياري)")}
+          <p className="text-xs font-semibold text-muted">
+            {s.hasGrokOwnKey ? tr("يوجد مفتاح محفوظ ومشفّر.") : s.hasGrokEnvKey ? tr("يُستخدم المفتاح من إعدادات الخادم (XAI_API_KEY).") : tr("لا يوجد مفتاح.")}
+          </p>
+          <div className="flex gap-2">
+            <input className="field flex-1" type="password" autoComplete="off" dir="ltr" placeholder="xai-…" value={grokKey} onChange={(e) => setGrokKey(e.target.value)} />
+            {s.hasGrokOwnKey ? (
+              <button type="button" className="btn btn-ghost px-3" onClick={() => save({ clearGrokKey: true })}>{tr("حذف المفتاح")}</button>
+            ) : null}
+          </div>
+        </div>
         <div className="flex items-center gap-2">
-          <button type="button" className="btn" disabled={busy} onClick={() => save(key.trim() ? { apiKey: key } : {})}>{tr("حفظ")}</button>
+          <button type="button" className="btn" disabled={busy} onClick={() => save({ ...(key.trim() ? { apiKey: key } : {}), ...(grokKey.trim() ? { grokKey } : {}) })}>{tr("حفظ")}</button>
           {msg ? <p className="text-sm font-semibold" role="status">{trv(msg)}</p> : null}
         </div>
       </section>
@@ -117,6 +160,10 @@ export function GeminiAdmin() {
             {[...langs.map((l) => [l.code, l.name]), ...(langs.some((l) => l.code === "fr") ? [] : [["fr", "Français"]])].map(([c, n]) => (
               <option key={c} value={c}>{n}</option>
             ))}
+          </select>
+          <select className="field w-auto" dir="ltr" value={testProv} onChange={(e) => setTestProv(e.target.value as typeof testProv)}>
+            <option value="">{tr("السلسلة")}</option>
+            {s.order.map((p) => <option key={p} value={p}>{PNAME[p]}</option>)}
           </select>
           <button type="button" className="btn" onClick={test}>{tr("ترجم")}</button>
         </div>

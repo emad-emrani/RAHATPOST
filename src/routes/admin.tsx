@@ -91,7 +91,7 @@ const ALL_TABS: { key: Section; label: string; icon: LucideIcon }[] = [
   { key: "members", label: "الأعضاء والصلاحيات", icon: Users },
   { key: "settings", label: "إعدادات الموقع", icon: Settings },
   { key: "languages", label: "اللغات", icon: Globe },
-  { key: "gemini", label: "Gemini", icon: Sparkles },
+  { key: "gemini", label: "الذكاء الاصطناعي والترجمة", icon: Sparkles },
 ];
 
 function AdminMenu({

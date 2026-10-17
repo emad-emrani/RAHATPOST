@@ -159,6 +159,11 @@ export type GeminiPublic = {
   stylePrompt: string;
   hasOwnKey: boolean;
   hasEnvKey: boolean;
+  order: ("gemini" | "grok" | "mymemory")[];
+  providers: { gemini: boolean; grok: boolean; mymemory: boolean };
+  grokModel: string;
+  hasGrokOwnKey: boolean;
+  hasGrokEnvKey: boolean;
 };
 
 export type GeminiUsage = {
@@ -167,34 +172,38 @@ export type GeminiUsage = {
 };
 
 export const adminGetGemini = createServerFn({ method: "POST" }).handler(
-  async (): Promise<{ authed: boolean; settings?: GeminiPublic; usage?: GeminiUsage; models?: string[]; cache?: { lang: string; n: number }[] }> => {
+  async (): Promise<{ authed: boolean; settings?: GeminiPublic; usage?: GeminiUsage; models?: string[]; grokModels?: string[]; cache?: { lang: string; n: number }[] }> => {
     if (!(await staff())) return { authed: false };
     const g = await import("./gemini.server");
     const s = await g.loadGeminiSettings(true);
     const { getSql } = await import("@/lib/db");
     const sql = await getSql();
-    const [today, errors, cache, models] = await Promise.all([
+    const [today, errors, cache, models, grokModels] = await Promise.all([
       sql<{ kind: string; calls: number; cached: number; errors: number }>`
         select kind, calls, cached, errors from gemini_usage where day = (now() at time zone 'Asia/Jerusalem')::date order by kind`.catch(() => []),
       sql<{ at: string; kind: string; message: string }>`select at::text, kind, message from gemini_errors order by id desc limit 10`.catch(() => []),
       sql<{ lang: string; n: number }>`select lang, count(*)::int as n from content_translations group by lang order by lang`.catch(() => []),
       g.listGeminiModels(s),
+      g.listGrokModels(s),
     ]);
     return {
       authed: true,
       settings: {
         enabled: s.enabled, uses: s.uses, model: s.model, temperature: s.temperature, stylePrompt: s.stylePrompt,
         hasOwnKey: Boolean(s.apiKeyBox), hasEnvKey: Boolean(process.env.GEMINI_API_KEY?.trim()),
+        order: s.order, providers: s.providers, grokModel: s.grokModel,
+        hasGrokOwnKey: Boolean(s.grokKeyBox), hasGrokEnvKey: Boolean(process.env.XAI_API_KEY?.trim()),
       },
       usage: { today, errors },
       models,
+      grokModels,
       cache,
     };
   },
 );
 
 export const adminSaveGemini = createServerFn({ method: "POST" })
-  .inputValidator((v: unknown) => v as Partial<GeminiPublic> & { apiKey?: string; clearKey?: boolean })
+  .inputValidator((v: unknown) => v as Partial<GeminiPublic> & { apiKey?: string; clearKey?: boolean; grokKey?: string; clearGrokKey?: boolean })
   .handler(async ({ data }): Promise<{ ok: boolean; message?: string }> => {
     if (!(await staff())) return { ok: false, message: "غير مصرح." };
     const g = await import("./gemini.server");
@@ -210,7 +219,20 @@ export const adminSaveGemini = createServerFn({ method: "POST" })
       model: /^[\w.-]{3,80}$/.test(data.model ?? "") ? data.model! : cur.model,
       temperature: Math.min(2, Math.max(0, Number(data.temperature ?? cur.temperature) || 0)),
       stylePrompt: String(data.stylePrompt ?? cur.stylePrompt).slice(0, 2000) || g.DEFAULT_STYLE,
+      order: Array.isArray(data.order) && data.order.length === 3 && g.PROVIDERS.every((p) => data.order!.includes(p)) ? data.order : cur.order,
+      providers: {
+        gemini: data.providers?.gemini ?? cur.providers.gemini,
+        grok: data.providers?.grok ?? cur.providers.grok,
+        mymemory: data.providers?.mymemory ?? cur.providers.mymemory,
+      },
+      grokModel: /^[\w.-]{3,80}$/.test(data.grokModel ?? "") ? data.grokModel! : cur.grokModel,
     };
+    if (data.clearGrokKey) delete next.grokKeyBox;
+    if (data.grokKey?.trim()) {
+      const { canEncrypt, encryptSecret } = await import("@/lib/store/secrets.server");
+      if (!canEncrypt()) return { ok: false, message: "لا يمكن تشفير المفتاح على هذا الخادم." };
+      next.grokKeyBox = encryptSecret(data.grokKey.trim().slice(0, 300));
+    }
     if (data.clearKey) delete next.apiKeyBox;
     if (data.apiKey?.trim()) {
       const { canEncrypt, encryptSecret } = await import("@/lib/store/secrets.server");
@@ -222,19 +244,21 @@ export const adminSaveGemini = createServerFn({ method: "POST" })
   });
 
 export const adminTestGemini = createServerFn({ method: "POST" })
-  .inputValidator((v: unknown) => v as { text: string; lang: string })
-  .handler(async ({ data }): Promise<{ ok: boolean; text?: string; message?: string; ms?: number }> => {
+  .inputValidator((v: unknown) => v as { text: string; lang: string; provider?: "gemini" | "grok" | "mymemory" | "" })
+  .handler(async ({ data }): Promise<{ ok: boolean; text?: string; message?: string; ms?: number; provider?: string }> => {
     if (!(await staff())) return { ok: false, message: "غير مصرح." };
     const g = await import("./gemini.server");
     const s = await g.loadGeminiSettings(true);
-    if (!g.apiKeyOf(s)) return { ok: false, message: "لا يوجد مفتاح Gemini." };
+    const lang = String(data.lang).slice(0, 12);
     const t0 = Date.now();
-    const out = await g.geminiGenerate(
+    const out = await g.aiGenerate(
       s,
       "test",
-      `You are a professional translator. Translate the text into the language with code "${String(data.lang).slice(0, 12)}". ${s.stylePrompt}`,
+      `You are a professional translator. Translate the text into the language with code "${lang}". ${s.stylePrompt}`,
       String(data.text ?? "").slice(0, 4000),
-      { timeoutMs: 30_000 },
+      { timeoutMs: 30_000, pair: { from: "ar", to: lang }, ...(data.provider ? { only: data.provider } : {}) },
     );
-    return out ? { ok: true, text: out, ms: Date.now() - t0 } : { ok: false, message: "فشل الطلب. راجع آخر الأخطاء.", ms: Date.now() - t0 };
+    return out
+      ? { ok: true, text: out.text, provider: out.provider, ms: Date.now() - t0 }
+      : { ok: false, message: "فشل الطلب. راجع آخر الأخطاء.", ms: Date.now() - t0 };
   });
