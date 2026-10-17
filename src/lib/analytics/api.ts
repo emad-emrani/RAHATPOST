@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import type { GaDashboard } from "./ga.server";
+import type { GscDashboard } from "./gsc.server";
 import type { InternalStats } from "./internal.server";
 
 async function level(): Promise<"owner" | "moderator" | null> {
@@ -17,6 +18,8 @@ export type StatsResult = {
   ga: GaDashboard | null;
   gaConfigured: boolean;
   gaError: string;
+  gsc: GscDashboard | null;
+  gscError: string;
 };
 
 export const adminStats = createServerFn({ method: "POST" })
@@ -34,6 +37,8 @@ export const adminStats = createServerFn({ method: "POST" })
         ga: null,
         gaConfigured: false,
         gaError: "",
+        gsc: null,
+        gscError: "",
       };
     const { internalStats } = await import("./internal.server");
     const ga = await import("./ga.server");
@@ -47,6 +52,16 @@ export const adminStats = createServerFn({ method: "POST" })
         error instanceof ga.GaError ? error.message : "تعذّر جلب بيانات Google Analytics الآن.";
       if (!(error instanceof ga.GaError)) console.error("[stats] ga failed", error);
     }
+    let gsc: GscDashboard | null = null;
+    let gscError = "";
+    try {
+      const { gscDashboard } = await import("./gsc.server");
+      gsc = await gscDashboard(data.start, data.end);
+    } catch (error) {
+      gscError =
+        error instanceof ga.GaError ? error.message : "تعذّر جلب بيانات Search Console الآن.";
+      if (!(error instanceof ga.GaError)) console.error("[stats] gsc failed", error);
+    }
     const view = await ga.adminView();
     return {
       authed: true,
@@ -55,6 +70,8 @@ export const adminStats = createServerFn({ method: "POST" })
       ga: dash,
       gaConfigured: Boolean(view.propertyId && view.saSaved),
       gaError,
+      gsc,
+      gscError,
     };
   });
 
@@ -69,7 +86,9 @@ export const adminGetGaSettings = createServerFn({ method: "POST" }).handler(asy
 });
 
 export const adminSaveGaSettings = createServerFn({ method: "POST" })
-  .inputValidator((i: { propertyId?: string; saJson?: string; clearSa?: boolean }) => i)
+  .inputValidator(
+    (i: { propertyId?: string; saJson?: string; clearSa?: boolean; gscSite?: string }) => i,
+  )
   .handler(async ({ data }): Promise<{ ok: boolean; message: string }> => {
     if (!(await owner())) return { ok: false, message: "هذا القسم لمالك الموقع فقط." };
     try {

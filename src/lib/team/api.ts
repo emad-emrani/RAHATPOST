@@ -97,3 +97,81 @@ export const adminSetRole = createServerFn({ method: "POST" })
       return { ok: false };
     }
   });
+
+export type Invite = { email: string; role: TeamRole; createdAt: string };
+const EMAIL_RE = /^[^\s@<>"',;]+@[^\s@<>"',;]+\.[a-z]{2,}$/i;
+
+/** Owner only: pending invites. */
+export const adminListInvites = createServerFn({ method: "POST" }).handler(
+  async (): Promise<{ authed: boolean; items: Invite[] }> => {
+    const { isOwner } = await import("@/lib/admin-auth");
+    if (!(await isOwner())) return { authed: false, items: [] };
+    const { getSql } = await import("@/lib/db");
+    const sql = await getSql();
+    const rows = await sql<{ email: string; role: TeamRole; created_at: string | Date }>`
+      select email, role, created_at from admin_invites order by created_at desc limit 200`;
+    return {
+      authed: true,
+      items: rows.map((r) => ({
+        email: r.email,
+        role: r.role,
+        createdAt: new Date(r.created_at).toISOString(),
+      })),
+    };
+  },
+);
+
+/** Owner only: add a team member by email. Existing user → role now; otherwise a pending invite. */
+export const adminInviteByEmail = createServerFn({ method: "POST" })
+  .inputValidator((input: { email: string; role: TeamRole }) => ({
+    email: String(input?.email ?? "")
+      .trim()
+      .toLowerCase()
+      .slice(0, 254),
+    role: input?.role === "moderator" || input?.role === "writer" ? input.role : null,
+  }))
+  .handler(
+    async ({ data }): Promise<{ ok: boolean; result?: "assigned" | "invited"; error?: string }> => {
+      const { getAdminAccess } = await import("@/lib/admin-auth");
+      const me = await getAdminAccess();
+      if (me?.level !== "owner") return { ok: false, error: "هذا الإجراء لمالك الموقع فقط." };
+      if (!EMAIL_RE.test(data.email)) return { ok: false, error: "بريد إلكتروني غير صالح." };
+      if (!data.role) return { ok: false, error: "اختر الصلاحية." };
+      try {
+        const { getSql } = await import("@/lib/db");
+        const sql = await getSql();
+        const users = await sql<{ id: string }>`
+          select "id" as id from "user" where lower("email") = ${data.email} limit 1`;
+        if (users[0]) {
+          await sql`insert into admin_roles (user_id, role) values (${users[0].id}, ${data.role})
+            on conflict (user_id) do update set role = excluded.role`;
+          await sql`delete from admin_invites where email = ${data.email}`;
+          return { ok: true, result: "assigned" };
+        }
+        await sql`insert into admin_invites (email, role, invited_by)
+          values (${data.email}, ${data.role}, ${me.userId || "owner"})
+          on conflict (email) do update set role = excluded.role, created_at = now()`;
+        return { ok: true, result: "invited" };
+      } catch (error) {
+        console.error("[team] invite failed", error);
+        return { ok: false, error: "تعذّر الحفظ." };
+      }
+    },
+  );
+
+/** Owner only: cancel a pending invite. */
+export const adminCancelInvite = createServerFn({ method: "POST" })
+  .inputValidator((input: { email: string }) => ({
+    email: String(input?.email ?? "")
+      .trim()
+      .toLowerCase()
+      .slice(0, 254),
+  }))
+  .handler(async ({ data }): Promise<{ ok: boolean }> => {
+    const { isOwner } = await import("@/lib/admin-auth");
+    if (!(await isOwner()) || !data.email) return { ok: false };
+    const { getSql } = await import("@/lib/db");
+    const sql = await getSql();
+    await sql`delete from admin_invites where email = ${data.email}`;
+    return { ok: true };
+  });

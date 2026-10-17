@@ -21,7 +21,12 @@ export async function getAdminAccess(): Promise<AdminAccess> {
     const rows = await sql<{
       role: string;
     }>`select role from admin_roles where user_id = ${user.id}`;
-    const role = rows[0]?.role;
+    let role: string | undefined = rows[0]?.role;
+    if (!role) {
+      // Session predates the invite: apply it now.
+      const { applyInvite } = await import("@/lib/team/invites.server");
+      role = (await applyInvite(user.id)) ?? undefined;
+    }
     if (role === "moderator" || role === "writer")
       return { level: role, userId: user.id, name: user.name?.trim() || "عضو" };
   } catch (error) {

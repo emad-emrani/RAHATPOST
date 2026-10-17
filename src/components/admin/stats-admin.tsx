@@ -300,6 +300,8 @@ export function StatsAdmin() {
         </>
       ) : null}
 
+      <GscSection data={data} />
+
       {s ? (
         <>
           <Card title="بحاجة لمراجعة">
@@ -410,8 +412,10 @@ function GaSettings({ onSaved }: { onSaved: () => void }) {
     saSaved: boolean;
     saEmail: string;
     canEncrypt: boolean;
+    gscSite: string;
   } | null>(null);
   const [pid, setPid] = useState("");
+  const [site, setSite] = useState("");
   const [json, setJson] = useState("");
   const [msg, setMsg] = useState("");
   const refresh = useCallback(async () => {
@@ -419,13 +423,16 @@ function GaSettings({ onSaved }: { onSaved: () => void }) {
     if (r.authed) {
       setV(r);
       setPid(r.propertyId);
+      setSite(r.gscSite);
       setJson("");
     }
   }, []);
   useEffect(() => void refresh(), [refresh]);
   if (!v) return null;
   const save = async (clearSa = false) => {
-    const r = await adminSaveGaSettings({ data: { propertyId: pid, saJson: json, clearSa } });
+    const r = await adminSaveGaSettings({
+      data: { propertyId: pid, saJson: json, clearSa, gscSite: site },
+    });
     setMsg(r.message);
     if (r.ok) {
       await refresh();
@@ -448,6 +455,16 @@ function GaSettings({ onSaved }: { onSaved: () => void }) {
             placeholder="123456789"
             value={pid}
             onChange={(e) => setPid(e.target.value)}
+          />
+        </label>
+        <label className="font-bold">
+          موقع Search Console
+          <input
+            className="field mt-1"
+            dir="ltr"
+            placeholder="https://rahatpost.com/"
+            value={site}
+            onChange={(e) => setSite(e.target.value)}
           />
         </label>
         <label className="font-bold">
@@ -496,5 +513,206 @@ function GaSettings({ onSaved }: { onSaved: () => void }) {
         ) : null}
       </div>
     </Card>
+  );
+}
+
+const pct = (x: number) => `${(x * 100).toFixed(1)}%`;
+
+function GscTable({
+  rows,
+  label,
+}: {
+  rows: { key: string; clicks: number; impressions: number; ctr: number; position: number }[];
+  label: string;
+}) {
+  if (!rows.length) return <p className="font-semibold text-muted">لا بيانات بعد.</p>;
+  return (
+    <div className="-mx-4 overflow-x-auto px-4">
+      <table className="w-full min-w-[22rem] text-sm">
+        <thead>
+          <tr className="text-xs text-muted">
+            <th className="py-1 text-start">{label}</th>
+            <th className="px-1">نقرات</th>
+            <th className="px-1">ظهور</th>
+            <th className="px-1">CTR</th>
+            <th className="px-1">الترتيب</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r, i) => (
+            <tr key={i} className="border-t border-line font-semibold">
+              <td className="max-w-[12rem] truncate py-1.5" dir="auto" title={r.key}>
+                {r.key}
+              </td>
+              <td className="px-1 text-center" dir="ltr">
+                {num(r.clicks)}
+              </td>
+              <td className="px-1 text-center" dir="ltr">
+                {num(r.impressions)}
+              </td>
+              <td className="px-1 text-center" dir="ltr">
+                {pct(r.ctr)}
+              </td>
+              <td className="px-1 text-center" dir="ltr">
+                {r.position.toFixed(1)}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+const DEVICE: Record<string, string> = { MOBILE: "هاتف", DESKTOP: "كمبيوتر", TABLET: "جهاز لوحي" };
+
+/** Google Search Console (same service account, cached ~1h on the server). */
+function GscSection({ data }: { data: StatsResult }) {
+  const g = data.gsc;
+  if (data.gscError)
+    return (
+      <Card title="بحث Google (Search Console)">
+        <p className="font-bold text-red-700" dir="auto">
+          {data.gscError}
+        </p>
+        <ol className="mt-2 list-decimal space-y-1 ps-5 text-sm font-semibold">
+          <li>
+            فعّل «Google Search Console API»:{" "}
+            <a
+              className="break-all underline"
+              dir="ltr"
+              target="_blank"
+              rel="noopener noreferrer"
+              href="https://console.developers.google.com/apis/api/searchconsole.googleapis.com/overview?project=195064417132"
+            >
+              console.developers.google.com/…/searchconsole
+            </a>
+          </li>
+          <li>
+            في Search Console ← «الإعدادات» ← «المستخدمون والأذونات» ← «إضافة مستخدم»: أضف{" "}
+            <b dir="ltr">rahatpost-stats@rahatpost.iam.gserviceaccount.com</b> بإذن «مقيّد».
+          </li>
+          <li>انتظر بضع دقائق ثم اضغط زر التحديث.</li>
+        </ol>
+      </Card>
+    );
+  if (!g)
+    return (
+      <Card title="بحث Google (Search Console)">
+        <p className="font-semibold text-muted">
+          أضف مفتاح حساب الخدمة في إعدادات Google Analytics أدناه لعرض بيانات البحث.
+        </p>
+      </Card>
+    );
+  return (
+    <>
+      <Card title="بحث Google (Search Console)">
+        <p className="mb-2 text-xs font-semibold text-muted" dir="ltr">
+          {g.site} · {g.range.start} → {g.range.end}
+        </p>
+        <div className="mb-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <Stat label="النقرات" value={num(g.totals.clicks)} />
+          <Stat label="مرات الظهور" value={num(g.totals.impressions)} />
+          <Stat label="نسبة النقر CTR" value={pct(g.totals.ctr)} />
+          <Stat
+            label="متوسط الترتيب"
+            value={g.totals.position ? g.totals.position.toFixed(1) : "—"}
+          />
+        </div>
+        {g.series.length ? (
+          <div className="h-56" dir="ltr">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={g.series} margin={{ left: -20, right: 8, top: 8 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                <XAxis dataKey="date" tickFormatter={(d: string) => d.slice(5)} fontSize={11} />
+                <YAxis fontSize={11} allowDecimals={false} />
+                <Tooltip />
+                <Legend />
+                <Line
+                  type="monotone"
+                  dataKey="clicks"
+                  name="نقرات"
+                  stroke="#b45309"
+                  strokeWidth={2}
+                  dot={false}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="impressions"
+                  name="ظهور"
+                  stroke="#263238"
+                  strokeWidth={2}
+                  dot={false}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        ) : (
+          <p className="font-semibold text-muted">
+            لا بيانات بحث بعد. تظهر عادةً بعد يومين إلى ثلاثة من التحقق من الموقع.
+          </p>
+        )}
+      </Card>
+      <Card title="أكثر عبارات البحث">
+        <GscTable rows={g.queries} label="العبارة" />
+      </Card>
+      <Card title="الصفحات في نتائج البحث">
+        <GscTable rows={g.pages} label="الصفحة" />
+      </Card>
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card title="الدول (بحث)">
+          <GscTable
+            rows={g.countries.map((r) => ({ ...r, key: r.key.toUpperCase() }))}
+            label="الدولة"
+          />
+        </Card>
+        <Card title="الأجهزة (بحث)">
+          <GscTable
+            rows={g.devices.map((r) => ({ ...r, key: DEVICE[r.key] ?? r.key }))}
+            label="الجهاز"
+          />
+        </Card>
+      </div>
+      <Card title="خرائط الموقع (Sitemaps)">
+        {g.sitemaps.length ? (
+          <ul className="flex flex-col gap-2 text-sm font-semibold">
+            {g.sitemaps.map((m) => (
+              <li key={m.path} className="rounded-xl bg-surface p-3">
+                <p className="break-all font-bold" dir="ltr">
+                  {m.path}
+                </p>
+                <p>
+                  {m.pending ? "قيد المعالجة · " : ""}روابط مُرسلة: {num(m.submitted)} · أخطاء:{" "}
+                  {num(m.errors)} · تحذيرات: {num(m.warnings)}
+                </p>
+                <p className="text-xs text-muted">
+                  آخر إرسال:{" "}
+                  {m.lastSubmitted
+                    ? new Date(m.lastSubmitted).toLocaleString("ar-u-nu-latn", {
+                        timeZone: "Asia/Jerusalem",
+                      })
+                    : "—"}{" "}
+                  · آخر قراءة من Google:{" "}
+                  {m.lastDownloaded
+                    ? new Date(m.lastDownloaded).toLocaleString("ar-u-nu-latn", {
+                        timeZone: "Asia/Jerusalem",
+                      })
+                    : "—"}
+                </p>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="font-semibold text-muted">
+            لم تُرسل خريطة موقع بعد. أرسل https://rahatpost.com/sitemap.xml من Search Console ←
+            «خرائط الموقع».
+          </p>
+        )}
+      </Card>
+      <p className="text-xs font-semibold text-muted">
+        المصدر: Google Search Console · تُحدَّث كل ساعة تقريباً (آخر جلب:{" "}
+        {new Date(g.fetchedAt).toLocaleTimeString("ar-u-nu-latn", { timeZone: "Asia/Jerusalem" })})
+      </p>
+    </>
   );
 }

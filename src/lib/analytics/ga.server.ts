@@ -7,7 +7,7 @@ import { canEncrypt, decryptSecret, encryptSecret } from "@/lib/store/secrets.se
  * access token (scope analytics.readonly). Credentials live in analytics_settings, the JSON key
  * AES-GCM encrypted; GA4_PROPERTY_ID / GA4_SERVICE_ACCOUNT_JSON env vars override.
  */
-type Stored = { propertyId: string; saJson?: string; saEmail?: string };
+type Stored = { propertyId: string; saJson?: string; saEmail?: string; gscSite?: string };
 type ServiceAccount = { client_email: string; private_key: string; token_uri?: string };
 
 async function load(): Promise<Stored> {
@@ -22,6 +22,7 @@ export async function adminView() {
     propertyId: process.env.GA4_PROPERTY_ID?.trim() || s.propertyId,
     saSaved: Boolean(s.saJson) || Boolean(process.env.GA4_SERVICE_ACCOUNT_JSON?.trim()),
     saEmail: s.saEmail ?? "",
+    gscSite: s.gscSite || DEFAULT_GSC_SITE,
     canEncrypt: canEncrypt(),
   };
 }
@@ -45,16 +46,25 @@ export function parseServiceAccount(text: string): ServiceAccount | string {
   return { client_email: j.client_email, private_key: j.private_key };
 }
 
+export const DEFAULT_GSC_SITE = "https://rahatpost.com/";
+
 export async function saveSettings(input: {
   propertyId?: unknown;
   saJson?: unknown;
   clearSa?: unknown;
+  gscSite?: unknown;
 }) {
   const s = await load();
   const pid = String(input.propertyId ?? "").trim();
   if (pid && !/^\d{5,15}$/.test(pid))
     throw new Error("معرّف الموقع (Property ID) أرقام فقط، مثل 123456789.");
   s.propertyId = pid;
+  if (input.gscSite !== undefined) {
+    const site = String(input.gscSite ?? "").trim();
+    if (site && !/^(https:\/\/[a-z0-9.-]+\/|sc-domain:[a-z0-9.-]+)$/i.test(site))
+      throw new Error("رابط Search Console مثل https://rahatpost.com/ أو sc-domain:rahatpost.com");
+    s.gscSite = site || DEFAULT_GSC_SITE;
+  }
   const raw = typeof input.saJson === "string" ? input.saJson.trim() : "";
   if (raw) {
     if (raw.length > 10_000) throw new Error("الملف كبير جداً.");
@@ -71,7 +81,18 @@ export async function saveSettings(input: {
   await sql`insert into analytics_settings (id, data) values (1, ${JSON.stringify(s)}::jsonb)
     on conflict (id) do update set data = excluded.data, updated_at = now()`;
   cache.clear();
-  token = null;
+  tokens.clear();
+  const { clearGscCache } = await import("./gsc.server");
+  clearGscCache();
+}
+
+/** Service account (env override, else the saved encrypted key) + Search Console site. */
+export async function serviceAccount(): Promise<{ sa: ServiceAccount; gscSite: string } | null> {
+  const s = await load();
+  const json = process.env.GA4_SERVICE_ACCOUNT_JSON?.trim() || decryptSecret(s.saJson);
+  if (!json) return null;
+  const sa = parseServiceAccount(json);
+  return typeof sa === "string" ? null : { sa, gscSite: s.gscSite || DEFAULT_GSC_SITE };
 }
 
 async function credentials(): Promise<{ propertyId: string; sa: ServiceAccount } | null> {
@@ -83,17 +104,19 @@ async function credentials(): Promise<{ propertyId: string; sa: ServiceAccount }
   return typeof sa === "string" ? null : { propertyId, sa };
 }
 
-let token: { value: string; exp: number; email: string } | null = null;
+const tokens = new Map<string, { value: string; exp: number }>();
+const GA_SCOPE = "https://www.googleapis.com/auth/analytics.readonly";
 
-async function accessToken(sa: ServiceAccount): Promise<string> {
-  if (token && token.email === sa.client_email && token.exp > Date.now() + 60_000)
-    return token.value;
+export async function accessToken(sa: ServiceAccount, scope = GA_SCOPE): Promise<string> {
+  const key = `${sa.client_email} ${scope}`;
+  const hit = tokens.get(key);
+  if (hit && hit.exp > Date.now() + 60_000) return hit.value;
   const now = Math.floor(Date.now() / 1000);
   const b64 = (o: unknown) => Buffer.from(JSON.stringify(o)).toString("base64url");
   const head = b64({ alg: "RS256", typ: "JWT" });
   const claim = b64({
     iss: sa.client_email,
-    scope: "https://www.googleapis.com/auth/analytics.readonly",
+    scope,
     aud: "https://oauth2.googleapis.com/token",
     iat: now,
     exp: now + 3600,
@@ -118,12 +141,8 @@ async function accessToken(sa: ServiceAccount): Promise<string> {
   };
   if (!res.ok || !j.access_token)
     throw new GaError(`تعذّر تسجيل دخول حساب الخدمة: ${j.error_description ?? res.status}`);
-  token = {
-    value: j.access_token,
-    exp: Date.now() + (j.expires_in ?? 3600) * 1000,
-    email: sa.client_email,
-  };
-  return token.value;
+  tokens.set(key, { value: j.access_token, exp: Date.now() + (j.expires_in ?? 3600) * 1000 });
+  return j.access_token;
 }
 
 export class GaError extends Error {}

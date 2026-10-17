@@ -132,5 +132,16 @@ export const auth = betterAuth({
   // Store app (Capacitor): Google refuses sign-in inside an embedded WebView, so the app signs in
   // in the system browser and hands the session back with a short-lived, single-use token
   // (see src/lib/auth/native.ts and /app-auth/*).
+  // Pending team invites (admin_invites) take effect as soon as that verified email signs in.
+  databaseHooks: {
+    session: {
+      create: {
+        after: async (session) => {
+          const { applyInvite } = await import("@/lib/team/invites.server");
+          await applyInvite(session.userId);
+        },
+      },
+    },
+  },
   plugins: [oneTimeToken({ expiresIn: 3, storeToken: "hashed" })],
 });
