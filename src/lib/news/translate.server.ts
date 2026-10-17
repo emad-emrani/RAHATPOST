@@ -1,7 +1,8 @@
 /**
  * Hebrew → Arabic machine translation for Israel news headlines/excerpts.
  *
- * Provider: MyMemory (https://mymemory.translated.net) — an official, free, documented API from
+ * Primary provider: Google Gemini (GEMINI_API_KEY, model GEMINI_MODEL, default gemini-3.8-flash).
+ * Fallback provider: MyMemory (https://mymemory.translated.net) — an official, free, documented API from
  * Translated; no account or key needed. Anonymous use is limited to ~5,000 characters/day per
  * server IP; setting MYMEMORY_EMAIL (a contact email, the documented `de` parameter) raises it to
  * ~50,000/day. Set TRANSLATE_PROVIDER=off to disable translation (Hebrew is shown as-is).
@@ -11,9 +12,15 @@
  * until the next day and show Hebrew in the meantime.
  */
 
-type Translation = { title?: string; summary?: string };
+type Translation = { title?: string; summary?: string; provider?: string };
 
-const PROVIDER = "mymemory";
+const GEMINI_MODEL = process.env.GEMINI_MODEL?.trim() || "gemini-3.8-flash";
+const GEMINI_TIMEOUT_MS = 15_000;
+const GEMINI_PROMPT =
+  "أنت مترجم أخبار محترف. ترجم النص العبري التالي إلى العربية الفصحى بأسلوب إخباري واضح وطبيعي. " +
+  "حافظ على أسماء الأشخاص والأماكن والمؤسسات بصيغتها العربية المتعارف عليها (مثل: القدس، تل أبيب، رهط، النقب). " +
+  "أعد الترجمة فقط دون أي شرح أو علامات تنصيص أو مقدمة.";
+const hasGemini = () => Boolean(process.env.GEMINI_API_KEY?.trim());
 const ENDPOINT = "https://api.mymemory.translated.net/get";
 const TIMEOUT_MS = 6_000;
 /** MyMemory accepts at most 500 bytes per query; Hebrew is 2 bytes per letter in UTF-8. */
@@ -41,12 +48,13 @@ export async function getCachedTranslations(ids: string[]): Promise<Map<string, 
     try {
       const { getSql } = await import("@/lib/db");
       const sql = await getSql();
-      const rows = await sql<{ id: string; title_ar: string | null; summary_ar: string | null }>`
-        select id, title_ar, summary_ar from news_translations where id = any(${missing})`;
+      const rows = await sql<{ id: string; title_ar: string | null; summary_ar: string | null; provider: string | null }>`
+        select id, title_ar, summary_ar, provider from news_translations where id = any(${missing})`;
       for (const row of rows) {
         const t: Translation = {
           ...(row.title_ar ? { title: row.title_ar } : {}),
           ...(row.summary_ar ? { summary: row.summary_ar } : {}),
+          provider: row.provider ?? undefined,
         };
         memory.set(row.id, t);
         out.set(row.id, t);
@@ -71,6 +79,8 @@ export async function translateMissing(jobs: TranslateJob[], budgetMs: number): 
   const cached = await getCachedTranslations(jobs.map((j) => j.id));
   const todo = jobs.filter((job) => {
     const t = cached.get(job.id);
+    // Upgrade older machine translations (MyMemory) to Gemini when a key is configured.
+    if (t && hasGemini() && t.provider !== "gemini") return true;
     return !t?.title || (job.summary && !t.summary);
   });
   if (todo.length === 0) return;
@@ -83,7 +93,9 @@ export async function translateMissing(jobs: TranslateJob[], budgetMs: number): 
         await inflight.get(job.id);
         continue;
       }
-      const run = translateJob(job, cached.get(job.id) ?? {}).finally(() =>
+      const prev = cached.get(job.id);
+      const have = prev && hasGemini() && prev.provider !== "gemini" ? {} : (prev ?? {});
+      const run = translateJob(job, have).finally(() =>
         inflight.delete(job.id),
       );
       inflight.set(job.id, run);
@@ -99,11 +111,20 @@ export async function translateMissing(jobs: TranslateJob[], budgetMs: number): 
 const inflight = new Map<string, Promise<void>>();
 
 async function translateJob(job: TranslateJob, have: Translation): Promise<void> {
-  const title = have.title ?? (await translateText(clip(job.title)));
-  const summary =
-    have.summary ?? (job.summary ? await translateText(clip(job.summary)) : undefined);
+  let provider = have.provider ?? "mymemory";
+  const one = async (text: string) => {
+    const r = await translateText(text);
+    if (r) provider = r.provider;
+    return r?.text;
+  };
+  const title = have.title ?? (await one(job.title));
+  const summary = have.summary ?? (job.summary ? await one(job.summary) : undefined);
   if (!title && !summary) return;
-  const t: Translation = { ...(title ? { title } : {}), ...(summary ? { summary } : {}) };
+  const t: Translation = {
+    ...(title ? { title } : {}),
+    ...(summary ? { summary } : {}),
+    provider,
+  };
   memory.set(job.id, t);
   if (memory.size > 2_000)
     for (const key of [...memory.keys()].slice(0, memory.size - 1_500)) memory.delete(key);
@@ -113,17 +134,88 @@ async function translateJob(job: TranslateJob, have: Translation): Promise<void>
     const sql = await getSql();
     await sql`
       insert into news_translations (id, title_ar, summary_ar, provider)
-      values (${job.id}, ${t.title ?? null}, ${t.summary ?? null}, ${PROVIDER})
+      values (${job.id}, ${t.title ?? null}, ${t.summary ?? null}, ${provider})
       on conflict (id) do update set
-        title_ar = coalesce(news_translations.title_ar, excluded.title_ar),
-        summary_ar = coalesce(news_translations.summary_ar, excluded.summary_ar),
+        title_ar = case when excluded.provider = 'gemini' then coalesce(excluded.title_ar, news_translations.title_ar)
+                   else coalesce(news_translations.title_ar, excluded.title_ar) end,
+        summary_ar = case when excluded.provider = 'gemini' then coalesce(excluded.summary_ar, news_translations.summary_ar)
+                     else coalesce(news_translations.summary_ar, excluded.summary_ar) end,
+        provider = excluded.provider,
         updated_at = now()`;
   } catch (error) {
     console.error("[translate] cache write failed", error);
   }
 }
 
-async function translateText(text: string): Promise<string | undefined> {
+async function translateText(
+  text: string,
+): Promise<{ text: string; provider: string } | undefined> {
+  if (hasGemini() && Date.now() >= geminiPausedUntil) {
+    const g = await translateGemini(text);
+    if (g) return { text: g, provider: "gemini" };
+  }
+  const m = await translateMyMemory(clip(text));
+  return m ? { text: m, provider: "mymemory" } : undefined;
+}
+
+let geminiPausedUntil = 0;
+
+function looksArabic(out: string): boolean {
+  const arabic = (out.match(/[\u0600-\u06FF]/g) ?? []).length;
+  const hebrew = (out.match(/[\u0590-\u05FF]/g) ?? []).length;
+  return arabic >= 3 && hebrew <= arabic / 4 && !/<[a-z]/i.test(out);
+}
+
+async function translateGemini(text: string): Promise<string | undefined> {
+  const q = text.trim().slice(0, 4_000);
+  if (!q) return undefined;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), GEMINI_TIMEOUT_MS);
+  try {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`,
+      {
+        method: "POST",
+        signal: controller.signal,
+        headers: {
+          "content-type": "application/json",
+          "x-goog-api-key": process.env.GEMINI_API_KEY!.trim(),
+        },
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: GEMINI_PROMPT }] },
+          contents: [{ role: "user", parts: [{ text: q }] }],
+          generationConfig: { temperature: 0.2 },
+        }),
+      },
+    );
+    if (res.status === 429) {
+      geminiPausedUntil = Date.now() + 10 * 60_000;
+      console.warn("[translate] Gemini rate limited; falling back to MyMemory for 10 min");
+      return undefined;
+    }
+    if (!res.ok) {
+      console.warn("[translate] Gemini error", res.status);
+      return undefined;
+    }
+    const data = (await res.json()) as {
+      candidates?: { content?: { parts?: { text?: string; thought?: boolean }[] } }[];
+    };
+    const out = (data.candidates?.[0]?.content?.parts ?? [])
+      .filter((p) => !p.thought && p.text)
+      .map((p) => p.text)
+      .join("")
+      .trim()
+      .replace(/^["«“]+|["»”]+$/g, "")
+      .trim();
+    return out && looksArabic(out) ? out : undefined;
+  } catch {
+    return undefined;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function translateMyMemory(text: string): Promise<string | undefined> {
   const q = text.trim();
   if (!q || translationMode() !== "on") return undefined;
   const params = new URLSearchParams({ q, langpair: "he|ar" });
