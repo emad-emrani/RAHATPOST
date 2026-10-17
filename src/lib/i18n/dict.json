@@ -1484,6 +1484,10 @@
   "en": "Name is too short.",
   "he": "השם קצר מדי."
  },
+ "الافتراضي: صورة بهوية رهط بوست (العنوان والشعار). عند التفعيل تُولَّد رسمة توضيحية عامة (بلا نصوص ولا وجوه حقيقية) في الخلفية، وعند أي خطأ تبقى الصورة الافتراضية.": {
+  "en": "Default: a branded Rahat Post image (headline and logo). When enabled, a generic illustration (no text, no real faces) is generated in the background; on any error the default image stays.",
+  "he": "ברירת המחדל: תמונה ממותגת של רהט פוסט (כותרת ולוגו). כשמופעל, נוצר ברקע איור כללי (ללא טקסט וללא פנים אמיתיות); בכל שגיאה נשארת תמונת ברירת המחדל."
+ },
  "الافتراضية": {
   "en": "Default",
   "he": "ברירת מחדל"
@@ -1637,6 +1641,10 @@
  "الجهاز": {
   "en": "Device",
   "he": "מכשיר"
+ },
+ "الحد اليومي للصور": {
+  "en": "Daily image cap",
+  "he": "מכסה יומית לתמונות"
  },
  "الحساب": {
   "en": "Account",
@@ -2991,6 +2999,10 @@
   "en": "Enable online payment",
   "he": "הפעל תשלום מקוון"
  },
+ "تفعيل صور الذكاء الاصطناعي": {
+  "en": "Enable AI images",
+  "he": "הפעלת תמונות AI"
+ },
  "تفو": {},
  "تقنية": {
   "en": "Tech",
@@ -4107,6 +4119,10 @@
  "صور الإعلان": {
   "en": "Ad photos",
   "he": "תמונות המודעה"
+ },
+ "صور الذكاء الاصطناعي للأخبار بلا صور": {
+  "en": "AI images for items without images",
+  "he": "תמונות AI לכתבות ללא תמונה"
  },
  "صورة (اختياري)": {
   "en": "Image (optional)",

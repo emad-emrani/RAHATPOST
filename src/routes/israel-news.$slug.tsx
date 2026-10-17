@@ -3,6 +3,7 @@ import { ExternalLink } from "lucide-react";
 import { Comments } from "@/components/comments";
 import { Shell } from "@/components/shell";
 import { NewsImage } from "@/components/news-image";
+import { newsCardUrl } from "@/lib/news/card-url";
 import {
   IsraelNewsUnavailable,
   IsraelTitle,
@@ -41,7 +42,7 @@ export const Route = createFileRoute("/israel-news/$slug")({
         : tr("هذا الخبر لم يعد ضمن آخر أخبار إسرائيل."),
       path,
       type: "article",
-      image: a?.image,
+      image: a ? (a.image ?? newsCardUrl({ title: a.titleAr ?? a.titleHe, category: a.category, source: a.source })) : undefined,
       publishedTime: a?.publishedAt,
       // Machine-translated headline + excerpt of another outlet's story: not indexed (thin /
       // duplicate), links followed. The /israel-news list stays indexable.

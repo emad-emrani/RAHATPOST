@@ -164,6 +164,7 @@ export type GeminiPublic = {
   grokModel: string;
   hasGrokOwnKey: boolean;
   hasGrokEnvKey: boolean;
+  aiImages: { enabled: boolean; provider: "gemini" | "grok"; dailyCap: number };
 };
 
 export type GeminiUsage = {
@@ -191,7 +192,7 @@ export const adminGetGemini = createServerFn({ method: "POST" }).handler(
       settings: {
         enabled: s.enabled, uses: s.uses, model: s.model, temperature: s.temperature, stylePrompt: s.stylePrompt,
         hasOwnKey: Boolean(s.apiKeyBox), hasEnvKey: Boolean(process.env.GEMINI_API_KEY?.trim()),
-        order: s.order, providers: s.providers, grokModel: s.grokModel,
+        order: s.order, providers: s.providers, grokModel: s.grokModel, aiImages: s.aiImages,
         hasGrokOwnKey: Boolean(s.grokKeyBox), hasGrokEnvKey: Boolean(process.env.XAI_API_KEY?.trim()),
       },
       usage: { today, errors },
@@ -226,6 +227,13 @@ export const adminSaveGemini = createServerFn({ method: "POST" })
         mymemory: data.providers?.mymemory ?? cur.providers.mymemory,
       },
       grokModel: /^[\w.-]{3,80}$/.test(data.grokModel ?? "") ? data.grokModel! : cur.grokModel,
+      aiImages: data.aiImages
+        ? {
+            enabled: Boolean(data.aiImages.enabled),
+            provider: (data.aiImages.provider === "grok" ? "grok" : "gemini") as "gemini" | "grok",
+            dailyCap: Math.max(0, Math.min(500, Math.round(Number(data.aiImages.dailyCap) || 0))),
+          }
+        : cur.aiImages,
     };
     if (data.clearGrokKey) delete next.grokKeyBox;
     if (data.grokKey?.trim()) {

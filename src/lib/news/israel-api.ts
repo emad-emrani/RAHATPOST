@@ -23,7 +23,8 @@ export const getIsraelNews = createServerFn({ method: "GET" }).handler(
     const { applyIsrael, loadOverrides } = await import("./overrides.server");
     const [raw, overrides] = await Promise.all([loadIsraelNews(), loadOverrides()]);
     const loaded = { ...raw, items: applyIsrael(raw.items, overrides) };
-    const result = { ...loaded, items: await withCommentCounts(loaded.items, "israel-news") };
+    const { applyAiImages } = await import("./ai-images.server");
+    const result = { ...loaded, items: await applyAiImages(await withCommentCounts(loaded.items, "israel-news")) };
     await cacheHeaders(result.items.length > 0);
     return result;
   },

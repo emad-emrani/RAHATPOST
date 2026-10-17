@@ -4,6 +4,7 @@ import { Comments } from "@/components/comments";
 import { Shell } from "@/components/shell";
 import { NewsUnavailable } from "@/components/news";
 import { NewsImage } from "@/components/news-image";
+import { newsCardUrl } from "@/lib/news/card-url";
 import { getNews, getTechNews } from "@/lib/news/api";
 import { relativeTimeAr, useNow } from "@/lib/news/format";
 import type { NewsItem } from "@/lib/news/types";
@@ -51,7 +52,7 @@ export const Route = createFileRoute("/news/$slug")({
       description,
       path,
       type: "article",
-      image: a.image,
+      image: a.image ?? newsCardUrl(a),
       publishedTime: a.publishedAt,
       // Feed items are a headline + excerpt linking to the publisher (the original is the
       // canonical source), so keep them out of the index but let crawlers follow the links.

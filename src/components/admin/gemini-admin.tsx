@@ -153,6 +153,31 @@ export function GeminiAdmin() {
       </section>
 
       <section className="stamp flex flex-col gap-3 p-4">
+        <h2 className="text-lg font-bold">{tr("صور الذكاء الاصطناعي للأخبار بلا صور")}</h2>
+        <p className="text-sm font-semibold text-muted">
+          {tr("الافتراضي: صورة بهوية رهط بوست (العنوان والشعار). عند التفعيل تُولَّد رسمة توضيحية عامة (بلا نصوص ولا وجوه حقيقية) في الخلفية، وعند أي خطأ تبقى الصورة الافتراضية.")}
+        </p>
+        <label className="flex items-center gap-2 font-bold">
+          <input type="checkbox" checked={s.aiImages.enabled} onChange={(e) => setS({ ...s, aiImages: { ...s.aiImages, enabled: e.target.checked } })} />
+          {tr("تفعيل صور الذكاء الاصطناعي")}
+        </label>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="flex flex-col gap-1 text-sm font-bold">
+            {tr("المزوّد")}
+            <select className="field" dir="ltr" value={s.aiImages.provider} onChange={(e) => setS({ ...s, aiImages: { ...s.aiImages, provider: e.target.value as "gemini" | "grok" } })}>
+              <option value="gemini">Gemini (image)</option>
+              <option value="grok">Grok (xAI image)</option>
+            </select>
+          </label>
+          <label className="flex flex-col gap-1 text-sm font-bold">
+            {tr("الحد اليومي للصور")}
+            <input className="field" type="number" min={0} max={500} value={s.aiImages.dailyCap} onChange={(e) => setS({ ...s, aiImages: { ...s.aiImages, dailyCap: Number(e.target.value) } })} />
+          </label>
+        </div>
+        <button type="button" className="btn self-start" disabled={busy} onClick={() => save()}>{tr("حفظ")}</button>
+      </section>
+
+      <section className="stamp flex flex-col gap-3 p-4">
         <h2 className="text-lg font-bold">{tr("تجربة")}</h2>
         <textarea className="field min-h-20" dir="auto" value={testText} onChange={(e) => setTestText(e.target.value)} />
         <div className="flex gap-2">

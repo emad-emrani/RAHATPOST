@@ -21,6 +21,7 @@ export function imageItem(item: IsraelNewsItem) {
     thumb: item.thumb,
     title: item.titleAr ?? item.titleHe,
     category: item.category,
+    source: item.source,
   };
 }
 

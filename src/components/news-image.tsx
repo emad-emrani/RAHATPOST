@@ -2,9 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import { CategoryIcon } from "@/components/category-icon";
 import type { NewsItem } from "@/lib/news/types";
 import { trv } from "@/lib/i18n/core";
+import { newsCardUrl } from "@/lib/news/card-url";
 
 type Props = {
-  item: Pick<NewsItem, "image" | "thumb" | "title" | "category">;
+  item: Pick<NewsItem, "image" | "thumb" | "title" | "category"> & { source?: string };
   /** "thumb" uses the small rendition when there is one. */
   size?: "thumb" | "full";
   /** Sizing/shape classes for the frame; the frame fixes the box so nothing shifts while loading. */
@@ -26,7 +27,8 @@ export function NewsImage({
   iconClassName = "size-6",
   eager = false,
 }: Props) {
-  const src = size === "thumb" ? (item.thumb ?? item.image) : item.image;
+  // No publisher photo: the branded card (headline + section + logo) from /api/news-image.
+  const src = (size === "thumb" ? (item.thumb ?? item.image) : item.image) || newsCardUrl(item);
   const [failed, setFailed] = useState(false);
   const ref = useRef<HTMLImageElement>(null);
 

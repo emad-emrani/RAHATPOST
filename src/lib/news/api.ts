@@ -83,9 +83,10 @@ export const getNews = createServerFn({ method: "GET" }).handler(
           ),
         }
       : feed;
+    const { applyAiImages } = await import("./ai-images.server");
     const result: NewsFeedResult = {
       ...merged,
-      items: await withCommentCounts(merged.items, "news"),
+      items: await applyAiImages(await withCommentCounts(merged.items, "news")),
     };
     try {
       setResponseHeader(
@@ -108,7 +109,8 @@ export const getTechNews = createServerFn({ method: "GET" }).handler(
     const { sectionConfig } = await import("./feed-config.server");
     const { withCommentCounts } = await import("@/lib/comments/counts.server");
     const [feed, cfg] = await Promise.all([loadTechNews(), sectionConfig("tech")]);
-    const items = await withCommentCounts(feed.items, "news");
+    const { applyAiImages } = await import("./ai-images.server");
+    const items = await applyAiImages(await withCommentCounts(feed.items, "news"));
     try {
       const { setResponseHeader } = await import("@tanstack/react-start/server");
       setResponseHeader("Cache-Control", items.length ? "public, max-age=0, s-maxage=60, stale-while-revalidate=180" : "public, max-age=0, s-maxage=30");

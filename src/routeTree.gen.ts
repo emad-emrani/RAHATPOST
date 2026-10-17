@@ -30,6 +30,7 @@ import { Route as DotwellKnownAssetlinksDotjsonRouteImport } from './routes/[.]w
 import { Route as AdsIndexRouteImport } from './routes/ads.index'
 import { Route as AdsIdRouteImport } from './routes/ads.$id'
 import { Route as ApiMediaRouteImport } from './routes/api/media'
+import { Route as ApiNewsImageRouteImport } from './routes/api/news-image'
 import { Route as AppAuthDoneRouteImport } from './routes/app-auth.done'
 import { Route as AppAuthFinishRouteImport } from './routes/app-auth.finish'
 import { Route as AppAuthStartRouteImport } from './routes/app-auth.start'
@@ -157,6 +158,11 @@ const ApiMediaRoute = ApiMediaRouteImport.update({
   path: '/api/media',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiNewsImageRoute = ApiNewsImageRouteImport.update({
+  id: '/api/news-image',
+  path: '/api/news-image',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AppAuthDoneRoute = AppAuthDoneRouteImport.update({
   id: '/app-auth/done',
   path: '/app-auth/done',
@@ -274,6 +280,7 @@ export interface FileRoutesByFullPath {
   '/.well-known/assetlinks.json': typeof DotwellKnownAssetlinksDotjsonRoute
   '/ads/$id': typeof AdsIdRoute
   '/api/media': typeof ApiMediaRoute
+  '/api/news-image': typeof ApiNewsImageRoute
   '/app-auth/done': typeof AppAuthDoneRoute
   '/app-auth/finish': typeof AppAuthFinishRoute
   '/app-auth/start': typeof AppAuthStartRoute
@@ -316,6 +323,7 @@ export interface FileRoutesByTo {
   '/.well-known/assetlinks.json': typeof DotwellKnownAssetlinksDotjsonRoute
   '/ads/$id': typeof AdsIdRoute
   '/api/media': typeof ApiMediaRoute
+  '/api/news-image': typeof ApiNewsImageRoute
   '/app-auth/done': typeof AppAuthDoneRoute
   '/app-auth/finish': typeof AppAuthFinishRoute
   '/app-auth/start': typeof AppAuthStartRoute
@@ -359,6 +367,7 @@ export interface FileRoutesById {
   '/.well-known/assetlinks.json': typeof DotwellKnownAssetlinksDotjsonRoute
   '/ads/$id': typeof AdsIdRoute
   '/api/media': typeof ApiMediaRoute
+  '/api/news-image': typeof ApiNewsImageRoute
   '/app-auth/done': typeof AppAuthDoneRoute
   '/app-auth/finish': typeof AppAuthFinishRoute
   '/app-auth/start': typeof AppAuthStartRoute
@@ -403,6 +412,7 @@ export interface FileRouteTypes {
     | '/.well-known/assetlinks.json'
     | '/ads/$id'
     | '/api/media'
+    | '/api/news-image'
     | '/app-auth/done'
     | '/app-auth/finish'
     | '/app-auth/start'
@@ -445,6 +455,7 @@ export interface FileRouteTypes {
     | '/.well-known/assetlinks.json'
     | '/ads/$id'
     | '/api/media'
+    | '/api/news-image'
     | '/app-auth/done'
     | '/app-auth/finish'
     | '/app-auth/start'
@@ -487,6 +498,7 @@ export interface FileRouteTypes {
     | '/.well-known/assetlinks.json'
     | '/ads/$id'
     | '/api/media'
+    | '/api/news-image'
     | '/app-auth/done'
     | '/app-auth/finish'
     | '/app-auth/start'
@@ -530,6 +542,7 @@ export interface RootRouteChildren {
   DotwellKnownAssetlinksDotjsonRoute: typeof DotwellKnownAssetlinksDotjsonRoute
   AdsIdRoute: typeof AdsIdRoute
   ApiMediaRoute: typeof ApiMediaRoute
+  ApiNewsImageRoute: typeof ApiNewsImageRoute
   AppAuthDoneRoute: typeof AppAuthDoneRoute
   AppAuthFinishRoute: typeof AppAuthFinishRoute
   AppAuthStartRoute: typeof AppAuthStartRoute
@@ -701,6 +714,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiMediaRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/news-image': {
+      id: '/api/news-image'
+      path: '/api/news-image'
+      fullPath: '/api/news-image'
+      preLoaderRoute: typeof ApiNewsImageRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/app-auth/done': {
       id: '/app-auth/done'
       path: '/app-auth/done'
@@ -859,6 +879,7 @@ const rootRouteChildren: RootRouteChildren = {
   DotwellKnownAssetlinksDotjsonRoute: DotwellKnownAssetlinksDotjsonRoute,
   AdsIdRoute: AdsIdRoute,
   ApiMediaRoute: ApiMediaRoute,
+  ApiNewsImageRoute: ApiNewsImageRoute,
   AppAuthDoneRoute: AppAuthDoneRoute,
   AppAuthFinishRoute: AppAuthFinishRoute,
   AppAuthStartRoute: AppAuthStartRoute,

@@ -18,7 +18,7 @@ export function LeadCard({
   comments,
 }: {
   link: Pick<LinkProps, "to" | "params">;
-  image: { image?: string; thumb?: string; title: string; category: string };
+  image: { image?: string; thumb?: string; title: string; category: string; source?: string };
   chips?: ReactNode;
   /** Plain text (translated with trv) or a ready element (e.g. a Hebrew title). */
   title: ReactNode;
@@ -28,11 +28,7 @@ export function LeadCard({
 }) {
   return (
     <Link {...(link as LinkProps)} className="stamp press mb-3 block overflow-hidden">
-      {image.image ? (
-        <NewsImage item={image} size="full" className="aspect-[16/9] w-full" iconClassName="size-10" />
-      ) : (
-        <span aria-hidden className="block h-1.5 w-full bg-primary" />
-      )}
+      <NewsImage item={image} size="full" className="aspect-[16/9] w-full" iconClassName="size-10" />
       <span className="block p-4">
         {chips ? <span className="flex flex-wrap gap-2">{chips}</span> : null}
         <span className="mt-2 block text-xl font-bold leading-snug">

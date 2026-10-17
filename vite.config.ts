@@ -79,6 +79,9 @@ export default defineConfig(({ command, isPreview }) => ({
       bing: verificationToken(process.env.BING_SITE_VERIFICATION),
     }),
   },
+  // Native binary (news fallback images): never pre-bundle it.
+  optimizeDeps: { exclude: ["@resvg/resvg-js"] },
+  ssr: { external: ["@resvg/resvg-js"] },
   plugins: [
     pgliteBootstrapPlugin(),
     // Dev-only /__app-env, read by scripts/check-auth-invariant.mjs.
