@@ -1,12 +1,15 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Bus, ChevronLeft, Search } from "lucide-react";
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState, type ReactNode } from "react";
+import { useSiteSettings } from "@/lib/site-settings/context";
+import type { HomeSectionId } from "@/lib/site-settings/types";
+import { AdSlots } from "@/components/google-services";
 import { CategoryIcon } from "@/components/category-icon";
 import { NewsImage } from "@/components/news-image";
 import { HomePostCard } from "@/components/guide";
 import { getGuide } from "@/data/guides";
 import { CommentCount } from "@/components/comment-count";
-import { HomeCarousel, HomeTiles } from "@/components/home-parts";
+import { HomeCarousel, HomeTiles, QuickLinks } from "@/components/home-parts";
 import { SectionTitle, Shell } from "@/components/shell";
 import { AlertsBanner, DutyCard } from "@/components/duty";
 import { getBoard } from "@/lib/board/api";
@@ -81,6 +84,7 @@ async function israelNewsForHome(): Promise<IsraelNewsResult | null> {
 
 function Home() {
   const { news, approved, ads: adsData, israel, weather, board } = Route.useLoaderData();
+  const settings = useSiteSettings();
   const israelItems = useMemo(() => israel?.items ?? [], [israel]);
   // Translated headlines first (each group stays newest first), then Hebrew-only ones.
   const israelTop = [
@@ -135,6 +139,215 @@ function Home() {
     };
   }, [query, news.items, places, classifieds, israelItems]);
 
+  const blocks: Record<HomeSectionId, ReactNode> = {
+    weather: <HomeTodayChips weather={weather} serverNow={news.now} />,
+    slider: <HomeCarousel lead={top} leadTime={top ? relativeTimeAr(top.publishedAt, now) : ""} />,
+    search: (
+      <label className="search-field block">
+        <span className="sr-only">بحث</span>
+        <Search className="size-5" aria-hidden />
+        <input
+          type="search"
+          className="field"
+          value={q}
+          onChange={(event) => setQ(event.target.value)}
+          placeholder="ابحث في الأخبار والدليل والإعلانات"
+        />
+      </label>
+    ),
+    tiles: <HomeTiles />,
+    quicklinks: <QuickLinks />,
+    news: (
+      <>
+        <section>
+          <SectionTitle title="آخر الأخبار" to="/news" more="كل الأخبار" />
+          {lead ? (
+            <>
+              <Link
+                to="/news/$slug"
+                params={{ slug: lead.slug }}
+                className="stamp press mb-3 block overflow-hidden"
+              >
+                {lead.image ? (
+                  <NewsImage
+                    item={lead}
+                    size="full"
+                    className="aspect-[16/9] w-full"
+                    iconClassName="size-10"
+                  />
+                ) : null}
+                <span className="block p-4">
+                  <span className="chip chip-deep">
+                    {lead.reader ? "من القراء" : lead.category}
+                  </span>
+                  <span className="mt-2 block text-xl font-bold">{lead.title}</span>
+                  <span className="text-sm font-semibold text-muted">
+                    {relativeTimeAr(lead.publishedAt, now)} · {newsByline(lead)}
+                    <CommentCount n={lead.comments} className="ms-2" />
+                  </span>
+                </span>
+              </Link>
+              <ul className="stack-list">
+                {rest.map((item) => (
+                  <li key={item.slug}>
+                    <Link
+                      to="/news/$slug"
+                      params={{ slug: item.slug }}
+                      className="flex items-center gap-3 px-4 py-3"
+                    >
+                      <NewsImage item={item} className="size-16 rounded-xl" />
+                      <span className="min-w-0 flex-1">
+                        <span className="block font-bold leading-snug">{item.title}</span>
+                        <span className="text-sm font-semibold text-muted">
+                          {item.category} · {relativeTimeAr(item.publishedAt, now)} ·{" "}
+                          {newsByline(item)}
+                          <CommentCount n={item.comments} className="ms-2" />
+                        </span>
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </>
+          ) : (
+            <NewsUnavailable />
+          )}
+        </section>
+        <AdSlots placement="home" />
+      </>
+    ),
+    israel:
+      israelTop.length > 0 && israel ? (
+        <section>
+          <SectionTitle title="أخبار إسرائيل" to="/israel-news" more="عرض الكل" />
+          <IsraelLead item={israelTop[0]} now={now} />
+          <ul className="stack-list">
+            {israelTop.slice(1).map((item) => (
+              <li key={item.slug}>
+                <IsraelNewsRow item={item} now={now} />
+              </li>
+            ))}
+          </ul>
+          <IsraelNewsCredit data={israel} />
+        </section>
+      ) : null,
+    post: postGuide ? (
+      <section>
+        <SectionTitle title="خدمة البريد" />
+        <HomePostCard guide={postGuide} />
+      </section>
+    ) : null,
+    install: (
+      <>
+        <InstallBanner />
+        <NotifyPrompt />
+      </>
+    ),
+    buses: (
+      <section>
+        <SectionTitle title="باصات غاليم" to="/buses" more="كل المواعيد" />
+        <Link to="/buses" className="stamp press flex items-center gap-3 p-4">
+          <span className="icon-badge">
+            <Bus className="size-6" aria-hidden />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block font-bold">خطوط المدينة 1 حتى 6، وبئر السبع وما حولها</span>
+            <span className="text-sm font-semibold text-muted">
+              شركة גלים · أوقات مباشرة وجدول اليوم
+            </span>
+          </span>
+          <ChevronLeft className="size-5 text-muted" aria-hidden />
+        </Link>
+      </section>
+    ),
+    directory: (
+      <section>
+        <SectionTitle title="من الدليل" to="/directory" more="كل الدليل" />
+        <ul className="scroll-row -mx-4 px-4 pb-2">
+          {featured.map((item) => (
+            <li key={item.slug} className="w-44 shrink-0">
+              <Link
+                to="/directory/$slug"
+                params={{ slug: item.slug }}
+                className="stamp press flex h-full flex-col p-3"
+              >
+                <span className="icon-badge size-14 rounded-2xl">
+                  <CategoryIcon category={item.category} className="size-7" />
+                </span>
+                <span className="mt-2 block font-bold leading-snug">{item.name}</span>
+                <span className="text-xs font-semibold text-muted">{item.category}</span>
+                {item.verified ? <span className="chip chip-ink mt-1 w-fit">موثّق</span> : null}
+                {item.address || item.area ? (
+                  <span className="text-sm font-semibold text-muted">
+                    {item.address || item.area}
+                  </span>
+                ) : null}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </section>
+    ),
+    ads: (
+      <section>
+        <SectionTitle title="آخر الإعلانات" to="/ads" more="كل الإعلانات" />
+        {adsData.showSamples ? (
+          <p className="mb-2 text-sm font-semibold text-muted">
+            إعلانات نموذجية لعرض الشكل فقط، وليست إعلانات حقيقية.
+          </p>
+        ) : null}
+        <ul className="flex flex-col gap-3">
+          {classifieds.slice(0, 4).map((item) => (
+            <li key={item.id}>
+              <Link
+                to="/ads/$id"
+                params={{ id: item.id }}
+                className="stamp press flex items-center justify-between gap-3 px-4 py-3"
+              >
+                {item.photo ? (
+                  <img
+                    src={mediaUrl(item.photo)}
+                    alt=""
+                    className="thumb size-16"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                ) : null}
+                <span className="min-w-0 flex-1">
+                  <span className={item.quiet ? "chip" : "chip chip-deep"}>{item.type}</span>
+                  {item.sample ? <span className="chip ms-1">نموذج</span> : null}
+                  <span className="mt-1 block font-bold">{item.title}</span>
+                  <span className="text-sm font-semibold text-muted">{item.neighborhood}</span>
+                </span>
+                {item.price ? <span className="shrink-0 font-bold">{item.price}</span> : null}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </section>
+    ),
+    duty: <DutyCard duty={board.duty} />,
+    emergency: (
+      <section>
+        <SectionTitle title="أرقام تُحفظ" to="/today" more="كل الأرقام" />
+        <div className="scroll-row">
+          {emergency.slice(0, 4).map((item) => (
+            <a
+              key={item.phone}
+              href={`tel:${item.phone}`}
+              className="stamp press flex w-28 shrink-0 flex-col items-center px-3 py-3 text-center"
+            >
+              <span className="text-2xl font-bold leading-none">{item.phone}</span>
+              <span className="mt-1 text-sm font-bold">{item.name}</span>
+            </a>
+          ))}
+        </div>
+      </section>
+    ),
+  };
+  const TOP: HomeSectionId[] = ["weather", "slider", "search"];
+  const order = settings.home.filter((h) => h.visible).map((h) => h.id);
+
   return (
     <Shell>
       <div className="flex flex-col gap-6">
@@ -168,214 +381,18 @@ function Home() {
             </span>
           </Link>
         ) : null}
-        <HomeTodayChips weather={weather} serverNow={news.now} />
-        <HomeCarousel lead={top} leadTime={top ? relativeTimeAr(top.publishedAt, now) : ""} />
-        <label className="search-field block">
-          <span className="sr-only">بحث</span>
-          <Search className="size-5" aria-hidden />
-          <input
-            type="search"
-            className="field"
-            value={q}
-            onChange={(event) => setQ(event.target.value)}
-            placeholder="ابحث في الأخبار والدليل والإعلانات"
-          />
-        </label>
-
         {results ? (
-          <SearchResults query={query} results={results} />
-        ) : (
           <>
-            <HomeTiles />
-            <section>
-              <SectionTitle title="آخر الأخبار" to="/news" more="كل الأخبار" />
-              {lead ? (
-                <>
-                  <Link
-                    to="/news/$slug"
-                    params={{ slug: lead.slug }}
-                    className="stamp press mb-3 block overflow-hidden"
-                  >
-                    {lead.image ? (
-                      <NewsImage
-                        item={lead}
-                        size="full"
-                        className="aspect-[16/9] w-full"
-                        iconClassName="size-10"
-                      />
-                    ) : null}
-                    <span className="block p-4">
-                      <span className="chip chip-deep">
-                        {lead.reader ? "من القراء" : lead.category}
-                      </span>
-                      <span className="mt-2 block text-xl font-bold">{lead.title}</span>
-                      <span className="text-sm font-semibold text-muted">
-                        {relativeTimeAr(lead.publishedAt, now)} · {newsByline(lead)}
-                        <CommentCount n={lead.comments} className="ms-2" />
-                      </span>
-                    </span>
-                  </Link>
-                  <ul className="stack-list">
-                    {rest.map((item) => (
-                      <li key={item.slug}>
-                        <Link
-                          to="/news/$slug"
-                          params={{ slug: item.slug }}
-                          className="flex items-center gap-3 px-4 py-3"
-                        >
-                          <NewsImage item={item} className="size-16 rounded-xl" />
-                          <span className="min-w-0 flex-1">
-                            <span className="block font-bold leading-snug">{item.title}</span>
-                            <span className="text-sm font-semibold text-muted">
-                              {item.category} · {relativeTimeAr(item.publishedAt, now)} ·{" "}
-                              {newsByline(item)}
-                              <CommentCount n={item.comments} className="ms-2" />
-                            </span>
-                          </span>
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                </>
-              ) : (
-                <NewsUnavailable />
-              )}
-            </section>
-
-            {israelTop.length > 0 && israel ? (
-              <section>
-                <SectionTitle title="أخبار إسرائيل" to="/israel-news" more="عرض الكل" />
-                <IsraelLead item={israelTop[0]} now={now} />
-                <ul className="stack-list">
-                  {israelTop.slice(1).map((item) => (
-                    <li key={item.slug}>
-                      <IsraelNewsRow item={item} now={now} />
-                    </li>
-                  ))}
-                </ul>
-                <IsraelNewsCredit data={israel} />
-              </section>
-            ) : null}
-
-            {postGuide ? (
-              <section>
-                <SectionTitle title="خدمة البريد" />
-                <HomePostCard guide={postGuide} />
-              </section>
-            ) : null}
-
-            <InstallBanner />
-            <NotifyPrompt />
-
-            <section>
-              <SectionTitle title="باصات غاليم" to="/buses" more="كل المواعيد" />
-              <Link to="/buses" className="stamp press flex items-center gap-3 p-4">
-                <span className="icon-badge">
-                  <Bus className="size-6" aria-hidden />
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block font-bold">
-                    خطوط المدينة 1 حتى 6، وبئر السبع وما حولها
-                  </span>
-                  <span className="text-sm font-semibold text-muted">
-                    شركة גלים · أوقات مباشرة وجدول اليوم
-                  </span>
-                </span>
-                <ChevronLeft className="size-5 text-muted" aria-hidden />
-              </Link>
-            </section>
-
-            <section>
-              <SectionTitle title="من الدليل" to="/directory" more="كل الدليل" />
-              <ul className="scroll-row -mx-4 px-4 pb-2">
-                {featured.map((item) => (
-                  <li key={item.slug} className="w-44 shrink-0">
-                    <Link
-                      to="/directory/$slug"
-                      params={{ slug: item.slug }}
-                      className="stamp press flex h-full flex-col p-3"
-                    >
-                      <span className="icon-badge size-14 rounded-2xl">
-                        <CategoryIcon category={item.category} className="size-7" />
-                      </span>
-                      <span className="mt-2 block font-bold leading-snug">{item.name}</span>
-                      <span className="text-xs font-semibold text-muted">{item.category}</span>
-                      {item.verified ? (
-                        <span className="chip chip-ink mt-1 w-fit">موثّق</span>
-                      ) : null}
-                      {item.address || item.area ? (
-                        <span className="text-sm font-semibold text-muted">
-                          {item.address || item.area}
-                        </span>
-                      ) : null}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </section>
-
-            <section>
-              <SectionTitle title="آخر الإعلانات" to="/ads" more="كل الإعلانات" />
-              {adsData.showSamples ? (
-                <p className="mb-2 text-sm font-semibold text-muted">
-                  إعلانات نموذجية لعرض الشكل فقط، وليست إعلانات حقيقية.
-                </p>
-              ) : null}
-              <ul className="flex flex-col gap-3">
-                {classifieds.slice(0, 4).map((item) => (
-                  <li key={item.id}>
-                    <Link
-                      to="/ads/$id"
-                      params={{ id: item.id }}
-                      className="stamp press flex items-center justify-between gap-3 px-4 py-3"
-                    >
-                      {item.photo ? (
-                        <img
-                          src={mediaUrl(item.photo)}
-                          alt=""
-                          className="thumb size-16"
-                          loading="lazy"
-                          decoding="async"
-                        />
-                      ) : null}
-                      <span className="min-w-0 flex-1">
-                        <span className={item.quiet ? "chip" : "chip chip-deep"}>{item.type}</span>
-                        {item.sample ? <span className="chip ms-1">نموذج</span> : null}
-                        <span className="mt-1 block font-bold">{item.title}</span>
-                        <span className="text-sm font-semibold text-muted">
-                          {item.neighborhood}
-                        </span>
-                      </span>
-                      {item.price ? <span className="shrink-0 font-bold">{item.price}</span> : null}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </section>
-
-            <DutyCard duty={board.duty} />
-
-            <section>
-              <SectionTitle title="أرقام تُحفظ" to="/today" more="كل الأرقام" />
-              <div className="scroll-row">
-                {emergency.slice(0, 4).map((item) => (
-                  <a
-                    key={item.phone}
-                    href={`tel:${item.phone}`}
-                    className="stamp press flex w-28 shrink-0 flex-col items-center px-3 py-3 text-center"
-                  >
-                    <span className="text-2xl font-bold leading-none">{item.phone}</span>
-                    <span className="mt-1 text-sm font-bold">{item.name}</span>
-                  </a>
-                ))}
-              </div>
-            </section>
-
-            <p className="text-sm font-semibold text-muted md:hidden">
-              أرقام الطوارئ الوطنية حقيقية. الأخبار والدليل والباصات من مصادر حقيقية، وبقية
-              الإعلانات نماذج.
-            </p>
+            {order
+              .filter((id) => TOP.includes(id))
+              .map((id) => (
+                <Fragment key={id}>{blocks[id]}</Fragment>
+              ))}
+            {order.includes("search") ? null : blocks.search}
+            <SearchResults query={query} results={results} />
           </>
+        ) : (
+          order.map((id) => <Fragment key={id}>{blocks[id]}</Fragment>)
         )}
       </div>
     </Shell>

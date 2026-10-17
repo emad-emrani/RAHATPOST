@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
+import { AdSlots } from "@/components/google-services";
 import { Shell } from "@/components/shell";
 import { NewsCredit, NewsUnavailable } from "@/components/news";
 import { NewsImage } from "@/components/news-image";
@@ -56,8 +57,13 @@ function NewsPage() {
             <p className="stamp p-4 font-semibold">لا خبر في هذا التصنيف الآن.</p>
           ) : (
             <ul className="flex flex-col gap-3">
-              {list.map((item) => (
+              {list.map((item, i) => (
                 <li key={item.slug}>
+                  {i === 5 ? (
+                    <div className="mb-3">
+                      <AdSlots placement="newsList" />
+                    </div>
+                  ) : null}
                   <Link
                     to="/news/$slug"
                     params={{ slug: item.slug }}

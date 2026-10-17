@@ -1,3 +1,4 @@
+import { useSiteSettings } from "@/lib/site-settings/context";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { PolicySection } from "@/components/policy";
 import { Shell } from "@/components/shell";
@@ -17,6 +18,9 @@ export const Route = createFileRoute("/privacy")({
 });
 
 function PrivacyPage() {
+  const g = useSiteSettings().google;
+  const adsOn = g.adsenseEnabled && Boolean(g.adsensePub);
+  const gaOn = (g.gaEnabled && Boolean(g.gaId)) || Boolean(g.gtmId);
   return (
     <Shell>
       <article className="flex flex-col gap-4">
@@ -88,7 +92,30 @@ function PrivacyPage() {
               تخزين محلي في جهازك لتذكّر إخفاء بطاقة «ثبّت التطبيق» أو الإشعارات، وصفحات محفوظة
               للعمل بدون اتصال.
             </li>
-            <li>لا نستخدم ملفات ارتباط إعلانية أو تتبّع من أطراف أخرى.</li>
+            {adsOn || gaOn ? null : <li>لا نستخدم ملفات ارتباط إعلانية أو تتبّع من أطراف أخرى.</li>}
+            {gaOn ? (
+              <li>
+                نستخدم Google Analytics لقياس عدد الزيارات والصفحات الأكثر قراءة. تضع Google ملفات
+                ارتباط لهذا الغرض، ويمكنك منعها من إعدادات متصفحك أو بإضافة إلغاء الاشتراك من
+                Google.
+              </li>
+            ) : null}
+            {adsOn ? (
+              <li>
+                نعرض إعلانات من Google AdSense. قد تستخدم Google وشركاؤها ملفات ارتباط لعرض إعلانات
+                بناءً على زياراتك السابقة لهذا الموقع أو لمواقع أخرى. يمكنك إيقاف الإعلانات المخصّصة
+                من{" "}
+                <a
+                  href="https://adssettings.google.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline"
+                >
+                  إعدادات الإعلانات في Google
+                </a>
+                . لا نعرض إعلانات في لوحة الإدارة أو صفحات الحساب.
+              </li>
+            ) : null}
           </ul>
         </PolicySection>
 

@@ -3,8 +3,10 @@ import { Bus, ChevronLeft, House, Megaphone, Newspaper, Plus, Siren, Store } fro
 import type { ReactNode } from "react";
 import logoUrl from "@/assets/logo.jpg";
 import { UserMenu } from "@/components/user-menu";
+import { mediaUrl } from "@/lib/media/types";
+import { useSiteSettings } from "@/lib/site-settings/context";
 
-const nav = [
+const NAV = [
   { to: "/", label: "الرئيسية", icon: House, exact: true },
   { to: "/news", label: "الأخبار", icon: Newspaper, exact: false },
   { to: "/today", label: "اليوم", icon: Siren, exact: true },
@@ -14,13 +16,19 @@ const nav = [
 ] as const;
 
 export function Shell({ children, wide = false }: { children: ReactNode; wide?: boolean }) {
+  const st = useSiteSettings();
+  const t = st.texts;
+  const nav = st.nav
+    .filter((n) => n.visible)
+    .map((n) => NAV.find((x) => x.to === n.id))
+    .filter((x): x is (typeof NAV)[number] => Boolean(x));
   return (
     <div className="min-h-screen bg-surface text-ink">
       <header className="edge-b sticky top-0 z-30 bg-paper">
         <div className="mx-auto flex max-w-3xl items-center gap-3 px-4 py-2">
-          <Link to="/" className="shrink-0 rounded-2xl" aria-label="رهط بوست، الرئيسية">
+          <Link to="/" className="shrink-0 rounded-2xl" aria-label={`${t.siteName}، الرئيسية`}>
             <img
-              src={logoUrl}
+              src={st.logoKey ? mediaUrl(st.logoKey) : logoUrl}
               alt=""
               width={48}
               height={48}
@@ -28,13 +36,13 @@ export function Shell({ children, wide = false }: { children: ReactNode; wide?: 
             />
           </Link>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-lg font-bold leading-tight">رهط بوست</p>
-            <p className="text-xs font-semibold text-muted">رهط والنقب</p>
+            <p className="truncate text-lg font-bold leading-tight">{t.siteName}</p>
+            {t.tagline ? <p className="text-xs font-semibold text-muted">{t.tagline}</p> : null}
           </div>
           <UserMenu />
           <Link to="/submit" className="btn px-4" aria-label="أضف خبراً أو إعلاناً أو نشاطاً">
             <Plus className="size-4" aria-hidden />
-            أضف
+            {t.addButton}
           </Link>
         </div>
         <nav className="mx-auto hidden max-w-3xl gap-1 px-3 pb-2 md:flex" aria-label="الأقسام">
@@ -81,9 +89,15 @@ export function Shell({ children, wide = false }: { children: ReactNode; wide?: 
             التطبيق
           </Link>
         </nav>
-        <p className="mt-1">
-          أرقام الطوارئ الوطنية حقيقية. الأخبار والدليل والباصات من مصادر حقيقية مذكورة في كل صفحة.
-        </p>
+        {t.footer ? <p className="mt-1">{t.footer}</p> : null}
+        {t.contactEmail ? (
+          <p className="mt-1">
+            للتواصل:{" "}
+            <a href={`mailto:${t.contactEmail}`} className="underline" dir="ltr">
+              {t.contactEmail}
+            </a>
+          </p>
+        ) : null}
       </footer>
 
       <nav

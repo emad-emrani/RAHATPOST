@@ -9,6 +9,7 @@ import { relativeTimeAr, useNow } from "@/lib/news/format";
 import type { NewsItem } from "@/lib/news/types";
 import { breadcrumbLd, newsArticleLd, seo, snippet } from "@/lib/seo";
 import { ReportButton } from "@/components/report";
+import { AdSlots } from "@/components/google-services";
 
 export const Route = createFileRoute("/news/$slug")({
   loader: async ({ params }) => {
@@ -165,6 +166,7 @@ function ArticlePage() {
           واتساب
         </a>
       </div>
+      <AdSlots placement="article" />
       <Comments key={article.slug} articleKey={`news/${article.slug}`} />
       {related.length > 0 ? (
         <>

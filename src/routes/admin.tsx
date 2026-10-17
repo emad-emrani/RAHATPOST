@@ -9,6 +9,7 @@ import {
   PenSquare,
   Pill,
   Rss,
+  Settings,
   Siren,
   Store,
   Users,
@@ -26,6 +27,7 @@ import type { OwnAd } from "@/lib/ads/types";
 import { adminDecide, adminList, adminLogin, adminLogout } from "@/lib/directory/api";
 import type { BusinessSubmission } from "@/lib/directory/types";
 import { AutoNewsAdmin } from "@/components/admin/auto-news-admin";
+import { SiteSettingsAdmin } from "@/components/admin/site-settings-admin";
 import { MembersAdmin } from "@/components/admin/members-admin";
 import { adminWhoami } from "@/lib/team/api";
 import type { AdminLevel } from "@/lib/admin-auth";
@@ -47,6 +49,7 @@ const STATUS: Record<BusinessSubmission["status"], string> = {
 };
 
 type Section =
+  | "settings"
   | "auto"
   | "publish"
   | "members"
@@ -71,6 +74,7 @@ const ALL_TABS: { key: Section; label: string; icon: LucideIcon }[] = [
   { key: "alerts", label: "التنبيهات", icon: Siren },
   { key: "push", label: "الإشعارات", icon: Bell },
   { key: "members", label: "الأعضاء والصلاحيات", icon: Users },
+  { key: "settings", label: "إعدادات الموقع", icon: Settings },
 ];
 
 function AdminMenu({
@@ -236,7 +240,9 @@ function AdminPage() {
 
   const list = items.filter((i) => i.status === tab);
   const tabs = ALL_TABS.filter(({ key }) =>
-    level === "writer" ? key === "publish" : key !== "members" || level === "owner",
+    level === "writer"
+      ? key === "publish"
+      : (key !== "members" && key !== "settings") || level === "owner",
   );
   const current: Section = tabs.some((t) => t.key === section) ? section : (tabs[0]?.key ?? "news");
   const logout = async () => {
@@ -319,6 +325,8 @@ function AdminPage() {
           ) : null}
           {current === "publish" ? (
             <PublishAdmin />
+          ) : current === "settings" ? (
+            <SiteSettingsAdmin />
           ) : current === "auto" ? (
             <AutoNewsAdmin />
           ) : current === "members" ? (

@@ -4,9 +4,73 @@ import { PreviewHostBridge } from "@/components/preview-host-bridge";
 import { ServiceWorkerRegistration } from "@/components/install-app";
 import { SiteAnalytics } from "@/components/analytics";
 import appCss from "../styles.css?url";
+import { GoogleServices } from "@/components/google-services";
+import { getSiteSettings } from "@/lib/site-settings/api";
+import { SiteSettingsProvider } from "@/lib/site-settings/context";
+import { DEFAULT_SETTINGS, themeCss } from "@/lib/site-settings/types";
+import { mediaUrl } from "@/lib/media/types";
 
 export const Route = createRootRoute({
-  head: () => ({
+  loader: async () => {
+    try {
+      return { settings: await getSiteSettings() };
+    } catch {
+      return { settings: DEFAULT_SETTINGS };
+    }
+  },
+  staleTime: 30_000,
+  shouldReload: false,
+  head: ({ loaderData }) => {
+    const st = loaderData?.settings ?? DEFAULT_SETTINGS;
+    const base = baseHead();
+    const gsc = st.google.gscCode;
+    return {
+      meta: [
+        ...base.meta.map((m) =>
+          "name" in m && m.name === "theme-color" ? { ...m, content: st.theme.primary } : m,
+        ),
+        ...(gsc && gsc !== __SITE_VERIFICATION__.google
+          ? [{ name: "google-site-verification", content: gsc }]
+          : []),
+      ],
+      links: st.faviconKey
+        ? [
+            { rel: "icon", href: mediaUrl(st.faviconKey) },
+            ...base.links.filter((l) => l.rel !== "icon"),
+          ]
+        : base.links,
+    };
+  },
+  component: RootComponent,
+});
+
+function RootComponent() {
+  const { settings } = Route.useLoaderData();
+  const css = themeCss(settings.theme);
+  return (
+    <html lang="ar" dir="rtl" suppressHydrationWarning>
+      <head>
+        <HeadContent />
+        {css ? <style id="site-theme" dangerouslySetInnerHTML={{ __html: css }} /> : null}
+      </head>
+      <body>
+        <SiteSettingsProvider value={settings}>
+          <PreviewHostBridge />
+          <ServiceWorkerRegistration />
+          <AuthProvider>
+            <Outlet />
+          </AuthProvider>
+          <SiteAnalytics />
+          <GoogleServices />
+        </SiteSettingsProvider>
+        <Scripts />
+      </body>
+    </html>
+  );
+}
+
+function baseHead() {
+  return {
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
@@ -124,21 +188,5 @@ export const Route = createRootRoute({
           "(device-width: 768px) and (device-height: 1024px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)",
       },
     ],
-  }),
-  component: () => (
-    <html lang="ar" dir="rtl" suppressHydrationWarning>
-      <head>
-        <HeadContent />
-      </head>
-      <body>
-        <PreviewHostBridge />
-        <ServiceWorkerRegistration />
-        <AuthProvider>
-          <Outlet />
-        </AuthProvider>
-        <SiteAnalytics />
-        <Scripts />
-      </body>
-    </html>
-  ),
-});
+  };
+}

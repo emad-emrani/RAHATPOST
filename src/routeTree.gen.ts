@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminRouteImport } from './routes/admin'
+import { Route as AdsDottxtRouteImport } from './routes/ads[.]txt'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as BusesRouteImport } from './routes/buses'
 import { Route as LoginRouteImport } from './routes/login'
@@ -47,6 +48,11 @@ const IndexRoute = IndexRouteImport.update({
 const AdminRoute = AdminRouteImport.update({
   id: '/admin',
   path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdsDottxtRoute = AdsDottxtRouteImport.update({
+  id: '/ads.txt',
+  path: '/ads.txt',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppRoute = AppRouteImport.update({
@@ -190,6 +196,7 @@ const DirectoryGuideGuideRoute = DirectoryGuideGuideRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/ads.txt': typeof AdsDottxtRoute
   '/app': typeof AppRoute
   '/buses': typeof BusesRoute
   '/login': typeof LoginRoute
@@ -221,6 +228,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/ads.txt': typeof AdsDottxtRoute
   '/app': typeof AppRoute
   '/buses': typeof BusesRoute
   '/login': typeof LoginRoute
@@ -253,6 +261,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/ads.txt': typeof AdsDottxtRoute
   '/app': typeof AppRoute
   '/buses': typeof BusesRoute
   '/login': typeof LoginRoute
@@ -286,6 +295,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/admin'
+    | '/ads.txt'
     | '/app'
     | '/buses'
     | '/login'
@@ -317,6 +327,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/admin'
+    | '/ads.txt'
     | '/app'
     | '/buses'
     | '/login'
@@ -348,6 +359,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/admin'
+    | '/ads.txt'
     | '/app'
     | '/buses'
     | '/login'
@@ -380,6 +392,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
+  AdsDottxtRoute: typeof AdsDottxtRoute
   AppRoute: typeof AppRoute
   BusesRoute: typeof BusesRoute
   LoginRoute: typeof LoginRoute
@@ -423,6 +436,13 @@ declare module '@tanstack/react-router' {
       path: '/admin'
       fullPath: '/admin'
       preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ads.txt': {
+      id: '/ads.txt'
+      path: '/ads.txt'
+      fullPath: '/ads.txt'
+      preLoaderRoute: typeof AdsDottxtRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/app': {
@@ -620,6 +640,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
+  AdsDottxtRoute: AdsDottxtRoute,
   AppRoute: AppRoute,
   BusesRoute: BusesRoute,
   LoginRoute: LoginRoute,

@@ -23,6 +23,17 @@ export const Route = createFileRoute("/media/$key")({
             const type = await staffImageType(key);
             if (type) access = { contentType: type, isPublic: true, userId: "" };
           }
+          if (!access) {
+            // Logo, favicon and slider photos set in «إعدادات الموقع» are public too.
+            const { loadSettings } = await import("@/lib/site-settings/store.server");
+            const { settingsImageKeys } = await import("@/lib/site-settings/types");
+            if (settingsImageKeys(await loadSettings()).includes(key))
+              access = {
+                contentType: key.endsWith(".jpg") ? "image/jpeg" : "image/webp",
+                isPublic: true,
+                userId: "",
+              };
+          }
           if (!access) return notFound();
           if (!access.isPublic) {
             const { isAdmin } = await import("@/lib/admin-auth");

@@ -4,6 +4,8 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { NewsImage } from "@/components/news-image";
 import { newsByline } from "@/lib/news/format";
 import type { NewsItem } from "@/lib/news/types";
+import { mediaUrl } from "@/lib/media/types";
+import { useSiteSettings } from "@/lib/site-settings/context";
 
 const tiles = [
   { to: "/news", label: "الأخبار", icon: Newspaper },
@@ -16,9 +18,15 @@ const tiles = [
 
 /** Horizontally scrolling category tiles (icon square + label). */
 export function HomeTiles() {
+  const order = useSiteSettings().tiles;
+  const list = order
+    .filter((o) => o.visible)
+    .map((o) => tiles.find((t) => t.to === o.id))
+    .filter((t): t is (typeof tiles)[number] => Boolean(t));
+  if (!list.length) return null;
   return (
     <nav className="scroll-row -mx-4 px-4" aria-label="الأقسام">
-      {tiles.map((t) => {
+      {list.map((t) => {
         const Icon = t.icon;
         return (
           <Link key={t.to} to={t.to} className="tile">
@@ -37,7 +45,8 @@ type Slide = { key: string; className: string; content: ReactNode };
 
 /** Snap-scrolling banner carousel with dots; auto-advances unless reduced motion is preferred. */
 export function HomeCarousel({ lead, leadTime }: { lead?: NewsItem; leadTime: string }) {
-  const slides: Slide[] = [
+  const config = useSiteSettings().slides;
+  const builtins: Slide[] = [
     ...(lead
       ? [
           {
@@ -125,6 +134,24 @@ export function HomeCarousel({ lead, leadTime }: { lead?: NewsItem; leadTime: st
       ),
     },
   ];
+  const slides: Slide[] = config
+    .map((c): Slide | undefined =>
+      c.type === "builtin"
+        ? builtins.find((b) => b.key === c.id)
+        : {
+            key: c.id,
+            className: c.imageKey ? "banner banner-photo" : "banner",
+            content: (
+              <CustomSlide
+                title={c.title}
+                subtitle={c.subtitle}
+                link={c.link}
+                imageKey={c.imageKey}
+              />
+            ),
+          },
+    )
+    .filter((x): x is Slide => Boolean(x));
 
   const ref = useRef<HTMLDivElement>(null);
   const [index, setIndex] = useState(0);
@@ -154,6 +181,7 @@ export function HomeCarousel({ lead, leadTime }: { lead?: NewsItem; leadTime: st
     return () => clearInterval(id);
   }, [index, paused, slides.length]);
 
+  if (!slides.length) return null;
   return (
     <section
       aria-roledescription="carousel"
@@ -193,6 +221,82 @@ export function HomeCarousel({ lead, leadTime }: { lead?: NewsItem; leadTime: st
           </button>
         ))}
       </div>
+    </section>
+  );
+}
+
+function CustomSlide({
+  title,
+  subtitle,
+  link,
+  imageKey,
+}: {
+  title: string;
+  subtitle: string;
+  link: string;
+  imageKey: string;
+}) {
+  const inner = (
+    <>
+      {imageKey ? (
+        <>
+          <img
+            src={mediaUrl(imageKey)}
+            alt=""
+            className="absolute inset-0 size-full object-cover"
+          />
+          <span className="banner-shade" aria-hidden />
+        </>
+      ) : null}
+      <span className="relative mt-auto line-clamp-3 text-2xl font-bold leading-snug">{title}</span>
+      {subtitle ? (
+        <span className={`relative text-sm font-semibold ${imageKey ? "text-white/90" : ""}`}>
+          {subtitle}
+        </span>
+      ) : null}
+    </>
+  );
+  const cls = "flex h-full flex-col justify-end gap-2";
+  if (!link) return <div className={cls}>{inner}</div>;
+  return /^https?:/.test(link) ? (
+    <a href={link} target="_blank" rel="noopener noreferrer" className={cls}>
+      {inner}
+    </a>
+  ) : (
+    <a href={link} className={cls}>
+      {inner}
+    </a>
+  );
+}
+
+/** Owner-defined quick link cards («روابط سريعة» in إعدادات الموقع). */
+export function QuickLinks() {
+  const links = useSiteSettings().quickLinks;
+  if (!links.length) return null;
+  return (
+    <section aria-label="روابط سريعة">
+      <ul className="grid grid-cols-2 gap-3">
+        {links.map((l) => {
+          const external = /^https?:/.test(l.url);
+          return (
+            <li key={l.id}>
+              <a
+                href={l.url}
+                {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+                className="stamp press flex h-full items-center gap-3 p-3"
+              >
+                {l.emoji ? <span className="icon-badge text-2xl">{l.emoji}</span> : null}
+                <span className="min-w-0">
+                  <span className="block font-bold leading-snug">{l.title}</span>
+                  {l.subtitle ? (
+                    <span className="text-sm font-semibold text-muted">{l.subtitle}</span>
+                  ) : null}
+                </span>
+              </a>
+            </li>
+          );
+        })}
+      </ul>
     </section>
   );
 }
