@@ -75,6 +75,7 @@ export function Badges({ p }: { p: PublicProduct }) {
   const now = effectivePrice(p);
   return (
     <span className="flex flex-wrap gap-1">
+      {p.isSample ? <span className="chip chip-deep">مثال</span> : null}
       {now < p.priceAgorot ? <span className="chip chip-alert">تخفيض</span> : null}
       {!p.inStock ? <span className="chip">نفد</span> : null}
       {p.badges.map((b) => (
@@ -139,6 +140,12 @@ export function WhatsAppCashButton({
 export function BuyButtons({ p, compact = false }: { p: PublicProduct; compact?: boolean }) {
   const navigate = useNavigate();
   const [added, setAdded] = useState(false);
+  if (p.isSample)
+    return (
+      <button type="button" className="btn btn-ghost w-full" disabled>
+        منتج تجريبي
+      </button>
+    );
   if (!p.inStock)
     return (
       <button type="button" className="btn btn-ghost w-full" disabled>
@@ -272,7 +279,11 @@ export function SectionTile({ c }: { c: StoreCategory }) {
         <span className="font-bold leading-snug">{c.name}</span>
         <span className="text-xs font-semibold text-muted">
           {c.productCount
-            ? `${c.productCount} ${c.productCount > 2 && c.productCount < 11 ? "خيارات" : "خيار"}`
+            ? c.productCount === 1
+              ? "خيار واحد"
+              : c.productCount === 2
+                ? "خياران"
+                : `${c.productCount} ${c.productCount < 11 ? "خيارات" : "خياراً"}`
             : "قريباً"}
         </span>
       </span>

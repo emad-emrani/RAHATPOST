@@ -107,7 +107,7 @@ export const getCartProducts = createServerFn({ method: "POST" })
     const s = await import("./store.server");
     const all = await s.listPublicProducts(500);
     return {
-      products: all.filter((p) => data.ids.includes(p.id)),
+      products: all.filter((p) => data.ids.includes(p.id) && !p.isSample),
       settings: await publicSettings(),
     };
   });
@@ -285,6 +285,12 @@ export const adminSaveCategory = createServerFn({ method: "POST" })
       return { ok: false, message: msg(e, "تعذّر الحفظ.") };
     }
   });
+
+export const adminDeleteSamples = createServerFn({ method: "POST" }).handler(async () => {
+  if (!(await staff())) return { ok: false, n: 0 };
+  const { deleteSamples } = await import("./store.server");
+  return { ok: true, n: await deleteSamples() };
+});
 
 export const adminDeleteCategory = createServerFn({ method: "POST" })
   .inputValidator((i: { id: string }) => ({ id: String(i?.id ?? "") }))

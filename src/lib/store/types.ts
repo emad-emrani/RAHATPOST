@@ -77,6 +77,8 @@ export type PublicProduct = {
   duration: Duration;
   badges: string[];
   inStock: boolean;
+  /** «مثال»: display only, cannot be bought. */
+  isSample: boolean;
 };
 
 export type AdminProduct = Omit<PublicProduct, "inStock"> & {

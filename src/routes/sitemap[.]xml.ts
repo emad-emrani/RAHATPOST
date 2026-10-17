@@ -64,7 +64,9 @@ async function entries(): Promise<Entry[]> {
     },
     { path: "/store", lastmod: now, changefreq: "daily", priority: 0.8 },
     ...sections.map((c) => ({ path: `/store/c/${c.slug}`, changefreq: "weekly", priority: 0.6 })),
-    ...products.map((p) => ({ path: `/store/${p.slug}`, changefreq: "weekly", priority: 0.6 })),
+    ...products
+      .filter((p) => !p.isSample)
+      .map((p) => ({ path: `/store/${p.slug}`, changefreq: "weekly", priority: 0.6 })),
     {
       path: "/ads",
       lastmod: newest(ads.map((a) => a.createdAt)),

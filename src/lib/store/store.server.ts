@@ -36,6 +36,7 @@ const toPublic = (r: Row): PublicProduct => ({
   description: r.description,
   duration: (r.duration in DURATIONS ? r.duration : "none") as Duration,
   badges: Array.isArray(r.badges) ? r.badges.map(String) : [],
+  isSample: Boolean(r.is_sample),
   inStock:
     r.delivery_type === "codes"
       ? Number(r.free_codes ?? 0) > 0
@@ -152,6 +153,7 @@ export async function saveProduct(i: Row): Promise<string> {
     .filter(Boolean)
     .slice(0, 4);
   const deliveryType = i.deliveryType === "codes" ? "codes" : "fixed";
+  const isSample = i.isSample === true;
   const delivery =
     typeof i.delivery === "string"
       ? i.delivery.split(String.fromCharCode(0)).join("").trim().slice(0, 4000)
@@ -178,12 +180,13 @@ export async function saveProduct(i: Row): Promise<string> {
     sort,
     delivery,
     deliveryType,
+    isSample,
   ];
   if (id) {
     const r = await sql.query<Row>(
       `update store_products set slug=$1, name=$2, category_id=$3, price_agorot=$4, sale_agorot=$5,
         image_key=$6, short_desc=$7, description=$8, duration=$9, badges=$10::jsonb, stock=$11,
-        active=$12, sort=$13, delivery=$14, delivery_type=$15, updated_at=now() where id=$16 returning id`,
+        active=$12, sort=$13, delivery=$14, delivery_type=$15, is_sample=$16, updated_at=now() where id=$17 returning id`,
       [...vals, id],
     );
     if (!r.length) throw new Error("المنتج غير موجود.");
@@ -192,8 +195,8 @@ export async function saveProduct(i: Row): Promise<string> {
   const nid = newId();
   await sql.query(
     `insert into store_products (slug, name, category_id, price_agorot, sale_agorot, image_key, short_desc,
-      description, duration, badges, stock, active, sort, delivery, delivery_type, id)
-     values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10::jsonb,$11,$12,$13,$14,$15,$16)`,
+      description, duration, badges, stock, active, sort, delivery, delivery_type, is_sample, id)
+     values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10::jsonb,$11,$12,$13,$14,$15,$16,$17)`,
     [...vals, nid],
   );
   return nid;
@@ -241,6 +244,12 @@ export async function saveCategory(i: Row): Promise<void> {
   } catch {
     throw new Error("رابط القسم مستخدم أو غير صالح.");
   }
+}
+
+/** Delete every «مثال» sample product (their images stop being served). */
+export async function deleteSamples(): Promise<number> {
+  const sql = await getSql();
+  return (await sql<Row>`delete from store_products where is_sample returning id`).length;
 }
 
 export async function deleteCategory(id: string) {
@@ -296,6 +305,7 @@ export async function createOrder(
     const r = rows.find((x) => x.id === it.id);
     if (!r) throw new Error("أحد المنتجات لم يعد متوفراً. حدّث السلة.");
     const p = toPublic(r);
+    if (p.isSample) throw new Error(`«${p.name}» منتج تجريبي (مثال) ولا يمكن شراؤه.`);
     const available =
       r.delivery_type === "codes"
         ? Number(r.free_codes)

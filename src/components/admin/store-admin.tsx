@@ -6,6 +6,7 @@ import { mediaUrl } from "@/lib/media/types";
 import {
   adminCodes,
   adminDeleteCategory,
+  adminDeleteSamples,
   adminDeleteProduct,
   adminGetPaySettings,
   adminListOrders,
@@ -138,6 +139,21 @@ function Catalog({ part }: { part: "products" | "categories" }) {
         <Plus className="size-4" aria-hidden />
         منتج جديد
       </button>
+      {data.products.some((p) => p.isSample) ? (
+        <button
+          type="button"
+          className="btn btn-ghost mb-3 w-full"
+          onClick={async () => {
+            if (!confirm("حذف كل المنتجات التجريبية «مثال»؟")) return;
+            const r = await adminDeleteSamples();
+            setMsg(r.ok ? `حُذف ${r.n} منتج تجريبي.` : "تعذّر الحذف.");
+            await refresh();
+          }}
+        >
+          <Trash2 className="size-4" aria-hidden />
+          حذف كل الأمثلة ({data.products.filter((p) => p.isSample).length})
+        </button>
+      ) : null}
       {msg ? <p className="stamp mb-3 p-3 font-bold">{msg}</p> : null}
       {data.products.length === 0 ? (
         <p className="stamp p-4 font-semibold">
@@ -158,6 +174,7 @@ function Catalog({ part }: { part: "products" | "categories" }) {
               )}
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap gap-1">
+                  {p.isSample ? <span className="chip chip-deep">مثال</span> : null}
                   <span className={p.active ? "chip chip-ok" : "chip"}>
                     {p.active ? "مفعّل" : "مخفي"}
                   </span>
@@ -232,6 +249,7 @@ function ProductForm({
     sort: String(p.sort ?? 0),
     deliveryType: p.deliveryType ?? "fixed",
     delivery: p.delivery ?? "",
+    isSample: p.isSample ?? false,
   });
   const [codes, setCodes] = useState("");
   const [msg, setMsg] = useState("");
@@ -472,6 +490,15 @@ function ProductForm({
           </>
         )}
       </fieldset>
+      <label className="flex items-center gap-2 font-bold">
+        <input
+          type="checkbox"
+          className="size-5"
+          checked={f.isSample}
+          onChange={(e) => set({ isSample: e.target.checked })}
+        />{" "}
+        منتج تجريبي «مثال» (لا يمكن شراؤه — أزل العلامة لجعله حقيقياً)
+      </label>
       <label className="flex items-center gap-2 font-bold">
         <input
           type="checkbox"

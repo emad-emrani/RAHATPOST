@@ -58,7 +58,7 @@ function ProductPage() {
           <Price p={p} currency={settings.currency} big />
           {p.shortDesc ? <p className="font-semibold">{p.shortDesc}</p> : null}
           <BuyButtons p={p} />
-          {p.inStock ? (
+          {p.inStock && !p.isSample ? (
             <WhatsAppCashButton items={[{ id: p.id, qty: 1 }]} redirect={`/store/${p.slug}`} />
           ) : null}
           {p.description ? <p className="whitespace-pre-line">{p.description}</p> : null}
