@@ -26,6 +26,7 @@ TZ = ZoneInfo("Asia/Jerusalem")
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, "src", "data", "bus-schedule.ts")
 LINES_TS = os.path.join(ROOT, "src", "data", "buses.ts")
+SHAPES_DIR = os.path.join(ROOT, "public", "data", "bus-shapes")
 
 
 def wanted_lines():
@@ -69,9 +70,11 @@ def main():
         sys.exit("no Galim Rahat routes found — feed format changed?")
 
     trips = {}
+    trip_shape = {}
     for t in rows(z, "trips.txt"):
         if t["route_id"] in routes:
             trips[t["trip_id"]] = (t["route_id"], t["service_id"])
+            trip_shape[t["trip_id"]] = t.get("shape_id", "")
     services = {sid for _, sid in trips.values()}
 
     calendar = {}
@@ -106,6 +109,7 @@ def main():
     by_dir = defaultdict(lambda: defaultdict(list))  # (line, dir) -> service_id -> [start minutes]
     patterns = defaultdict(Counter)  # (line, dir) -> Counter(tuple(stop_ids))
     offsets = defaultdict(dict)  # (line, dir) -> pattern -> [offsets]
+    shape_votes = defaultdict(Counter)  # (line, dir) -> Counter(shape_id)
     for trip_id, seq in stop_times.items():
         seq.sort()
         route_id, sid = trips[trip_id]
@@ -115,6 +119,8 @@ def main():
         pat = tuple(s for _, s, _ in seq)
         patterns[key][pat] += 1
         offsets[key].setdefault(pat, [m - start for _, _, m in seq])
+        if trip_shape.get(trip_id):
+            shape_votes[key][trip_shape[trip_id]] += 1
 
     out_lines = []
     for line in lines:
@@ -154,6 +160,8 @@ def main():
             entry.setdefault(line, {})[d] = pattern_ids[key]
         days[day.isoformat()] = entry
 
+    write_shapes(z, shape_votes)
+
     stop_out = {}
     for v in stops.values():
         stop_out[v["code"]] = {"he": v["he"], "ar": arabic.get(v["he"], ""), "city": v["city"], "lat": v["lat"], "lon": v["lon"]}
@@ -184,6 +192,49 @@ def main():
         fh.write(";\n")
     print(f"wrote {OUT}: {len(out_lines)} lines, {len(stop_out)} stops, {len(pattern_list)} patterns, days {min(days)}..{max(days)}")
 
+
+def shape_file(line):
+    """ASCII file name for a line (4أ → 4a); mirrored by shapeFile() in src/lib/buses/map.ts."""
+    return line.replace("أ", "a").replace("ب", "b")
+
+
+def write_shapes(z, shape_votes):
+    """Route geometry (most used GTFS shape per line/direction), thinned to ~15 m steps."""
+    wanted = {key: votes.most_common(1)[0][0] for key, votes in shape_votes.items() if votes}
+    ids = set(wanted.values())
+    pts = defaultdict(list)
+    if "shapes.txt" not in z.namelist():
+        print("no shapes.txt in feed — skipping shapes")
+        return
+    for row in rows(z, "shapes.txt"):
+        if row["shape_id"] in ids:
+            pts[row["shape_id"]].append((int(row["shape_pt_sequence"]), float(row["shape_pt_lat"]), float(row["shape_pt_lon"])))
+    out = {}
+    for (line, d), sid in sorted(wanted.items()):
+        seq = sorted(pts.get(sid, []))
+        kept = []
+        for _, lat, lon in seq:
+            if kept:
+                dy = (lat - kept[-1][0]) * 111_000
+                dx = (lon - kept[-1][1]) * 95_000
+                if dx * dx + dy * dy < 15 * 15:
+                    continue
+            kept.append([round(lat, 5), round(lon, 5)])
+        if seq and kept[-1] != [round(seq[-1][1], 5), round(seq[-1][2], 5)]:
+            kept.append([round(seq[-1][1], 5), round(seq[-1][2], 5)])
+        if len(kept) >= 2:
+            out.setdefault(line, {})[d] = kept
+    os.makedirs(SHAPES_DIR, exist_ok=True)
+    changed = 0
+    for line, dirs in out.items():
+        path = os.path.join(SHAPES_DIR, f"{shape_file(line)}.json")
+        text = json.dumps({"source": "Israel Ministry of Transport GTFS shapes.txt", "line": line, "dirs": dirs}, ensure_ascii=False, separators=(",", ":"))
+        old = open(path, encoding="utf-8").read() if os.path.exists(path) else ""
+        if old != text:
+            with open(path, "w", encoding="utf-8") as fh:
+                fh.write(text)
+            changed += 1
+    print(f"shapes: {len(out)} lines, {changed} file(s) changed")
 
 if __name__ == "__main__":
     main()

@@ -572,3 +572,19 @@
     transform: none;
   }
 }
+
+/* Live bus marker on /buses/map */
+.bus-pin {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 56px;
+  height: 28px;
+  padding: 0 6px;
+  border-radius: 9999px;
+  background: var(--color-primary);
+  color: var(--color-ink);
+  font: 700 13px/1 var(--font-sans);
+  box-shadow: 0 0 0 2px var(--color-ink), 0 4px 10px rgb(0 0 0 / 0.25);
+  white-space: nowrap;
+}

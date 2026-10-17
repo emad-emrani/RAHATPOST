@@ -1,5 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { LocateFixed, RefreshCw } from "lucide-react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { LocateFixed, Map as MapIcon, RefreshCw } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Shell } from "@/components/shell";
 import { busSchedule } from "@/data/bus-schedule";
@@ -402,7 +402,19 @@ function Timetable({ now, dates, today }: { now: number; dates: string[]; today:
               .filter((d) => d.times.length > 0);
             return (
               <li key={line.number} className="stamp p-4">
-                <span className="chip chip-ink">خط {line.number}</span>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="chip chip-ink">خط {line.number}</span>
+                  {info ? (
+                    <Link
+                      to="/buses/map/$line"
+                      params={{ line: line.number }}
+                      className="btn btn-ghost px-3 py-1.5 text-sm"
+                    >
+                      <MapIcon className="size-4" aria-hidden />
+                      الخريطة
+                    </Link>
+                  ) : null}
+                </div>
                 {line.note ? <p className="mt-2 font-semibold">{line.note}</p> : null}
                 <h3 className="mt-2 text-xl font-bold">
                   {line.from} ↔ {line.to}

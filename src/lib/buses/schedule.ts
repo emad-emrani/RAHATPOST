@@ -14,7 +14,10 @@ export function israelClock(ms: number): { date: string; minutes: number } {
     hourCycle: "h23",
   }).formatToParts(new Date(ms));
   const get = (t: string) => parts.find((p) => p.type === t)?.value ?? "00";
-  return { date: `${get("year")}-${get("month")}-${get("day")}`, minutes: Number(get("hour")) * 60 + Number(get("minute")) };
+  return {
+    date: `${get("year")}-${get("month")}-${get("day")}`,
+    minutes: Number(get("hour")) * 60 + Number(get("minute")),
+  };
 }
 
 /** "HH:MM" list (sorted, may wrap past midnight) → minutes, keeping order past 24:00. */
@@ -44,7 +47,13 @@ export function lineInfo(number: string) {
 }
 
 /** Planned arrivals at a stop for a line/direction from now on (approximate: first-stop time + typical offset). */
-export function plannedArrivals(nowMs: number, line: string, dir: string, stop: string, limit = 5): number[] {
+export function plannedArrivals(
+  nowMs: number,
+  line: string,
+  dir: string,
+  stop: string,
+  limit = 5,
+): number[] {
   const { date, minutes } = israelClock(nowMs);
   const info = lineInfo(line)?.dirs.find((d) => d.dir === dir);
   const offset = info?.stops.find(([code]) => code === stop)?.[1];

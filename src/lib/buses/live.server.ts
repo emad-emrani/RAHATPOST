@@ -67,3 +67,84 @@ export async function loadArrivals(stop: string): Promise<ArrivalsResult> {
     clearTimeout(timer);
   }
 }
+
+/* ---------------------------------------------------------------- live vehicle positions */
+
+export type Vehicle = {
+  ref: string;
+  line: string;
+  dir: string;
+  lat: number;
+  lon: number;
+  /** When the bus last reported this position (ISO). */
+  at: string;
+};
+
+const visitsCache = new Map<string, { at: number; visits: CurlbusVisitFull[] }>();
+type CurlbusVisitFull = CurlbusVisit & {
+  vehicle_ref?: string;
+  direction_id?: string;
+  location?: { lat?: string; lon?: string } | null;
+};
+
+async function stopVisits(stop: string): Promise<CurlbusVisitFull[]> {
+  const hit = visitsCache.get(stop);
+  if (hit && Date.now() - hit.at < TTL_MS) return hit.visits;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  try {
+    const res = await fetch(`https://curlbus.app/${stop}`, {
+      signal: controller.signal,
+      headers: { accept: "application/json", "user-agent": "rahatpost.com (bus map)" },
+    });
+    if (!res.ok) throw new Error(`curlbus ${res.status}`);
+    const body = (await res.json()) as { visits?: Record<string, CurlbusVisitFull[]> };
+    const visits = body.visits?.[stop] ?? [];
+    visitsCache.set(stop, { at: Date.now(), visits });
+    if (visitsCache.size > 500) visitsCache.delete(visitsCache.keys().next().value as string);
+    return visits;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/** A position older than this is not shown (the bus stopped reporting). */
+const POSITION_MAX_AGE_MS = 5 * 60_000;
+
+/**
+ * Real positions of the buses of one line: SIRI (via curlbus) reports each approaching
+ * vehicle's last GPS location at the stops it is heading to. We ask a handful of stops spread
+ * along the route and keep the newest position per vehicle.
+ */
+export async function loadVehicles(
+  line: string,
+  stops: string[],
+): Promise<{ ok: boolean; vehicles: Vehicle[] }> {
+  const results = await Promise.allSettled(stops.map((s) => stopVisits(s)));
+  const ok = results.some((r) => r.status === "fulfilled");
+  const now = Date.now();
+  const best = new Map<string, Vehicle>();
+  for (const r of results) {
+    if (r.status !== "fulfilled") continue;
+    for (const v of r.value) {
+      if (String(v.line_name) !== line || v.operator_id !== "23" || !v.location || !v.vehicle_ref)
+        continue;
+      const lat = Number(v.location.lat);
+      const lon = Number(v.location.lon);
+      const at = parseTime(v.timestamp);
+      if (!Number.isFinite(lat) || !Number.isFinite(lon) || Number.isNaN(at)) continue;
+      if (now - at > POSITION_MAX_AGE_MS) continue;
+      const prev = best.get(v.vehicle_ref);
+      if (!prev || Date.parse(prev.at) < at)
+        best.set(v.vehicle_ref, {
+          ref: v.vehicle_ref,
+          line,
+          dir: String(v.direction_id ?? ""),
+          lat,
+          lon,
+          at: new Date(at).toISOString(),
+        });
+    }
+  }
+  return { ok, vehicles: [...best.values()] };
+}
