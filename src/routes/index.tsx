@@ -72,7 +72,7 @@ const HOME_CACHE = "public, max-age=0, s-maxage=60, stale-while-revalidate=300";
  * page. On a cold cache we give up after a short wait (the server keeps warming its cache for the
  * next visit) and simply hide the section.
  */
-const ISRAEL_HOME_WAIT_MS = 2_500;
+const ISRAEL_HOME_WAIT_MS = 4_000;
 async function israelNewsForHome(): Promise<IsraelNewsResult | null> {
   try {
     return await Promise.race([

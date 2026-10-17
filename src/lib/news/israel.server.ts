@@ -62,6 +62,8 @@ const PER_SOURCE = 15;
 /** Titles translated eagerly (what /today and the list show first); the rest on demand. */
 const TRANSLATE_FIRST = 24;
 const TRANSLATE_BUDGET_MS = 4_000;
+/** List views wait only briefly for new translations; the rest finish in the background. */
+const LIST_TRANSLATE_BUDGET_MS = 1_200;
 
 type Base = Omit<IsraelNewsItem, "titleAr" | "summaryAr">;
 
@@ -76,7 +78,7 @@ export async function loadIsraelNews(): Promise<IsraelNewsResult> {
   // keeps us well inside the free daily quota). Quick on a warm cache, bounded on a cold one.
   await translateMissing(
     feed.items.slice(0, TRANSLATE_FIRST).map((item) => ({ id: item.slug, title: item.titleHe })),
-    TRANSLATE_BUDGET_MS,
+    LIST_TRANSLATE_BUDGET_MS,
   );
   return withTranslations(feed);
 }
@@ -115,14 +117,64 @@ async function withTranslations(feed: Feed): Promise<IsraelNewsResult> {
   };
 }
 
-async function loadFeed(): Promise<Feed> {
-  if (cache && Date.now() - cache.at < TTL_MS) return cache;
+let snapshotTried = false;
+
+async function readSnapshot(): Promise<Feed | null> {
+  try {
+    const { getSql } = await import("@/lib/db");
+    const sql = await getSql();
+    const rows = await sql<{ data: Feed }>`select data from israel_news_snapshot where id = 1`;
+    const data = rows[0]?.data;
+    if (data && Array.isArray(data.items) && data.items.length > 0) return data;
+  } catch (error) {
+    console.error("[israel] snapshot read", error);
+  }
+  return null;
+}
+
+async function writeSnapshot(feed: Feed): Promise<void> {
+  try {
+    const { getSql } = await import("@/lib/db");
+    const sql = await getSql();
+    await sql`insert into israel_news_snapshot (id, data, updated_at)
+      values (1, ${JSON.stringify(feed)}::jsonb, now())
+      on conflict (id) do update set data = excluded.data, updated_at = now()`;
+  } catch (error) {
+    console.error("[israel] snapshot write", error);
+  }
+}
+
+function startRefresh(): Promise<Feed> {
   if (!inflight) {
-    inflight = refresh().finally(() => {
-      inflight = null;
-    });
+    inflight = refresh()
+      .catch((error) => {
+        console.error("[israel] refresh", error);
+        if (cache) return cache;
+        throw error;
+      })
+      .finally(() => {
+        inflight = null;
+      });
   }
   return inflight;
+}
+
+/**
+ * Stale-while-revalidate: always answer from the last good list (memory, else the Neon snapshot)
+ * when we have one, and refresh the feeds in the background. Only a brand-new deploy with an
+ * empty snapshot waits for the feeds.
+ */
+async function loadFeed(): Promise<Feed> {
+  if (!cache && !snapshotTried) {
+    snapshotTried = true;
+    const snap = await readSnapshot();
+    if (snap && !cache) cache = snap;
+  }
+  if (cache && cache.items.length > 0) {
+    if (Date.now() - cache.at >= TTL_MS) void startRefresh();
+    return cache;
+  }
+  return startRefresh();
 }
 
 async function refresh(): Promise<Feed> {
@@ -169,6 +221,7 @@ async function refresh(): Promise<Feed> {
     fetchedAt: items.length ? Date.now() : null,
     at: items.length ? Date.now() : Date.now() - TTL_MS + 30_000,
   };
+  if (items.length > 0) await writeSnapshot(cache);
   return cache;
 }
 
