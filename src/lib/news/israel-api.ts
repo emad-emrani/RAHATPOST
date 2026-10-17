@@ -7,7 +7,7 @@ async function cacheHeaders(ok: boolean) {
     setResponseHeader(
       "Cache-Control",
       ok
-        ? "public, max-age=0, s-maxage=60, stale-while-revalidate=300"
+        ? "public, max-age=0, s-maxage=60, stale-while-revalidate=180"
         : "public, max-age=0, s-maxage=30",
     );
   } catch {

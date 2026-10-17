@@ -64,31 +64,44 @@ const SOURCES: FeedSource[] = [
 
 export const NEWS_SOURCE_NAMES = SOURCES.map((s) => s.name);
 
-/** Feeds are re-checked every 3 minutes so new stories reach the home page quickly. */
-const TTL_MS = 3 * 60_000;
-/** Up to this age a stale copy is served instantly while a refresh runs in the background. */
-const STALE_OK_MS = 15 * 60_000;
+/** Feeds are re-checked every 4 minutes; the last good list is always served instantly meanwhile. */
+const TTL_MS = 4 * 60_000;
 const FEED_TIMEOUT_MS = 8_000;
 const MAX_AGE_MS = 21 * 24 * 60 * 60_000;
 const MAX_ITEMS = 80;
 export const USER_AGENT = "Mozilla/5.0 (compatible; RahatPostBot/1.0; +https://rahatpost.com)";
+const SNAP_KEY = "news";
 
 let cache: { result: NewsFeedResult; at: number } | null = null;
 let inflight: Promise<NewsFeedResult> | null = null;
+let snapshotTried = false;
 
-export async function loadNews(): Promise<NewsFeedResult> {
-  const now = Date.now();
-  if (cache && now - cache.at < TTL_MS) return { ...cache.result, now };
-  if (!inflight) {
-    inflight = refresh().finally(() => {
+function startRefresh(): Promise<NewsFeedResult> {
+  inflight ??= refresh()
+    .catch((error) => {
+      console.error("[news] refresh", error);
+      if (cache) return cache.result;
+      throw error;
+    })
+    .finally(() => {
       inflight = null;
     });
+  return inflight;
+}
+
+/** Stale-while-revalidate: memory → Neon snapshot → (only on a brand-new, empty DB) wait for feeds. */
+export async function loadNews(): Promise<NewsFeedResult> {
+  if (!cache && !snapshotTried) {
+    snapshotTried = true;
+    const { readSnapshot } = await import("@/lib/snapshot.server");
+    const snap = await readSnapshot<{ result: NewsFeedResult; at: number }>(SNAP_KEY);
+    if (snap?.result?.items?.length && !cache) cache = snap;
   }
-  if (cache && now - cache.at < STALE_OK_MS) {
-    inflight.catch(() => {}); // background refresh; errors are handled inside refresh()
-    return { ...cache.result, now };
+  if (cache && cache.result.items.length > 0) {
+    if (Date.now() - cache.at >= TTL_MS) void startRefresh();
+    return { ...cache.result, now: Date.now() };
   }
-  const result = await inflight;
+  const result = await startRefresh();
   return { ...result, now: Date.now() };
 }
 
@@ -140,6 +153,10 @@ async function refresh(): Promise<NewsFeedResult> {
   };
   // Cache failures only briefly so the next visitor retries soon.
   cache = { result, at: items.length ? Date.now() : Date.now() - TTL_MS + 30_000 };
+  if (items.length > 0) {
+    const { writeSnapshot } = await import("@/lib/snapshot.server");
+    await writeSnapshot(SNAP_KEY, cache);
+  }
   return result;
 }
 

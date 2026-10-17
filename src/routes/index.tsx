@@ -72,7 +72,7 @@ export const Route = createFileRoute("/")({
 
 const postGuide = getGuide("post");
 
-const HOME_CACHE = "public, max-age=0, s-maxage=60, stale-while-revalidate=300";
+const HOME_CACHE = "public, max-age=0, s-maxage=60, stale-while-revalidate=180";
 
 /**
  * Israel news is a secondary section: never let a slow or failing Hebrew feed hold up the home

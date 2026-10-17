@@ -37,7 +37,7 @@ export const Route = createFileRoute("/today")({
   },
   // Alerts and the duty pharmacy change during the day: keep the CDN copy short.
   headers: () => ({
-    "Cache-Control": "public, max-age=0, s-maxage=60, stale-while-revalidate=300",
+    "Cache-Control": "public, max-age=0, s-maxage=60, stale-while-revalidate=180",
   }),
   staleTime: 60_000,
   component: TodayPage,

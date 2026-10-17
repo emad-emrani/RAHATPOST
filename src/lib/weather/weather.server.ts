@@ -3,11 +3,11 @@ import type { Weather, WeatherHour } from "./types";
 
 /**
  * Current weather for Rahat from Open-Meteo (free, no key; CC BY 4.0 — the UI credits it).
- * Cached in memory for 20 minutes per server instance; on failure the last good reading is reused
- * for up to 3 hours, otherwise null (the cards simply hide).
+ * Refreshed every 4 minutes in the background; the last good reading (memory → Neon snapshot) is
+ * served instantly and kept for up to 12 hours if Open-Meteo fails.
  */
-const TTL_MS = 20 * 60_000;
-const STALE_MS = 3 * 3600_000;
+const TTL_MS = 4 * 60_000;
+const STALE_MS = 12 * 3600_000;
 
 const URL_ =
   "https://api.open-meteo.com/v1/forecast?" +
@@ -81,10 +81,16 @@ async function fetchWeather(): Promise<Weather> {
   };
 }
 
-export async function getRahatWeather(): Promise<Weather | null> {
-  if (cache && Date.now() - cache.fetchedAt < TTL_MS) return cache;
+let snapshotTried = false;
+
+function startRefresh(): Promise<Weather | null> {
   inflight ??= fetchWeather()
-    .then((w) => (cache = w))
+    .then(async (w) => {
+      cache = w;
+      const { writeSnapshot } = await import("@/lib/snapshot.server");
+      await writeSnapshot("weather", w);
+      return w;
+    })
     .catch((error) => {
       console.error("[weather] fetch failed", error);
       return cache && Date.now() - cache.fetchedAt < STALE_MS ? cache : null;
@@ -93,4 +99,18 @@ export async function getRahatWeather(): Promise<Weather | null> {
       inflight = null;
     });
   return inflight;
+}
+
+export async function getRahatWeather(): Promise<Weather | null> {
+  if (!cache && !snapshotTried) {
+    snapshotTried = true;
+    const { readSnapshot } = await import("@/lib/snapshot.server");
+    const snap = await readSnapshot<Weather>("weather");
+    if (snap && typeof snap.temp === "number" && !cache) cache = snap;
+  }
+  if (cache && Date.now() - cache.fetchedAt < STALE_MS) {
+    if (Date.now() - cache.fetchedAt >= TTL_MS) void startRefresh();
+    return cache;
+  }
+  return startRefresh();
 }

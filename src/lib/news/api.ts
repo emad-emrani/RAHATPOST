@@ -91,7 +91,7 @@ export const getNews = createServerFn({ method: "GET" }).handler(
       setResponseHeader(
         "Cache-Control",
         result.items.length > 0
-          ? "public, max-age=0, s-maxage=60, stale-while-revalidate=300"
+          ? "public, max-age=0, s-maxage=60, stale-while-revalidate=180"
           : "public, max-age=0, s-maxage=30",
       );
     } catch {
