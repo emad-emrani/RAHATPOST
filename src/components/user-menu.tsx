@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { ListChecks, LogOut, UserRound, Smartphone, UserX } from "lucide-react";
+import { ShoppingBag, ListChecks, LogOut, UserRound, Smartphone, UserX } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { signOut } from "@/lib/auth/client";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
@@ -76,6 +76,15 @@ export function UserMenu() {
           >
             <ListChecks className="size-5 text-primary-ink" aria-hidden />
             منشوراتي
+          </Link>
+          <Link
+            to="/my-orders"
+            role="menuitem"
+            className="flex min-h-12 items-center gap-2 rounded-xl px-3 font-bold hover:bg-surface"
+            onClick={() => setOpen(false)}
+          >
+            <ShoppingBag className="size-5 text-primary-ink" aria-hidden />
+            طلباتي
           </Link>
           <Link
             to="/app"

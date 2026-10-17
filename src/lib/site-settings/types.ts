@@ -14,7 +14,7 @@ export const HOME_SECTIONS = {
   post: "خدمة البريد",
   install: "تثبيت التطبيق والإشعارات",
   buses: "الباصات",
-  directory: "من الدليل",
+  directory: "من المتجر",
   ads: "آخر الإعلانات",
   duty: "صيدلية المناوبة",
   emergency: "أرقام الطوارئ",
@@ -26,7 +26,7 @@ export const NAV_ITEMS = {
   "/news": "الأخبار",
   "/today": "اليوم",
   "/buses": "باصات",
-  "/directory": "الدليل",
+  "/store": "المتجر",
   "/ads": "الإعلانات",
 } as const;
 export type NavId = keyof typeof NAV_ITEMS;
@@ -34,7 +34,7 @@ export type NavId = keyof typeof NAV_ITEMS;
 export const TILE_ITEMS = {
   "/news": "الأخبار",
   "/buses": "الباصات",
-  "/directory": "الدليل",
+  "/store": "المتجر",
   "/ads": "الإعلانات",
   "/today": "اليوم",
   "/submit": "أضف",
@@ -180,7 +180,9 @@ function toggles<T extends string>(input: unknown, all: readonly T[]): Toggle<T>
   const out: Toggle<T>[] = [];
   if (Array.isArray(input))
     for (const x of input) {
-      const id = (x as { id?: unknown })?.id as T;
+      const raw = (x as { id?: unknown })?.id;
+      // «الدليل» tab/tile became «المتجر» (/directory stays reachable from the store).
+      const id = (raw === "/directory" ? "/store" : raw) as T;
       if (all.includes(id) && !out.some((o) => o.id === id))
         out.push({ id, visible: (x as { visible?: unknown }).visible !== false });
     }

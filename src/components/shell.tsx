@@ -1,17 +1,18 @@
 import { Link } from "@tanstack/react-router";
-import { Bus, ChevronLeft, House, Megaphone, Newspaper, Plus, Siren, Store } from "lucide-react";
+import { Bus, ChevronLeft, ShoppingCart, House, Megaphone, Newspaper, Plus, Siren, Store } from "lucide-react";
 import type { ReactNode } from "react";
 import logoUrl from "@/assets/logo.jpg";
 import { UserMenu } from "@/components/user-menu";
 import { mediaUrl } from "@/lib/media/types";
 import { useSiteSettings } from "@/lib/site-settings/context";
+import { cartCount, useCart } from "@/lib/store/cart";
 
 const NAV = [
   { to: "/", label: "الرئيسية", icon: House, exact: true },
   { to: "/news", label: "الأخبار", icon: Newspaper, exact: false },
   { to: "/today", label: "اليوم", icon: Siren, exact: true },
   { to: "/buses", label: "باصات", icon: Bus, exact: true },
-  { to: "/directory", label: "الدليل", icon: Store, exact: false },
+  { to: "/store", label: "المتجر", icon: Store, exact: false },
   { to: "/ads", label: "الإعلانات", icon: Megaphone, exact: false },
 ] as const;
 
@@ -39,6 +40,7 @@ export function Shell({ children, wide = false }: { children: ReactNode; wide?: 
             <p className="truncate text-lg font-bold leading-tight">{t.siteName}</p>
             {t.tagline ? <p className="text-xs font-semibold text-muted">{t.tagline}</p> : null}
           </div>
+          <CartButton />
           <UserMenu />
           <Link to="/submit" className="btn px-4" aria-label="أضف خبراً أو إعلاناً أو نشاطاً">
             <Plus className="size-4" aria-hidden />
@@ -133,7 +135,7 @@ export function SectionTitle({
   more,
 }: {
   title: string;
-  to?: "/" | "/news" | "/israel-news" | "/today" | "/buses" | "/directory" | "/ads";
+  to?: "/" | "/news" | "/israel-news" | "/today" | "/buses" | "/directory" | "/store" | "/ads";
   more?: string;
 }) {
   return (
@@ -146,5 +148,18 @@ export function SectionTitle({
         </Link>
       ) : null}
     </div>
+  );
+}
+
+function CartButton() {
+  const n = cartCount(useCart());
+  if (!n) return null;
+  return (
+    <Link to="/cart" className="btn btn-ghost relative size-12 shrink-0 p-0" aria-label={`السلة (${n})`}>
+      <ShoppingCart className="size-5" aria-hidden />
+      <span className="absolute -top-1 -end-1 grid min-w-5 place-items-center rounded-full bg-ink px-1 text-xs font-bold text-paper">
+        {n}
+      </span>
+    </Link>
   );
 }

@@ -34,6 +34,16 @@ export const Route = createFileRoute("/media/$key")({
                 userId: "",
               };
           }
+          if (!access) {
+            // Store product photos are public.
+            const { isProductImage } = await import("@/lib/store/store.server");
+            if (await isProductImage(key))
+              access = {
+                contentType: key.endsWith(".jpg") ? "image/jpeg" : "image/webp",
+                isPublic: true,
+                userId: "",
+              };
+          }
           if (!access) return notFound();
           if (!access.isPublic) {
             const { isAdmin } = await import("@/lib/admin-auth");

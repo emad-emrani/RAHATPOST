@@ -14,8 +14,10 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AdsDottxtRouteImport } from './routes/ads[.]txt'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as BusesRouteImport } from './routes/buses'
+import { Route as CartRouteImport } from './routes/cart'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as MyAdsRouteImport } from './routes/my-ads'
+import { Route as MyOrdersRouteImport } from './routes/my-orders'
 import { Route as MyPostsRouteImport } from './routes/my-posts'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
@@ -37,7 +39,10 @@ import { Route as IsraelNewsSlugRouteImport } from './routes/israel-news.$slug'
 import { Route as MediaKeyRouteImport } from './routes/media.$key'
 import { Route as NewsIndexRouteImport } from './routes/news.index'
 import { Route as NewsSlugRouteImport } from './routes/news.$slug'
+import { Route as StoreIndexRouteImport } from './routes/store.index'
+import { Route as StoreSlugRouteImport } from './routes/store.$slug'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as ApiStoreWebhookProviderRouteImport } from './routes/api/store-webhook.$provider'
 import { Route as BusesMapLineRouteImport } from './routes/buses_.map.$line'
 import { Route as BusesStopStopRouteImport } from './routes/buses_.stop.$stop'
 import { Route as DirectoryGuideGuideRouteImport } from './routes/directory.guide.$guide'
@@ -67,6 +72,11 @@ const BusesRoute = BusesRouteImport.update({
   path: '/buses',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CartRoute = CartRouteImport.update({
+  id: '/cart',
+  path: '/cart',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -75,6 +85,11 @@ const LoginRoute = LoginRouteImport.update({
 const MyAdsRoute = MyAdsRouteImport.update({
   id: '/my-ads',
   path: '/my-ads',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MyOrdersRoute = MyOrdersRouteImport.update({
+  id: '/my-orders',
+  path: '/my-orders',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MyPostsRoute = MyPostsRouteImport.update({
@@ -184,9 +199,24 @@ const NewsSlugRoute = NewsSlugRouteImport.update({
   path: '/news/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const StoreIndexRoute = StoreIndexRouteImport.update({
+  id: '/store/',
+  path: '/store/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StoreSlugRoute = StoreSlugRouteImport.update({
+  id: '/store/$slug',
+  path: '/store/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiStoreWebhookProviderRoute = ApiStoreWebhookProviderRouteImport.update({
+  id: '/api/store-webhook/$provider',
+  path: '/api/store-webhook/$provider',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BusesMapLineRoute = BusesMapLineRouteImport.update({
@@ -211,8 +241,10 @@ export interface FileRoutesByFullPath {
   '/ads.txt': typeof AdsDottxtRoute
   '/app': typeof AppRoute
   '/buses': typeof BusesRoute
+  '/cart': typeof CartRoute
   '/login': typeof LoginRoute
   '/my-ads': typeof MyAdsRoute
+  '/my-orders': typeof MyOrdersRoute
   '/my-posts': typeof MyPostsRoute
   '/privacy': typeof PrivacyRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
@@ -230,11 +262,14 @@ export interface FileRoutesByFullPath {
   '/israel-news/$slug': typeof IsraelNewsSlugRoute
   '/media/$key': typeof MediaKeyRoute
   '/news/$slug': typeof NewsSlugRoute
+  '/store/$slug': typeof StoreSlugRoute
   '/ads/': typeof AdsIndexRoute
   '/directory/': typeof DirectoryIndexRoute
   '/israel-news/': typeof IsraelNewsIndexRoute
   '/news/': typeof NewsIndexRoute
+  '/store/': typeof StoreIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/store-webhook/$provider': typeof ApiStoreWebhookProviderRoute
   '/buses/map/$line': typeof BusesMapLineRoute
   '/buses/stop/$stop': typeof BusesStopStopRoute
   '/directory/guide/$guide': typeof DirectoryGuideGuideRoute
@@ -245,8 +280,10 @@ export interface FileRoutesByTo {
   '/ads.txt': typeof AdsDottxtRoute
   '/app': typeof AppRoute
   '/buses': typeof BusesRoute
+  '/cart': typeof CartRoute
   '/login': typeof LoginRoute
   '/my-ads': typeof MyAdsRoute
+  '/my-orders': typeof MyOrdersRoute
   '/my-posts': typeof MyPostsRoute
   '/privacy': typeof PrivacyRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
@@ -264,11 +301,14 @@ export interface FileRoutesByTo {
   '/israel-news/$slug': typeof IsraelNewsSlugRoute
   '/media/$key': typeof MediaKeyRoute
   '/news/$slug': typeof NewsSlugRoute
+  '/store/$slug': typeof StoreSlugRoute
   '/ads': typeof AdsIndexRoute
   '/directory': typeof DirectoryIndexRoute
   '/israel-news': typeof IsraelNewsIndexRoute
   '/news': typeof NewsIndexRoute
+  '/store': typeof StoreIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/store-webhook/$provider': typeof ApiStoreWebhookProviderRoute
   '/buses/map/$line': typeof BusesMapLineRoute
   '/buses/stop/$stop': typeof BusesStopStopRoute
   '/directory/guide/$guide': typeof DirectoryGuideGuideRoute
@@ -280,8 +320,10 @@ export interface FileRoutesById {
   '/ads.txt': typeof AdsDottxtRoute
   '/app': typeof AppRoute
   '/buses': typeof BusesRoute
+  '/cart': typeof CartRoute
   '/login': typeof LoginRoute
   '/my-ads': typeof MyAdsRoute
+  '/my-orders': typeof MyOrdersRoute
   '/my-posts': typeof MyPostsRoute
   '/privacy': typeof PrivacyRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
@@ -299,11 +341,14 @@ export interface FileRoutesById {
   '/israel-news/$slug': typeof IsraelNewsSlugRoute
   '/media/$key': typeof MediaKeyRoute
   '/news/$slug': typeof NewsSlugRoute
+  '/store/$slug': typeof StoreSlugRoute
   '/ads/': typeof AdsIndexRoute
   '/directory/': typeof DirectoryIndexRoute
   '/israel-news/': typeof IsraelNewsIndexRoute
   '/news/': typeof NewsIndexRoute
+  '/store/': typeof StoreIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/store-webhook/$provider': typeof ApiStoreWebhookProviderRoute
   '/buses_/map/$line': typeof BusesMapLineRoute
   '/buses_/stop/$stop': typeof BusesStopStopRoute
   '/directory/guide/$guide': typeof DirectoryGuideGuideRoute
@@ -316,8 +361,10 @@ export interface FileRouteTypes {
     | '/ads.txt'
     | '/app'
     | '/buses'
+    | '/cart'
     | '/login'
     | '/my-ads'
+    | '/my-orders'
     | '/my-posts'
     | '/privacy'
     | '/sitemap.xml'
@@ -335,11 +382,14 @@ export interface FileRouteTypes {
     | '/israel-news/$slug'
     | '/media/$key'
     | '/news/$slug'
+    | '/store/$slug'
     | '/ads/'
     | '/directory/'
     | '/israel-news/'
     | '/news/'
+    | '/store/'
     | '/api/auth/$'
+    | '/api/store-webhook/$provider'
     | '/buses/map/$line'
     | '/buses/stop/$stop'
     | '/directory/guide/$guide'
@@ -350,8 +400,10 @@ export interface FileRouteTypes {
     | '/ads.txt'
     | '/app'
     | '/buses'
+    | '/cart'
     | '/login'
     | '/my-ads'
+    | '/my-orders'
     | '/my-posts'
     | '/privacy'
     | '/sitemap.xml'
@@ -369,11 +421,14 @@ export interface FileRouteTypes {
     | '/israel-news/$slug'
     | '/media/$key'
     | '/news/$slug'
+    | '/store/$slug'
     | '/ads'
     | '/directory'
     | '/israel-news'
     | '/news'
+    | '/store'
     | '/api/auth/$'
+    | '/api/store-webhook/$provider'
     | '/buses/map/$line'
     | '/buses/stop/$stop'
     | '/directory/guide/$guide'
@@ -384,8 +439,10 @@ export interface FileRouteTypes {
     | '/ads.txt'
     | '/app'
     | '/buses'
+    | '/cart'
     | '/login'
     | '/my-ads'
+    | '/my-orders'
     | '/my-posts'
     | '/privacy'
     | '/sitemap.xml'
@@ -403,11 +460,14 @@ export interface FileRouteTypes {
     | '/israel-news/$slug'
     | '/media/$key'
     | '/news/$slug'
+    | '/store/$slug'
     | '/ads/'
     | '/directory/'
     | '/israel-news/'
     | '/news/'
+    | '/store/'
     | '/api/auth/$'
+    | '/api/store-webhook/$provider'
     | '/buses_/map/$line'
     | '/buses_/stop/$stop'
     | '/directory/guide/$guide'
@@ -419,8 +479,10 @@ export interface RootRouteChildren {
   AdsDottxtRoute: typeof AdsDottxtRoute
   AppRoute: typeof AppRoute
   BusesRoute: typeof BusesRoute
+  CartRoute: typeof CartRoute
   LoginRoute: typeof LoginRoute
   MyAdsRoute: typeof MyAdsRoute
+  MyOrdersRoute: typeof MyOrdersRoute
   MyPostsRoute: typeof MyPostsRoute
   PrivacyRoute: typeof PrivacyRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
@@ -438,11 +500,14 @@ export interface RootRouteChildren {
   IsraelNewsSlugRoute: typeof IsraelNewsSlugRoute
   MediaKeyRoute: typeof MediaKeyRoute
   NewsSlugRoute: typeof NewsSlugRoute
+  StoreSlugRoute: typeof StoreSlugRoute
   AdsIndexRoute: typeof AdsIndexRoute
   DirectoryIndexRoute: typeof DirectoryIndexRoute
   IsraelNewsIndexRoute: typeof IsraelNewsIndexRoute
   NewsIndexRoute: typeof NewsIndexRoute
+  StoreIndexRoute: typeof StoreIndexRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  ApiStoreWebhookProviderRoute: typeof ApiStoreWebhookProviderRoute
   BusesMapLineRoute: typeof BusesMapLineRoute
   BusesStopStopRoute: typeof BusesStopStopRoute
   DirectoryGuideGuideRoute: typeof DirectoryGuideGuideRoute
@@ -485,6 +550,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BusesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/cart': {
+      id: '/cart'
+      path: '/cart'
+      fullPath: '/cart'
+      preLoaderRoute: typeof CartRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
@@ -497,6 +569,13 @@ declare module '@tanstack/react-router' {
       path: '/my-ads'
       fullPath: '/my-ads'
       preLoaderRoute: typeof MyAdsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/my-orders': {
+      id: '/my-orders'
+      path: '/my-orders'
+      fullPath: '/my-orders'
+      preLoaderRoute: typeof MyOrdersRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/my-posts': {
@@ -646,11 +725,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof NewsSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/store/': {
+      id: '/store/'
+      path: '/store'
+      fullPath: '/store/'
+      preLoaderRoute: typeof StoreIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/store/$slug': {
+      id: '/store/$slug'
+      path: '/store/$slug'
+      fullPath: '/store/$slug'
+      preLoaderRoute: typeof StoreSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/auth/$': {
       id: '/api/auth/$'
       path: '/api/auth/$'
       fullPath: '/api/auth/$'
       preLoaderRoute: typeof ApiAuthSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/store-webhook/$provider': {
+      id: '/api/store-webhook/$provider'
+      path: '/api/store-webhook/$provider'
+      fullPath: '/api/store-webhook/$provider'
+      preLoaderRoute: typeof ApiStoreWebhookProviderRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/buses_/map/$line': {
@@ -683,8 +783,10 @@ const rootRouteChildren: RootRouteChildren = {
   AdsDottxtRoute: AdsDottxtRoute,
   AppRoute: AppRoute,
   BusesRoute: BusesRoute,
+  CartRoute: CartRoute,
   LoginRoute: LoginRoute,
   MyAdsRoute: MyAdsRoute,
+  MyOrdersRoute: MyOrdersRoute,
   MyPostsRoute: MyPostsRoute,
   PrivacyRoute: PrivacyRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
@@ -703,11 +805,14 @@ const rootRouteChildren: RootRouteChildren = {
   IsraelNewsSlugRoute: IsraelNewsSlugRoute,
   MediaKeyRoute: MediaKeyRoute,
   NewsSlugRoute: NewsSlugRoute,
+  StoreSlugRoute: StoreSlugRoute,
   AdsIndexRoute: AdsIndexRoute,
   DirectoryIndexRoute: DirectoryIndexRoute,
   IsraelNewsIndexRoute: IsraelNewsIndexRoute,
   NewsIndexRoute: NewsIndexRoute,
+  StoreIndexRoute: StoreIndexRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
+  ApiStoreWebhookProviderRoute: ApiStoreWebhookProviderRoute,
   BusesMapLineRoute: BusesMapLineRoute,
   BusesStopStopRoute: BusesStopStopRoute,
   DirectoryGuideGuideRoute: DirectoryGuideGuideRoute,

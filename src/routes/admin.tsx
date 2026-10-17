@@ -10,6 +10,7 @@ import {
   Pill,
   Rss,
   Settings,
+  ShoppingBag,
   Siren,
   Store,
   Users,
@@ -32,6 +33,7 @@ import { MembersAdmin } from "@/components/admin/members-admin";
 import { adminWhoami } from "@/lib/team/api";
 import type { AdminLevel } from "@/lib/admin-auth";
 import { PublishAdmin } from "@/components/admin/publish-admin";
+import { StoreAdmin } from "@/components/admin/store-admin";
 import { adminDecideNews, adminListNews } from "@/lib/reader-news/api";
 import type { OwnReaderNews } from "@/lib/reader-news/types";
 
@@ -49,6 +51,7 @@ const STATUS: Record<BusinessSubmission["status"], string> = {
 };
 
 type Section =
+  | "store"
   | "settings"
   | "auto"
   | "publish"
@@ -67,6 +70,7 @@ const ALL_TABS: { key: Section; label: string; icon: LucideIcon }[] = [
   { key: "auto", label: "الأخبار التلقائية", icon: Rss },
   { key: "news", label: "أخبار القراء", icon: Newspaper },
   { key: "ads", label: "الإعلانات", icon: Megaphone },
+  { key: "store", label: "المتجر", icon: ShoppingBag },
   { key: "directory", label: "طلبات الدليل", icon: Store },
   { key: "comments", label: "التعليقات", icon: MessageSquare },
   { key: "reports", label: "البلاغات", icon: Flag },
@@ -325,6 +329,8 @@ function AdminPage() {
           ) : null}
           {current === "publish" ? (
             <PublishAdmin />
+          ) : current === "store" ? (
+            <StoreAdmin isOwner={level === "owner"} />
           ) : current === "settings" ? (
             <SiteSettingsAdmin />
           ) : current === "auto" ? (

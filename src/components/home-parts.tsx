@@ -10,7 +10,7 @@ import { useSiteSettings } from "@/lib/site-settings/context";
 const tiles = [
   { to: "/news", label: "الأخبار", icon: Newspaper },
   { to: "/buses", label: "الباصات", icon: Bus },
-  { to: "/directory", label: "الدليل", icon: Store },
+  { to: "/store", label: "المتجر", icon: Store },
   { to: "/ads", label: "الإعلانات", icon: Megaphone },
   { to: "/today", label: "اليوم", icon: Siren },
   { to: "/submit", label: "أضف", icon: Plus },

@@ -4,7 +4,6 @@ import { Fragment, useMemo, useState, type ReactNode } from "react";
 import { useSiteSettings } from "@/lib/site-settings/context";
 import type { HomeSectionId } from "@/lib/site-settings/types";
 import { AdSlots } from "@/components/google-services";
-import { CategoryIcon } from "@/components/category-icon";
 import { NewsImage } from "@/components/news-image";
 import { HomePostCard } from "@/components/guide";
 import { getGuide } from "@/data/guides";
@@ -28,6 +27,8 @@ import { getIsraelNews } from "@/lib/news/israel-api";
 import { IsraelNewsCredit, IsraelNewsRow, IsraelTitle } from "@/components/israel-news";
 import { emergency } from "@/data/content";
 import { getPublicAds } from "@/lib/ads/api";
+import { getStore } from "@/lib/store/api";
+import { ProductCard } from "@/components/store-parts";
 import { listAds, type ListAd } from "@/lib/ads/display";
 import { organizationLd, seo, websiteLd } from "@/lib/seo";
 
@@ -45,15 +46,16 @@ export const Route = createFileRoute("/")({
       jsonLd: [organizationLd, websiteLd],
     }),
   loader: async () => {
-    const [news, approved, ads, israel, weather, board] = await Promise.all([
+    const [news, approved, ads, israel, weather, board, store] = await Promise.all([
       getNews(),
       getApprovedEntries(),
       getPublicAds(),
       israelNewsForHome(),
       weatherWithin(2_000),
       getBoard(),
+      getStore(),
     ]);
-    return { news, approved: approved.entries, ads, israel, weather, board };
+    return { news, approved: approved.entries, ads, israel, weather, board, store };
   },
   // New items must show up within a minute or two: short CDN cache, revalidated in the background.
   headers: () => ({ "Cache-Control": HOME_CACHE }),
@@ -83,7 +85,7 @@ async function israelNewsForHome(): Promise<IsraelNewsResult | null> {
 }
 
 function Home() {
-  const { news, approved, ads: adsData, israel, weather, board } = Route.useLoaderData();
+  const { news, approved, ads: adsData, israel, weather, board, store } = Route.useLoaderData();
   const settings = useSiteSettings();
   const israelItems = useMemo(() => israel?.items ?? [], [israel]);
   // Translated headlines first (each group stays newest first), then Hebrew-only ones.
@@ -94,11 +96,6 @@ function Home() {
   ].slice(0, 5);
   const classifieds = listAds(adsData);
   const places = useMemo(() => [...approved, ...osmEntries()], [approved]);
-  // Verified (owner-approved) first; until there are any, a few real places with details from OSM.
-  const featured = [
-    ...approved,
-    ...osmEntries().filter((p) => p.phone || p.openingHours || p.address),
-  ].slice(0, 4);
   const now = useNow(news.now);
   const search = Route.useSearch();
   const [q, setQ] = useState(search.q ?? "");
@@ -260,34 +257,19 @@ function Home() {
         </Link>
       </section>
     ),
-    directory: (
+    // «من المتجر»: hidden until there are real products.
+    directory: store.products.length ? (
       <section>
-        <SectionTitle title="من الدليل" to="/directory" more="كل الدليل" />
+        <SectionTitle title="من المتجر" to="/store" more="كل المتجر" />
         <ul className="scroll-row -mx-4 px-4 pb-2">
-          {featured.map((item) => (
-            <li key={item.slug} className="w-44 shrink-0">
-              <Link
-                to="/directory/$slug"
-                params={{ slug: item.slug }}
-                className="stamp press flex h-full flex-col p-3"
-              >
-                <span className="icon-badge size-14 rounded-2xl">
-                  <CategoryIcon category={item.category} className="size-7" />
-                </span>
-                <span className="mt-2 block font-bold leading-snug">{item.name}</span>
-                <span className="text-xs font-semibold text-muted">{item.category}</span>
-                {item.verified ? <span className="chip chip-ink mt-1 w-fit">موثّق</span> : null}
-                {item.address || item.area ? (
-                  <span className="text-sm font-semibold text-muted">
-                    {item.address || item.area}
-                  </span>
-                ) : null}
-              </Link>
+          {store.products.slice(0, 8).map((p) => (
+            <li key={p.id} className="w-48 shrink-0">
+              <ProductCard p={p} currency={store.settings.currency} />
             </li>
           ))}
         </ul>
       </section>
-    ),
+    ) : null,
     ads: (
       <section>
         <SectionTitle title="آخر الإعلانات" to="/ads" more="كل الإعلانات" />
