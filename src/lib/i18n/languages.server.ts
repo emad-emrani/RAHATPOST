@@ -170,7 +170,28 @@ export async function translateContent(texts: string[], lang: string, budgetMs =
               JSON.stringify(Object.fromEntries(chunk.map((t, j) => [String(j), t.slice(0, 4000)]))),
               { timeoutMs: 30_000, json: true },
             ))?.text;
-            if (!out) continue;
+            if (!out) {
+              // No JSON-capable provider right now (e.g. Gemini 429, no xAI key): translate one by
+              // one through the plain chain, which ends with MyMemory. Titles first (short texts).
+              const order = [...chunk].sort((a, b) => a.length - b.length);
+              const db = await sql();
+              let next = 0;
+              const worker = async () => {
+                while (next < order.length) {
+                  const src = order[next++];
+                  const r = (await aiGenerate(s, kind, systemFor(s.stylePrompt, langName(langs.find((l) => l.code === lang), lang)), src.slice(0, 480), {
+                    timeoutMs: 10_000,
+                    pair: { from: "ar", to: lang },
+                  }))?.text?.trim();
+                  if (!r) continue;
+                  mem.set(key(src), r);
+                  await db`insert into content_translations (hash, lang, text) values (${hashOf(src)}, ${lang}, ${r})
+                    on conflict (hash, lang) do update set text = excluded.text`.catch(() => {});
+                }
+              };
+              await Promise.all([worker(), worker(), worker()]);
+              continue;
+            }
             try {
               const parsed = JSON.parse(out.replace(/^```(json)?|```$/g, "")) as Record<string, string>;
               const db = await sql();
