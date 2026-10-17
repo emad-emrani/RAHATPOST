@@ -123,7 +123,8 @@ export async function translateMissingUi(lang: string, max = 120): Promise<{ don
 
 const mem = new Map<string, string>();
 const hashOf = (t: string) => createHash("sha1").update(t).digest("hex");
-const inflight = new Map<string, Promise<void>>();
+/** Running batches; entries older than 20 s are ignored (serverless may freeze work after a response). */
+const inflight = new Map<string, { p: Promise<void>; at: number }>();
 
 /**
  * Arabic texts → target language, from cache; missing ones go to Gemini in one batch, waiting at
@@ -157,7 +158,7 @@ export async function translateContent(texts: string[], lang: string, budgetMs =
     if (s) {
       const id = `${lang}:${todo.map(hashOf).join(",")}`.slice(0, 400);
       const run =
-        inflight.get(id) ??
+        ((e) => (e && Date.now() - e.at < 20_000 ? e.p : undefined))(inflight.get(id)) ??
         (async () => {
           const langs = await loadLanguages();
           for (let i = 0; i < todo.length; i += 20) {
@@ -208,7 +209,7 @@ export async function translateContent(texts: string[], lang: string, budgetMs =
           }
           if (mem.size > 5_000) for (const k of [...mem.keys()].slice(0, 1_000)) mem.delete(k);
         })().finally(() => inflight.delete(id));
-      inflight.set(id, run);
+      if (inflight.get(id)?.p !== run) inflight.set(id, { p: run, at: Date.now() });
       await Promise.race([run, new Promise((r) => setTimeout(r, budgetMs))]);
     }
   }
