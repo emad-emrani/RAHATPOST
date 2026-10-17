@@ -12,6 +12,6 @@ export function newsCardUrl(item: { title: string; category: string; source?: st
     t: item.title.replace(/\s+/g, " ").trim().slice(0, 220),
   });
   if (item.source) q.set("src", item.source.slice(0, 40));
-  q.set("v", "1");
+  q.set("v", "2");
   return `/api/news-image?${q.toString()}`;
 }

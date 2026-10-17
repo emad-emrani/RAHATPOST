@@ -2,18 +2,18 @@
  * Branded fallback image for news items without a photo: headline (Arabic/Hebrew shaped by resvg's
  * text engine), section label and the رهط بوست logo, rendered SVG → PNG.
  */
-import kufiUrl from "./fonts/NotoKufiArabic-Bold.ttf?inline";
-import hebrewUrl from "./fonts/NotoSansHebrew-Bold.ttf?inline";
 import logoSvg from "../../../public/favicon.svg?raw";
 
 type ResvgCtor = typeof import("@resvg/resvg-js").Resvg;
 let ResvgClass: ResvgCtor | null = null;
 let fonts: Buffer[] | null = null;
-const fromDataUrl = (u: string) => Buffer.from(u.slice(u.indexOf(",") + 1), "base64");
 
 async function init() {
   if (!ResvgClass) ResvgClass = (await import("@resvg/resvg-js")).Resvg;
-  fonts ??= [fromDataUrl(kufiUrl), fromDataUrl(hebrewUrl)];
+  if (!fonts) {
+    const f = await import("./fonts/fonts.b64");
+    fonts = [Buffer.from(f.KUFI_BOLD, "base64"), Buffer.from(f.HEBREW_BOLD, "base64")];
+  }
   return ResvgClass;
 }
 
