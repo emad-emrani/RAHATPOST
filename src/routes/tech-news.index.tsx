@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Shell } from "@/components/shell";
-import { NewsUnavailable } from "@/components/news";
+import { NewsLead, NewsUnavailable } from "@/components/news";
 import { NewsImage } from "@/components/news-image";
 import { getTechNews } from "@/lib/news/api";
 import { relativeTimeAr, useNow } from "@/lib/news/format";
@@ -31,8 +31,10 @@ function TechNewsPage() {
       {data.items.length === 0 ? (
         <NewsUnavailable />
       ) : (
+        <>
+        <NewsLead item={data.items[0]} now={now} />
         <ul className="flex flex-col gap-3">
-          {data.items.map((item) => (
+          {data.items.slice(1).map((item) => (
             <li key={item.slug}>
               <Link to="/news/$slug" params={{ slug: item.slug }} className="stamp press flex items-start gap-3 p-3">
                 <NewsImage item={item} className="size-22 rounded-xl" iconClassName="size-7" />
@@ -47,6 +49,7 @@ function TechNewsPage() {
             </li>
           ))}
         </ul>
+        </>
       )}
       <p className="mt-4 text-sm font-semibold text-muted">
         {tr("العناوين ومقتطفات قصيرة من مصادرها، مع رابط للخبر الأصلي.")}
