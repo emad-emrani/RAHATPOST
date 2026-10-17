@@ -1,3 +1,20 @@
+import {
+  Bell,
+  Flag,
+  LogOut,
+  Megaphone,
+  Menu,
+  MessageSquare,
+  Newspaper,
+  PenSquare,
+  Pill,
+  Rss,
+  Siren,
+  Store,
+  Users,
+  X,
+  type LucideIcon,
+} from "lucide-react";
 import { createFileRoute } from "@tanstack/react-router";
 import { PhotoStrip } from "@/components/photo-picker";
 import { useCallback, useEffect, useState } from "react";
@@ -42,6 +59,67 @@ type Section =
   | "alerts"
   | "push";
 
+const ALL_TABS: { key: Section; label: string; icon: LucideIcon }[] = [
+  { key: "publish", label: "نشر خبر", icon: PenSquare },
+  { key: "auto", label: "الأخبار التلقائية", icon: Rss },
+  { key: "news", label: "أخبار القراء", icon: Newspaper },
+  { key: "ads", label: "الإعلانات", icon: Megaphone },
+  { key: "directory", label: "طلبات الدليل", icon: Store },
+  { key: "comments", label: "التعليقات", icon: MessageSquare },
+  { key: "reports", label: "البلاغات", icon: Flag },
+  { key: "duty", label: "صيدلية المناوبة", icon: Pill },
+  { key: "alerts", label: "التنبيهات", icon: Siren },
+  { key: "push", label: "الإشعارات", icon: Bell },
+  { key: "members", label: "الأعضاء والصلاحيات", icon: Users },
+];
+
+function AdminMenu({
+  tabs,
+  section,
+  onSelect,
+  onLogout,
+  level,
+  name,
+}: {
+  tabs: typeof ALL_TABS;
+  section: Section;
+  onSelect: (key: Section) => void;
+  onLogout: () => void;
+  level: AdminLevel | null;
+  name: string;
+}) {
+  return (
+    <nav aria-label="أقسام الإدارة" className="flex flex-col gap-1">
+      <p className="px-3 pb-2 text-sm font-semibold text-muted">
+        {level === "owner" ? "المالك" : `${name} · ${level === "writer" ? "كاتب" : "مشرف"}`}
+      </p>
+      {tabs.map(({ key, label, icon: Icon }) => (
+        <button
+          key={key}
+          type="button"
+          aria-current={section === key ? "page" : undefined}
+          className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-start font-bold transition-colors ${
+            section === key ? "bg-primary text-ink" : "hover:bg-primary-soft"
+          }`}
+          onClick={() => onSelect(key)}
+        >
+          <Icon className="size-5 shrink-0" aria-hidden />
+          {label}
+        </button>
+      ))}
+      <hr className="my-2 border-line" />
+      <button
+        type="button"
+        className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-start font-bold hover:bg-primary-soft"
+        onClick={onLogout}
+      >
+        <LogOut className="size-5 shrink-0" aria-hidden />
+        خروج
+      </button>
+    </nav>
+  );
+}
+
 function AdminPage() {
   const [state, setState] = useState<"loading" | "login" | "ready">("loading");
   const [items, setItems] = useState<BusinessSubmission[]>([]);
@@ -50,6 +128,14 @@ function AdminPage() {
   const [tab, setTab] = useState<BusinessSubmission["status"]>("pending");
   const [section, setSection] = useState<Section>("news");
   const [level, setLevel] = useState<AdminLevel | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setMenuOpen(false);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [menuOpen]);
   const [who, setWho] = useState({ name: "", signedIn: false });
 
   const refresh = useCallback(async () => {
@@ -149,152 +235,181 @@ function AdminPage() {
   };
 
   const list = items.filter((i) => i.status === tab);
+  const tabs = ALL_TABS.filter(({ key }) =>
+    level === "writer" ? key === "publish" : key !== "members" || level === "owner",
+  );
+  const current: Section = tabs.some((t) => t.key === section) ? section : (tabs[0]?.key ?? "news");
+  const logout = async () => {
+    setMenuOpen(false);
+    await adminLogout();
+    setState("login");
+  };
 
   return (
-    <Shell>
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold">الإدارة</h1>
-          {level !== "owner" ? (
-            <p className="text-sm font-semibold text-muted">
-              {who.name} · {level === "writer" ? "كاتب" : "مشرف"}
-            </p>
-          ) : null}
-        </div>
-        <button
-          type="button"
-          className="btn btn-ghost px-4"
-          onClick={async () => {
-            await adminLogout();
-            setState("login");
-          }}
-        >
-          خروج
-        </button>
-      </div>
-      <div className="mb-4 grid grid-cols-3 gap-2 sm:grid-cols-4" role="tablist" aria-label="القسم">
-        {(
-          [
-            ["publish", "نشر خبر"],
-            ["auto", "الأخبار التلقائية"],
-            ["news", "أخبار القراء"],
-            ["ads", "الإعلانات"],
-            ["directory", "طلبات الدليل"],
-            ["comments", "التعليقات"],
-            ["reports", "البلاغات"],
-            ["duty", "صيدلية المناوبة"],
-            ["alerts", "التنبيهات"],
-            ["push", "الإشعارات"],
-            ["members", "الأعضاء والصلاحيات"],
-          ] as const
-        )
-          .filter(([key]) =>
-            level === "writer" ? key === "publish" : key !== "members" || level === "owner",
-          )
-          .map(([key, label]) => (
-            <button
-              key={key}
-              type="button"
-              role="tab"
-              aria-selected={section === key}
-              className={section === key ? "chip chip-ink justify-center" : "chip justify-center"}
-              onClick={() => setSection(key)}
-            >
-              {label}
-            </button>
-          ))}
-      </div>
-      {section === "publish" || level === "writer" ? (
-        <PublishAdmin />
-      ) : section === "auto" ? (
-        <AutoNewsAdmin />
-      ) : section === "members" && level === "owner" ? (
-        <MembersAdmin />
-      ) : section === "comments" ? (
-        <CommentsAdmin />
-      ) : section === "reports" ? (
-        <ReportsAdmin />
-      ) : section === "duty" ? (
-        <DutyAdmin />
-      ) : section === "alerts" ? (
-        <AlertsAdmin />
-      ) : section === "push" ? (
-        <PushAdmin />
-      ) : section === "ads" ? (
-        <AdsAdmin />
-      ) : section === "news" ? (
-        <NewsAdmin />
-      ) : (
-        <>
-          <div className="scroll-row mb-4">
-            {(Object.keys(STATUS) as BusinessSubmission["status"][]).map((s) => (
-              <button
-                key={s}
-                type="button"
-                className={tab === s ? "chip chip-ink shrink-0" : "chip shrink-0 bg-paper"}
-                onClick={() => setTab(s)}
-              >
-                {STATUS[s]} ({items.filter((i) => i.status === s).length})
-              </button>
-            ))}
+    <Shell wide>
+      <div className="lg:grid lg:grid-cols-[15rem_minmax(0,1fr)] lg:gap-6">
+        <aside className="hidden lg:block">
+          <div className="stamp sticky top-24 p-3">
+            <AdminMenu
+              tabs={tabs}
+              section={current}
+              onSelect={setSection}
+              onLogout={logout}
+              level={level}
+              name={who.name}
+            />
           </div>
-          {error ? <p className="stamp mb-3 p-3 font-bold">{error}</p> : null}
-          {list.length === 0 ? (
-            <p className="stamp p-4 font-semibold">لا طلبات هنا.</p>
+        </aside>
+        <div className="min-w-0">
+          <div className="mb-4 flex items-center gap-3">
+            <button
+              type="button"
+              className="btn btn-ghost px-3 lg:hidden"
+              aria-label="فتح القائمة"
+              aria-expanded={menuOpen}
+              onClick={() => setMenuOpen(true)}
+            >
+              <Menu className="size-5" aria-hidden />
+            </button>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-muted">الإدارة</p>
+              <h1 className="truncate text-2xl font-bold">
+                {tabs.find((t) => t.key === current)?.label ?? "الإدارة"}
+              </h1>
+            </div>
+          </div>
+          {menuOpen ? (
+            <div
+              className="fixed inset-0 z-50 lg:hidden"
+              role="dialog"
+              aria-modal="true"
+              aria-label="قائمة الإدارة"
+            >
+              <button
+                type="button"
+                className="absolute inset-0 h-full w-full bg-black/40"
+                aria-label="إغلاق القائمة"
+                onClick={() => setMenuOpen(false)}
+              />
+              <div className="absolute inset-y-0 right-0 flex w-72 max-w-[85vw] flex-col overflow-y-auto bg-paper p-3 shadow-xl">
+                <div className="mb-2 flex items-center justify-between px-2">
+                  <p className="text-lg font-bold">لوحة التحكم</p>
+                  <button
+                    type="button"
+                    className="btn btn-ghost px-3"
+                    aria-label="إغلاق"
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    <X className="size-5" aria-hidden />
+                  </button>
+                </div>
+                <AdminMenu
+                  tabs={tabs}
+                  section={current}
+                  onSelect={(k) => {
+                    setSection(k);
+                    setMenuOpen(false);
+                  }}
+                  onLogout={logout}
+                  level={level}
+                  name={who.name}
+                />
+              </div>
+            </div>
+          ) : null}
+          {current === "publish" ? (
+            <PublishAdmin />
+          ) : current === "auto" ? (
+            <AutoNewsAdmin />
+          ) : current === "members" ? (
+            <MembersAdmin />
+          ) : current === "comments" ? (
+            <CommentsAdmin />
+          ) : current === "reports" ? (
+            <ReportsAdmin />
+          ) : current === "duty" ? (
+            <DutyAdmin />
+          ) : current === "alerts" ? (
+            <AlertsAdmin />
+          ) : current === "push" ? (
+            <PushAdmin />
+          ) : current === "ads" ? (
+            <AdsAdmin />
+          ) : current === "news" ? (
+            <NewsAdmin />
           ) : (
-            <ul className="flex flex-col gap-3">
-              {list.map((item) => (
-                <li key={item.id} className="stamp p-4">
-                  <span className="chip">{item.category}</span>
-                  <h2 className="mt-2 text-xl font-bold">{item.name}</h2>
-                  <p className="font-semibold">{item.area}</p>
-                  <p className="mt-1">{item.about}</p>
-                  <PhotoStrip keys={item.photo ? [item.photo] : []} />
-                  <p className="mt-1 font-bold" dir="ltr">
-                    {item.phone}
-                  </p>
-                  <p className="text-sm font-semibold text-muted">
-                    {item.posterName ? `${item.posterName} · ` : ""}
-                    {new Date(item.createdAt).toLocaleString("ar-u-nu-latn", {
-                      timeZone: "Asia/Jerusalem",
-                    })}
-                  </p>
-                  <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
-                    {item.status !== "approved" ? (
-                      <button
-                        type="button"
-                        className="btn"
-                        disabled={busyId === item.id}
-                        onClick={() => act(item.id, "approved")}
-                      >
-                        موافقة
-                      </button>
-                    ) : null}
-                    {item.status !== "rejected" ? (
-                      <button
-                        type="button"
-                        className="btn btn-ghost"
-                        disabled={busyId === item.id}
-                        onClick={() => act(item.id, "rejected")}
-                      >
-                        رفض
-                      </button>
-                    ) : null}
-                    <button
-                      type="button"
-                      className="btn btn-ghost"
-                      disabled={busyId === item.id}
-                      onClick={() => act(item.id, "delete")}
-                    >
-                      حذف
-                    </button>
-                  </div>
-                </li>
-              ))}
-            </ul>
+            <>
+              <div className="scroll-row mb-4">
+                {(Object.keys(STATUS) as BusinessSubmission["status"][]).map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    className={tab === s ? "chip chip-ink shrink-0" : "chip shrink-0 bg-paper"}
+                    onClick={() => setTab(s)}
+                  >
+                    {STATUS[s]} ({items.filter((i) => i.status === s).length})
+                  </button>
+                ))}
+              </div>
+              {error ? <p className="stamp mb-3 p-3 font-bold">{error}</p> : null}
+              {list.length === 0 ? (
+                <p className="stamp p-4 font-semibold">لا طلبات هنا.</p>
+              ) : (
+                <ul className="flex flex-col gap-3">
+                  {list.map((item) => (
+                    <li key={item.id} className="stamp p-4">
+                      <span className="chip">{item.category}</span>
+                      <h2 className="mt-2 text-xl font-bold">{item.name}</h2>
+                      <p className="font-semibold">{item.area}</p>
+                      <p className="mt-1">{item.about}</p>
+                      <PhotoStrip keys={item.photo ? [item.photo] : []} />
+                      <p className="mt-1 font-bold" dir="ltr">
+                        {item.phone}
+                      </p>
+                      <p className="text-sm font-semibold text-muted">
+                        {item.posterName ? `${item.posterName} · ` : ""}
+                        {new Date(item.createdAt).toLocaleString("ar-u-nu-latn", {
+                          timeZone: "Asia/Jerusalem",
+                        })}
+                      </p>
+                      <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
+                        {item.status !== "approved" ? (
+                          <button
+                            type="button"
+                            className="btn"
+                            disabled={busyId === item.id}
+                            onClick={() => act(item.id, "approved")}
+                          >
+                            موافقة
+                          </button>
+                        ) : null}
+                        {item.status !== "rejected" ? (
+                          <button
+                            type="button"
+                            className="btn btn-ghost"
+                            disabled={busyId === item.id}
+                            onClick={() => act(item.id, "rejected")}
+                          >
+                            رفض
+                          </button>
+                        ) : null}
+                        <button
+                          type="button"
+                          className="btn btn-ghost"
+                          disabled={busyId === item.id}
+                          onClick={() => act(item.id, "delete")}
+                        >
+                          حذف
+                        </button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </>
           )}
-        </>
-      )}
+        </div>
+      </div>
     </Shell>
   );
 }

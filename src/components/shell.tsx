@@ -13,7 +13,7 @@ const nav = [
   { to: "/ads", label: "الإعلانات", icon: Megaphone, exact: false },
 ] as const;
 
-export function Shell({ children }: { children: ReactNode }) {
+export function Shell({ children, wide = false }: { children: ReactNode; wide?: boolean }) {
   return (
     <div className="min-h-screen bg-surface text-ink">
       <header className="edge-b sticky top-0 z-30 bg-paper">
@@ -54,7 +54,11 @@ export function Shell({ children }: { children: ReactNode }) {
         </nav>
       </header>
 
-      <main className="mx-auto w-full max-w-3xl px-4 pt-4 pb-6">{children}</main>
+      <main
+        className={`mx-auto w-full ${wide ? "max-w-3xl lg:max-w-6xl" : "max-w-3xl"} px-4 pt-4 pb-6`}
+      >
+        {children}
+      </main>
 
       <footer className="mx-auto max-w-3xl px-4 pb-28 text-sm font-semibold text-muted md:pb-10">
         <nav className="flex flex-wrap gap-x-4 gap-y-1" aria-label="روابط الموقع">
