@@ -1,461 +1,234 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { PhotoStrip } from "@/components/photo-picker";
-import { useCallback, useEffect, useState } from "react";
-import { Shell } from "@/components/shell";
-import { CommentsAdmin } from "@/components/admin/comments-admin";
-import { AlertsAdmin, DutyAdmin, PushAdmin, ReportsAdmin } from "@/components/admin/content-admin";
-import { adminDecideAd, adminListAds } from "@/lib/ads/api";
-import type { OwnAd } from "@/lib/ads/types";
-import { adminDecide, adminList, adminLogin, adminLogout } from "@/lib/directory/api";
-import type { BusinessSubmission } from "@/lib/directory/types";
-import { adminDecideNews, adminListNews } from "@/lib/reader-news/api";
-import type { OwnReaderNews } from "@/lib/reader-news/types";
+import { createFileRoute } from '@tanstack/react-router';
+import React, { useState, useEffect } from 'react';
+import { createClient } from '@supabase/supabase-js';
 
-export const Route = createFileRoute("/admin")({
-  head: () => ({
-    meta: [{ title: "إدارة · رهط بوست" }, { name: "robots", content: "noindex, nofollow" }],
-  }),
-  component: AdminPage,
+// يمكنك جعل كلمة المرور مخفية في Vercel عبر VITE_ADMIN_PASS
+const ADMIN_PASS = "RahatPost2026"; 
+
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+const supabase = createClient(supabaseUrl, supabaseKey);
+
+export const Route = createFileRoute('/admin')({
+  component: AdminDashboard,
 });
 
-const STATUS: Record<BusinessSubmission["status"], string> = {
-  pending: "بانتظار المراجعة",
-  approved: "موافَق عليه",
-  rejected: "مرفوض",
-};
-
-type Section = "news" | "ads" | "directory" | "comments" | "reports" | "duty" | "alerts" | "push";
-
-function AdminPage() {
-  const [state, setState] = useState<"loading" | "login" | "ready">("loading");
-  const [items, setItems] = useState<BusinessSubmission[]>([]);
-  const [error, setError] = useState("");
-  const [busyId, setBusyId] = useState("");
-  const [tab, setTab] = useState<BusinessSubmission["status"]>("pending");
-  const [section, setSection] = useState<Section>("news");
-
-  const refresh = useCallback(async () => {
-    const res = await adminList();
-    if (!res.authed) {
-      setState("login");
-      return;
-    }
-    setItems(res.items);
-    setError(res.ok ? "" : "تعذّر تحميل الطلبات من التخزين.");
-    setState("ready");
-  }, []);
+function AdminDashboard() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [password, setPassword] = useState('');
+  
+  const [title, setTitle] = useState('');
+  const [category, setCategory] = useState('أخبار رهط');
+  const [content, setContent] = useState('');
+  const [isBreaking, setIsBreaking] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [articles, setArticles] = useState<any[]>([]);
 
   useEffect(() => {
-    void refresh();
-  }, [refresh]);
+    if (isAuthenticated) {
+      fetchArticles();
+    }
+  }, [isAuthenticated]);
 
-  if (state === "loading") {
-    return (
-      <Shell>
-        <p className="stamp p-4 font-semibold">جاري التحميل…</p>
-      </Shell>
-    );
-  }
+  const fetchArticles = async () => {
+    const { data } = await supabase
+      .from('articles')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (data) setArticles(data);
+  };
 
-  if (state === "login") {
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (password === ADMIN_PASS) {
+      setIsAuthenticated(true);
+    } else {
+      alert('كلمة المرور غير صحيحة!');
+    }
+  };
+
+  const handlePublish = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    let imageUrl = '';
+
+    if (imageFile) {
+      const fileExt = imageFile.name.split('.').pop();
+      const fileName = `${Date.now()}.${fileExt}`;
+      const { error: uploadError } = await supabase.storage
+        .from('news-images')
+        .upload(fileName, imageFile);
+
+      if (uploadError) {
+        alert('خطأ في رفع الصورة: ' + uploadError.message);
+        setLoading(false);
+        return;
+      }
+
+      const { data: publicUrlData } = supabase.storage
+        .from('news-images')
+        .getPublicUrl(fileName);
+        
+      imageUrl = publicUrlData.publicUrl;
+    }
+
+    const { error } = await supabase.from('articles').insert([
+      { title, category, content, image_url: imageUrl, is_breaking: isBreaking },
+    ]);
+
+    setLoading(false);
+
+    if (error) {
+      alert('خطأ في النشر: ' + error.message);
+    } else {
+      alert('تم نشر الخبر بنجاح!');
+      setTitle('');
+      setContent('');
+      setIsBreaking(false);
+      setImageFile(null);
+      fetchArticles();
+    }
+  };
+
+  const handleDelete = async (id: number) => {
+    if (!confirm('هل أنت متأكد من الحذف؟')) return;
+    await supabase.from('articles').delete().eq('id', id);
+    fetchArticles();
+  };
+
+  if (!isAuthenticated) {
     return (
-      <Shell>
-        <h1 className="mb-3 text-2xl font-bold">الإدارة</h1>
-        <form
-          className="stamp flex flex-col gap-3 p-4"
-          onSubmit={async (event) => {
-            event.preventDefault();
-            const password = String(new FormData(event.currentTarget).get("password") ?? "");
-            const res = await adminLogin({ data: { password } });
-            if (res.ok) {
-              setError("");
-              await refresh();
-            } else setError(res.message ?? "تعذّر الدخول.");
-          }}
-        >
-          <label className="block font-bold">
-            كلمة المرور
-            <input
-              name="password"
-              type="password"
-              required
-              autoComplete="current-password"
-              className="field mt-1"
-              dir="ltr"
-            />
-          </label>
-          {error ? <p className="font-bold">{error}</p> : null}
-          <button type="submit" className="btn">
+      <div dir="rtl" className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
+        <form onSubmit={handleLogin} className="bg-white p-8 rounded-xl shadow-md w-full max-w-sm">
+          <h2 className="text-2xl font-bold mb-6 text-center text-gray-800">لوحة تحكم رهط بوست</h2>
+          <input
+            type="password"
+            placeholder="كلمة مرور المدير..."
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="w-full p-3 border rounded-lg mb-4 focus:outline-none focus:ring-2 focus:ring-blue-600"
+          />
+          <button type="submit" className="w-full bg-blue-600 text-white py-3 rounded-lg font-bold hover:bg-blue-700">
             دخول
           </button>
         </form>
-      </Shell>
+      </div>
     );
   }
 
-  const act = async (id: string, action: "approved" | "rejected" | "pending" | "delete") => {
-    if (action === "delete" && !confirm("حذف الطلب نهائياً؟")) return;
-    setBusyId(id);
-    try {
-      await adminDecide({ data: { id, action } });
-      await refresh();
-    } catch {
-      setError("تعذّر تنفيذ العملية.");
-    } finally {
-      setBusyId("");
-    }
-  };
-
-  const list = items.filter((i) => i.status === tab);
-
   return (
-    <Shell>
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold">الإدارة</h1>
-        <button
-          type="button"
-          className="btn btn-ghost px-4"
-          onClick={async () => {
-            await adminLogout();
-            setState("login");
-          }}
-        >
-          خروج
-        </button>
-      </div>
-      <div className="mb-4 grid grid-cols-3 gap-2 sm:grid-cols-4" role="tablist" aria-label="القسم">
-        {(
-          [
-            ["news", "أخبار القراء"],
-            ["ads", "الإعلانات"],
-            ["directory", "طلبات الدليل"],
-            ["comments", "التعليقات"],
-            ["reports", "البلاغات"],
-            ["duty", "صيدلية المناوبة"],
-            ["alerts", "التنبيهات"],
-            ["push", "الإشعارات"],
-          ] as const
-        ).map(([key, label]) => (
-          <button
-            key={key}
-            type="button"
-            role="tab"
-            aria-selected={section === key}
-            className={section === key ? "chip chip-ink justify-center" : "chip justify-center"}
-            onClick={() => setSection(key)}
-          >
-            {label}
+    <div dir="rtl" className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-4xl mx-auto">
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-3xl font-bold text-gray-900">إدارة أخبار RAHATPOST</h1>
+          <button onClick={() => setIsAuthenticated(false)} className="text-red-600 font-semibold">
+            خروج
           </button>
-        ))}
-      </div>
-      {section === "comments" ? (
-        <CommentsAdmin />
-      ) : section === "reports" ? (
-        <ReportsAdmin />
-      ) : section === "duty" ? (
-        <DutyAdmin />
-      ) : section === "alerts" ? (
-        <AlertsAdmin />
-      ) : section === "push" ? (
-        <PushAdmin />
-      ) : section === "ads" ? (
-        <AdsAdmin />
-      ) : section === "news" ? (
-        <NewsAdmin />
-      ) : (
-        <>
-          <div className="scroll-row mb-4">
-            {(Object.keys(STATUS) as BusinessSubmission["status"][]).map((s) => (
-              <button
-                key={s}
-                type="button"
-                className={tab === s ? "chip chip-ink shrink-0" : "chip shrink-0 bg-paper"}
-                onClick={() => setTab(s)}
+        </div>
+
+        <form onSubmit={handlePublish} className="bg-white p-6 rounded-xl shadow-sm border mb-10 space-y-4">
+          <h2 className="text-xl font-bold mb-4 border-b pb-2">نشر خبر جديد</h2>
+          
+          <div>
+            <label className="block font-semibold mb-1">عنوان الخبر</label>
+            <input
+              type="text"
+              required
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="w-full p-3 border rounded-lg"
+              placeholder="عنوان الخبر..."
+            />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block font-semibold mb-1">التصنيف</label>
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                className="w-full p-3 border rounded-lg bg-white"
               >
-                {STATUS[s]} ({items.filter((i) => i.status === s).length})
-              </button>
+                <option value="أخبار رهط">أخبار رهط</option>
+                <option value="النقب">النقب</option>
+                <option value="رياضة">رياضة</option>
+                <option value="مجتمع">مجتمع</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block font-semibold mb-1">صورة الخبر</label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => setImageFile(e.target.files ? e.target.files[0] : null)}
+                className="w-full p-2 border rounded-lg text-sm"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block font-semibold mb-1">المحتوى</label>
+            <textarea
+              required
+              rows={5}
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              className="w-full p-3 border rounded-lg"
+              placeholder="نص الخبر..."
+            />
+          </div>
+
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="breaking"
+              checked={isBreaking}
+              onChange={(e) => setIsBreaking(e.target.checked)}
+              className="w-5 h-5 text-red-600"
+            />
+            <label htmlFor="breaking" className="font-bold text-red-600 cursor-pointer">
+              خبر عاجل (شريط عاجل)
+            </label>
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-blue-600 text-white py-3 rounded-lg font-bold hover:bg-blue-700 disabled:bg-gray-400"
+          >
+            {loading ? 'جاري النشر...' : 'نشر الخبر'}
+          </button>
+        </form>
+
+        <div className="bg-white p-6 rounded-xl shadow-sm border">
+          <h2 className="text-xl font-bold mb-4 border-b pb-2">الأخبار الحالية ({articles.length})</h2>
+          <div className="space-y-3">
+            {articles.map((item) => (
+              <div key={item.id} className="flex items-center justify-between p-3 border rounded-lg">
+                <div className="flex items-center gap-4">
+                  {item.image_url && (
+                    <img src={item.image_url} alt="" className="w-14 h-14 object-cover rounded-md" />
+                  )}
+                  <div>
+                    <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded font-semibold">
+                      {item.category}
+                    </span>
+                    <h3 className="font-bold text-gray-800 mt-1">{item.title}</h3>
+                  </div>
+                </div>
+                <button
+                  onClick={() => handleDelete(item.id)}
+                  className="bg-red-50 text-red-600 px-3 py-1.5 rounded-lg font-semibold text-sm hover:bg-red-100"
+                >
+                  حذف
+                </button>
+              </div>
             ))}
           </div>
-          {error ? <p className="stamp mb-3 p-3 font-bold">{error}</p> : null}
-          {list.length === 0 ? (
-            <p className="stamp p-4 font-semibold">لا طلبات هنا.</p>
-          ) : (
-            <ul className="flex flex-col gap-3">
-              {list.map((item) => (
-                <li key={item.id} className="stamp p-4">
-                  <span className="chip">{item.category}</span>
-                  <h2 className="mt-2 text-xl font-bold">{item.name}</h2>
-                  <p className="font-semibold">{item.area}</p>
-                  <p className="mt-1">{item.about}</p>
-                  <PhotoStrip keys={item.photo ? [item.photo] : []} />
-                  <p className="mt-1 font-bold" dir="ltr">
-                    {item.phone}
-                  </p>
-                  <p className="text-sm font-semibold text-muted">
-                    {item.posterName ? `${item.posterName} · ` : ""}
-                    {new Date(item.createdAt).toLocaleString("ar-u-nu-latn", {
-                      timeZone: "Asia/Jerusalem",
-                    })}
-                  </p>
-                  <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
-                    {item.status !== "approved" ? (
-                      <button
-                        type="button"
-                        className="btn"
-                        disabled={busyId === item.id}
-                        onClick={() => act(item.id, "approved")}
-                      >
-                        موافقة
-                      </button>
-                    ) : null}
-                    {item.status !== "rejected" ? (
-                      <button
-                        type="button"
-                        className="btn btn-ghost"
-                        disabled={busyId === item.id}
-                        onClick={() => act(item.id, "rejected")}
-                      >
-                        رفض
-                      </button>
-                    ) : null}
-                    <button
-                      type="button"
-                      className="btn btn-ghost"
-                      disabled={busyId === item.id}
-                      onClick={() => act(item.id, "delete")}
-                    >
-                      حذف
-                    </button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </>
-      )}
-    </Shell>
-  );
-}
-
-function AdsAdmin() {
-  const [items, setItems] = useState<OwnAd[] | null>(null);
-  const [tab, setTab] = useState<OwnAd["status"]>("pending");
-  const [error, setError] = useState("");
-  const [busyId, setBusyId] = useState("");
-
-  const refresh = useCallback(async () => {
-    const res = await adminListAds();
-    setItems(res.items);
-    setError(
-      !res.authed ? "انتهت الجلسة. سجّل الدخول من جديد." : res.ok ? "" : "تعذّر تحميل الإعلانات.",
-    );
-  }, []);
-
-  useEffect(() => {
-    void refresh();
-  }, [refresh]);
-
-  const act = async (id: string, action: "approved" | "rejected" | "delete") => {
-    if (action === "delete" && !confirm("حذف الإعلان نهائياً؟")) return;
-    setBusyId(id);
-    try {
-      await adminDecideAd({ data: { id, action } });
-      await refresh();
-    } catch {
-      setError("تعذّر تنفيذ العملية.");
-    } finally {
-      setBusyId("");
-    }
-  };
-
-  if (!items) return <p className="stamp p-4 font-semibold">جاري التحميل…</p>;
-  const list = items.filter((i) => i.status === tab);
-
-  return (
-    <>
-      <div className="scroll-row mb-4">
-        {(Object.keys(STATUS) as OwnAd["status"][]).map((s) => (
-          <button
-            key={s}
-            type="button"
-            className={tab === s ? "chip chip-ink shrink-0" : "chip shrink-0"}
-            onClick={() => setTab(s)}
-          >
-            {STATUS[s]} ({items.filter((i) => i.status === s).length})
-          </button>
-        ))}
+        </div>
       </div>
-      {error ? <p className="stamp mb-3 p-3 font-bold">{error}</p> : null}
-      {list.length === 0 ? (
-        <p className="stamp p-4 font-semibold">لا إعلانات هنا.</p>
-      ) : (
-        <ul className="flex flex-col gap-3">
-          {list.map((ad) => (
-            <li key={ad.id} className="stamp p-4">
-              <span className="chip">{ad.type}</span>
-              <h2 className="mt-2 text-xl font-bold">{ad.title}</h2>
-              <p className="font-semibold">
-                {ad.neighborhood}
-                {ad.price ? ` · ${ad.price}` : ""}
-              </p>
-              <p className="mt-1 whitespace-pre-line">{ad.description}</p>
-              <PhotoStrip keys={ad.photos} />
-              <p className="mt-1 font-bold" dir="ltr">
-                {ad.phone}
-              </p>
-              <p className="text-sm font-semibold text-muted">
-                {ad.posterName} ·{" "}
-                {new Date(ad.updatedAt).toLocaleString("ar-u-nu-latn", {
-                  timeZone: "Asia/Jerusalem",
-                })}
-              </p>
-              <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
-                {ad.status !== "approved" ? (
-                  <button
-                    type="button"
-                    className="btn"
-                    disabled={busyId === ad.id}
-                    onClick={() => act(ad.id, "approved")}
-                  >
-                    موافقة
-                  </button>
-                ) : null}
-                {ad.status !== "rejected" ? (
-                  <button
-                    type="button"
-                    className="btn btn-ghost"
-                    disabled={busyId === ad.id}
-                    onClick={() => act(ad.id, "rejected")}
-                  >
-                    رفض
-                  </button>
-                ) : null}
-                <button
-                  type="button"
-                  className="btn btn-ghost"
-                  disabled={busyId === ad.id}
-                  onClick={() => act(ad.id, "delete")}
-                >
-                  حذف
-                </button>
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
-    </>
-  );
-}
-
-function NewsAdmin() {
-  const [items, setItems] = useState<OwnReaderNews[] | null>(null);
-  const [tab, setTab] = useState<OwnReaderNews["status"]>("pending");
-  const [error, setError] = useState("");
-  const [busyId, setBusyId] = useState("");
-
-  const refresh = useCallback(async () => {
-    const res = await adminListNews();
-    setItems(res.items);
-    setError(
-      !res.authed ? "انتهت الجلسة. سجّل الدخول من جديد." : res.ok ? "" : "تعذّر تحميل الأخبار.",
-    );
-  }, []);
-
-  useEffect(() => {
-    void refresh();
-  }, [refresh]);
-
-  const act = async (id: string, action: "approved" | "rejected" | "delete") => {
-    if (action === "delete" && !confirm("حذف الخبر نهائياً؟")) return;
-    setBusyId(id);
-    try {
-      await adminDecideNews({ data: { id, action } });
-      await refresh();
-    } catch {
-      setError("تعذّر تنفيذ العملية.");
-    } finally {
-      setBusyId("");
-    }
-  };
-
-  if (!items) return <p className="stamp p-4 font-semibold">جاري التحميل…</p>;
-  const list = items.filter((i) => i.status === tab);
-
-  return (
-    <>
-      <div className="scroll-row mb-4">
-        {(Object.keys(STATUS) as OwnReaderNews["status"][]).map((s) => (
-          <button
-            key={s}
-            type="button"
-            className={tab === s ? "chip chip-ink shrink-0" : "chip shrink-0"}
-            onClick={() => setTab(s)}
-          >
-            {STATUS[s]} ({items.filter((i) => i.status === s).length})
-          </button>
-        ))}
-      </div>
-      {error ? <p className="stamp mb-3 p-3 font-bold">{error}</p> : null}
-      {list.length === 0 ? (
-        <p className="stamp p-4 font-semibold">لا أخبار هنا.</p>
-      ) : (
-        <ul className="flex flex-col gap-3">
-          {list.map((item) => (
-            <li key={item.id} className="stamp p-4">
-              <span className="chip">{item.neighborhood}</span>
-              <h2 className="mt-2 text-xl font-bold">{item.title}</h2>
-              <p className="mt-1 whitespace-pre-line">{item.body}</p>
-              {item.sourceUrl ? (
-                <a
-                  href={item.sourceUrl}
-                  target="_blank"
-                  rel="noopener noreferrer nofollow"
-                  className="mt-1 block break-all text-sm font-bold underline"
-                  dir="ltr"
-                >
-                  {item.sourceUrl}
-                </a>
-              ) : null}
-              <p className="mt-1 text-sm font-semibold text-muted">
-                {item.posterName} ·{" "}
-                {new Date(item.updatedAt).toLocaleString("ar-u-nu-latn", {
-                  timeZone: "Asia/Jerusalem",
-                })}
-              </p>
-              <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
-                {item.status !== "approved" ? (
-                  <button
-                    type="button"
-                    className="btn"
-                    disabled={busyId === item.id}
-                    onClick={() => act(item.id, "approved")}
-                  >
-                    موافقة
-                  </button>
-                ) : null}
-                {item.status !== "rejected" ? (
-                  <button
-                    type="button"
-                    className="btn btn-ghost"
-                    disabled={busyId === item.id}
-                    onClick={() => act(item.id, "rejected")}
-                  >
-                    رفض
-                  </button>
-                ) : null}
-                <button
-                  type="button"
-                  className="btn btn-ghost"
-                  disabled={busyId === item.id}
-                  onClick={() => act(item.id, "delete")}
-                >
-                  حذف
-                </button>
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
-    </>
+    </div>
   );
 }
