@@ -1,13 +1,10 @@
 import { createFileRoute } from '@tanstack/react-router';
 import React, { useState, useEffect } from 'react';
-import { createClient } from '@supabase/supabase-js';
 
-// يمكنك جعل كلمة المرور مخفية في Vercel عبر VITE_ADMIN_PASS
 const ADMIN_PASS = "RahatPost2026"; 
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
-const supabase = createClient(supabaseUrl, supabaseKey);
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || '';
+const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
 export const Route = createFileRoute('/admin')({
   component: AdminDashboard,
@@ -32,11 +29,18 @@ function AdminDashboard() {
   }, [isAuthenticated]);
 
   const fetchArticles = async () => {
-    const { data } = await supabase
-      .from('articles')
-      .select('*')
-      .order('created_at', { ascending: false });
-    if (data) setArticles(data);
+    try {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/articles?select=*&order=created_at.desc`, {
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${SUPABASE_KEY}`
+        }
+      });
+      const data = await res.json();
+      if (Array.isArray(data)) setArticles(data);
+    } catch (err) {
+      console.error('Error fetching articles:', err);
+    }
   };
 
   const handleLogin = (e: React.FormEvent) => {
@@ -53,48 +57,80 @@ function AdminDashboard() {
     setLoading(true);
     let imageUrl = '';
 
-    if (imageFile) {
-      const fileExt = imageFile.name.split('.').pop();
-      const fileName = `${Date.now()}.${fileExt}`;
-      const { error: uploadError } = await supabase.storage
-        .from('news-images')
-        .upload(fileName, imageFile);
+    try {
+      // 1. رفع الصورة عبر Fetch API مباشرة إلى Supabase Storage
+      if (imageFile) {
+        const fileExt = imageFile.name.split('.').pop();
+        const fileName = `${Date.now()}.${fileExt}`;
+        const uploadRes = await fetch(`${SUPABASE_URL}/storage/v1/object/news-images/${fileName}`, {
+          method: 'POST',
+          headers: {
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`,
+            'Content-Type': imageFile.type
+          },
+          body: imageFile
+        });
 
-      if (uploadError) {
-        alert('خطأ في رفع الصورة: ' + uploadError.message);
-        setLoading(false);
-        return;
+        if (!uploadRes.ok) {
+          const errData = await uploadRes.json();
+          alert('خطأ في رفع الصورة: ' + (errData.message || 'فشل الرفع'));
+          setLoading(false);
+          return;
+        }
+
+        imageUrl = `${SUPABASE_URL}/storage/v1/object/public/news-images/${fileName}`;
       }
 
-      const { data: publicUrlData } = supabase.storage
-        .from('news-images')
-        .getPublicUrl(fileName);
-        
-      imageUrl = publicUrlData.publicUrl;
-    }
+      // 2. حفظ الخبر في قاعدة البيانات عبر Rest API
+      const insertRes = await fetch(`${SUPABASE_URL}/rest/v1/articles`, {
+        method: 'POST',
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${SUPABASE_KEY}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=minimal'
+        },
+        body: JSON.stringify({
+          title,
+          category,
+          content,
+          image_url: imageUrl,
+          is_breaking: isBreaking
+        })
+      });
 
-    const { error } = await supabase.from('articles').insert([
-      { title, category, content, image_url: imageUrl, is_breaking: isBreaking },
-    ]);
+      if (!insertRes.ok) {
+        throw new Error('فشل حفظ الخبر في قاعدة البيانات');
+      }
 
-    setLoading(false);
-
-    if (error) {
-      alert('خطأ في النشر: ' + error.message);
-    } else {
       alert('تم نشر الخبر بنجاح!');
       setTitle('');
       setContent('');
       setIsBreaking(false);
       setImageFile(null);
       fetchArticles();
+    } catch (err: any) {
+      alert('خطأ في النشر: ' + err.message);
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleDelete = async (id: number) => {
     if (!confirm('هل أنت متأكد من الحذف؟')) return;
-    await supabase.from('articles').delete().eq('id', id);
-    fetchArticles();
+    try {
+      await fetch(`${SUPABASE_URL}/rest/v1/articles?id=eq.${id}`, {
+        method: 'DELETE',
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${SUPABASE_KEY}`
+        }
+      });
+      fetchArticles();
+    } catch (err) {
+      alert('خطأ أثناء الحذف');
+    }
   };
 
   if (!isAuthenticated) {
