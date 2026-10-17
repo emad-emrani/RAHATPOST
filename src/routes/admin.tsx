@@ -1,4 +1,5 @@
 import {
+  BarChart3,
   Bell,
   Flag,
   LogOut,
@@ -34,6 +35,7 @@ import { adminWhoami } from "@/lib/team/api";
 import type { AdminLevel } from "@/lib/admin-auth";
 import { PublishAdmin } from "@/components/admin/publish-admin";
 import { StoreAdmin } from "@/components/admin/store-admin";
+import { StatsAdmin } from "@/components/admin/stats-admin";
 import { adminDecideNews, adminListNews } from "@/lib/reader-news/api";
 import type { OwnReaderNews } from "@/lib/reader-news/types";
 
@@ -51,6 +53,7 @@ const STATUS: Record<BusinessSubmission["status"], string> = {
 };
 
 type Section =
+  | "stats"
   | "store"
   | "settings"
   | "auto"
@@ -66,6 +69,7 @@ type Section =
   | "push";
 
 const ALL_TABS: { key: Section; label: string; icon: LucideIcon }[] = [
+  { key: "stats", label: "الإحصائيات", icon: BarChart3 },
   { key: "publish", label: "نشر خبر", icon: PenSquare },
   { key: "auto", label: "الأخبار التلقائية", icon: Rss },
   { key: "news", label: "أخبار القراء", icon: Newspaper },
@@ -329,6 +333,8 @@ function AdminPage() {
           ) : null}
           {current === "publish" ? (
             <PublishAdmin />
+          ) : current === "stats" ? (
+            <StatsAdmin />
           ) : current === "store" ? (
             <StoreAdmin isOwner={level === "owner"} />
           ) : current === "settings" ? (
