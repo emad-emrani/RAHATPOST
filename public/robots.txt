@@ -8,3 +8,4 @@ Disallow: /_serverFn/
 Disallow: /__grok/
 
 Sitemap: https://rahatpost.com/sitemap.xml
+Sitemap: https://rahatpost.com/news-sitemap.xml

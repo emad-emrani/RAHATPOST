@@ -19,6 +19,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as MyAdsRouteImport } from './routes/my-ads'
 import { Route as MyOrdersRouteImport } from './routes/my-orders'
 import { Route as MyPostsRouteImport } from './routes/my-posts'
+import { Route as NewsSitemapDotxmlRouteImport } from './routes/news-sitemap[.]xml'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as SubmitRouteImport } from './routes/submit'
@@ -96,6 +97,11 @@ const MyOrdersRoute = MyOrdersRouteImport.update({
 const MyPostsRoute = MyPostsRouteImport.update({
   id: '/my-posts',
   path: '/my-posts',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NewsSitemapDotxmlRoute = NewsSitemapDotxmlRouteImport.update({
+  id: '/news-sitemap.xml',
+  path: '/news-sitemap.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PrivacyRoute = PrivacyRouteImport.update({
@@ -252,6 +258,7 @@ export interface FileRoutesByFullPath {
   '/my-ads': typeof MyAdsRoute
   '/my-orders': typeof MyOrdersRoute
   '/my-posts': typeof MyPostsRoute
+  '/news-sitemap.xml': typeof NewsSitemapDotxmlRoute
   '/privacy': typeof PrivacyRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/submit': typeof SubmitRoute
@@ -292,6 +299,7 @@ export interface FileRoutesByTo {
   '/my-ads': typeof MyAdsRoute
   '/my-orders': typeof MyOrdersRoute
   '/my-posts': typeof MyPostsRoute
+  '/news-sitemap.xml': typeof NewsSitemapDotxmlRoute
   '/privacy': typeof PrivacyRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/submit': typeof SubmitRoute
@@ -333,6 +341,7 @@ export interface FileRoutesById {
   '/my-ads': typeof MyAdsRoute
   '/my-orders': typeof MyOrdersRoute
   '/my-posts': typeof MyPostsRoute
+  '/news-sitemap.xml': typeof NewsSitemapDotxmlRoute
   '/privacy': typeof PrivacyRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/submit': typeof SubmitRoute
@@ -375,6 +384,7 @@ export interface FileRouteTypes {
     | '/my-ads'
     | '/my-orders'
     | '/my-posts'
+    | '/news-sitemap.xml'
     | '/privacy'
     | '/sitemap.xml'
     | '/submit'
@@ -415,6 +425,7 @@ export interface FileRouteTypes {
     | '/my-ads'
     | '/my-orders'
     | '/my-posts'
+    | '/news-sitemap.xml'
     | '/privacy'
     | '/sitemap.xml'
     | '/submit'
@@ -455,6 +466,7 @@ export interface FileRouteTypes {
     | '/my-ads'
     | '/my-orders'
     | '/my-posts'
+    | '/news-sitemap.xml'
     | '/privacy'
     | '/sitemap.xml'
     | '/submit'
@@ -496,6 +508,7 @@ export interface RootRouteChildren {
   MyAdsRoute: typeof MyAdsRoute
   MyOrdersRoute: typeof MyOrdersRoute
   MyPostsRoute: typeof MyPostsRoute
+  NewsSitemapDotxmlRoute: typeof NewsSitemapDotxmlRoute
   PrivacyRoute: typeof PrivacyRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   SubmitRoute: typeof SubmitRoute
@@ -596,6 +609,13 @@ declare module '@tanstack/react-router' {
       path: '/my-posts'
       fullPath: '/my-posts'
       preLoaderRoute: typeof MyPostsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/news-sitemap.xml': {
+      id: '/news-sitemap.xml'
+      path: '/news-sitemap.xml'
+      fullPath: '/news-sitemap.xml'
+      preLoaderRoute: typeof NewsSitemapDotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/privacy': {
@@ -808,6 +828,7 @@ const rootRouteChildren: RootRouteChildren = {
   MyAdsRoute: MyAdsRoute,
   MyOrdersRoute: MyOrdersRoute,
   MyPostsRoute: MyPostsRoute,
+  NewsSitemapDotxmlRoute: NewsSitemapDotxmlRoute,
   PrivacyRoute: PrivacyRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   SubmitRoute: SubmitRoute,

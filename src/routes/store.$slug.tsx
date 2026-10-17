@@ -9,7 +9,9 @@ import {
   WhatsAppCashButton,
 } from "@/components/store-parts";
 import { getStoreProduct } from "@/lib/store/api";
-import { seo } from "@/lib/seo";
+import { absoluteUrl, breadcrumbLd, seo, SITE_NAME, snippet } from "@/lib/seo";
+import { mediaUrl } from "@/lib/media/types";
+import { effectivePrice } from "@/lib/store/types";
 
 export const Route = createFileRoute("/store/$slug")({
   loader: async ({ params }) => {
@@ -17,14 +19,49 @@ export const Route = createFileRoute("/store/$slug")({
     if (!r.product) throw notFound();
     return r;
   },
-  head: ({ loaderData, params }) =>
-    loaderData?.product
-      ? seo({
-          title: `${loaderData.product.name} | متجر رهط بوست`,
-          description: loaderData.product.shortDesc || loaderData.product.name,
-          path: `/store/${params.slug}`,
-        })
-      : { meta: [{ title: "غير موجود · رهط بوست" }] },
+  head: ({ loaderData, params }) => {
+    const p = loaderData?.product;
+    if (!p) return { meta: [{ title: "غير موجود · رهط بوست" }] };
+    const path = `/store/${params.slug}`;
+    const image = p.imageKey ? absoluteUrl(mediaUrl(p.imageKey)) : undefined;
+    const description = snippet(p.shortDesc || p.description || p.name);
+    return seo({
+      title: `${p.name} | متجر رهط بوست`,
+      description,
+      path,
+      image,
+      imageAlt: p.name,
+      // «مثال» products are display-only samples: keep them out of search.
+      robots: p.isSample ? "noindex" : "index",
+      jsonLd: p.isSample
+        ? []
+        : [
+            {
+              "@context": "https://schema.org",
+              "@type": "Product",
+              name: p.name,
+              description,
+              ...(image ? { image: [image] } : {}),
+              url: absoluteUrl(path),
+              brand: { "@type": "Brand", name: SITE_NAME },
+              offers: {
+                "@type": "Offer",
+                url: absoluteUrl(path),
+                priceCurrency: "ILS",
+                price: (effectivePrice(p) / 100).toFixed(2),
+                availability: p.inStock
+                  ? "https://schema.org/InStock"
+                  : "https://schema.org/OutOfStock",
+                seller: { "@id": "https://rahatpost.com/#organization" },
+              },
+            },
+            breadcrumbLd([
+              { name: "المتجر", path: "/store" },
+              { name: p.name, path },
+            ]),
+          ],
+    });
+  },
   component: ProductPage,
   notFoundComponent: () => (
     <Shell>

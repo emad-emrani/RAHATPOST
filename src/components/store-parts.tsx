@@ -63,7 +63,7 @@ export function Price({
 
 export function ProductImage({ p, className }: { p: PublicProduct; className: string }) {
   return p.imageKey ? (
-    <img src={mediaUrl(p.imageKey)} alt="" loading="lazy" className={`${className} object-cover`} />
+    <img src={mediaUrl(p.imageKey)} alt={p.name} loading="lazy" decoding="async" className={`${className} object-cover`} />
   ) : (
     <span className={`${className} grid place-items-center bg-primary-soft`}>
       <ShoppingBag className="size-10 text-primary-ink" aria-hidden />
