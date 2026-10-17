@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { NewsImage } from "@/components/news-image";
+import { LeadCard } from "@/components/lead-card";
 import { CommentCount } from "@/components/comment-count";
 import { relativeTimeAr } from "@/lib/news/format";
 import type { IsraelNewsItem, IsraelNewsResult } from "@/lib/news/types";
@@ -75,26 +76,20 @@ export function IsraelNewsRow({ item, now }: { item: IsraelNewsItem; now: number
 
 export function IsraelNewsLead({ item, now }: { item: IsraelNewsItem; now: number }) {
   return (
-    <Link
-      to="/israel-news/$slug"
-      params={{ slug: item.slug }}
-      className="stamp press mb-3 block overflow-hidden"
-    >
-      <NewsImage
-        item={imageItem(item)}
-        size="full"
-        className="aspect-[16/9] w-full"
-        iconClassName="size-10"
-      />
-      <span className="block p-4">
-        <TranslationChip item={item} />
-        <IsraelTitle item={item} className="mt-2 block text-xl font-bold leading-snug" />
-        <span className="text-sm font-semibold text-muted">
-          {relativeTimeAr(item.publishedAt, now)} · {trv(item.source)}
-          <CommentCount n={item.comments} className="ms-2" />
-        </span>
-      </span>
-    </Link>
+    <LeadCard
+      link={{ to: "/israel-news/$slug", params: { slug: item.slug } }}
+      image={imageItem(item)}
+      chips={
+        <>
+          {item.breaking ? <span className="chip chip-alert">{tr("عاجل")}</span> : null}
+          <TranslationChip item={item} />
+        </>
+      }
+      title={<IsraelTitle item={item} />}
+      excerpt={item.summaryAr || undefined}
+      meta={`${relativeTimeAr(item.publishedAt, now)} · ${trv(item.source)}`}
+      comments={item.comments}
+    />
   );
 }
 

@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { AdSlots } from "@/components/google-services";
 import { Shell } from "@/components/shell";
-import { NewsCredit, NewsUnavailable } from "@/components/news";
+import { NewsCredit, NewsLead, NewsUnavailable } from "@/components/news";
 import { NewsImage } from "@/components/news-image";
 import { CommentCount } from "@/components/comment-count";
 import { getNews } from "@/lib/news/api";
@@ -58,10 +58,12 @@ function NewsPage() {
           {list.length === 0 ? (
             <p className="stamp p-4 font-semibold">{tr("لا خبر في هذا التصنيف الآن.")}</p>
           ) : (
+            <>
+            <NewsLead item={list[0]} now={now} />
             <ul className="flex flex-col gap-3">
-              {list.map((item, i) => (
+              {list.slice(1).map((item, i) => (
                 <li key={item.slug}>
-                  {i === 5 ? (
+                  {i === 4 ? (
                     <div className="mb-3">
                       <AdSlots placement="newsList" />
                     </div>
@@ -88,6 +90,7 @@ function NewsPage() {
                 </li>
               ))}
             </ul>
+            </>
           )}
         </>
       )}

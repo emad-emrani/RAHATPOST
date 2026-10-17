@@ -17,14 +17,14 @@ import { HomeTodayChips } from "@/components/today-cards";
 import { weatherWithin } from "@/lib/weather/api";
 import { mediaUrl } from "@/lib/media/types";
 import { NotifyPrompt } from "@/components/notify";
-import { NewsUnavailable, newestFirst } from "@/components/news";
+import { NewsLead, NewsUnavailable, newestFirst } from "@/components/news";
 import { getApprovedEntries } from "@/lib/directory/api";
 import { osmEntries, type DirectoryEntry } from "@/lib/directory/types";
 import { getAutoSectionFlags, getNews, getTechNews } from "@/lib/news/api";
 import { newsByline, relativeTimeAr, useNow } from "@/lib/news/format";
 import type { IsraelNewsItem, IsraelNewsResult, NewsItem } from "@/lib/news/types";
 import { getIsraelNews } from "@/lib/news/israel-api";
-import { IsraelNewsCredit, IsraelNewsRow, IsraelTitle } from "@/components/israel-news";
+import { IsraelNewsCredit, IsraelNewsLead, IsraelNewsRow, IsraelTitle } from "@/components/israel-news";
 import { emergency } from "@/data/content";
 import { getPublicAds } from "@/lib/ads/api";
 import { getStore } from "@/lib/store/api";
@@ -172,30 +172,7 @@ function Home() {
           <SectionTitle title={tr("آخر الأخبار")} to="/news" more={tr("كل الأخبار")} />
           {lead ? (
             <>
-              <Link
-                to="/news/$slug"
-                params={{ slug: lead.slug }}
-                className="stamp press mb-3 block overflow-hidden"
-              >
-                {lead.image ? (
-                  <NewsImage
-                    item={lead}
-                    size="full"
-                    className="aspect-[16/9] w-full"
-                    iconClassName="size-10"
-                  />
-                ) : null}
-                <span className="block p-4">
-                  <span className="chip chip-deep">
-                    {lead.reader ? tr("من القراء") : trv(lead.category)}
-                  </span>
-                  <span className="mt-2 block text-xl font-bold">{trv(lead.title)}</span>
-                  <span className="text-sm font-semibold text-muted">
-                    {relativeTimeAr(lead.publishedAt, now)} · {newsByline(lead)}
-                    <CommentCount n={lead.comments} className="ms-2" />
-                  </span>
-                </span>
-              </Link>
+              <NewsLead item={lead} now={now} />
               <ul className="stack-list">
                 {rest.map((item) => (
                   <li key={item.slug}>
@@ -229,8 +206,9 @@ function Home() {
       techTop.length > 0 ? (
         <section>
           <SectionTitle title={tr("أخبار تقنية")} to="/tech-news" more={tr("عرض الكل")} />
+          <NewsLead item={techTop[0]} now={now} />
           <ul className="stack-list">
-            {techTop.map((item) => (
+            {techTop.slice(1).map((item) => (
               <li key={item.slug}>
                 <Link to="/news/$slug" params={{ slug: item.slug }} className="flex items-center gap-3 px-4 py-3">
                   <NewsImage item={item} className="size-16 rounded-xl" />
@@ -250,7 +228,7 @@ function Home() {
       showSec("israel") && israelTop.length > 0 && israel ? (
         <section>
           <SectionTitle title={tr("أخبار إسرائيل")} to="/israel-news" more={tr("عرض الكل")} />
-          <IsraelLead item={israelTop[0]} now={now} />
+          <IsraelNewsLead item={israelTop[0]} now={now} />
           <ul className="stack-list">
             {israelTop.slice(1).map((item) => (
               <li key={item.slug}>
@@ -484,38 +462,3 @@ function SearchResults({
 }
 
 /** First Israel headline as a big card (same look as the latest-news lead). */
-function IsraelLead({ item, now }: { item: IsraelNewsItem; now: number }) {
-  const title = item.titleAr ?? item.titleHe;
-  return (
-    <Link
-      to="/israel-news/$slug"
-      params={{ slug: item.slug }}
-      className="stamp press mb-3 block overflow-hidden"
-    >
-      {item.image ? (
-        <NewsImage
-          item={{ image: item.image, thumb: item.thumb, title, category: item.category }}
-          size="full"
-          className="aspect-[16/9] w-full"
-          iconClassName="size-10"
-        />
-      ) : null}
-      <span className="block p-4">
-        <span className="flex flex-wrap gap-2">
-          {item.breaking ? <span className="chip chip-alert">{tr("عاجل")}</span> : null}
-          <span className="chip chip-deep">{trv(item.category)}</span>
-        </span>
-        <span
-          className="mt-2 block text-xl font-bold"
-          {...(item.titleAr ? {} : { dir: "rtl", lang: "he" })}
-        >
-          {trv(title)}
-        </span>
-        <span className="text-sm font-semibold text-muted">
-          {relativeTimeAr(item.publishedAt, now)} · {trv(item.source)}
-          <CommentCount n={item.comments} className="ms-2" />
-        </span>
-      </span>
-    </Link>
-  );
-}
