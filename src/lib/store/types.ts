@@ -11,6 +11,8 @@ export type OrderStatus = keyof typeof ORDER_STATUS;
 export const DURATIONS = {
   none: "بدون مدة",
   monthly: "شهري",
+  quarterly: "3 أشهر",
+  semiannual: "6 أشهر",
   yearly: "سنوي",
   lifetime: "مدى الحياة",
   once: "لمرة واحدة",
@@ -27,7 +29,40 @@ export const PROVIDERS = {
 } as const;
 export type ProviderId = keyof typeof PROVIDERS;
 
-export type StoreCategory = { id: string; name: string; slug: string; sort: number };
+export const SECTION_ICONS = {
+  bag: "حقيبة",
+  tv: "شاشة",
+  briefcase: "مكتب",
+  sparkles: "ذكاء",
+  bot: "روبوت",
+  gamepad: "ألعاب",
+  music: "موسيقى",
+  cloud: "سحابة",
+  shield: "حماية",
+  graduation: "تعليم",
+  gift: "هدايا",
+  phone: "اتصالات",
+} as const;
+export type SectionIcon = keyof typeof SECTION_ICONS;
+
+export type StoreCategory = {
+  id: string;
+  name: string;
+  slug: string;
+  sort: number;
+  imageKey: string | null;
+  icon: SectionIcon;
+  description: string;
+  color: string;
+  active: boolean;
+  showSoon: boolean;
+  parentId: string | null;
+  /** Active products in this section and its sub-sections. */
+  productCount: number;
+};
+
+/** Public: active, and has products (or the admin chose to show it as «قريباً»). */
+export const sectionVisible = (c: StoreCategory) => c.active && (c.productCount > 0 || c.showSoon);
 
 export type PublicProduct = {
   id: string;

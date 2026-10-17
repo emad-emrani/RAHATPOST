@@ -1,5 +1,24 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { BookOpen, MessageCircle, ShoppingBag, ShoppingCart, Store } from "lucide-react";
+import {
+  Bot,
+  BookOpen,
+  Briefcase,
+  ChevronLeft,
+  Cloud,
+  Gamepad2,
+  Gift,
+  GraduationCap,
+  MessageCircle,
+  Music,
+  Shield,
+  ShoppingBag,
+  ShoppingCart,
+  Smartphone,
+  Sparkles,
+  Store,
+  Tv,
+  type LucideIcon,
+} from "lucide-react";
 import { useState } from "react";
 import { mediaUrl } from "@/lib/media/types";
 import { addToCart } from "@/lib/store/cart";
@@ -11,6 +30,8 @@ import {
   formatPrice,
   type Currency,
   type PublicProduct,
+  type SectionIcon,
+  type StoreCategory,
 } from "@/lib/store/types";
 
 export function Price({
@@ -201,6 +222,89 @@ export function StoreFooterLinks() {
         <ShoppingBag className="size-5 text-primary-ink" aria-hidden />
         طلباتي
       </Link>
+    </nav>
+  );
+}
+
+const ICONS: Record<SectionIcon, LucideIcon> = {
+  bag: ShoppingBag,
+  tv: Tv,
+  briefcase: Briefcase,
+  sparkles: Sparkles,
+  bot: Bot,
+  gamepad: Gamepad2,
+  music: Music,
+  cloud: Cloud,
+  shield: Shield,
+  graduation: GraduationCap,
+  gift: Gift,
+  phone: Smartphone,
+};
+
+/** Section cover: the uploaded image, else a neutral icon on the section colour. */
+export function SectionCover({ c, className }: { c: StoreCategory; className: string }) {
+  if (c.imageKey)
+    return (
+      <img
+        src={mediaUrl(c.imageKey)}
+        alt=""
+        loading="lazy"
+        className={`${className} object-cover`}
+      />
+    );
+  const Icon = ICONS[c.icon] ?? ShoppingBag;
+  return (
+    <span className={`${className} grid place-items-center`} style={{ backgroundColor: c.color }}>
+      <Icon className="size-10 text-ink" aria-hidden />
+    </span>
+  );
+}
+
+export function SectionTile({ c }: { c: StoreCategory }) {
+  return (
+    <Link
+      to="/store/c/$slug"
+      params={{ slug: c.slug }}
+      className="stamp press flex h-full flex-col overflow-hidden"
+    >
+      <SectionCover c={c} className="aspect-[4/3] w-full" />
+      <span className="flex flex-col gap-0.5 p-3">
+        <span className="font-bold leading-snug">{c.name}</span>
+        <span className="text-xs font-semibold text-muted">
+          {c.productCount
+            ? `${c.productCount} ${c.productCount > 2 && c.productCount < 11 ? "خيارات" : "خيار"}`
+            : "قريباً"}
+        </span>
+      </span>
+    </Link>
+  );
+}
+
+export function Breadcrumbs({ items }: { items: { label: string; slug?: string }[] }) {
+  return (
+    <nav
+      aria-label="مسار التصفح"
+      className="mb-3 flex flex-wrap items-center gap-1 text-sm font-bold"
+    >
+      <Link to="/store" className="inline-flex min-h-10 items-center text-muted">
+        المتجر
+      </Link>
+      {items.map((it, i) => (
+        <span key={i} className="inline-flex items-center gap-1">
+          <ChevronLeft className="size-4 text-muted" aria-hidden />
+          {it.slug ? (
+            <Link
+              to="/store/c/$slug"
+              params={{ slug: it.slug }}
+              className="inline-flex min-h-10 items-center text-muted"
+            >
+              {it.label}
+            </Link>
+          ) : (
+            <span aria-current="page">{it.label}</span>
+          )}
+        </span>
+      ))}
     </nav>
   );
 }

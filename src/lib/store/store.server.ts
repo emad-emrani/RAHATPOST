@@ -3,6 +3,7 @@ import { getSql } from "@/lib/db";
 import {
   clip,
   DURATIONS,
+  SECTION_ICONS,
   effectivePrice,
   ID_RE,
   SLUG_RE,
@@ -47,9 +48,25 @@ const PRODUCT_COLS = `p.*, (select count(*) from store_codes c where c.product_i
 
 export async function listCategories(): Promise<StoreCategory[]> {
   const sql = await getSql();
-  const rows =
-    await sql<Row>`select id, name, slug, sort from store_categories order by sort, name`;
-  return rows.map((r) => ({ id: r.id, name: r.name, slug: r.slug, sort: Number(r.sort) }));
+  const rows = await sql<Row>`
+    select c.*, (select count(*) from store_products p
+      where p.active and (p.category_id = c.id
+        or p.category_id in (select k.id from store_categories k where k.parent_id = c.id)))::int as n
+    from store_categories c order by c.sort, c.name`;
+  return rows.map((r) => ({
+    id: r.id,
+    name: r.name,
+    slug: r.slug,
+    sort: Number(r.sort),
+    imageKey: r.image_key ?? null,
+    icon: (r.icon in SECTION_ICONS ? r.icon : "bag") as StoreCategory["icon"],
+    description: r.description ?? "",
+    color: /^#[0-9a-f]{6}$/i.test(r.color) ? r.color : "#f2c94c",
+    active: Boolean(r.active),
+    showSoon: Boolean(r.show_soon),
+    parentId: r.parent_id ?? null,
+    productCount: Number(r.n ?? 0),
+  }));
 }
 
 export async function listPublicProducts(limit = 200): Promise<PublicProduct[]> {
@@ -73,7 +90,10 @@ export async function getPublicProduct(slug: string): Promise<PublicProduct | nu
 
 export async function isProductImage(key: string): Promise<boolean> {
   const sql = await getSql();
-  return (await sql`select 1 from store_products where image_key = ${key} limit 1`).length > 0;
+  return (
+    (await sql`select 1 from store_products where image_key = ${key} limit 1`).length > 0 ||
+    (await sql`select 1 from store_categories where image_key = ${key} limit 1`).length > 0
+  );
 }
 
 /* ------------------------------------------------------------------- admin */
@@ -186,18 +206,40 @@ export async function deleteProduct(id: string) {
 
 export async function saveCategory(i: Row): Promise<void> {
   const name = clip(i.name, 60);
-  if (name.length < 2) throw new Error("اكتب اسم التصنيف.");
+  if (name.length < 2) throw new Error("اكتب اسم القسم.");
   const slug = slugify(String(i.slug || "")) || `c-${newId().slice(0, 6)}`;
-  const sort = Math.trunc(Number(i.sort) || 0);
+  if (!/^[a-z0-9-]{2,60}$/.test(slug))
+    throw new Error("الرابط بالأحرف الإنجليزية والأرقام والشرطة فقط.");
+  const sort = Math.max(-9999, Math.min(9999, Math.trunc(Number(i.sort) || 0)));
+  const icon = String(i.icon) in SECTION_ICONS ? String(i.icon) : "bag";
+  const color = /^#[0-9a-f]{6}$/i.test(String(i.color)) ? String(i.color).toLowerCase() : "#f2c94c";
+  const imageKey = /^[a-f0-9]{32}\.(webp|jpg)$/.test(String(i.imageKey ?? ""))
+    ? String(i.imageKey)
+    : null;
+  const description = clip(i.description, 500, true);
+  const active = i.active !== false;
+  const showSoon = i.showSoon === true;
   const sql = await getSql();
   const id = ID_RE.test(String(i.id ?? "")) ? String(i.id) : "";
+  let parentId = ID_RE.test(String(i.parentId ?? "")) ? String(i.parentId) : null;
+  if (parentId) {
+    // Two levels only (section > sub-section): the parent must be top-level and not itself.
+    const p = await sql<Row>`select parent_id from store_categories where id = ${parentId}`;
+    if (!p[0] || parentId === id) parentId = null;
+    else if (p[0].parent_id) throw new Error("القسم الأب يجب أن يكون قسماً رئيسياً.");
+    if (id && (await sql`select 1 from store_categories where parent_id = ${id} limit 1`).length)
+      throw new Error("هذا القسم له أقسام فرعية، فلا يمكن جعله فرعياً.");
+  }
   try {
     if (id)
-      await sql`update store_categories set name=${name}, slug=${slug}, sort=${sort} where id=${id}`;
+      await sql`update store_categories set name=${name}, slug=${slug}, sort=${sort}, icon=${icon}, color=${color},
+        image_key=${imageKey}, description=${description}, active=${active}, show_soon=${showSoon}, parent_id=${parentId}
+        where id=${id}`;
     else
-      await sql`insert into store_categories (id, name, slug, sort) values (${newId()}, ${name}, ${slug}, ${sort})`;
+      await sql`insert into store_categories (id, name, slug, sort, icon, color, image_key, description, active, show_soon, parent_id)
+        values (${newId()}, ${name}, ${slug}, ${sort}, ${icon}, ${color}, ${imageKey}, ${description}, ${active}, ${showSoon}, ${parentId})`;
   } catch {
-    throw new Error("رابط التصنيف مستخدم أو غير صالح.");
+    throw new Error("رابط القسم مستخدم أو غير صالح.");
   }
 }
 

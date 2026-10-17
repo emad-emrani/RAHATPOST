@@ -1,6 +1,7 @@
 import { AlertTriangle, Pencil, Plus, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { compress } from "@/components/photo-picker";
+import { SectionCover } from "@/components/store-parts";
 import { mediaUrl } from "@/lib/media/types";
 import {
   adminCodes,
@@ -21,6 +22,7 @@ import {
   formatPrice,
   ORDER_STATUS,
   PROVIDERS,
+  SECTION_ICONS,
   type Order,
   type OrderStatus,
   type StoreCategory,
@@ -30,7 +32,7 @@ import type { AdminPaySettings } from "@/lib/store/settings.server";
 
 const PARTS = {
   products: "المنتجات",
-  categories: "التصنيفات",
+  categories: "الأقسام والكتالوجات",
   orders: "الطلبات",
   pay: "إعدادات الدفع",
 } as const;
@@ -271,7 +273,7 @@ function ProductForm({
         />
       </label>
       <label className="font-bold">
-        التصنيف
+        القسم
         <select
           className={field}
           value={f.categoryId}
@@ -280,7 +282,9 @@ function ProductForm({
           <option value="">بدون</option>
           {cats.map((c) => (
             <option key={c.id} value={c.id}>
-              {c.name}
+              {c.parentId
+                ? `${cats.find((k) => k.id === c.parentId)?.name ?? ""} › ${c.name}`
+                : c.name}
             </option>
           ))}
         </select>
@@ -490,73 +494,286 @@ function ProductForm({
   );
 }
 
+type SectionForm = Partial<StoreCategory>;
+
 function Categories({ cats, refresh }: { cats: StoreCategory[]; refresh: () => Promise<void> }) {
-  const [name, setName] = useState("");
-  const [slug, setSlug] = useState("");
-  const [msg, setMsg] = useState("");
-  return (
-    <>
-      <form
-        className="stamp mb-3 flex flex-col gap-2 p-4"
-        onSubmit={async (e) => {
-          e.preventDefault();
-          const r = await adminSaveCategory({ data: { name, slug, sort: cats.length } });
-          if (!r.ok) return setMsg(r.message ?? "");
-          setName("");
-          setSlug("");
-          setMsg("");
+  const [editing, setEditing] = useState<SectionForm | null>(null);
+  if (editing)
+    return (
+      <SectionEditor
+        c={editing}
+        cats={cats}
+        onDone={async () => {
+          setEditing(null);
+          await refresh();
+        }}
+      />
+    );
+  const top = cats.filter((c) => !c.parentId);
+  const row = (c: StoreCategory, sub = false) => (
+    <li key={c.id} className={`stamp flex items-center gap-3 p-3 ${sub ? "ms-6" : ""}`}>
+      <SectionCover c={c} className="size-14 shrink-0 rounded-xl" />
+      <div className="min-w-0 flex-1">
+        <p className="font-bold">{c.name}</p>
+        <p className="text-xs font-semibold text-muted">
+          <span dir="ltr">/store/c/{c.slug}</span> · {c.productCount} منتج ·{" "}
+          {!c.active
+            ? "معطّل"
+            : c.productCount
+              ? "ظاهر"
+              : c.showSoon
+                ? "ظاهر «قريباً»"
+                : "مخفي حتى تضاف منتجات"}
+        </p>
+      </div>
+      <button
+        type="button"
+        className="btn btn-ghost px-3"
+        aria-label={`تعديل ${c.name}`}
+        onClick={() => setEditing(c)}
+      >
+        <Pencil className="size-4" aria-hidden />
+      </button>
+      <button
+        type="button"
+        className="btn btn-ghost px-3"
+        aria-label={`حذف ${c.name}`}
+        onClick={async () => {
+          if (!confirm(`حذف قسم «${c.name}»؟ المنتجات والأقسام الفرعية تبقى بدون قسم.`)) return;
+          await adminDeleteCategory({ data: { id: c.id } });
           await refresh();
         }}
       >
-        <label className="font-bold">
-          اسم التصنيف
-          <input
-            className="field mt-1"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="اشتراكات"
-          />
-        </label>
-        <label className="font-bold">
-          الرابط (بالإنجليزية)
-          <input
-            className="field mt-1"
-            dir="ltr"
-            value={slug}
-            onChange={(e) => setSlug(e.target.value)}
-            placeholder="subscriptions"
-          />
-        </label>
-        {msg ? <p className="font-bold">{msg}</p> : null}
-        <button type="submit" className="btn">
-          إضافة تصنيف
-        </button>
-      </form>
+        <Trash2 className="size-4" aria-hidden />
+      </button>
+    </li>
+  );
+  return (
+    <>
+      <button
+        type="button"
+        className="btn mb-3 w-full"
+        onClick={() =>
+          setEditing({ active: true, icon: "bag", color: "#f2c94c", sort: cats.length + 1 })
+        }
+      >
+        <Plus className="size-4" aria-hidden />
+        قسم جديد
+      </button>
+      <p className="mb-3 text-sm font-semibold text-muted">
+        القسم الفارغ لا يظهر للزوار حتى تضيف له منتجاً مفعّلاً، إلا إذا فعّلت «أظهره كـ قريباً». أضف
+        الخطط (شهري، 3 أشهر، سنوي…) كمنتجات داخل القسم.
+      </p>
       <ul className="flex flex-col gap-2">
-        {cats.map((c) => (
-          <li key={c.id} className="stamp flex items-center gap-2 p-3">
-            <span className="flex-1 font-bold">
-              {c.name}{" "}
-              <span className="text-sm text-muted" dir="ltr">
-                {c.slug}
-              </span>
-            </span>
+        {top.flatMap((c) => [
+          row(c),
+          ...cats.filter((k) => k.parentId === c.id).map((k) => row(k, true)),
+        ])}
+      </ul>
+    </>
+  );
+}
+
+function SectionEditor({
+  c,
+  cats,
+  onDone,
+}: {
+  c: SectionForm;
+  cats: StoreCategory[];
+  onDone: () => void;
+}) {
+  const [f, setF] = useState({
+    id: c.id ?? "",
+    name: c.name ?? "",
+    slug: c.slug ?? "",
+    description: c.description ?? "",
+    icon: c.icon ?? "bag",
+    color: c.color ?? "#f2c94c",
+    imageKey: c.imageKey ?? "",
+    sort: String(c.sort ?? 0),
+    active: c.active ?? true,
+    showSoon: c.showSoon ?? false,
+    parentId: c.parentId ?? "",
+  });
+  const [msg, setMsg] = useState("");
+  const [busy, setBusy] = useState(false);
+  const set = (x: Partial<typeof f>) => setF((o) => ({ ...o, ...x }));
+  const hasChildren = Boolean(f.id) && cats.some((k) => k.parentId === f.id);
+  const preview: StoreCategory = {
+    id: f.id || "new",
+    name: f.name,
+    slug: f.slug,
+    sort: 0,
+    imageKey: f.imageKey || null,
+    icon: f.icon as StoreCategory["icon"],
+    description: f.description,
+    color: f.color,
+    active: f.active,
+    showSoon: f.showSoon,
+    parentId: f.parentId || null,
+    productCount: 0,
+  };
+  const field = "field mt-1";
+  return (
+    <div className="stamp flex flex-col gap-3 p-4">
+      <h2 className="text-xl font-bold">{f.id ? "تعديل قسم" : "قسم جديد"}</h2>
+      <label className="font-bold">
+        الاسم
+        <input
+          className={field}
+          maxLength={60}
+          value={f.name}
+          onChange={(e) => set({ name: e.target.value })}
+        />
+      </label>
+      <label className="font-bold">
+        الرابط (بالإنجليزية)
+        <input
+          className={field}
+          dir="ltr"
+          value={f.slug}
+          placeholder="streaming"
+          onChange={(e) => set({ slug: e.target.value })}
+        />
+      </label>
+      <label className="font-bold">
+        الوصف
+        <textarea
+          className={`${field} min-h-16`}
+          maxLength={500}
+          value={f.description}
+          onChange={(e) => set({ description: e.target.value })}
+        />
+      </label>
+      <label className="font-bold">
+        القسم الأب (اختياري)
+        <select
+          className={field}
+          value={f.parentId}
+          disabled={hasChildren}
+          onChange={(e) => set({ parentId: e.target.value })}
+        >
+          <option value="">— قسم رئيسي —</option>
+          {cats
+            .filter((k) => !k.parentId && k.id !== f.id)
+            .map((k) => (
+              <option key={k.id} value={k.id}>
+                {k.name}
+              </option>
+            ))}
+        </select>
+      </label>
+      <div className="flex items-center gap-3">
+        <SectionCover c={preview} className="size-20 shrink-0 rounded-2xl" />
+        <div className="flex flex-col gap-2">
+          <label className="btn btn-ghost px-3">
+            {busy ? "جاري الرفع…" : "رفع صورة/أيقونة"}
+            <input
+              type="file"
+              accept="image/*"
+              className="sr-only"
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                setBusy(true);
+                try {
+                  set({ imageKey: await uploadImage(file) });
+                } catch (err) {
+                  setMsg(err instanceof Error ? err.message : "تعذّر الرفع.");
+                }
+                setBusy(false);
+              }}
+            />
+          </label>
+          {f.imageKey ? (
             <button
               type="button"
               className="btn btn-ghost px-3"
-              aria-label="حذف"
-              onClick={async () => {
-                if (!confirm(`حذف تصنيف «${c.name}»؟ المنتجات تبقى بدون تصنيف.`)) return;
-                await adminDeleteCategory({ data: { id: c.id } });
-                await refresh();
-              }}
+              onClick={() => set({ imageKey: "" })}
             >
-              <Trash2 className="size-4" aria-hidden />
+              إزالة الصورة
             </button>
-          </li>
-        ))}
-      </ul>
-    </>
+          ) : null}
+        </div>
+      </div>
+      <p className="text-xs font-semibold text-muted">
+        ارفع صورك الخاصة فقط (يُفضّل عدم استخدام شعارات تجارية دون إذن).
+      </p>
+      <div className="grid grid-cols-2 gap-2">
+        <label className="font-bold">
+          الأيقونة (بدون صورة)
+          <select
+            className={field}
+            value={f.icon}
+            onChange={(e) => set({ icon: e.target.value as typeof f.icon })}
+          >
+            {Object.entries(SECTION_ICONS).map(([k, v]) => (
+              <option key={k} value={k}>
+                {v}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="font-bold">
+          اللون
+          <input
+            type="color"
+            className="mt-1 h-12 w-full rounded-xl border border-line"
+            value={f.color}
+            onChange={(e) => set({ color: e.target.value })}
+          />
+        </label>
+      </div>
+      <label className="font-bold">
+        الترتيب
+        <input
+          className={field}
+          inputMode="numeric"
+          dir="ltr"
+          value={f.sort}
+          onChange={(e) => set({ sort: e.target.value })}
+        />
+      </label>
+      <label className="flex items-center gap-2 font-bold">
+        <input
+          type="checkbox"
+          className="size-5"
+          checked={f.active}
+          onChange={(e) => set({ active: e.target.checked })}
+        />{" "}
+        مفعّل
+      </label>
+      <label className="flex items-center gap-2 font-bold">
+        <input
+          type="checkbox"
+          className="size-5"
+          checked={f.showSoon}
+          onChange={(e) => set({ showSoon: e.target.checked })}
+        />{" "}
+        أظهره كـ «قريباً» وهو فارغ
+      </label>
+      {msg ? <p className="font-bold">{msg}</p> : null}
+      <div className="grid grid-cols-2 gap-2">
+        <button
+          type="button"
+          className="btn"
+          disabled={busy}
+          onClick={async () => {
+            setBusy(true);
+            const r = await adminSaveCategory({ data: f });
+            setBusy(false);
+            if (!r.ok) return setMsg(r.message ?? "تعذّر الحفظ.");
+            onDone();
+          }}
+        >
+          حفظ
+        </button>
+        <button type="button" className="btn btn-ghost" onClick={onDone}>
+          إلغاء
+        </button>
+      </div>
+    </div>
   );
 }
 

@@ -3,6 +3,7 @@ import { authMiddleware } from "@/lib/auth/middleware";
 import {
   ID_RE,
   ORDER_STATUS,
+  sectionVisible,
   type Order,
   type OrderStatus,
   type PublicProduct,
@@ -40,12 +41,12 @@ export const getStore = createServerFn({ method: "GET" }).handler(
   }> => {
     try {
       const s = await import("./store.server");
-      const [products, categories, settings] = await Promise.all([
+      const [products, all, settings] = await Promise.all([
         s.listPublicProducts(),
         s.listCategories(),
         publicSettings(),
       ]);
-      return { ok: true, products, categories, settings };
+      return { ok: true, products, categories: all.filter(sectionVisible), settings };
     } catch (error) {
       console.error("[store] list failed", error);
       return {
@@ -57,6 +58,30 @@ export const getStore = createServerFn({ method: "GET" }).handler(
     }
   },
 );
+
+/** One catalog section: breadcrumbs, visible sub-sections and its products (incl. sub-sections). */
+export const getStoreSection = createServerFn({ method: "GET" })
+  .inputValidator((i: { slug: string }) => ({ slug: String(i?.slug ?? "").slice(0, 60) }))
+  .handler(async ({ data }) => {
+    const s = await import("./store.server");
+    const [all, products, settings] = await Promise.all([
+      s.listCategories(),
+      s.listPublicProducts(500),
+      publicSettings(),
+    ]);
+    const section = all.find((c) => c.slug === data.slug && sectionVisible(c)) ?? null;
+    if (!section) return { section: null, parent: null, children: [], products: [], settings };
+    const parent = all.find((c) => c.id === section.parentId && sectionVisible(c)) ?? null;
+    const children = all.filter((c) => c.parentId === section.id && sectionVisible(c));
+    const ids = [section.id, ...all.filter((c) => c.parentId === section.id).map((c) => c.id)];
+    return {
+      section,
+      parent,
+      children,
+      products: products.filter((p) => p.categoryId && ids.includes(p.categoryId)),
+      settings,
+    };
+  });
 
 export const getStoreProduct = createServerFn({ method: "GET" })
   .inputValidator((i: { slug: string }) => ({ slug: String(i?.slug ?? "").slice(0, 80) }))

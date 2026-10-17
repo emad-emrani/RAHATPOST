@@ -1,8 +1,8 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { ChevronRight } from "lucide-react";
 import { Shell } from "@/components/shell";
 import {
   Badges,
+  Breadcrumbs,
   BuyButtons,
   Price,
   ProductImage,
@@ -40,21 +40,20 @@ function ProductPage() {
   const { product: p, categories, settings } = Route.useLoaderData();
   if (!p) return null;
   const cat = categories.find((c) => c.id === p.categoryId);
+  const parentCat = cat?.parentId ? categories.find((c) => c.id === cat.parentId) : undefined;
   return (
     <Shell>
-      <Link to="/store" className="mb-3 inline-flex min-h-10 items-center gap-1 font-bold">
-        <ChevronRight className="size-4" aria-hidden />
-        المتجر
-      </Link>
+      <Breadcrumbs
+        items={[
+          ...(parentCat ? [{ label: parentCat.name, slug: parentCat.slug }] : []),
+          ...(cat ? [{ label: cat.name, slug: cat.slug }] : []),
+          { label: p.name },
+        ]}
+      />
       <article className="stamp overflow-hidden">
         <ProductImage p={p} className="aspect-[16/10] w-full" />
         <div className="flex flex-col gap-3 p-4">
           <Badges p={p} />
-          {cat ? (
-            <Link to="/store" search={{ cat: cat.slug }} className="text-sm font-bold text-muted">
-              {cat.name}
-            </Link>
-          ) : null}
           <h1 className="text-2xl font-bold">{p.name}</h1>
           <Price p={p} currency={settings.currency} big />
           {p.shortDesc ? <p className="font-semibold">{p.shortDesc}</p> : null}

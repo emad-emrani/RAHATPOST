@@ -46,6 +46,7 @@ import { Route as ApiStoreWebhookProviderRouteImport } from './routes/api/store-
 import { Route as BusesMapLineRouteImport } from './routes/buses_.map.$line'
 import { Route as BusesStopStopRouteImport } from './routes/buses_.stop.$stop'
 import { Route as DirectoryGuideGuideRouteImport } from './routes/directory.guide.$guide'
+import { Route as StoreCSlugRouteImport } from './routes/store.c.$slug'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -234,6 +235,11 @@ const DirectoryGuideGuideRoute = DirectoryGuideGuideRouteImport.update({
   path: '/directory/guide/$guide',
   getParentRoute: () => rootRouteImport,
 } as any)
+const StoreCSlugRoute = StoreCSlugRouteImport.update({
+  id: '/store/c/$slug',
+  path: '/store/c/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -273,6 +279,7 @@ export interface FileRoutesByFullPath {
   '/buses/map/$line': typeof BusesMapLineRoute
   '/buses/stop/$stop': typeof BusesStopStopRoute
   '/directory/guide/$guide': typeof DirectoryGuideGuideRoute
+  '/store/c/$slug': typeof StoreCSlugRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -312,6 +319,7 @@ export interface FileRoutesByTo {
   '/buses/map/$line': typeof BusesMapLineRoute
   '/buses/stop/$stop': typeof BusesStopStopRoute
   '/directory/guide/$guide': typeof DirectoryGuideGuideRoute
+  '/store/c/$slug': typeof StoreCSlugRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -352,6 +360,7 @@ export interface FileRoutesById {
   '/buses_/map/$line': typeof BusesMapLineRoute
   '/buses_/stop/$stop': typeof BusesStopStopRoute
   '/directory/guide/$guide': typeof DirectoryGuideGuideRoute
+  '/store/c/$slug': typeof StoreCSlugRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -393,6 +402,7 @@ export interface FileRouteTypes {
     | '/buses/map/$line'
     | '/buses/stop/$stop'
     | '/directory/guide/$guide'
+    | '/store/c/$slug'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -432,6 +442,7 @@ export interface FileRouteTypes {
     | '/buses/map/$line'
     | '/buses/stop/$stop'
     | '/directory/guide/$guide'
+    | '/store/c/$slug'
   id:
     | '__root__'
     | '/'
@@ -471,6 +482,7 @@ export interface FileRouteTypes {
     | '/buses_/map/$line'
     | '/buses_/stop/$stop'
     | '/directory/guide/$guide'
+    | '/store/c/$slug'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -511,6 +523,7 @@ export interface RootRouteChildren {
   BusesMapLineRoute: typeof BusesMapLineRoute
   BusesStopStopRoute: typeof BusesStopStopRoute
   DirectoryGuideGuideRoute: typeof DirectoryGuideGuideRoute
+  StoreCSlugRoute: typeof StoreCSlugRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -774,6 +787,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DirectoryGuideGuideRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/store/c/$slug': {
+      id: '/store/c/$slug'
+      path: '/store/c/$slug'
+      fullPath: '/store/c/$slug'
+      preLoaderRoute: typeof StoreCSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -816,6 +836,7 @@ const rootRouteChildren: RootRouteChildren = {
   BusesMapLineRoute: BusesMapLineRoute,
   BusesStopStopRoute: BusesStopStopRoute,
   DirectoryGuideGuideRoute: DirectoryGuideGuideRoute,
+  StoreCSlugRoute: StoreCSlugRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

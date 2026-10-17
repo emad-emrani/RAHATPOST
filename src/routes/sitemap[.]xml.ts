@@ -32,7 +32,7 @@ async function safe<T>(label: string, load: () => Promise<T[]>): Promise<T[]> {
 }
 
 async function entries(): Promise<Entry[]> {
-  const [businesses, ads, readerNews, staffNews, products] = await Promise.all([
+  const [businesses, ads, readerNews, staffNews, products, sections] = await Promise.all([
     safe("directory", async () => (await import("@/lib/directory/store.server")).getApproved()),
     safe("ads", async () => (await import("@/lib/ads/store.server")).listApproved(1000)),
     safe("reader news", async () =>
@@ -42,6 +42,11 @@ async function entries(): Promise<Entry[]> {
       (await import("@/lib/staff-news/store.server")).listStaffNews(1000),
     ),
     safe("store", async () => (await import("@/lib/store/store.server")).listPublicProducts(500)),
+    safe("store sections", async () =>
+      (await import("@/lib/store/store.server"))
+        .listCategories()
+        .then((all) => all.filter((c) => c.active && c.productCount > 0)),
+    ),
   ]);
   const now = new Date().toISOString();
   return [
@@ -58,6 +63,7 @@ async function entries(): Promise<Entry[]> {
       priority: 0.8,
     },
     { path: "/store", lastmod: now, changefreq: "daily", priority: 0.8 },
+    ...sections.map((c) => ({ path: `/store/c/${c.slug}`, changefreq: "weekly", priority: 0.6 })),
     ...products.map((p) => ({ path: `/store/${p.slug}`, changefreq: "weekly", priority: 0.6 })),
     {
       path: "/ads",
