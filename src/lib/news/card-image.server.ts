@@ -7,12 +7,25 @@ import logoSvg from "../../../public/favicon.svg?raw";
 type ResvgCtor = typeof import("@resvg/resvg-js").Resvg;
 let ResvgClass: ResvgCtor | null = null;
 let fonts: Buffer[] | null = null;
+let fontFiles: string[] = [];
 
 async function init() {
   if (!ResvgClass) ResvgClass = (await import("@resvg/resvg-js")).Resvg;
   if (!fonts) {
     const f = await import("./fonts/fonts.b64");
     fonts = [Buffer.from(f.KUFI_BOLD, "base64"), Buffer.from(f.HEBREW_BOLD, "base64")];
+    // Also on disk: some runtimes ignore in-memory font buffers.
+    try {
+      const { mkdir, writeFile } = await import("node:fs/promises");
+      const { tmpdir } = await import("node:os");
+      const dir = `${tmpdir()}/rp-fonts`;
+      await mkdir(dir, { recursive: true });
+      fontFiles = [`${dir}/kufi-bold.ttf`, `${dir}/hebrew-bold.ttf`];
+      await Promise.all(fontFiles.map((p, i) => writeFile(p, fonts![i])));
+    } catch (error) {
+      console.error("[news-image] font files", error);
+      fontFiles = [];
+    }
   }
   return ResvgClass;
 }
@@ -29,7 +42,10 @@ const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&l
 const FAMILY = "'Noto Kufi Arabic', 'Noto Sans Hebrew'";
 
 function opts() {
-  return { font: { fontBuffers: fonts!, loadSystemFonts: false, defaultFontFamily: "Noto Kufi Arabic" }, fitTo: { mode: "original" as const } };
+  return {
+    font: { ...(fontFiles.length ? { fontFiles } : { fontBuffers: fonts! }), loadSystemFonts: false, defaultFontFamily: "Noto Kufi Arabic" },
+    fitTo: { mode: "original" as const },
+  };
 }
 
 /** Width of a text run in px, via resvg's own layout (so shaping is accounted for). */
@@ -104,4 +120,10 @@ ${textEls}
 ${src ? `<text x="${(right - sm.w - sm.x).toFixed(1)}" y="${H - 36}" font-family="${FAMILY}" font-weight="700" font-size="26" fill="${ink}" opacity="0.8">${esc(src)}</text>` : ""}
 </svg>`;
   return new R(svg, opts()).render().asPng();
+}
+
+/** Diagnostics for /api/news-image?debug=1 (no secrets). */
+export async function cardDebug() {
+  const R = await init();
+  return { fonts: fonts?.map((b) => b.length), fontFiles, bbox: new R(`<svg xmlns="http://www.w3.org/2000/svg" width="400" height="100"><text x="10" y="60" font-family="${FAMILY}" font-size="40">رهط</text></svg>`, opts()).getBBox() ?? null };
 }

@@ -11,6 +11,10 @@ export const Route = createFileRoute("/api/news-image")({
     handlers: {
       GET: async ({ request }) => {
         const q = new URL(request.url).searchParams;
+        if (q.get("debug") === "1") {
+          const { cardDebug } = await import("@/lib/news/card-image.server");
+          return Response.json(await cardDebug(), { headers: { "cache-control": "no-store" } });
+        }
         const ai = q.get("ai");
         if (ai) {
           if (!/^[a-f0-9]{32}\.(jpg|png|webp)$/.test(ai)) return new Response("Not found", { status: 404 });
