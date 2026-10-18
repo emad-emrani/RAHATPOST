@@ -17,7 +17,7 @@ export const HOME_SECTIONS = {
   install: "تثبيت التطبيق والإشعارات",
   buses: "الباصات",
   directory: "من المتجر",
-  ads: "آخر الإعلانات",
+  ads: "جديد الحراج",
   duty: "صيدلية المناوبة",
   emergency: "أرقام الطوارئ",
 } as const;
@@ -29,7 +29,7 @@ export const NAV_ITEMS = {
   "/today": "اليوم",
   "/buses": "باصات",
   "/store": "المتجر",
-  "/ads": "الإعلانات",
+  "/haraj": "حراج",
 } as const;
 export type NavId = keyof typeof NAV_ITEMS;
 
@@ -37,7 +37,7 @@ export const TILE_ITEMS = {
   "/news": "الأخبار",
   "/buses": "الباصات",
   "/store": "المتجر",
-  "/ads": "الإعلانات",
+  "/haraj": "حراج",
   "/today": "اليوم",
   "/submit": "أضف",
 } as const;
@@ -86,6 +86,8 @@ export type SiteSettings = {
     addButton: string;
     footer: string;
     contactEmail: string;
+    harajName: string;
+    harajNav: string;
   };
   logoKey: string;
   faviconKey: string;
@@ -142,6 +144,8 @@ export const DEFAULT_SETTINGS: SiteSettings = {
     footer:
       "أرقام الطوارئ الوطنية حقيقية. الأخبار والدليل والباصات من مصادر حقيقية مذكورة في كل صفحة.",
     contactEmail: "",
+    harajName: "حراج رهط",
+    harajNav: "حراج",
   },
   logoKey: "",
   faviconKey: "",
@@ -184,7 +188,8 @@ function toggles<T extends string>(input: unknown, all: readonly T[]): Toggle<T>
     for (const x of input) {
       const raw = (x as { id?: unknown })?.id;
       // «الدليل» tab/tile became «المتجر» (/directory stays reachable from the store).
-      const id = (raw === "/directory" ? "/store" : raw) as T;
+      // «الإعلانات» became «حراج رهط» (/ads redirects to /haraj).
+      const id = (raw === "/directory" ? "/store" : raw === "/ads" ? "/haraj" : raw) as T;
       if (all.includes(id) && !out.some((o) => o.id === id))
         out.push({ id, visible: (x as { visible?: unknown }).visible !== false });
     }
@@ -275,6 +280,8 @@ export function sanitizeSettings(input: unknown): SiteSettings {
       addButton: str(x.addButton, 16) || d.texts.addButton,
       footer: str(x.footer, 400),
       contactEmail: safeEmail(x.contactEmail),
+      harajName: str(x.harajName, 40) || d.texts.harajName,
+      harajNav: str(x.harajNav, 16) || d.texts.harajNav,
     },
     logoKey: KEY.test(String(i.logoKey ?? "")) ? String(i.logoKey) : "",
     faviconKey: KEY.test(String(i.faviconKey ?? "")) ? String(i.faviconKey) : "",

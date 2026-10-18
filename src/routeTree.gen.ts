@@ -29,6 +29,7 @@ import { Route as DotwellKnownAppleAppSiteAssociationRouteImport } from './route
 import { Route as DotwellKnownAssetlinksDotjsonRouteImport } from './routes/[.]well-known.assetlinks[.]json'
 import { Route as AdsIndexRouteImport } from './routes/ads.index'
 import { Route as AdsIdRouteImport } from './routes/ads.$id'
+import { Route as ApiHarajWhatsappRouteImport } from './routes/api/haraj-whatsapp'
 import { Route as ApiMediaRouteImport } from './routes/api/media'
 import { Route as ApiNewsImageRouteImport } from './routes/api/news-image'
 import { Route as AppAuthDoneRouteImport } from './routes/app-auth.done'
@@ -36,6 +37,10 @@ import { Route as AppAuthFinishRouteImport } from './routes/app-auth.finish'
 import { Route as AppAuthStartRouteImport } from './routes/app-auth.start'
 import { Route as DirectoryIndexRouteImport } from './routes/directory.index'
 import { Route as DirectorySlugRouteImport } from './routes/directory.$slug'
+import { Route as HarajIndexRouteImport } from './routes/haraj.index'
+import { Route as HarajIdRouteImport } from './routes/haraj.$id'
+import { Route as HarajMineRouteImport } from './routes/haraj.mine'
+import { Route as HarajNewRouteImport } from './routes/haraj.new'
 import { Route as IsraelNewsIndexRouteImport } from './routes/israel-news.index'
 import { Route as IsraelNewsSlugRouteImport } from './routes/israel-news.$slug'
 import { Route as MediaKeyRouteImport } from './routes/media.$key'
@@ -50,6 +55,7 @@ import { Route as ApiStoreWebhookProviderRouteImport } from './routes/api/store-
 import { Route as BusesMapLineRouteImport } from './routes/buses_.map.$line'
 import { Route as BusesStopStopRouteImport } from './routes/buses_.stop.$stop'
 import { Route as DirectoryGuideGuideRouteImport } from './routes/directory.guide.$guide'
+import { Route as HarajSellerIdRouteImport } from './routes/haraj.seller.$id'
 import { Route as StoreCSlugRouteImport } from './routes/store.c.$slug'
 
 const IndexRoute = IndexRouteImport.update({
@@ -154,6 +160,11 @@ const AdsIdRoute = AdsIdRouteImport.update({
   path: '/ads/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiHarajWhatsappRoute = ApiHarajWhatsappRouteImport.update({
+  id: '/api/haraj-whatsapp',
+  path: '/api/haraj-whatsapp',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiMediaRoute = ApiMediaRouteImport.update({
   id: '/api/media',
   path: '/api/media',
@@ -187,6 +198,26 @@ const DirectoryIndexRoute = DirectoryIndexRouteImport.update({
 const DirectorySlugRoute = DirectorySlugRouteImport.update({
   id: '/directory/$slug',
   path: '/directory/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HarajIndexRoute = HarajIndexRouteImport.update({
+  id: '/haraj/',
+  path: '/haraj/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HarajIdRoute = HarajIdRouteImport.update({
+  id: '/haraj/$id',
+  path: '/haraj/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HarajMineRoute = HarajMineRouteImport.update({
+  id: '/haraj/mine',
+  path: '/haraj/mine',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HarajNewRoute = HarajNewRouteImport.update({
+  id: '/haraj/new',
+  path: '/haraj/new',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IsraelNewsIndexRoute = IsraelNewsIndexRouteImport.update({
@@ -259,6 +290,11 @@ const DirectoryGuideGuideRoute = DirectoryGuideGuideRouteImport.update({
   path: '/directory/guide/$guide',
   getParentRoute: () => rootRouteImport,
 } as any)
+const HarajSellerIdRoute = HarajSellerIdRouteImport.update({
+  id: '/haraj/seller/$id',
+  path: '/haraj/seller/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const StoreCSlugRoute = StoreCSlugRouteImport.update({
   id: '/store/c/$slug',
   path: '/store/c/$slug',
@@ -285,18 +321,23 @@ export interface FileRoutesByFullPath {
   '/.well-known/apple-app-site-association': typeof DotwellKnownAppleAppSiteAssociationRoute
   '/.well-known/assetlinks.json': typeof DotwellKnownAssetlinksDotjsonRoute
   '/ads/$id': typeof AdsIdRoute
+  '/api/haraj-whatsapp': typeof ApiHarajWhatsappRoute
   '/api/media': typeof ApiMediaRoute
   '/api/news-image': typeof ApiNewsImageRoute
   '/app-auth/done': typeof AppAuthDoneRoute
   '/app-auth/finish': typeof AppAuthFinishRoute
   '/app-auth/start': typeof AppAuthStartRoute
   '/directory/$slug': typeof DirectorySlugRoute
+  '/haraj/$id': typeof HarajIdRoute
+  '/haraj/mine': typeof HarajMineRoute
+  '/haraj/new': typeof HarajNewRoute
   '/israel-news/$slug': typeof IsraelNewsSlugRoute
   '/media/$key': typeof MediaKeyRoute
   '/news/$slug': typeof NewsSlugRoute
   '/store/$slug': typeof StoreSlugRoute
   '/ads/': typeof AdsIndexRoute
   '/directory/': typeof DirectoryIndexRoute
+  '/haraj/': typeof HarajIndexRoute
   '/israel-news/': typeof IsraelNewsIndexRoute
   '/news/': typeof NewsIndexRoute
   '/sports-news/': typeof SportsNewsIndexRoute
@@ -307,6 +348,7 @@ export interface FileRoutesByFullPath {
   '/buses/map/$line': typeof BusesMapLineRoute
   '/buses/stop/$stop': typeof BusesStopStopRoute
   '/directory/guide/$guide': typeof DirectoryGuideGuideRoute
+  '/haraj/seller/$id': typeof HarajSellerIdRoute
   '/store/c/$slug': typeof StoreCSlugRoute
 }
 export interface FileRoutesByTo {
@@ -329,18 +371,23 @@ export interface FileRoutesByTo {
   '/.well-known/apple-app-site-association': typeof DotwellKnownAppleAppSiteAssociationRoute
   '/.well-known/assetlinks.json': typeof DotwellKnownAssetlinksDotjsonRoute
   '/ads/$id': typeof AdsIdRoute
+  '/api/haraj-whatsapp': typeof ApiHarajWhatsappRoute
   '/api/media': typeof ApiMediaRoute
   '/api/news-image': typeof ApiNewsImageRoute
   '/app-auth/done': typeof AppAuthDoneRoute
   '/app-auth/finish': typeof AppAuthFinishRoute
   '/app-auth/start': typeof AppAuthStartRoute
   '/directory/$slug': typeof DirectorySlugRoute
+  '/haraj/$id': typeof HarajIdRoute
+  '/haraj/mine': typeof HarajMineRoute
+  '/haraj/new': typeof HarajNewRoute
   '/israel-news/$slug': typeof IsraelNewsSlugRoute
   '/media/$key': typeof MediaKeyRoute
   '/news/$slug': typeof NewsSlugRoute
   '/store/$slug': typeof StoreSlugRoute
   '/ads': typeof AdsIndexRoute
   '/directory': typeof DirectoryIndexRoute
+  '/haraj': typeof HarajIndexRoute
   '/israel-news': typeof IsraelNewsIndexRoute
   '/news': typeof NewsIndexRoute
   '/sports-news': typeof SportsNewsIndexRoute
@@ -351,6 +398,7 @@ export interface FileRoutesByTo {
   '/buses/map/$line': typeof BusesMapLineRoute
   '/buses/stop/$stop': typeof BusesStopStopRoute
   '/directory/guide/$guide': typeof DirectoryGuideGuideRoute
+  '/haraj/seller/$id': typeof HarajSellerIdRoute
   '/store/c/$slug': typeof StoreCSlugRoute
 }
 export interface FileRoutesById {
@@ -374,18 +422,23 @@ export interface FileRoutesById {
   '/.well-known/apple-app-site-association': typeof DotwellKnownAppleAppSiteAssociationRoute
   '/.well-known/assetlinks.json': typeof DotwellKnownAssetlinksDotjsonRoute
   '/ads/$id': typeof AdsIdRoute
+  '/api/haraj-whatsapp': typeof ApiHarajWhatsappRoute
   '/api/media': typeof ApiMediaRoute
   '/api/news-image': typeof ApiNewsImageRoute
   '/app-auth/done': typeof AppAuthDoneRoute
   '/app-auth/finish': typeof AppAuthFinishRoute
   '/app-auth/start': typeof AppAuthStartRoute
   '/directory/$slug': typeof DirectorySlugRoute
+  '/haraj/$id': typeof HarajIdRoute
+  '/haraj/mine': typeof HarajMineRoute
+  '/haraj/new': typeof HarajNewRoute
   '/israel-news/$slug': typeof IsraelNewsSlugRoute
   '/media/$key': typeof MediaKeyRoute
   '/news/$slug': typeof NewsSlugRoute
   '/store/$slug': typeof StoreSlugRoute
   '/ads/': typeof AdsIndexRoute
   '/directory/': typeof DirectoryIndexRoute
+  '/haraj/': typeof HarajIndexRoute
   '/israel-news/': typeof IsraelNewsIndexRoute
   '/news/': typeof NewsIndexRoute
   '/sports-news/': typeof SportsNewsIndexRoute
@@ -396,6 +449,7 @@ export interface FileRoutesById {
   '/buses_/map/$line': typeof BusesMapLineRoute
   '/buses_/stop/$stop': typeof BusesStopStopRoute
   '/directory/guide/$guide': typeof DirectoryGuideGuideRoute
+  '/haraj/seller/$id': typeof HarajSellerIdRoute
   '/store/c/$slug': typeof StoreCSlugRoute
 }
 export interface FileRouteTypes {
@@ -420,18 +474,23 @@ export interface FileRouteTypes {
     | '/.well-known/apple-app-site-association'
     | '/.well-known/assetlinks.json'
     | '/ads/$id'
+    | '/api/haraj-whatsapp'
     | '/api/media'
     | '/api/news-image'
     | '/app-auth/done'
     | '/app-auth/finish'
     | '/app-auth/start'
     | '/directory/$slug'
+    | '/haraj/$id'
+    | '/haraj/mine'
+    | '/haraj/new'
     | '/israel-news/$slug'
     | '/media/$key'
     | '/news/$slug'
     | '/store/$slug'
     | '/ads/'
     | '/directory/'
+    | '/haraj/'
     | '/israel-news/'
     | '/news/'
     | '/sports-news/'
@@ -442,6 +501,7 @@ export interface FileRouteTypes {
     | '/buses/map/$line'
     | '/buses/stop/$stop'
     | '/directory/guide/$guide'
+    | '/haraj/seller/$id'
     | '/store/c/$slug'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -464,18 +524,23 @@ export interface FileRouteTypes {
     | '/.well-known/apple-app-site-association'
     | '/.well-known/assetlinks.json'
     | '/ads/$id'
+    | '/api/haraj-whatsapp'
     | '/api/media'
     | '/api/news-image'
     | '/app-auth/done'
     | '/app-auth/finish'
     | '/app-auth/start'
     | '/directory/$slug'
+    | '/haraj/$id'
+    | '/haraj/mine'
+    | '/haraj/new'
     | '/israel-news/$slug'
     | '/media/$key'
     | '/news/$slug'
     | '/store/$slug'
     | '/ads'
     | '/directory'
+    | '/haraj'
     | '/israel-news'
     | '/news'
     | '/sports-news'
@@ -486,6 +551,7 @@ export interface FileRouteTypes {
     | '/buses/map/$line'
     | '/buses/stop/$stop'
     | '/directory/guide/$guide'
+    | '/haraj/seller/$id'
     | '/store/c/$slug'
   id:
     | '__root__'
@@ -508,18 +574,23 @@ export interface FileRouteTypes {
     | '/.well-known/apple-app-site-association'
     | '/.well-known/assetlinks.json'
     | '/ads/$id'
+    | '/api/haraj-whatsapp'
     | '/api/media'
     | '/api/news-image'
     | '/app-auth/done'
     | '/app-auth/finish'
     | '/app-auth/start'
     | '/directory/$slug'
+    | '/haraj/$id'
+    | '/haraj/mine'
+    | '/haraj/new'
     | '/israel-news/$slug'
     | '/media/$key'
     | '/news/$slug'
     | '/store/$slug'
     | '/ads/'
     | '/directory/'
+    | '/haraj/'
     | '/israel-news/'
     | '/news/'
     | '/sports-news/'
@@ -530,6 +601,7 @@ export interface FileRouteTypes {
     | '/buses_/map/$line'
     | '/buses_/stop/$stop'
     | '/directory/guide/$guide'
+    | '/haraj/seller/$id'
     | '/store/c/$slug'
   fileRoutesById: FileRoutesById
 }
@@ -553,18 +625,23 @@ export interface RootRouteChildren {
   DotwellKnownAppleAppSiteAssociationRoute: typeof DotwellKnownAppleAppSiteAssociationRoute
   DotwellKnownAssetlinksDotjsonRoute: typeof DotwellKnownAssetlinksDotjsonRoute
   AdsIdRoute: typeof AdsIdRoute
+  ApiHarajWhatsappRoute: typeof ApiHarajWhatsappRoute
   ApiMediaRoute: typeof ApiMediaRoute
   ApiNewsImageRoute: typeof ApiNewsImageRoute
   AppAuthDoneRoute: typeof AppAuthDoneRoute
   AppAuthFinishRoute: typeof AppAuthFinishRoute
   AppAuthStartRoute: typeof AppAuthStartRoute
   DirectorySlugRoute: typeof DirectorySlugRoute
+  HarajIdRoute: typeof HarajIdRoute
+  HarajMineRoute: typeof HarajMineRoute
+  HarajNewRoute: typeof HarajNewRoute
   IsraelNewsSlugRoute: typeof IsraelNewsSlugRoute
   MediaKeyRoute: typeof MediaKeyRoute
   NewsSlugRoute: typeof NewsSlugRoute
   StoreSlugRoute: typeof StoreSlugRoute
   AdsIndexRoute: typeof AdsIndexRoute
   DirectoryIndexRoute: typeof DirectoryIndexRoute
+  HarajIndexRoute: typeof HarajIndexRoute
   IsraelNewsIndexRoute: typeof IsraelNewsIndexRoute
   NewsIndexRoute: typeof NewsIndexRoute
   SportsNewsIndexRoute: typeof SportsNewsIndexRoute
@@ -575,6 +652,7 @@ export interface RootRouteChildren {
   BusesMapLineRoute: typeof BusesMapLineRoute
   BusesStopStopRoute: typeof BusesStopStopRoute
   DirectoryGuideGuideRoute: typeof DirectoryGuideGuideRoute
+  HarajSellerIdRoute: typeof HarajSellerIdRoute
   StoreCSlugRoute: typeof StoreCSlugRoute
 }
 
@@ -720,6 +798,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdsIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/haraj-whatsapp': {
+      id: '/api/haraj-whatsapp'
+      path: '/api/haraj-whatsapp'
+      fullPath: '/api/haraj-whatsapp'
+      preLoaderRoute: typeof ApiHarajWhatsappRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/media': {
       id: '/api/media'
       path: '/api/media'
@@ -767,6 +852,34 @@ declare module '@tanstack/react-router' {
       path: '/directory/$slug'
       fullPath: '/directory/$slug'
       preLoaderRoute: typeof DirectorySlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/haraj/': {
+      id: '/haraj/'
+      path: '/haraj'
+      fullPath: '/haraj/'
+      preLoaderRoute: typeof HarajIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/haraj/$id': {
+      id: '/haraj/$id'
+      path: '/haraj/$id'
+      fullPath: '/haraj/$id'
+      preLoaderRoute: typeof HarajIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/haraj/mine': {
+      id: '/haraj/mine'
+      path: '/haraj/mine'
+      fullPath: '/haraj/mine'
+      preLoaderRoute: typeof HarajMineRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/haraj/new': {
+      id: '/haraj/new'
+      path: '/haraj/new'
+      fullPath: '/haraj/new'
+      preLoaderRoute: typeof HarajNewRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/israel-news/': {
@@ -867,6 +980,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DirectoryGuideGuideRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/haraj/seller/$id': {
+      id: '/haraj/seller/$id'
+      path: '/haraj/seller/$id'
+      fullPath: '/haraj/seller/$id'
+      preLoaderRoute: typeof HarajSellerIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/store/c/$slug': {
       id: '/store/c/$slug'
       path: '/store/c/$slug'
@@ -898,18 +1018,23 @@ const rootRouteChildren: RootRouteChildren = {
     DotwellKnownAppleAppSiteAssociationRoute,
   DotwellKnownAssetlinksDotjsonRoute: DotwellKnownAssetlinksDotjsonRoute,
   AdsIdRoute: AdsIdRoute,
+  ApiHarajWhatsappRoute: ApiHarajWhatsappRoute,
   ApiMediaRoute: ApiMediaRoute,
   ApiNewsImageRoute: ApiNewsImageRoute,
   AppAuthDoneRoute: AppAuthDoneRoute,
   AppAuthFinishRoute: AppAuthFinishRoute,
   AppAuthStartRoute: AppAuthStartRoute,
   DirectorySlugRoute: DirectorySlugRoute,
+  HarajIdRoute: HarajIdRoute,
+  HarajMineRoute: HarajMineRoute,
+  HarajNewRoute: HarajNewRoute,
   IsraelNewsSlugRoute: IsraelNewsSlugRoute,
   MediaKeyRoute: MediaKeyRoute,
   NewsSlugRoute: NewsSlugRoute,
   StoreSlugRoute: StoreSlugRoute,
   AdsIndexRoute: AdsIndexRoute,
   DirectoryIndexRoute: DirectoryIndexRoute,
+  HarajIndexRoute: HarajIndexRoute,
   IsraelNewsIndexRoute: IsraelNewsIndexRoute,
   NewsIndexRoute: NewsIndexRoute,
   SportsNewsIndexRoute: SportsNewsIndexRoute,
@@ -920,6 +1045,7 @@ const rootRouteChildren: RootRouteChildren = {
   BusesMapLineRoute: BusesMapLineRoute,
   BusesStopStopRoute: BusesStopStopRoute,
   DirectoryGuideGuideRoute: DirectoryGuideGuideRoute,
+  HarajSellerIdRoute: HarajSellerIdRoute,
   StoreCSlugRoute: StoreCSlugRoute,
 }
 export const routeTree = rootRouteImport

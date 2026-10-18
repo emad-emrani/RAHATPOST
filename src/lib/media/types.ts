@@ -3,7 +3,7 @@
 export const MEDIA_KEY_RE = /^[a-f0-9]{32}\.(webp|jpg)$/;
 export const MAX_MEDIA_BYTES = 3 * 1024 * 1024;
 export const MAX_MEDIA_SIDE = 2048;
-export const MAX_AD_PHOTOS = 3;
+export const MAX_AD_PHOTOS = 6;
 export const MAX_BUSINESS_PHOTOS = 1;
 
 export type MediaKind = "ad" | "business";

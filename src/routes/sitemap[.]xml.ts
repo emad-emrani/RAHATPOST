@@ -34,7 +34,7 @@ async function safe<T>(label: string, load: () => Promise<T[]>): Promise<T[]> {
 async function entries(): Promise<Entry[]> {
   const [businesses, ads, readerNews, staffNews, products, sections] = await Promise.all([
     safe("directory", async () => (await import("@/lib/directory/store.server")).getApproved()),
-    safe("ads", async () => (await import("@/lib/ads/store.server")).listApproved(1000)),
+    safe("ads", async () => (await import("@/lib/market/store.server")).listPublic(1000)),
     safe("reader news", async () =>
       (await import("@/lib/reader-news/store.server")).listApproved(1000),
     ),
@@ -70,8 +70,8 @@ async function entries(): Promise<Entry[]> {
       .filter((p) => !p.isSample)
       .map((p) => ({ path: `/store/${p.slug}`, changefreq: "weekly", priority: 0.6 })),
     {
-      path: "/ads",
-      lastmod: newest(ads.map((a) => a.createdAt)),
+      path: "/haraj",
+      lastmod: newest(ads.map((a) => a.renewedAt)),
       changefreq: "daily",
       priority: 0.7,
     },
@@ -96,8 +96,8 @@ async function entries(): Promise<Entry[]> {
       changefreq: "monthly",
       priority: 0.6,
     })),
-    ...ads.map((a) => ({
-      path: `/ads/${a.id}`,
+    ...ads.filter((a) => !a.sold).map((a) => ({
+      path: `/haraj/${a.id}`,
       lastmod: day(a.createdAt),
       changefreq: "weekly",
       priority: 0.5,

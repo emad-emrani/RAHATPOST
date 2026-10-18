@@ -26,10 +26,11 @@ import type { IsraelNewsItem, IsraelNewsResult, NewsItem } from "@/lib/news/type
 import { getIsraelNews } from "@/lib/news/israel-api";
 import { IsraelNewsCredit, IsraelNewsLead, IsraelNewsRow, IsraelTitle } from "@/components/israel-news";
 import { emergency } from "@/data/content";
-import { getPublicAds } from "@/lib/ads/api";
+import { getListings } from "@/lib/market/api";
+import { priceLabel } from "@/lib/market/types";
 import { getStore } from "@/lib/store/api";
 import { ProductCard } from "@/components/store-parts";
-import { listAds, type ListAd } from "@/lib/ads/display";
+import type { ListAd } from "@/lib/ads/display";
 import { organizationLd, seo, websiteLd } from "@/lib/seo";
 import { tr, trv } from "@/lib/i18n/core";
 import { localized, localizedIsrael } from "@/lib/i18n/localize";
@@ -51,7 +52,7 @@ export const Route = createFileRoute("/")({
     const [news, approved, ads, israel, weather, board, store, tech, flags, sports] = await Promise.all([
       getNews(),
       getApprovedEntries(),
-      getPublicAds(),
+      getListings(),
       israelNewsForHome(),
       weatherWithin(2_000),
       getBoard(),
@@ -109,7 +110,13 @@ function Home() {
     ...israelItems.filter((item) => item.titleAr && !item.pinned),
     ...israelItems.filter((item) => !item.titleAr && !item.pinned),
   ].slice(0, 5);
-  const classifieds = listAds(adsData);
+  const classifieds: ListAd[] = useMemo(
+    () =>
+      adsData.items
+        .filter((l) => !l.sold)
+        .map((l) => ({ id: l.id, type: l.category, title: l.title, neighborhood: l.area, price: priceLabel(l), photo: l.photos[0] })),
+    [adsData],
+  );
   const places = useMemo(() => [...approved, ...osmEntries()], [approved]);
   const now = useNow(news.now);
   const search = Route.useSearch();
@@ -338,17 +345,17 @@ function Home() {
     ) : null,
     ads: (
       <section>
-        <SectionTitle title={tr("آخر الإعلانات")} to="/ads" more={tr("كل الإعلانات")} />
-        {adsData.showSamples ? (
-          <p className="mb-2 text-sm font-semibold text-muted">
-            {tr("إعلانات نموذجية لعرض الشكل فقط، وليست إعلانات حقيقية.")}
-          </p>
+        <SectionTitle title={tr("جديد {0}", settings.texts.harajName)} to="/haraj" more={tr("كل الإعلانات")} />
+        {classifieds.length === 0 ? (
+          <Link to="/haraj/new" className="stamp press block p-4 font-bold">
+            {tr("عندك غرض للبيع؟ أضفه إلى الحراج مجاناً.")}
+          </Link>
         ) : null}
         <ul className="flex flex-col gap-3">
           {classifieds.slice(0, 4).map((item) => (
             <li key={item.id}>
               <Link
-                to="/ads/$id"
+                to="/haraj/$id"
                 params={{ id: item.id }}
                 className="stamp press flex items-center justify-between gap-3 px-4 py-3"
               >
@@ -503,7 +510,7 @@ function SearchResults({
       {results.ads.map((item) => (
         <Link
           key={item.id}
-          to="/ads/$id"
+          to="/haraj/$id"
           params={{ id: item.id }}
           className="stamp press block p-4"
         >

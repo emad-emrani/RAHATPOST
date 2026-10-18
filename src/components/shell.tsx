@@ -15,7 +15,7 @@ const NAV = [
   { to: "/today", label: "اليوم", icon: Siren, exact: true },
   { to: "/buses", label: "باصات", icon: Bus, exact: true },
   { to: "/store", label: "المتجر", icon: Store, exact: false },
-  { to: "/ads", label: "الإعلانات", icon: Megaphone, exact: false },
+  { to: "/haraj", label: "حراج", icon: Megaphone, exact: false },
 ] as const;
 
 export function Shell({ children, wide = false }: { children: ReactNode; wide?: boolean }) {
@@ -61,7 +61,7 @@ export function Shell({ children, wide = false }: { children: ReactNode; wide?: 
                 className: "bg-primary text-ink shadow-[inset_0_0_0_1px_var(--color-primary-deep)]",
               }}
             >
-              {trv(item.label)}
+              {item.to === "/haraj" ? trv(t.harajNav) : trv(item.label)}
             </Link>
           ))}
         </nav>
@@ -122,7 +122,7 @@ export function Shell({ children, wide = false }: { children: ReactNode; wide?: 
                 <span className="tab-icon">
                   <Icon className="size-6" aria-hidden />
                 </span>
-                {trv(item.label)}
+                {item.to === "/haraj" ? trv(t.harajNav) : trv(item.label)}
               </Link>
             );
           })}
@@ -138,7 +138,7 @@ export function SectionTitle({
   more,
 }: {
   title: string;
-  to?: "/" | "/news" | "/israel-news" | "/sports-news" | "/tech-news" | "/today" | "/buses" | "/directory" | "/store" | "/ads";
+  to?: "/" | "/news" | "/israel-news" | "/sports-news" | "/tech-news" | "/today" | "/buses" | "/directory" | "/store" | "/haraj";
   more?: string;
 }) {
   return (

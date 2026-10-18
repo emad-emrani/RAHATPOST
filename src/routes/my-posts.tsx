@@ -89,83 +89,9 @@ function MyPostsPage() {
       </div>
       {error ? <p className="stamp mb-3 p-3 font-bold">{trv(error)}</p> : null}
       <h2 className="mb-3 text-xl font-bold">{tr("إعلاناتي")}</h2>
-      {ads === null ? (
-        <p className="stamp p-4 font-semibold">{tr("جاري التحميل…")}</p>
-      ) : ads.length === 0 ? (
-        <p className="stamp p-4 font-semibold">{tr("لم تنشر أي إعلان بعد.")}</p>
-      ) : (
-        <ul className="flex flex-col gap-3">
-          {ads.map((ad) =>
-            editing === ad.id ? (
-              <li key={ad.id}>
-                <AdForm
-                  initial={{ ...ad, price: ad.price ?? "" }}
-                  submitLabel={tr("حفظ وإرسال للمراجعة")}
-                  onCancel={() => setEditing("")}
-                  onSubmit={async (data) => {
-                    const res = await updateMyAd({ data: { ...data, id: ad.id } });
-                    if (!res.ok) return res.message ?? tr("تعذّر الحفظ.");
-                    setEditing("");
-                    await refresh();
-                    return null;
-                  }}
-                />
-              </li>
-            ) : (
-              <li key={ad.id} className="stamp p-4">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="chip">{trv(ad.type)}</span>
-                  <span className={STATUS_CHIP[ad.status]}>{trv(AD_STATUS_LABEL[ad.status])}</span>
-                </div>
-                <h3 className="mt-2 text-lg font-bold">
-                  {ad.status === "approved" ? (
-                    <Link
-                      to="/ads/$id"
-                      params={{ id: ad.id }}
-                      className="underline decoration-primary-deep"
-                    >
-                      {trv(ad.title)}
-                    </Link>
-                  ) : (
-                    ad.title
-                  )}
-                </h3>
-                <p className="text-sm font-semibold text-muted">
-                  {trv(ad.neighborhood)}
-                  {ad.price ? ` · ${ad.price}` : ""}
-                </p>
-                <PhotoStrip keys={ad.photos} size="size-16" />
-                <div className="mt-3 grid grid-cols-2 gap-2">
-                  <button type="button" className="btn btn-ghost" onClick={() => setEditing(ad.id)}>
-                    <Pencil className="size-4" aria-hidden />
-                    {tr("تعديل")}
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-ghost"
-                    disabled={busyId === ad.id}
-                    onClick={async () => {
-                      if (!confirm(tr("حذف الإعلان نهائياً؟"))) return;
-                      setBusyId(ad.id);
-                      try {
-                        await deleteMyAd({ data: { id: ad.id } });
-                        await refresh();
-                      } catch {
-                        setError(tr("تعذّر الحذف."));
-                      } finally {
-                        setBusyId("");
-                      }
-                    }}
-                  >
-                    <Trash2 className="size-4" aria-hidden />
-                    {tr("حذف")}
-                  </button>
-                </div>
-              </li>
-            ),
-          )}
-        </ul>
-      )}
+      <Link to="/haraj/mine" className="stamp press block p-4 font-bold">
+        {tr("إعلاناتك في الحراج: تعديل، انباع، تجديد وحذف")}
+      </Link>
 
       <h2 className="mt-8 mb-3 text-xl font-bold">{tr("أخباري")}</h2>
       {news === null ? (

@@ -29,7 +29,9 @@ import { Fragment, useCallback, useEffect, useState } from "react";
 import { Shell } from "@/components/shell";
 import { CommentsAdmin } from "@/components/admin/comments-admin";
 import { AlertsAdmin, DutyAdmin, PushAdmin, ReportsAdmin } from "@/components/admin/content-admin";
-import { adminDecideAd, adminListAds } from "@/lib/ads/api";
+import { HarajCategoriesAdmin } from "@/components/admin/haraj-categories-admin";
+import { adminDecideListing, adminListListings } from "@/lib/market/api";
+import { priceLabel, STATUS_LABEL, type ListingStatus, type OwnListing } from "@/lib/market/types";
 import type { OwnAd } from "@/lib/ads/types";
 import { adminDecide, adminList, adminLogin, adminLogout } from "@/lib/directory/api";
 import type { BusinessSubmission } from "@/lib/directory/types";
@@ -70,6 +72,7 @@ type Section =
   | "members"
   | "news"
   | "ads"
+  | "haraj-cats"
   | "directory"
   | "comments"
   | "reports"
@@ -94,7 +97,8 @@ const ALL_TABS: { key: Section; label: string; icon: LucideIcon }[] = [
   { key: "sec-tech", label: "أخبار تقنية", icon: Cpu },
   { key: "sec-weather", label: "الطقس", icon: CloudSun },
   { key: "news", label: "أخبار القراء", icon: Newspaper },
-  { key: "ads", label: "الإعلانات", icon: Megaphone },
+  { key: "ads", label: "حراج (سوق المستعمل)", icon: Megaphone },
+  { key: "haraj-cats", label: "تصنيفات الحراج", icon: Megaphone },
   { key: "store", label: "المتجر", icon: ShoppingBag },
   { key: "directory", label: "طلبات الدليل", icon: Store },
   { key: "comments", label: "التعليقات", icon: MessageSquare },
@@ -386,6 +390,8 @@ function AdminPage() {
             <AlertsAdmin />
           ) : current === "push" ? (
             <PushAdmin />
+          ) : current === "haraj-cats" ? (
+            <HarajCategoriesAdmin />
           ) : current === "ads" ? (
             <AdsAdmin />
           ) : current === "news" ? (
@@ -468,28 +474,25 @@ function AdminPage() {
 }
 
 function AdsAdmin() {
-  const [items, setItems] = useState<OwnAd[] | null>(null);
-  const [tab, setTab] = useState<OwnAd["status"]>("pending");
+  const [items, setItems] = useState<OwnListing[] | null>(null);
+  const [tab, setTab] = useState<ListingStatus>("pending");
   const [error, setError] = useState("");
   const [busyId, setBusyId] = useState("");
 
   const refresh = useCallback(async () => {
-    const res = await adminListAds();
+    const res = await adminListListings();
     setItems(res.items);
-    setError(
-      !res.authed ? tr("انتهت الجلسة. سجّل الدخول من جديد.") : res.ok ? "" : tr("تعذّر تحميل الإعلانات."),
-    );
+    setError(!res.authed ? tr("انتهت الجلسة. سجّل الدخول من جديد.") : res.ok ? "" : tr("تعذّر تحميل الإعلانات."));
   }, []);
-
   useEffect(() => {
     void refresh();
   }, [refresh]);
 
-  const act = async (id: string, action: "approved" | "rejected" | "delete") => {
+  const act = async (id: string, action: ListingStatus | "delete") => {
     if (action === "delete" && !confirm(tr("حذف الإعلان نهائياً؟"))) return;
     setBusyId(id);
     try {
-      await adminDecideAd({ data: { id, action } });
+      await adminDecideListing({ data: { id, action } });
       await refresh();
     } catch {
       setError(tr("تعذّر تنفيذ العملية."));
@@ -500,18 +503,19 @@ function AdsAdmin() {
 
   if (!items) return <p className="stamp p-4 font-semibold">{tr("جاري التحميل…")}</p>;
   const list = items.filter((i) => i.status === tab);
+  const btn = (l: OwnListing, action: ListingStatus | "delete", label: string, ghost = true) => (
+    <button type="button" className={ghost ? "btn btn-ghost" : "btn"} disabled={busyId === l.id} onClick={() => act(l.id, action)}>
+      {label}
+    </button>
+  );
 
   return (
     <>
+      <p className="mb-3 font-semibold text-muted">{tr("كل إعلان جديد أو معدّل ينتظر الموافقة قبل ظهوره في الحراج. البلاغات المتكررة تعيد الإعلان للمراجعة.")}</p>
       <div className="scroll-row mb-4">
-        {(Object.keys(STATUS) as OwnAd["status"][]).map((s) => (
-          <button
-            key={s}
-            type="button"
-            className={tab === s ? "chip chip-ink shrink-0" : "chip shrink-0"}
-            onClick={() => setTab(s)}
-          >
-            {trv(STATUS[s])} ({trv(items.filter((i) => i.status === s).length)})
+        {(Object.keys(STATUS_LABEL) as ListingStatus[]).map((s) => (
+          <button key={s} type="button" className={tab === s ? "chip chip-ink shrink-0" : "chip shrink-0"} onClick={() => setTab(s)}>
+            {trv(STATUS_LABEL[s])} ({trv(items.filter((i) => i.status === s).length)})
           </button>
         ))}
       </div>
@@ -520,54 +524,27 @@ function AdsAdmin() {
         <p className="stamp p-4 font-semibold">{tr("لا إعلانات هنا.")}</p>
       ) : (
         <ul className="flex flex-col gap-3">
-          {list.map((ad) => (
-            <li key={ad.id} className="stamp p-4">
-              <span className="chip">{trv(ad.type)}</span>
-              <h2 className="mt-2 text-xl font-bold">{trv(ad.title)}</h2>
-              <p className="font-semibold">
-                {trv(ad.neighborhood)}
-                {ad.price ? ` · ${ad.price}` : ""}
-              </p>
-              <p className="mt-1 whitespace-pre-line">{trv(ad.description)}</p>
-              <PhotoStrip keys={ad.photos} />
-              <p className="mt-1 font-bold" dir="ltr">
-                {trv(ad.phone)}
-              </p>
+          {list.map((l) => (
+            <li key={l.id} className="stamp p-4">
+              <div className="flex flex-wrap gap-1">
+                <span className="chip">{trv(l.category)}</span>
+                <span className="chip">{trv(l.condition)}</span>
+                {l.sold ? <span className="chip chip-ink">{tr("انباع")}</span> : null}
+                {l.expired ? <span className="chip">{tr("منتهي")}</span> : null}
+              </div>
+              <h2 className="mt-2 text-xl font-bold">{trv(l.title)}</h2>
+              <p className="font-semibold">{trv(priceLabel(l))} · {trv(l.area)}</p>
+              <p className="mt-1 whitespace-pre-line">{trv(l.description)}</p>
+              <PhotoStrip keys={l.photos} />
+              <p className="mt-1 font-bold" dir="ltr">{l.phone}{l.hidePhone ? " (hidden)" : ""}</p>
               <p className="text-sm font-semibold text-muted">
-                {trv(ad.posterName)} ·{" "}
-                {new Date(ad.updatedAt).toLocaleString("ar-u-nu-latn", {
-                  timeZone: "Asia/Jerusalem",
-                })}
+                {l.seller.name} · {new Date(l.updatedAt).toLocaleString("ar-u-nu-latn", { timeZone: "Asia/Jerusalem" })}
               </p>
-              <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
-                {ad.status !== "approved" ? (
-                  <button
-                    type="button"
-                    className="btn"
-                    disabled={busyId === ad.id}
-                    onClick={() => act(ad.id, "approved")}
-                  >
-                    {tr("موافقة")}
-                  </button>
-                ) : null}
-                {ad.status !== "rejected" ? (
-                  <button
-                    type="button"
-                    className="btn btn-ghost"
-                    disabled={busyId === ad.id}
-                    onClick={() => act(ad.id, "rejected")}
-                  >
-                    {tr("رفض")}
-                  </button>
-                ) : null}
-                <button
-                  type="button"
-                  className="btn btn-ghost"
-                  disabled={busyId === ad.id}
-                  onClick={() => act(ad.id, "delete")}
-                >
-                  {tr("حذف")}
-                </button>
+              <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {l.status !== "approved" ? btn(l, "approved", tr("موافقة"), false) : null}
+                {l.status !== "hidden" ? btn(l, "hidden", tr("إخفاء")) : null}
+                {l.status !== "rejected" ? btn(l, "rejected", tr("رفض")) : null}
+                {btn(l, "delete", tr("حذف"))}
               </div>
             </li>
           ))}

@@ -120,7 +120,7 @@ async function describe(type: ReportTarget, id: string): Promise<ReportGroup["ta
           title: r.title,
           excerpt: r.description.slice(0, 200),
           status: r.status,
-          url: `/ads/${id}`,
+          url: `/haraj/${id}`,
         }
       : null;
   }

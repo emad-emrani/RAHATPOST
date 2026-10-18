@@ -12,14 +12,15 @@ const tiles = [
   { to: "/news", label: "الأخبار", icon: Newspaper },
   { to: "/buses", label: "الباصات", icon: Bus },
   { to: "/store", label: "المتجر", icon: Store },
-  { to: "/ads", label: "الإعلانات", icon: Megaphone },
+  { to: "/haraj", label: "حراج", icon: Megaphone },
   { to: "/today", label: "اليوم", icon: Siren },
   { to: "/submit", label: "أضف", icon: Plus },
 ] as const;
 
 /** Horizontally scrolling category tiles (icon square + label). */
 export function HomeTiles() {
-  const order = useSiteSettings().tiles;
+  const st = useSiteSettings();
+  const order = st.tiles;
   const list = order
     .filter((o) => o.visible)
     .map((o) => tiles.find((t) => t.to === o.id))
@@ -34,7 +35,7 @@ export function HomeTiles() {
             <span className="tile-icon">
               <Icon className="size-7" aria-hidden />
             </span>
-            {trv(t.label)}
+            {t.to === "/haraj" ? trv(st.texts.harajNav) : trv(t.label)}
           </Link>
         );
       })}

@@ -407,6 +407,8 @@ function TextsPart({ s, set, setMsg }: PartProps & { setMsg: (m: string) => void
         {text("addButton", tr("نص زر الإضافة"), 16)}
         {text("footer", tr("نص أسفل الصفحة"), 400, true)}
         {text("contactEmail", tr("بريد التواصل (يظهر أسفل الصفحة)"), 120)}
+        {text("harajName", tr("اسم قسم سوق المستعمل"), 40)}
+        {text("harajNav", tr("اسم القسم في القائمة"), 16)}
       </Card>
       <Card
         title={tr("الشعار والأيقونة")}

@@ -111,6 +111,8 @@ function SubmitPage() {
           }}
         />
       ) : mode === "إعلان" ? (
+        <Link to="/haraj/new" className="btn">{tr("انتقل إلى نموذج إعلان الحراج")}</Link>
+      ) : false ? (
         <AdForm
           submitLabel={tr("إرسال للمراجعة")}
           onSubmit={async (data) => {
