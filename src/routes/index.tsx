@@ -20,7 +20,7 @@ import { NotifyPrompt } from "@/components/notify";
 import { NewsLead, NewsUnavailable, newestFirst } from "@/components/news";
 import { getApprovedEntries } from "@/lib/directory/api";
 import { osmEntries, type DirectoryEntry } from "@/lib/directory/types";
-import { getAutoSectionFlags, getNews, getTechNews } from "@/lib/news/api";
+import { getAutoSectionFlags, getNews, getSportsNews, getTechNews } from "@/lib/news/api";
 import { newsByline, relativeTimeAr, useNow } from "@/lib/news/format";
 import type { IsraelNewsItem, IsraelNewsResult, NewsItem } from "@/lib/news/types";
 import { getIsraelNews } from "@/lib/news/israel-api";
@@ -48,7 +48,7 @@ export const Route = createFileRoute("/")({
       jsonLd: [organizationLd, websiteLd],
     }),
   loader: async () => {
-    const [news, approved, ads, israel, weather, board, store, tech, flags] = await Promise.all([
+    const [news, approved, ads, israel, weather, board, store, tech, flags, sports] = await Promise.all([
       getNews(),
       getApprovedEntries(),
       getPublicAds(),
@@ -58,14 +58,16 @@ export const Route = createFileRoute("/")({
       getStore(),
       getTechNews().catch(() => null),
       getAutoSectionFlags().catch(() => ({}) as Record<string, boolean>),
+      getSportsNews().catch(() => null),
     ]);
-    const [lNews, lIsrael, lStore, lTech] = await Promise.all([
+    const [lNews, lIsrael, lStore, lTech, lSports] = await Promise.all([
       localized(news, (d) => [{ items: d.items, fields: ["title", "summary", "body"] }], "auto"),
       localizedIsrael(israel, (d) => d?.items ?? []),
       localized(store, (d) => [{ items: d.products, fields: ["name", "shortDesc", "description"] }, { items: d.categories, fields: ["name", "description"] }]),
       tech ? localized(tech, (d) => [{ items: d.items.slice(0, 5), fields: ["title", "summary"] }], "auto") : null,
+      sports ? localized(sports, (d) => [{ items: d.items.slice(0, 5), fields: ["title", "summary"] }], "auto") : null,
     ]);
-    return { news: lNews, approved: approved.entries, ads, israel: lIsrael, weather, board, store: lStore, tech: lTech, flags };
+    return { news: lNews, approved: approved.entries, ads, israel: lIsrael, weather, board, store: lStore, tech: lTech, sports: lSports, flags };
   },
   // New items must show up within a minute or two: short CDN cache, revalidated in the background.
   headers: () => ({ "Cache-Control": HOME_CACHE }),
@@ -95,9 +97,10 @@ async function israelNewsForHome(): Promise<IsraelNewsResult | null> {
 }
 
 function Home() {
-  const { news, approved, ads: adsData, israel, weather, board, store, tech, flags } = Route.useLoaderData();
+  const { news, approved, ads: adsData, israel, weather, board, store, tech, sports, flags } = Route.useLoaderData();
   const showSec = (id: string) => flags[id] !== false;
   const techTop = tech?.home ? tech.items.slice(0, 5) : [];
+  const sportsTop = sports?.home ? sports.items.slice(0, 5) : [];
   const settings = useSiteSettings();
   const israelItems = useMemo(() => israel?.items ?? [], [israel]);
   // Translated headlines first (each group stays newest first), then Hebrew-only ones.
@@ -148,6 +151,7 @@ function Home() {
           },
         ]
       : []),
+    ...(sportsTop[0] ? [newsSlide("sports", "رياضة", sportsTop[0])] : []),
     ...(tech?.items[0] && showSec("tech") ? [newsSlide("tech", "أخبار تقنية", tech.items[0])] : []),
     ...(latestReader ? [newsSlide("reader", "من القراء", latestReader)] : []),
   ];
@@ -231,6 +235,28 @@ function Home() {
         <AdSlots placement="home" />
       </>
     ),
+    sports:
+      sportsTop.length > 0 ? (
+        <section>
+          <SectionTitle title={tr("رياضة")} to="/sports-news" more={tr("عرض الكل")} />
+          <NewsLead item={sportsTop[0]} now={now} />
+          <ul className="stack-list">
+            {sportsTop.slice(1).map((item) => (
+              <li key={item.slug}>
+                <Link to="/news/$slug" params={{ slug: item.slug }} className="flex items-center gap-3 px-4 py-3">
+                  <NewsImage item={item} className="size-16 rounded-xl" />
+                  <span className="min-w-0 flex-1">
+                    <span dir="auto" className="block font-bold leading-snug">{trv(item.title)}</span>
+                    <span className="text-sm font-semibold text-muted">
+                      {relativeTimeAr(item.publishedAt, now)} · {trv(item.source)}
+                    </span>
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null,
     tech:
       techTop.length > 0 ? (
         <section>

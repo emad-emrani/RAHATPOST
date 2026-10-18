@@ -5,7 +5,7 @@ import { Shell } from "@/components/shell";
 import { NewsUnavailable } from "@/components/news";
 import { NewsImage } from "@/components/news-image";
 import { newsCardUrl } from "@/lib/news/card-url";
-import { getNews, getTechNews } from "@/lib/news/api";
+import { getNews, getSportsNews, getTechNews } from "@/lib/news/api";
 import { relativeTimeAr, useNow } from "@/lib/news/format";
 import type { NewsItem } from "@/lib/news/types";
 import { breadcrumbLd, newsArticleLd, seo, snippet } from "@/lib/seo";
@@ -19,7 +19,8 @@ export const Route = createFileRoute("/news/$slug")({
     let data = await localized(await getNews(), (d) => [{ items: d.items, fields: ["title", "summary", "body"] }], "auto");
     if (!data.items.some((item) => item.slug === params.slug)) {
       // «أخبار تقنية» items share the article page.
-      const tech = await getTechNews().catch(() => null);
+      const [techFeed, sportsFeed] = await Promise.all([getTechNews().catch(() => null), getSportsNews().catch(() => null)]);
+      const tech = techFeed?.items.some((item) => item.slug === params.slug) ? techFeed : sportsFeed;
       const hit = tech?.items.find((item) => item.slug === params.slug);
       if (tech && hit) data = await localized({ ...tech, items: [hit, ...tech.items.filter((i) => i !== hit).slice(0, 6)] }, (d) => [{ items: d.items, fields: ["title", "summary"] }], "auto");
     }

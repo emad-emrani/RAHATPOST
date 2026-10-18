@@ -138,7 +138,7 @@ export function SectionTitle({
   more,
 }: {
   title: string;
-  to?: "/" | "/news" | "/israel-news" | "/tech-news" | "/today" | "/buses" | "/directory" | "/store" | "/ads";
+  to?: "/" | "/news" | "/israel-news" | "/sports-news" | "/tech-news" | "/today" | "/buses" | "/directory" | "/store" | "/ads";
   more?: string;
 }) {
   return (

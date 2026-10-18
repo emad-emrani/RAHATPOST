@@ -138,6 +138,10 @@
   "en": "Google Tag Manager (optional)",
   "he": "Google Tag Manager (אופציונלי)"
  },
+ "RT عربي رياضة": {
+  "en": "RT Arabic Sport",
+  "he": "RT Arabic Sport"
+ },
  "Tranzila (صفحة دفع آمنة)": {
   "en": "Tranzila (secure payment page)",
   "he": "Tranzila (עמוד תשלום מאובטח)"
@@ -321,6 +325,14 @@
   "en": "Latest news",
   "he": "חדשות אחרונות"
  },
+ "آخر الأخبار الرياضية بالعربية: كرة القدم العربية والعالمية والدوري المحلي، من أبرز المواقع الرياضية العربية مع رابط المصدر.": {
+  "en": "The latest sports news in Arabic: Arab and world football and the local league, from leading Arabic sports sites with a link to the source.",
+  "he": "חדשות הספורט האחרונות בערבית: כדורגל ערבי ועולמי והליגה המקומית, מאתרי הספורט הערביים המובילים עם קישור למקור."
+ },
+ "آخر الأخبار الرياضية من المواقع الرياضية العربية": {
+  "en": "The latest sports news from Arabic sports sites",
+  "he": "חדשות הספורט האחרונות מאתרי ספורט ערביים"
+ },
  "آخر الأخطاء": {
   "en": "Latest errors",
   "he": "שגיאות אחרונות"
@@ -413,6 +425,10 @@
  "أخبار رهط والنقب اليوم · رهط بوست": {
   "en": "Rahat & Negev news today · Rahat Post",
   "he": "חדשות רהט והנגב היום · רהט פוסט"
+ },
+ "أخبار رياضة اليوم · آخر الأخبار الرياضية · رهط بوست": {
+  "en": "Sports news today · Latest sports news · Rahat Post",
+  "he": "חדשות ספורט היום · רהט פוסט"
  },
  "أخبار محلية": {
   "en": "Local news",
@@ -4280,6 +4296,10 @@
   "en": "Arab48",
   "he": "ערב 48"
  },
+ "عرب 48 رياضة": {
+  "en": "Arab48 Sport",
+  "he": "Arab48 Sport"
+ },
  "عرب هاردوير": {
   "en": "Arab Hardware",
   "he": "Arab Hardware"
@@ -5695,6 +5715,10 @@
  "هاتف للتواصل": {
   "en": "Contact phone",
   "he": "טלפון ליצירת קשר"
+ },
+ "هاي هاي": {
+  "en": "Hihi2",
+  "he": "Hihi2"
  },
  "هدايا": {
   "en": "Gifts",

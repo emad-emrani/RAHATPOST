@@ -4,8 +4,8 @@
  */
 import { getSql } from "@/lib/db";
 
-export type SectionId = "news" | "israel" | "tech" | "weather";
-export const SECTION_IDS: SectionId[] = ["news", "israel", "tech", "weather"];
+export type SectionId = "news" | "israel" | "tech" | "weather" | "sports";
+export const SECTION_IDS: SectionId[] = ["news", "israel", "sports", "tech", "weather"];
 export type SectionCfg = { id: SectionId; name: string; enabled: boolean; home: boolean; position: number; customFeeds: boolean; refreshMin: number };
 export type FeedCfg = {
   id: string;
@@ -22,6 +22,7 @@ export type FeedConfig = { sections: SectionCfg[]; feeds: FeedCfg[] };
 export const DEFAULT_SECTIONS: SectionCfg[] = [
   { id: "news", name: "آخر الأخبار", enabled: true, home: true, position: 0, customFeeds: false, refreshMin: 4 },
   { id: "israel", name: "أخبار إسرائيل", enabled: true, home: true, position: 1, customFeeds: false, refreshMin: 4 },
+  { id: "sports", name: "رياضة", enabled: true, home: true, position: 2, customFeeds: false, refreshMin: 4 },
   { id: "tech", name: "أخبار تقنية", enabled: true, home: true, position: 2, customFeeds: false, refreshMin: 4 },
   { id: "weather", name: "الطقس", enabled: true, home: true, position: 3, customFeeds: false, refreshMin: 4 },
 ];

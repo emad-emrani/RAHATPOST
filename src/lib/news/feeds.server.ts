@@ -14,6 +14,8 @@ type FeedSource = {
   fixLink?: (link: string) => string;
   /** Article pages carry a usable og:image and load fast: fill missing feed images from it. */
   ogImage?: boolean;
+  /** Hebrew feed: items are machine-translated to Arabic (cached, like Israel news). */
+  he?: boolean;
 };
 
 export type RawItem = {
@@ -70,10 +72,20 @@ const TECH_SOURCES: FeedSource[] = [
   { id: "arabhw", name: "عرب هاردوير", home: "https://www.arabhardware.net", urls: ["https://www.arabhardware.net/feed"] },
 ];
 
+/** «رياضة»: Arabic sports desks' own feeds (checked Oct 2026). Arab48 = its sports desk only. */
+const SPORTS_SOURCES: FeedSource[] = [
+  { id: "rtsport", name: "RT عربي رياضة", home: "https://arabic.rt.com/sport/", urls: ["https://arabic.rt.com/rss/sport/"] },
+  { id: "arab48sport", name: "عرب 48 رياضة", home: "https://www.arab48.com/رياضة", urls: ["https://www.arab48.com/rss"], keep: (item) => decodeURIComponentSafe(item.link).includes("رياضة/"), fixLink: (link) => SOURCES.find((s) => s.id === "arab48")!.fixLink!(link) },
+  { id: "hihi2", name: "هاي هاي", home: "https://www.hihi2.com", urls: ["https://www.hihi2.com/feed"] },
+  // Local (Israeli) sports in Hebrew, translated to Arabic; merged into the same list.
+  { id: "ynetsport", name: "واي نت رياضة", home: "https://www.ynet.co.il/sport", urls: ["https://www.ynet.co.il/Integration/StoryRss3.xml"], he: true },
+  { id: "wallasport", name: "والا رياضة", home: "https://sports.walla.co.il", urls: ["https://rss.walla.co.il/feed/156"], he: true },
+];
+
 export const NEWS_SOURCE_NAMES = SOURCES.map((s) => s.name);
 export const TECH_SOURCE_NAMES = TECH_SOURCES.map((s) => s.name);
-export type FeedSectionId = "news" | "tech";
-export const builtinSources = (section: string): FeedSource[] => (section === "tech" ? TECH_SOURCES : section === "news" ? SOURCES : []);
+export type FeedSectionId = "news" | "tech" | "sports";
+export const builtinSources = (section: string): FeedSource[] => (section === "tech" ? TECH_SOURCES : section === "sports" ? SPORTS_SOURCES : section === "news" ? SOURCES : []);
 
 /** Feeds are re-checked every 4 minutes; the last good list is always served instantly meanwhile. */
 const TTL_MS = 4 * 60_000;
@@ -132,6 +144,7 @@ export async function loadSection(section: FeedSectionId): Promise<NewsFeedResul
 
 export const loadNews = () => loadSection("news");
 export const loadTechNews = () => loadSection("tech");
+export const loadSportsNews = () => loadSection("sports");
 
 /** Fetch one feed URL now (admin «اختبار»). */
 export async function testFeedUrl(url: string): Promise<{ count: number; images: number; latest?: string; error?: string }> {
@@ -504,7 +517,8 @@ function normalize(source: FeedSource, raw: RawItem, section: FeedSectionId = "n
     summary = summary.slice(raw.title.length).replace(/^[\s:،.\-–—]+/, "");
   if (summary.length < 25 || /^[0-9a-f-]{20,}$/i.test(summary)) summary = "";
   const text = `${raw.title} ${summary}`;
-  if (section === "tech")
+  if (section === "sports" && source.keep && !source.keep({ ...raw, link })) return null;
+  if (section === "tech" || section === "sports")
     return {
       slug: `${source.id}-${hash(link)}`,
       title: raw.title,
@@ -512,7 +526,8 @@ function normalize(source: FeedSource, raw: RawItem, section: FeedSectionId = "n
       sourceUrl: source.home,
       link,
       publishedAt: new Date(Math.min(published, Date.now())).toISOString(),
-      category: "تقنية",
+      category: section === "tech" ? "تقنية" : "رياضة",
+      ...(source.he ? { he: true, fromHe: true } : {}),
       summary,
       breaking: false,
       local: false,

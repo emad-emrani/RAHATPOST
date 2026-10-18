@@ -20,6 +20,7 @@ import {
   X,
   type LucideIcon,
   Cpu,
+  Trophy,
   CloudSun,
 } from "lucide-react";
 import { createFileRoute } from "@tanstack/react-router";
@@ -79,6 +80,7 @@ type Section =
   | "gemini"
   | "sec-news"
   | "sec-israel"
+  | "sec-sports"
   | "sec-tech"
   | "sec-weather";
 
@@ -88,6 +90,7 @@ const ALL_TABS: { key: Section; label: string; icon: LucideIcon }[] = [
   { key: "auto", label: "الأخبار التلقائية", icon: Rss },
   { key: "sec-news", label: "الأخبار المحلية", icon: Newspaper },
   { key: "sec-israel", label: "أخبار إسرائيل", icon: Rss },
+  { key: "sec-sports", label: "رياضة", icon: Trophy },
   { key: "sec-tech", label: "أخبار تقنية", icon: Cpu },
   { key: "sec-weather", label: "الطقس", icon: CloudSun },
   { key: "news", label: "أخبار القراء", icon: Newspaper },

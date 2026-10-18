@@ -28,6 +28,10 @@ export type NewsItem = {
   body?: string;
   /** Approved comments on the article page (omitted when 0). */
   comments?: number;
+  /** From a Hebrew feed (sports): machine-translated to Arabic when available. */
+  fromHe?: boolean;
+  /** Title/summary are still the Hebrew original (translation pending). */
+  he?: boolean;
 };
 
 export type NewsFeedResult = {

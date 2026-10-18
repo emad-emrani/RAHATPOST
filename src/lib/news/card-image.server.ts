@@ -34,6 +34,7 @@ export const SECTION_STYLE: Record<string, { label: string; bg: string; accent: 
   news: { label: "أخبار رهط والنقب", bg: "#f2c94c", accent: "#1f1a10" },
   israel: { label: "أخبار إسرائيل", bg: "#1e3a5f", accent: "#f2c94c" },
   tech: { label: "أخبار تقنية", bg: "#14532d", accent: "#f2c94c" },
+  sports: { label: "رياضة", bg: "#9a1b1b", accent: "#f2c94c" },
   staff: { label: "رهط بوست", bg: "#f2c94c", accent: "#1f1a10" },
   reader: { label: "من القراء", bg: "#7c2d12", accent: "#f2c94c" },
 };

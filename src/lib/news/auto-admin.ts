@@ -149,7 +149,7 @@ export const adminSetNewsSource = createServerFn({ method: "POST" })
 /* ------------------------------------------------- «الأقسام التلقائية»: sections & feeds */
 
 export type AdminSection = {
-  id: "news" | "israel" | "tech" | "weather";
+  id: "news" | "israel" | "tech" | "weather" | "sports";
   name: string;
   enabled: boolean;
   home: boolean;
@@ -203,8 +203,8 @@ export const adminListSections = createServerFn({ method: "POST" }).handler(
   },
 );
 
-const SECTION_SET = new Set(["news", "israel", "tech", "weather"]);
-const FEED_SECTIONS = new Set(["news", "israel", "tech"]);
+const SECTION_SET = new Set(["news", "israel", "tech", "weather", "sports"]);
+const FEED_SECTIONS = new Set(["news", "israel", "tech", "sports"]);
 
 async function expireAll() {
   const [{ expireFeeds }, { expireIsrael }] = await Promise.all([import("./feeds.server"), import("./israel.server")]);

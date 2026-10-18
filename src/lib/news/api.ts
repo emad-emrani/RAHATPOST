@@ -102,24 +102,37 @@ export const getNews = createServerFn({ method: "GET" }).handler(
   },
 );
 
-/** «أخبار تقنية»: Arabic tech sites' feeds (4-minute background refresh, snapshot fallback). */
-export const getTechNews = createServerFn({ method: "GET" }).handler(
-  async (): Promise<NewsFeedResult & { home: boolean; name: string }> => {
-    const { loadTechNews } = await import("./feeds.server");
-    const { sectionConfig } = await import("./feed-config.server");
-    const { withCommentCounts } = await import("@/lib/comments/counts.server");
-    const [feed, cfg] = await Promise.all([loadTechNews(), sectionConfig("tech")]);
-    const { applyAiImages } = await import("./ai-images.server");
-    const items = await applyAiImages(await withCommentCounts(feed.items, "news"));
-    try {
-      const { setResponseHeader } = await import("@tanstack/react-start/server");
-      setResponseHeader("Cache-Control", items.length ? "public, max-age=0, s-maxage=60, stale-while-revalidate=180" : "public, max-age=0, s-maxage=30");
-    } catch {
-      // outside a request
-    }
-    return { ...feed, items, home: cfg.section.enabled && cfg.section.home, name: cfg.section.name };
-  },
-);
+async function sectionNews(section: "tech" | "sports"): Promise<NewsFeedResult & { home: boolean; name: string }> {
+  const { loadSection } = await import("./feeds.server");
+  const { sectionConfig } = await import("./feed-config.server");
+  const { withCommentCounts } = await import("@/lib/comments/counts.server");
+  const [feed, cfg] = await Promise.all([loadSection(section), sectionConfig(section)]);
+  const { applyAiImages } = await import("./ai-images.server");
+  let items = await applyAiImages(await withCommentCounts(feed.items, "news"));
+  if (items.some((i) => i.fromHe)) {
+    // Hebrew sports items: translate titles (cached, background), show Arabic when ready.
+    const { translateMissing, getCachedTranslations } = await import("./translate.server");
+    const he = items.filter((i) => i.fromHe);
+    await translateMissing(he.slice(0, 24).map((i) => ({ id: i.slug, title: i.title })), 1_200).catch(() => {});
+    const t = await getCachedTranslations(he.map((i) => i.slug)).catch(() => new Map());
+    items = items.map((i) => {
+      const tr = i.fromHe ? t.get(i.slug) : undefined;
+      return tr?.title ? { ...i, title: tr.title, summary: tr.summary ?? "", he: false } : i;
+    });
+  }
+  try {
+    const { setResponseHeader } = await import("@tanstack/react-start/server");
+    setResponseHeader("Cache-Control", items.length ? "public, max-age=0, s-maxage=60, stale-while-revalidate=180" : "public, max-age=0, s-maxage=30");
+  } catch {
+    // outside a request
+  }
+  return { ...feed, items, home: cfg.section.enabled && cfg.section.home, name: cfg.section.name };
+}
+
+/** «أخبار تقنية»: Arabic tech sites' feeds (background refresh, snapshot fallback). */
+export const getTechNews = createServerFn({ method: "GET" }).handler(() => sectionNews("tech"));
+/** «رياضة»: Arabic sports desks' feeds. */
+export const getSportsNews = createServerFn({ method: "GET" }).handler(() => sectionNews("sports"));
 
 /** Whether each auto section shows on the home page (admin «الأقسام التلقائية»). */
 export const getAutoSectionFlags = createServerFn({ method: "GET" }).handler(async () => {

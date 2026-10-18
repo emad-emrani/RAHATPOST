@@ -2,6 +2,7 @@
 export function sectionOf(category: string, source?: string): string {
   if (category === "إسرائيل") return "israel";
   if (category === "تقنية") return "tech";
+  if (category === "رياضة") return "sports";
   if (source === "من القراء") return "reader";
   return "news";
 }

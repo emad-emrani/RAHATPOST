@@ -11,6 +11,7 @@ export const HOME_SECTIONS = {
   quicklinks: "روابط سريعة",
   news: "آخر الأخبار",
   israel: "أخبار إسرائيل",
+  sports: "رياضة",
   tech: "أخبار تقنية",
   post: "خدمة البريد",
   install: "تثبيت التطبيق والإشعارات",

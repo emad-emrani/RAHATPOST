@@ -41,7 +41,10 @@ export function NewsLead({ item, now }: { item: NewsItem; now: number }) {
         item.breaking ? (
           <span className="chip chip-alert">{tr("عاجل")}</span>
         ) : (
-          <span className="chip chip-deep">{item.reader ? tr("من القراء") : trv(item.category)}</span>
+          <>
+            <span className="chip chip-deep">{item.reader ? tr("من القراء") : trv(item.category)}</span>
+            {item.fromHe ? <span className="chip">{item.he ? tr("بالعبرية") : tr("ترجمة آلية")}</span> : null}
+          </>
         )
       }
       title={item.title}

@@ -31,11 +31,11 @@ export function LeadCard({
       <NewsImage item={image} size="full" className="aspect-[16/9] w-full" iconClassName="size-10" />
       <span className="block p-4">
         {chips ? <span className="flex flex-wrap gap-2">{chips}</span> : null}
-        <span className="mt-2 block text-xl font-bold leading-snug">
+        <span dir="auto" className="mt-2 block text-xl font-bold leading-snug">
           {typeof title === "string" ? trv(title) : title}
         </span>
         {excerpt ? (
-          <span className="mt-1 line-clamp-3 block font-semibold text-muted">{trv(excerpt)}</span>
+          <span dir="auto" className="mt-1 line-clamp-3 block font-semibold text-muted">{trv(excerpt)}</span>
         ) : null}
         <span className="mt-1 block text-sm font-semibold text-muted">
           {meta}

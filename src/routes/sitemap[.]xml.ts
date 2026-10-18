@@ -55,6 +55,7 @@ async function entries(): Promise<Entry[]> {
     { path: "/news", lastmod: now, changefreq: "hourly", priority: 0.9 },
     { path: "/today", lastmod: now, changefreq: "hourly", priority: 0.8 },
     { path: "/israel-news", lastmod: now, changefreq: "hourly", priority: 0.6 },
+    { path: "/sports-news", lastmod: now, changefreq: "hourly", priority: 0.6 },
     { path: "/tech-news", lastmod: now, changefreq: "hourly", priority: 0.6 },
     { path: "/buses", lastmod: day(busSchedule.generatedAt), changefreq: "daily", priority: 0.9 },
     {

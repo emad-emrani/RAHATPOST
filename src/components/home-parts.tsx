@@ -60,6 +60,7 @@ const SLIDE_BG: Record<string, string> = {
   news: "linear-gradient(135deg, #b8860b, #6b4f0a)",
   israel: "linear-gradient(135deg, #1e3a5f, #0f1f33)",
   tech: "linear-gradient(135deg, #14532d, #0a2e19)",
+  sports: "linear-gradient(135deg, #9a1b1b, #4c0d0d)",
   reader: "linear-gradient(135deg, #7c2d12, #431407)",
 };
 

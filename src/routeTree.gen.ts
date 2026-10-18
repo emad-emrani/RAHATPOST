@@ -41,6 +41,7 @@ import { Route as IsraelNewsSlugRouteImport } from './routes/israel-news.$slug'
 import { Route as MediaKeyRouteImport } from './routes/media.$key'
 import { Route as NewsIndexRouteImport } from './routes/news.index'
 import { Route as NewsSlugRouteImport } from './routes/news.$slug'
+import { Route as SportsNewsIndexRouteImport } from './routes/sports-news.index'
 import { Route as StoreIndexRouteImport } from './routes/store.index'
 import { Route as StoreSlugRouteImport } from './routes/store.$slug'
 import { Route as TechNewsIndexRouteImport } from './routes/tech-news.index'
@@ -213,6 +214,11 @@ const NewsSlugRoute = NewsSlugRouteImport.update({
   path: '/news/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SportsNewsIndexRoute = SportsNewsIndexRouteImport.update({
+  id: '/sports-news/',
+  path: '/sports-news/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const StoreIndexRoute = StoreIndexRouteImport.update({
   id: '/store/',
   path: '/store/',
@@ -293,6 +299,7 @@ export interface FileRoutesByFullPath {
   '/directory/': typeof DirectoryIndexRoute
   '/israel-news/': typeof IsraelNewsIndexRoute
   '/news/': typeof NewsIndexRoute
+  '/sports-news/': typeof SportsNewsIndexRoute
   '/store/': typeof StoreIndexRoute
   '/tech-news/': typeof TechNewsIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -336,6 +343,7 @@ export interface FileRoutesByTo {
   '/directory': typeof DirectoryIndexRoute
   '/israel-news': typeof IsraelNewsIndexRoute
   '/news': typeof NewsIndexRoute
+  '/sports-news': typeof SportsNewsIndexRoute
   '/store': typeof StoreIndexRoute
   '/tech-news': typeof TechNewsIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -380,6 +388,7 @@ export interface FileRoutesById {
   '/directory/': typeof DirectoryIndexRoute
   '/israel-news/': typeof IsraelNewsIndexRoute
   '/news/': typeof NewsIndexRoute
+  '/sports-news/': typeof SportsNewsIndexRoute
   '/store/': typeof StoreIndexRoute
   '/tech-news/': typeof TechNewsIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -425,6 +434,7 @@ export interface FileRouteTypes {
     | '/directory/'
     | '/israel-news/'
     | '/news/'
+    | '/sports-news/'
     | '/store/'
     | '/tech-news/'
     | '/api/auth/$'
@@ -468,6 +478,7 @@ export interface FileRouteTypes {
     | '/directory'
     | '/israel-news'
     | '/news'
+    | '/sports-news'
     | '/store'
     | '/tech-news'
     | '/api/auth/$'
@@ -511,6 +522,7 @@ export interface FileRouteTypes {
     | '/directory/'
     | '/israel-news/'
     | '/news/'
+    | '/sports-news/'
     | '/store/'
     | '/tech-news/'
     | '/api/auth/$'
@@ -555,6 +567,7 @@ export interface RootRouteChildren {
   DirectoryIndexRoute: typeof DirectoryIndexRoute
   IsraelNewsIndexRoute: typeof IsraelNewsIndexRoute
   NewsIndexRoute: typeof NewsIndexRoute
+  SportsNewsIndexRoute: typeof SportsNewsIndexRoute
   StoreIndexRoute: typeof StoreIndexRoute
   TechNewsIndexRoute: typeof TechNewsIndexRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
@@ -791,6 +804,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof NewsSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/sports-news/': {
+      id: '/sports-news/'
+      path: '/sports-news'
+      fullPath: '/sports-news/'
+      preLoaderRoute: typeof SportsNewsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/store/': {
       id: '/store/'
       path: '/store'
@@ -892,6 +912,7 @@ const rootRouteChildren: RootRouteChildren = {
   DirectoryIndexRoute: DirectoryIndexRoute,
   IsraelNewsIndexRoute: IsraelNewsIndexRoute,
   NewsIndexRoute: NewsIndexRoute,
+  SportsNewsIndexRoute: SportsNewsIndexRoute,
   StoreIndexRoute: StoreIndexRoute,
   TechNewsIndexRoute: TechNewsIndexRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
