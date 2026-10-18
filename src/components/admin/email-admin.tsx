@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { tr } from "@/lib/i18n/core";
 import { adminGetEmailTemplates, adminSaveEmailTemplates, adminTestEmail } from "@/lib/email/api";
-import { EMAIL_LANGS, type EmailKind, type EmailLang, type EmailTemplates, type EmailText } from "@/lib/email/templates";
+import { EMAIL_KINDS, KIND_LABEL, EMAIL_LANGS, type EmailKind, type EmailLang, type EmailTemplates, type EmailText } from "@/lib/email/templates";
 
 const LANG_LABEL: Record<EmailLang, string> = { ar: "العربية", he: "עברית", en: "English" };
 
@@ -21,8 +21,8 @@ export function EmailAdmin() {
   }, []);
   if (!meta.authed) return <p className="stamp p-4 font-bold">{tr("هذا القسم لمالك الموقع فقط.")}</p>;
   if (!t) return <p className="stamp p-4 font-semibold">{tr("جاري التحميل…")}</p>;
-  const cur = t[kind][lang];
-  const set = (p: Partial<EmailText>) => setT({ ...t, [kind]: { ...t[kind], [lang]: { ...cur, ...p } } });
+  const cur = t.texts[kind][lang];
+  const set = (p: Partial<EmailText>) => setT({ ...t, texts: { ...t.texts, [kind]: { ...t.texts[kind], [lang]: { ...cur, ...p } } } });
   const field = (k: keyof EmailText, label: string, area = false) => (
     <label className="block text-sm font-bold">
       {label}
@@ -36,17 +36,20 @@ export function EmailAdmin() {
   return (
     <div className="flex flex-col gap-3">
       {!meta.ready ? <p className="stamp p-3 font-bold">{tr("مزوّد البريد غير مضبوط (RESEND_API_KEY و STORE_EMAIL_FROM)، فلن تُرسل الرسائل.")}</p> : null}
-      <label className="stamp flex items-center gap-3 p-3 font-bold">
-        <input type="checkbox" className="size-5" checked={t.welcomeEnabled} onChange={(e) => setT({ ...t, welcomeEnabled: e.target.checked })} />
-        {tr("إرسال رسالة ترحيب لكل عضو جديد (Google وFacebook والبريد)")}
+      <label className="block text-sm font-bold">
+        {tr("الرسالة")}
+        <select className="field mt-1" value={kind} onChange={(e) => setKind(e.target.value as EmailKind)}>
+          {EMAIL_KINDS.map((k) => (
+            <option key={k} value={k}>
+              {(t.enabled[k] ? "● " : "○ ") + tr(KIND_LABEL[k])}
+            </option>
+          ))}
+        </select>
       </label>
-      <div className="grid grid-cols-2 gap-2">
-        {(["welcome", "reset"] as const).map((k) => (
-          <button key={k} type="button" className={kind === k ? "chip chip-ink justify-center py-2" : "chip justify-center py-2"} onClick={() => setKind(k)}>
-            {k === "welcome" ? tr("رسالة الترحيب") : tr("إعادة تعيين كلمة المرور")}
-          </button>
-        ))}
-      </div>
+      <label className="stamp flex items-center gap-3 p-3 font-bold">
+        <input type="checkbox" className="size-5" checked={t.enabled[kind]} onChange={(e) => setT({ ...t, enabled: { ...t.enabled, [kind]: e.target.checked } })} />
+        {kind === "verify" ? tr("مفعّلة (لا تُرسل حالياً: حسابات البريد لا تُوثّق برابط)") : tr("إرسال هذه الرسالة تلقائياً")}
+      </label>
       <div className="grid grid-cols-3 gap-2">
         {EMAIL_LANGS.map((l) => (
           <button key={l} type="button" className={lang === l ? "chip chip-ink justify-center" : "chip justify-center"} onClick={() => setLang(l)}>
@@ -59,7 +62,7 @@ export function EmailAdmin() {
         {field("heading", tr("العنوان داخل الرسالة"))}
         {field("body", tr("النص (سطر فارغ = فقرة جديدة)"), true)}
         {field("button", tr("نص الزر"))}
-        <p className="text-xs font-semibold text-muted">{tr("المتغيرات: {name} اسم العضو، {site} اسم الموقع، {link} الرابط. تُرسل الرسالة بلغة الموقع التي كان العضو يتصفح بها.")}</p>
+        <p className="text-xs font-semibold text-muted">{tr("المتغيرات: {name} اسم العضو، {site} اسم الموقع، {link} الرابط، {detail} عنوان الإعلان/الخبر/الدور. تُرسل الرسالة بلغة الموقع التي كان العضو يتصفح بها.")}</p>
       </div>
       <div className="flex flex-wrap gap-2">
         <button type="button" className="btn flex-1" onClick={async () => setMsg((await adminSaveEmailTemplates({ data: { templates: t } })).ok ? tr("تم الحفظ.") : tr("تعذّر الحفظ."))}>

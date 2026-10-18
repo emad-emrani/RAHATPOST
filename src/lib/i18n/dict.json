@@ -944,6 +944,10 @@
   "en": "Submit for review",
   "he": "שלח לבדיקה"
  },
+ "إرسال هذه الرسالة تلقائياً": {
+  "en": "Send this email automatically",
+  "he": "שלח הודעה זו אוטומטית"
+ },
  "إزالة": {
   "en": "Remove",
   "he": "הסר"
@@ -1039,6 +1043,10 @@
  "إعادة تعيين كلمة المرور": {
   "en": "Password reset",
   "he": "איפוס סיסמה"
+ },
+ "إعادة تفعيل الحساب": {
+  "en": "Account unblocked",
+  "he": "הפעלת חשבון מחדש"
  },
  "إعادة محاولة التسليم": {
   "en": "Retry delivery",
@@ -1228,6 +1236,10 @@
  "إيقاف الإشعارات": {
   "en": "Turn off notifications",
   "he": "כבה התראות"
+ },
+ "إيقاف الحساب": {
+  "en": "Account blocked",
+  "he": "השעיית חשבון"
  },
  "إيقاف مصدر يخفي كل أخباره من الموقع. التغييرات تظهر خلال دقيقة تقريباً.": {
   "en": "Turning off a source hides all its news from the site. Changes appear within about a minute.",
@@ -2172,6 +2184,10 @@
   "en": "Repeated messages and spam.",
   "he": "הודעות חוזרות וספאם."
  },
+ "الرسالة": {
+  "en": "Email",
+  "he": "הודעה"
+ },
  "الرطوبة": {
   "en": "Humidity",
   "he": "לחות"
@@ -2578,6 +2594,10 @@
   "en": "Placeholders: {name} member, {site} site, {link} link. Sent in the language the member was browsing in.",
   "he": "משתנים: {name} שם, {site} אתר, {link} קישור. נשלח בשפת הגלישה של החבר."
  },
+ "المتغيرات: {name} اسم العضو، {site} اسم الموقع، {link} الرابط، {detail} عنوان الإعلان/الخبر/الدور. تُرسل الرسالة بلغة الموقع التي كان العضو يتصفح بها.": {
+  "en": "Placeholders: {name}, {site}, {link}, {detail} (listing/news title or role).",
+  "he": "משתנים: {name} שם, {site} אתר, {link} קישור, {detail} פרט."
+ },
  "المثبتة": {
   "en": "Pinned",
   "he": "מוצמדות"
@@ -2842,6 +2862,10 @@
  "انتقل إلى نموذج إعلان الحراج": {
   "en": "Go to the haraj listing form",
   "he": "עבור לטופס מודעת יד שנייה"
+ },
+ "انتهاء إعلان": {
+  "en": "Listing expired",
+  "he": "מודעה פגה"
  },
  "انتهت الجلسة.": {
   "en": "Session expired.",
@@ -3116,6 +3140,14 @@
  "تأكيد استلام الدفع؟ سيُسلَّم المنتج للمشتري تلقائياً.": {
   "en": "Confirm payment received? The product will be delivered to the buyer automatically.",
   "he": "לאשר שהתשלום התקבל? המוצר יימסר לקונה אוטומטית."
+ },
+ "تأكيد البريد الإلكتروني": {
+  "en": "Email verification",
+  "he": "אימות אימייל"
+ },
+ "تأكيد تغيير كلمة المرور": {
+  "en": "Password changed",
+  "he": "אישור שינוי סיסמה"
  },
  "تأكيد كلمة المرور": {
   "en": "Confirm password",
@@ -3594,6 +3626,10 @@
  "تعيين أدوار الأعضاء (عدا المدير)": {
   "en": "Assign member roles (except admin)",
   "he": "הקצאת תפקידים (למעט מנהל)"
+ },
+ "تغيير الدور": {
+  "en": "Role changed",
+  "he": "שינוי תפקיד"
  },
  "تغيير اللغة": {
   "en": "Change language",
@@ -4540,6 +4576,14 @@
  "رفض": {
   "en": "Reject",
   "he": "דחה"
+ },
+ "رفض إعلان في الحراج": {
+  "en": "Listing rejected",
+  "he": "דחיית מודעה"
+ },
+ "رفض خبر قارئ": {
+  "en": "Reader news rejected",
+  "he": "דחיית ידיעת קורא"
  },
  "رفع صورة/أيقونة": {
   "en": "Upload image/icon",
@@ -5496,6 +5540,18 @@
   "en": "Reader",
   "he": "קורא"
  },
+ "قبول إعلان في الحراج": {
+  "en": "Listing approved",
+  "he": "אישור מודעה"
+ },
+ "قبول تعليق": {
+  "en": "Comment approved",
+  "he": "אישור תגובה"
+ },
+ "قبول خبر قارئ": {
+  "en": "Reader news approved",
+  "he": "אישור ידיעת קורא"
+ },
  "قحاب": {},
  "قحبه": {},
  "قد تبقى نسخة في النسخ الاحتياطية التلقائية لدى مزوّد قاعدة البيانات لفترة محدودة، ثم تُمحى تلقائياً.": {
@@ -5505,6 +5561,10 @@
  "قراءة التعليقات متاحة للجميع. يظهر اسمك وصورتك مع تعليقك.": {
   "en": "Anyone can read comments. Your name and photo appear with your comment.",
   "he": "כל אחד יכול לקרוא תגובות. שמך ותמונתך מופיעים עם התגובה."
+ },
+ "قرب انتهاء إعلان": {
+  "en": "Listing expiring",
+  "he": "מודעה עומדת לפוג"
  },
  "قروض سريعه": {},
  "قريباً": {
@@ -6492,6 +6552,10 @@
  "مفعّلة": {
   "en": "On",
   "he": "פעיל"
+ },
+ "مفعّلة (لا تُرسل حالياً: حسابات البريد لا تُوثّق برابط)": {
+  "en": "Enabled (not sent currently: email accounts aren't link-verified)",
+  "he": "מופעל (לא נשלח כרגע)"
  },
  "مفعّلة: التعليقات الجديدة لا تظهر إلا بعد موافقتك.": {
   "en": "On: new comments appear only after your approval.",

@@ -183,6 +183,14 @@ export const auth = betterAuth({
     // ever signs in. When the real owner then signs in with Google/Facebook (verified email →
     // linked account), the password is dropped so only the owner can get in.
     account: {
+      // Password changed (reset link or settings) → confirmation e-mail.
+      update: {
+        after: async (account) => {
+          if (account.providerId !== "credential" || !(account as { password?: string | null }).password) return;
+          const { notifyUser } = await import("@/lib/email/send.server");
+          await notifyUser("password_changed", account.userId, "/login");
+        },
+      },
       create: {
         after: async (account) => {
           if (account.providerId === "credential") return;

@@ -33,13 +33,13 @@ export async function saveTemplates(input: unknown): Promise<EmailTemplates> {
 }
 
 const esc = (v: string) => v.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-const fill = (t: string, vars: Record<string, string>) => t.replace(/\{(name|site|link)\}/g, (_, k) => vars[k] ?? "");
+const fill = (t: string, vars: Record<string, string>) => t.replace(/\{(name|site|link|detail)\}/g, (_, k) => vars[k] ?? "");
 
 /** Branded, RTL-aware HTML (tables + inline styles for mail clients) and a plain-text twin. */
-export function render(tpl: EmailTemplates, kind: EmailKind, lang: EmailLang, name: string, link: string) {
-  const t = tpl[kind][lang] ?? tpl[kind].ar;
+export function render(tpl: EmailTemplates, kind: EmailKind, lang: EmailLang, name: string, link: string, detail = "") {
+  const t = tpl.texts[kind][lang] ?? tpl.texts[kind].ar;
   const rtl = lang !== "en";
-  const vars = { name: name || (lang === "en" ? "friend" : lang === "he" ? "חבר" : "صديقنا"), site: SITE_NAME[lang], link };
+  const vars = { name: name || (lang === "en" ? "friend" : lang === "he" ? "חבר" : "صديقنا"), site: SITE_NAME[lang], link, detail: detail.slice(0, 300) };
   const subject = fill(t.subject, vars);
   const heading = fill(t.heading, vars);
   const body = fill(t.body, vars);
@@ -92,11 +92,11 @@ export function langOf(v: string | undefined | null): EmailLang {
   return l === "he" || l === "en" ? l : "ar";
 }
 
-export async function sendTemplate(kind: EmailKind, to: string, name: string, lang: EmailLang, link: string, force = false): Promise<boolean> {
+export async function sendTemplate(kind: EmailKind, to: string, name: string, lang: EmailLang, link: string, force = false, detail = ""): Promise<boolean> {
   try {
     const tpl = await loadTemplates();
-    if (kind === "welcome" && !tpl.welcomeEnabled && !force) return false;
-    return await deliver(to, render(tpl, kind, lang, name, link));
+    if (!tpl.enabled[kind] && !force) return false;
+    return await deliver(to, render(tpl, kind, lang, name, link, detail));
   } catch (error) {
     console.error("[email] template send failed", error);
     return false;
@@ -110,5 +110,20 @@ export async function requestLang(): Promise<EmailLang> {
     return langOf(getCookie("lang"));
   } catch {
     return "ar";
+  }
+}
+
+/** Member event e-mail by user id (looks up address + name). Never throws; skips sample/unknown users. */
+export async function notifyUser(kind: EmailKind, userId: string | null | undefined, path: string, detail = ""): Promise<boolean> {
+  if (!userId) return false;
+  try {
+    const sql = await getSql();
+    const rows = await sql.query<{ email: string; name: string }>(`select email, name from "user" where id = $1`, [userId]);
+    const u = rows[0];
+    if (!u?.email) return false;
+    return await sendTemplate(kind, u.email, u.name, await requestLang(), `${SITE}${path}`, false, detail);
+  } catch (error) {
+    console.error("[email] notify failed", error);
+    return false;
   }
 }

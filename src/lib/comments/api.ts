@@ -199,7 +199,15 @@ export const adminCommentAction = createServerFn({ method: "POST" })
     const { requirePerm } = await import("@/lib/admin-auth");
     await requirePerm("moderate_comments");
     const { adminAct } = await import("./store.server");
+    const { getSql } = await import("@/lib/db");
+    const sql = await getSql();
+    const before = data.action === "restore" ? (await sql`select user_id, status, body, article_key from comments where id = ${data.id}`)[0] as { user_id: string; status: string; body: string; article_key: string } | undefined : undefined;
     await adminAct(data.id, data.action);
+    if (before?.status === "pending") {
+      const { notifyUser } = await import("@/lib/email/send.server");
+      const key = String(before.article_key ?? "");
+      await notifyUser("comment_approved", before.user_id, key.startsWith("/") ? key : "/news", String(before.body ?? "").slice(0, 200));
+    }
     return { ok: true };
   });
 

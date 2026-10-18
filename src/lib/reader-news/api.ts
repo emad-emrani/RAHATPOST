@@ -101,8 +101,15 @@ export const adminDecideNews = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     await requireAdmin();
     const { adminSetStatus, getMeta } = await import("./store.server");
-    const before = data.action === "approved" ? await getMeta(data.id) : null;
+    const prev = data.action === "approved" || data.action === "rejected" ? await getMeta(data.id) : null;
+    const before = data.action === "approved" ? prev : null;
     await adminSetStatus(data.id, data.action);
+    if (prev && prev.status !== data.action) {
+      const { getSql } = await import("@/lib/db");
+      const owner = (await (await getSql()).query<{ user_id: string }>(`select user_id from reader_news where id = $1`, [data.id]))[0];
+      const { notifyUser } = await import("@/lib/email/send.server");
+      await notifyUser(data.action === "approved" ? "news_approved" : "news_rejected", owner?.user_id, data.action === "approved" ? `/news/reader-${data.id}` : "/my-posts", prev.title);
+    }
     // First approval → «أخبار القراء الجديدة» push to subscribers of that topic.
     if (before && before.status !== "approved") {
       const { sendToTopic } = await import("@/lib/push/send.server");

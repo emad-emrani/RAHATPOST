@@ -92,6 +92,10 @@ export const adminSetRole = createServerFn({ method: "POST" })
         await sql`insert into admin_roles (user_id, role) values (${data.userId}, ${data.role})
           on conflict (user_id) do update set role = excluded.role`;
       else await sql`delete from admin_roles where user_id = ${data.userId}`;
+      const { loadRoles } = await import("./roles.server");
+      const r = (await loadRoles()).find((x) => x.key === (data.role || "member"));
+      const { notifyUser } = await import("@/lib/email/send.server");
+      await notifyUser("role_changed", data.userId, "/", r?.name ?? data.role ?? "member");
       return { ok: true };
     } catch (error) {
       console.error("[team] set role failed", error);
@@ -252,7 +256,13 @@ export const adminBlockMember = createServerFn({ method: "POST" })
     const { isPrivileged } = await import("./roles");
     if (isPrivileged(await roleOf(data.userId)) && !(await roleManager())?.master) return { ok: false };
     const { setBlocked } = await import("@/lib/auth/settings.server");
+    const was = (await import("@/lib/auth/settings.server")).isBlocked;
+    const changed = (await was(data.userId)) !== data.blocked;
     await setBlocked(data.userId, data.blocked);
+    if (changed) {
+      const { notifyUser } = await import("@/lib/email/send.server");
+      await notifyUser(data.blocked ? "blocked" : "unblocked", data.userId, data.blocked ? "/" : "/login");
+    }
     return { ok: true };
   });
 

@@ -24,6 +24,7 @@ export const getListings = createServerFn({ method: "GET" }).handler(
     try {
       const { ensureSamplesOnPreview } = await import("./samples.server");
       await ensureSamplesOnPreview();
+      if (process.env.VERCEL_ENV === "production") await (await import("@/lib/email/expiry.server")).sweepExpiry();
       const { listPublic } = await import("./store.server");
       return { ok: true, items: await listPublic() };
     } catch (error) {
@@ -189,7 +190,15 @@ export const adminDecideListing = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     await requireAdmin();
     const { adminSet } = await import("./store.server");
+    const { getSql } = await import("@/lib/db");
+    const sql = await getSql();
+    const before = (await sql.query<{ user_id: string; title: string; status: string; is_sample: boolean }>(
+      `select user_id, title, status, is_sample from classifieds where id = $1`, [data.id]))[0];
     await adminSet(data.id, data.action);
+    if (before && !before.is_sample && before.status !== data.action && (data.action === "approved" || data.action === "rejected")) {
+      const { notifyUser } = await import("@/lib/email/send.server");
+      await notifyUser(data.action === "approved" ? "listing_approved" : "listing_rejected", before.user_id, data.action === "approved" ? `/haraj/${data.id}` : "/haraj/mine", before.title);
+    }
     return { ok: true };
   });
 
