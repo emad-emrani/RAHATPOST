@@ -13,6 +13,27 @@ export type Member = {
 };
 
 /** Who is looking at /admin (null = show the login). */
+/** Server gate for /admin: a signed-in account without an admin role gets HTTP 403 (no admin UI). */
+export const adminGate = createServerFn({ method: "GET" }).handler(async (): Promise<{ denied: boolean }> => {
+  const { getAdminAccess } = await import("@/lib/admin-auth");
+  if (await getAdminAccess()) return { denied: false };
+  try {
+    const { getSessionUser } = await import("@/lib/auth/verify.server");
+    if (await getSessionUser()) {
+      const { setResponseStatus } = await import("@tanstack/react-start/server");
+      try {
+        setResponseStatus(403);
+      } catch {
+        /* client-side navigation */
+      }
+      return { denied: true };
+    }
+  } catch {
+    /* auth not configured */
+  }
+  return { denied: false };
+});
+
 export const adminWhoami = createServerFn({ method: "POST" }).handler(
   async (): Promise<{ level: AdminLevel | null; name: string; signedIn: boolean; perms: string[] }> => {
     const { getAdminAccess } = await import("@/lib/admin-auth");

@@ -2609,6 +2609,10 @@
   "en": "Back to the app · Rahat Post",
   "he": "חזרה לאפליקציה · רהט פוסט"
  },
+ "العودة إلى الصفحة الرئيسية": {
+  "en": "Back to home",
+  "he": "חזרה לדף הבית"
+ },
  "العودة للموقع": {
   "en": "Back to site",
   "he": "חזרה לאתר"
@@ -3430,6 +3434,10 @@
  "تريد أن تصلك التنبيهات العاجلة؟": {
   "en": "Want to get urgent alerts?",
   "he": "רוצה לקבל התראות דחופות?"
+ },
+ "تسجيل الخروج أو التبديل إلى حساب آخر": {
+  "en": "Sign out or switch account",
+  "he": "התנתקות או החלפת חשבון"
  },
  "تسجيل الدخول": {
   "en": "Sign in",
@@ -5464,6 +5472,10 @@
   "en": "You just edited several times. Try again shortly.",
   "he": "ערכת כמה פעמים הרגע. נסה שוב בעוד מעט."
  },
+ "عذراً، لا تملك صلاحية الدخول إلى لوحة التحكم": {
+  "en": "Sorry, you don't have permission to access the control panel",
+  "he": "מצטערים, אין לך הרשאה להיכנס ללוח הבקרה"
+ },
  "عرب 48": {
   "en": "Arab48",
   "he": "ערב 48"
@@ -6089,6 +6101,10 @@
   "en": "No changes",
   "he": "אין שינויים"
  },
+ "لا تملك صلاحية الدخول": {
+  "en": "You don't have access",
+  "he": "אין לך הרשאה"
+ },
  "لا تنبيهات.": {
   "en": "No alerts.",
   "he": "אין התראות."
@@ -6344,6 +6360,10 @@
  "لوحة الإدارة": {
   "en": "Admin panel",
   "he": "לוח ניהול"
+ },
+ "لوحة الإدارة لأعضاء الفريق الذين منحهم مالك الموقع صلاحية من قسم الأعضاء.": {
+  "en": "The admin panel is for team members the site owner has granted access in Members.",
+  "he": "לוח הניהול לחברי צוות שקיבלו הרשאה מבעל האתר."
  },
  "لوحة التحكم": {
   "en": "Dashboard",

@@ -71,24 +71,26 @@ export function PopupHost() {
   const click = () => void trackPopup({ data: { id: open.id, ev: "click" } }).catch(() => {});
   const body =
     open.kind === "image" ? (
-      <img src={mediaUrl(open.image)} alt={open.title || tr("إعلان")} className="block max-h-[75vh] w-full rounded-3xl object-contain" decoding="async" />
+      <img src={mediaUrl(open.image)} alt={open.title || tr("إعلان")} className="mx-auto block h-auto max-h-[85vh] w-auto max-w-full rounded-3xl object-contain" decoding="async" />
     ) : (
-      <div className="rounded-3xl bg-paper p-6 pt-10 text-center">
+      <div className="max-h-[85vh] overflow-y-auto rounded-3xl bg-paper p-6 pt-12 text-center">
         {open.title ? <p className="mb-2 text-xl font-extrabold">{trv(open.title)}</p> : null}
         <p className="whitespace-pre-line text-base font-semibold">{trv(open.text)}</p>
         {open.link ? <span className="btn mt-4 inline-flex">{tr("التفاصيل")}</span> : null}
       </div>
     );
   return (
-    <div className="fixed inset-0 z-[60] grid place-items-center p-4" role="dialog" aria-modal="true" aria-label={open.title || tr("إعلان")}>
+    <div
+      className="fixed inset-0 z-[60] grid place-items-center pb-[max(1rem,env(safe-area-inset-bottom))] pe-[max(1rem,env(safe-area-inset-right))] ps-[max(1rem,env(safe-area-inset-left))] pt-[max(1rem,env(safe-area-inset-top))]"
+      role="dialog" aria-modal="true" aria-label={open.title || tr("إعلان")}>
       <button type="button" className="absolute inset-0 h-full w-full cursor-default bg-black/55" aria-label={tr("إغلاق")} tabIndex={-1} onClick={() => setOpen(null)} />
-      <div className="relative w-full max-w-sm">
+      <div className={`relative max-w-[min(90vw,32rem)] ${open.kind === "image" ? "w-fit" : "w-[min(90vw,26rem)]"}`}>
         <button
           ref={closeBtn}
           type="button"
           onClick={() => setOpen(null)}
           aria-label={tr("إغلاق الإعلان")}
-          className="absolute -top-3 end-[-0.5rem] z-10 grid size-10 place-items-center rounded-full bg-paper text-ink shadow-lg ring-1 ring-line"
+          className="absolute end-2 top-2 z-10 grid size-11 place-items-center rounded-full bg-paper/95 text-ink shadow-lg ring-1 ring-line"
         >
           <X className="size-5" aria-hidden />
         </button>

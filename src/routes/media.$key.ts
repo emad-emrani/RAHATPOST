@@ -44,6 +44,13 @@ export const Route = createFileRoute("/media/$key")({
                 userId: "",
               };
           }
+          if (!access) {
+            // Images of enabled popup ads («الإعلانات المنبثقة») are public.
+            const { getSql } = await import("@/lib/db");
+            const rows = await (await getSql()).query(`select 1 from popups where data->>'image' = $1 and (data->>'enabled')::boolean`, [key]);
+            if (rows.length)
+              access = { contentType: key.endsWith(".jpg") ? "image/jpeg" : "image/webp", isPublic: true, userId: "" };
+          }
           if (!access) return notFound();
           if (!access.isPublic) {
             const { isAdmin } = await import("@/lib/admin-auth");

@@ -36,8 +36,10 @@ import {
   Mail,
   ChevronLeft,
   MonitorUp,
+  ShieldX,
 } from "lucide-react";
 import { createFileRoute } from "@tanstack/react-router";
+import { createMiddleware } from "@tanstack/react-start";
 import { PhotoStrip } from "@/components/photo-picker";
 import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import { Shell } from "@/components/shell";
@@ -47,7 +49,7 @@ import { priceLabel, STATUS_LABEL, type ListingStatus, type OwnListing } from "@
 import type { OwnAd } from "@/lib/ads/types";
 import { adminDecide, adminList, adminLogin, adminLogout } from "@/lib/directory/api";
 import type { BusinessSubmission } from "@/lib/directory/types";
-import { adminWhoami } from "@/lib/team/api";
+import { adminGate, adminWhoami } from "@/lib/team/api";
 import type { AdminLevel } from "@/lib/admin-auth";
 import { adminDecideNews, adminListNews } from "@/lib/reader-news/api";
 import type { OwnReaderNews } from "@/lib/reader-news/types";
@@ -78,6 +80,28 @@ export const Route = createFileRoute("/admin")({
   head: () => ({
     meta: [{ title: tr("إدارة · رهط بوست") }, { name: "robots", content: "noindex, nofollow" }],
   }),
+  loader: () => adminGate(),
+  // The HTML document itself is 403 for a signed-in account without an admin role.
+  server: {
+    middleware: [
+      createMiddleware().server(async ({ next }) => {
+        const result = await next();
+        try {
+          const { getAdminAccess } = await import("@/lib/admin-auth");
+          if (!(await getAdminAccess())) {
+            const { getSessionUser } = await import("@/lib/auth/verify.server");
+            if (await getSessionUser()) {
+              const r = (result as { response?: Response }).response;
+              if (r) return { ...result, response: new Response(r.body, { status: 403, headers: r.headers }) } as typeof result;
+            }
+          }
+        } catch {
+          /* auth not configured */
+        }
+        return result;
+      }),
+    ],
+  },
   component: AdminPage,
 });
 
@@ -243,6 +267,7 @@ function AdminMenu({
 const isDesktop = () => typeof window !== "undefined" && window.matchMedia("(min-width: 1024px)").matches;
 
 function AdminPage() {
+  const gate = Route.useLoaderData();
   const [state, setState] = useState<"loading" | "login" | "ready">("loading");
   const [items, setItems] = useState<BusinessSubmission[]>([]);
   const [error, setError] = useState("");
@@ -300,6 +325,28 @@ function AdminPage() {
       <Shell>
         <p className="stamp p-4 font-semibold">{tr("جاري التحميل…")}</p>
       </Shell>
+    );
+  }
+
+  if (gate.denied || (state === "login" && who.signedIn)) {
+    return (
+      <AuthLayout title={tr("عذراً، لا تملك صلاحية الدخول إلى لوحة التحكم")} subtitle={tr("لوحة الإدارة لأعضاء الفريق الذين منحهم مالك الموقع صلاحية من قسم الأعضاء.")}>
+        <div className="mx-auto grid size-16 place-items-center rounded-full bg-primary-soft text-primary-ink" aria-hidden>
+          <ShieldX className="size-8" />
+        </div>
+        <Link to="/" className="btn">{tr("العودة إلى الصفحة الرئيسية")}</Link>
+        <button
+          type="button"
+          className="btn btn-ghost"
+          onClick={async () => {
+            const { authClient } = await import("@/lib/auth/client");
+            await authClient.signOut().catch(() => {});
+            window.location.href = "/login?redirect=%2Fadmin";
+          }}
+        >
+          {tr("تسجيل الخروج أو التبديل إلى حساب آخر")}
+        </button>
+      </AuthLayout>
     );
   }
 
