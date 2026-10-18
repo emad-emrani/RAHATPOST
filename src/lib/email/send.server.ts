@@ -50,16 +50,20 @@ export function render(tpl: EmailTemplates, kind: EmailKind, lang: EmailLang, na
     .split(/\n{2,}/)
     .map((p) => `<p style="margin:0 0 14px;font-size:16px;line-height:1.75;color:#263238">${esc(p).replace(/\n/g, "<br>")}</p>`)
     .join("");
-  const html = `<!doctype html><html lang="${lang}" dir="${dir}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light only"><meta name="supported-color-schemes" content="light only"><style>:root{color-scheme:light only;supported-color-schemes:light only}[data-ogsc] .ink{color:#ffffff!important}[data-ogsb] .btn{background:#263238!important}u + .body .gb-screen{background:#000;mix-blend-mode:screen}u + .body .gb-diff{background:#000;mix-blend-mode:difference}</style><title>${esc(subject)}</title></head>
-<body class="body" style="margin:0;padding:0;background:#f1f2f4;font-family:Tahoma,Arial,'Segoe UI',sans-serif">
-<u></u><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f1f2f4;padding:24px 12px"><tr><td align="center">
+  const html = `<!doctype html><html lang="${lang}" dir="${dir}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(subject)}</title></head>
+<body style="margin:0;padding:0;background:#f1f2f4;font-family:Tahoma,Arial,'Segoe UI',sans-serif">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f1f2f4;padding:24px 12px"><tr><td align="center">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:18px;overflow:hidden;border:1px solid #F0DFA8">
-<tr><td style="background:#FDB700;background-image:linear-gradient(#FDB700,#FDB700);padding:0;line-height:0;font-size:0" bgcolor="#FDB700"><a href="${SITE}" style="display:block;text-decoration:none"><img src="${SITE}/email-header-${lang}.png" width="560" alt="${esc(SITE_NAME[lang])} · ${lang === "en" ? "Rahat &amp; the Negev" : lang === "he" ? "רהט והנגב" : "رهط والنقب"}" style="display:block;width:100%;max-width:560px;height:auto;border:0;outline:none;color:#1f2629;font-size:20px;font-weight:bold;line-height:1.4"></a></td></tr>
+<tr><td style="background:#FDB700;border-bottom:1px solid #E5A500;padding:22px 24px" dir="${dir}" align="${align}">
+<table role="presentation" cellpadding="0" cellspacing="0" dir="${dir}"><tr>
+<td style="padding-${rtl ? "left" : "right"}:12px"><img src="${LOGO}" width="64" height="64" alt="${esc(SITE_NAME[lang])} – ${lang === "en" ? "logo" : lang === "he" ? "לוגו" : "شعار"}" style="display:block;width:64px;height:64px;border-radius:14px;border:0;outline:none;text-decoration:none"></td>
+<td style="font-size:22px;font-weight:bold;color:#263238">${esc(SITE_NAME[lang])}<div style="font-size:13px;font-weight:normal;color:#3D2E00">${lang === "en" ? "Rahat &amp; the Negev" : lang === "he" ? "רהט והנגב" : "رهط والنقب"}</div></td>
+</tr></table></td></tr>
 <tr><td style="padding:28px 24px 8px" dir="${dir}" align="${align}">
 <h1 style="margin:0 0 16px;font-size:22px;line-height:1.4;color:#263238">${esc(heading)}</h1>
 ${paras}
-<table role="presentation" cellpadding="0" cellspacing="0" style="margin:8px 0 20px"><tr><td class="btn" bgcolor="#263238" style="background:#263238;background-image:linear-gradient(#263238,#263238);border-radius:12px;border:2px solid #FDB700">
-<a href="${esc(link)}" style="display:inline-block;padding:13px 26px;font-size:16px;font-weight:bold;color:#ffffff;text-decoration:none"><span class="gb-screen"><span class="gb-diff ink" style="color:#ffffff">${esc(t.button)}</span></span></a></td></tr></table>
+<table role="presentation" cellpadding="0" cellspacing="0" style="margin:8px 0 20px"><tr><td style="background:#F5F5F2;border-radius:12px;border:1px solid #DADAD5">
+<a href="${esc(link)}" style="display:inline-block;padding:13px 26px;font-size:16px;font-weight:bold;color:#263238;text-decoration:none">${esc(t.button)}</a></td></tr></table>
 ${kind === "welcome" ? `<p style="margin:0 0 6px;font-size:14px;color:#5f6b72"><a href="${SITE}/news" style="color:#8A5A00">${lang === "en" ? "Latest news" : lang === "he" ? "חדשות אחרונות" : "آخر الأخبار"}</a> · <a href="${SITE}/haraj" style="color:#8A5A00">${lang === "en" ? "Rahat Haraj" : lang === "he" ? "יד שנייה רהט" : "حراج رهط"}</a> · <a href="${SITE}/my-posts" style="color:#8A5A00">${lang === "en" ? "My posts" : lang === "he" ? "הפרסומים שלי" : "منشوراتي"}</a></p>` : `<p style="margin:0 0 6px;font-size:12px;color:#8a949a;word-break:break-all" dir="ltr">${esc(link)}</p>`}
 </td></tr>
 <tr><td style="background:#FFF6DB;padding:16px 24px;font-size:12px;line-height:1.7;color:#6b6450" dir="${dir}" align="${align}">
