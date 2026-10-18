@@ -26,8 +26,39 @@ export const getBoard = createServerFn({ method: "GET" }).handler(async (): Prom
       return [] as CivicAlert[];
     }),
   ]);
-  return { duty, alerts, today };
+  return { duty, alerts, today, dutyVisible: await dutyVisible() };
 });
+
+/** Admin switch «إظهار الصيدلية المناوبة» (auth_settings key duty_visible; default on). */
+async function dutyVisible(): Promise<boolean> {
+  try {
+    const { getSql } = await import("@/lib/db");
+    const rows = await (await getSql()).query<{ value: unknown }>(`select value from auth_settings where key = 'duty_visible'`);
+    return rows[0]?.value !== false && rows[0]?.value !== "false";
+  } catch {
+    return true;
+  }
+}
+
+export const adminGetDutyVisible = createServerFn({ method: "POST" }).handler(async () => {
+  const { requireAdmin } = await import("@/lib/admin-auth");
+  await requireAdmin();
+  return { visible: await dutyVisible() };
+});
+
+export const adminSetDutyVisible = createServerFn({ method: "POST" })
+  .inputValidator((i: { visible: boolean }) => ({ visible: i?.visible === true }))
+  .handler(async ({ data }) => {
+    const { requireAdmin } = await import("@/lib/admin-auth");
+    await requireAdmin();
+    const { getSql } = await import("@/lib/db");
+    await (await getSql()).query(
+      `insert into auth_settings (key, value, updated_at) values ('duty_visible', $1::jsonb, now())
+       on conflict (key) do update set value = excluded.value, updated_at = now()`,
+      [JSON.stringify(data.visible)],
+    );
+    return { ok: true, visible: data.visible };
+  });
 
 /* ------------------------------------------------------------- admin */
 

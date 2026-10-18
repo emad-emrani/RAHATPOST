@@ -77,7 +77,7 @@ function TodayPage() {
           )}
         </section>
 
-        <DutyCard duty={board.duty} label={tr("صيدلية الحراسة")} />
+        {board.dutyVisible === false ? null : <DutyCard duty={board.duty} label={tr("صيدلية الحراسة")} />}
 
         <Link to="/buses" className="stamp press block p-4">
           <p className="text-sm font-bold text-muted">{tr("شركة גלים")}</p>

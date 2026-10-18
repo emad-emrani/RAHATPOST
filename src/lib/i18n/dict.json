@@ -1076,6 +1076,10 @@
   "en": "Show number",
   "he": "הצג מספר"
  },
+ "إظهار الصيدلية المناوبة في الموقع": {
+  "en": "Show the duty pharmacy on the site",
+  "he": "הצגת בית המרקחת התורן באתר"
+ },
  "إعادة إرسال": {
   "en": "Resend",
   "he": "שלח שוב"
@@ -5747,6 +5751,10 @@
  "في الأسفل (للمالك): الصق معرّف الموقع ومحتوى ملف JSON، احفظ ثم «اختبار الاتصال».": {
   "en": "Below (owner only): paste the Property ID and the JSON file contents, save, then \"Test connection\".",
   "he": "למטה (לבעלים): הדבק את מזהה הנכס ואת תוכן קובץ ה-JSON, שמור ואז \"בדיקת חיבור\"."
+ },
+ "في الصفحة الرئيسية وصفحة «اليوم».": {
+  "en": "On the home page and the Today page.",
+  "he": "בדף הבית ובדף «היום»."
  },
  "في كل خبر قارئ وإعلان ونشاط وتعليق زر «إبلاغ». المنشور الذي يتلقى عدة بلاغات يُخفى مؤقتاً حتى تراجعه الإدارة.": {
   "en": "Every reader news item, ad, business and comment has a \"Report\" button. A post that receives several reports is hidden temporarily until the admins review it.",

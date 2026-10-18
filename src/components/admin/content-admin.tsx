@@ -6,6 +6,8 @@ import {
   adminCreateAlert,
   adminDeleteShift,
   adminSaveShift,
+  adminGetDutyVisible,
+  adminSetDutyVisible,
 } from "@/lib/board/api";
 import type { CivicAlert, DutyShift, SavedPharmacy } from "@/lib/board/types";
 import { adminPushStats, adminSendPush } from "@/lib/push/api";
@@ -51,6 +53,33 @@ function useBoard() {
 
 /* ------------------------------------------------------------- duty pharmacy */
 
+function DutyVisibleToggle() {
+  const [on, setOn] = useState<boolean | null>(null);
+  useEffect(() => {
+    adminGetDutyVisible().then((r) => setOn(r.visible)).catch(() => setOn(true));
+  }, []);
+  return (
+    <label className="stamp flex items-center justify-between gap-3 p-4 font-bold">
+      <span>
+        {tr("إظهار الصيدلية المناوبة في الموقع")}
+        <span className="block text-xs font-semibold text-muted">{tr("في الصفحة الرئيسية وصفحة «اليوم».")}</span>
+      </span>
+      <input
+        type="checkbox"
+        role="switch"
+        className="size-6 accent-[#FDB700]"
+        disabled={on === null}
+        checked={on ?? true}
+        onChange={async (e) => {
+          const v = e.target.checked;
+          setOn(v);
+          await adminSetDutyVisible({ data: { visible: v } });
+        }}
+      />
+    </label>
+  );
+}
+
 export function DutyAdmin() {
   const { data, refresh } = useBoard();
   const [form, setForm] = useState<SavedPharmacy>({
@@ -73,6 +102,7 @@ export function DutyAdmin() {
 
   return (
     <div className="flex flex-col gap-4">
+      <DutyVisibleToggle />
       <section className="stamp p-4">
         <p className="text-sm font-bold text-muted">{tr("اليوم (")}{trv(data.today)})</p>
         <p className="text-xl font-bold">{today ? today.name : tr("لم يُحدَّث جدول اليوم")}</p>

@@ -381,7 +381,7 @@ function Home() {
         </ul>
       </section>
     ),
-    duty: <DutyCard duty={board.duty} />,
+    duty: board.dutyVisible === false ? null : <DutyCard duty={board.duty} />,
     emergency: (
       <section>
         <SectionTitle title={tr("أرقام تُحفظ")} to="/today" more={tr("كل الأرقام")} />

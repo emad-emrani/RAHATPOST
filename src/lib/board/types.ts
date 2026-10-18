@@ -29,7 +29,7 @@ export type CivicAlert = {
 
 export type AlertInput = Omit<CivicAlert, "id" | "pushedAt">;
 
-export type Board = { duty: DutyShift | null; alerts: CivicAlert[]; today: string };
+export type Board = { duty: DutyShift | null; alerts: CivicAlert[]; today: string; dutyVisible: boolean };
 
 export const ID_RE = /^[a-f0-9]{16}$/;
 export const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;

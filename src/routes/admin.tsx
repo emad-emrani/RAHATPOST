@@ -188,12 +188,12 @@ const ALL_TABS: { key: Section; label: string; icon: LucideIcon }[] = [
 ];
 
 const GROUPS: { id: string; label: string; icon: LucideIcon; keys: Section[] }[] = [
-  { id: "main", label: "الرئيسية", icon: House, keys: ["home", "review", "stats"] },
+  { id: "main", label: "الرئيسية", icon: House, keys: ["home", "publish", "review", "stats"] },
   {
     id: "content",
     label: "المحتوى والأخبار",
     icon: Newspaper,
-    keys: ["publish", "news", "comments", "auto", "sec-news", "sec-israel", "sec-sports", "sec-tech", "sec-weather", "duty", "directory"],
+    keys: ["news", "comments", "auto", "sec-news", "sec-israel", "sec-sports", "sec-tech", "sec-weather", "duty", "directory"],
   },
   { id: "haraj", label: "الحراج", icon: Megaphone, keys: ["ads", "haraj-cats", "reports"] },
   { id: "store", label: "المتجر", icon: ShoppingBag, keys: ["store"] },
