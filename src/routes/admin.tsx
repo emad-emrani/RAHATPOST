@@ -39,34 +39,38 @@ import {
 } from "lucide-react";
 import { createFileRoute } from "@tanstack/react-router";
 import { PhotoStrip } from "@/components/photo-picker";
-import { Fragment, useCallback, useEffect, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import { Shell } from "@/components/shell";
 import { AuthLayout } from "@/components/auth-layout";
-import { CommentsAdmin } from "@/components/admin/comments-admin";
-import { AlertsAdmin, DutyAdmin, PushAdmin, ReportsAdmin } from "@/components/admin/content-admin";
-import { HarajCategoriesAdmin } from "@/components/admin/haraj-categories-admin";
 import { adminDecideListing, adminListListings, adminSamples } from "@/lib/market/api";
 import { priceLabel, STATUS_LABEL, type ListingStatus, type OwnListing } from "@/lib/market/types";
 import type { OwnAd } from "@/lib/ads/types";
 import { adminDecide, adminList, adminLogin, adminLogout } from "@/lib/directory/api";
 import type { BusinessSubmission } from "@/lib/directory/types";
-import { AutoNewsAdmin } from "@/components/admin/auto-news-admin";
-import { SectionAdmin } from "@/components/admin/section-admin";
-import { SiteSettingsAdmin, type SiteSettingsPart } from "@/components/admin/site-settings-admin";
-import { MembersAdmin } from "@/components/admin/members-admin";
-import { PopupsAdmin } from "@/components/admin/popups-admin";
-import { EmailAdmin } from "@/components/admin/email-admin";
 import { adminWhoami } from "@/lib/team/api";
 import type { AdminLevel } from "@/lib/admin-auth";
-import { PublishAdmin } from "@/components/admin/publish-admin";
-import { StoreAdmin } from "@/components/admin/store-admin";
-import { StatsAdmin } from "@/components/admin/stats-admin";
-import { LanguagesAdmin } from "@/components/admin/languages-admin";
-import { GeminiAdmin } from "@/components/admin/gemini-admin";
 import { adminDecideNews, adminListNews } from "@/lib/reader-news/api";
 import type { OwnReaderNews } from "@/lib/reader-news/types";
 import { tr, trv } from "@/lib/i18n/core";
-import { AdminSearch, DashboardHome, ReviewQueue } from "@/components/admin/admin-v2";
+import { AdminSearch, CardBoundary, DashboardHome, ReviewQueue, Skeleton } from "@/components/admin/admin-v2";
+import type { SiteSettingsPart } from "@/components/admin/site-settings-admin";
+const CommentsAdmin = lazy(() => import("@/components/admin/comments-admin").then((m) => ({ default: m.CommentsAdmin })));
+const AlertsAdmin = lazy(() => import("@/components/admin/content-admin").then((m) => ({ default: m.AlertsAdmin })));
+const DutyAdmin = lazy(() => import("@/components/admin/content-admin").then((m) => ({ default: m.DutyAdmin })));
+const PushAdmin = lazy(() => import("@/components/admin/content-admin").then((m) => ({ default: m.PushAdmin })));
+const ReportsAdmin = lazy(() => import("@/components/admin/content-admin").then((m) => ({ default: m.ReportsAdmin })));
+const HarajCategoriesAdmin = lazy(() => import("@/components/admin/haraj-categories-admin").then((m) => ({ default: m.HarajCategoriesAdmin })));
+const AutoNewsAdmin = lazy(() => import("@/components/admin/auto-news-admin").then((m) => ({ default: m.AutoNewsAdmin })));
+const SectionAdmin = lazy(() => import("@/components/admin/section-admin").then((m) => ({ default: m.SectionAdmin })));
+const SiteSettingsAdmin = lazy(() => import("@/components/admin/site-settings-admin").then((m) => ({ default: m.SiteSettingsAdmin })));
+const MembersAdmin = lazy(() => import("@/components/admin/members-admin").then((m) => ({ default: m.MembersAdmin })));
+const PopupsAdmin = lazy(() => import("@/components/admin/popups-admin").then((m) => ({ default: m.PopupsAdmin })));
+const EmailAdmin = lazy(() => import("@/components/admin/email-admin").then((m) => ({ default: m.EmailAdmin })));
+const PublishAdmin = lazy(() => import("@/components/admin/publish-admin").then((m) => ({ default: m.PublishAdmin })));
+const StoreAdmin = lazy(() => import("@/components/admin/store-admin").then((m) => ({ default: m.StoreAdmin })));
+const StatsAdmin = lazy(() => import("@/components/admin/stats-admin").then((m) => ({ default: m.StatsAdmin })));
+const LanguagesAdmin = lazy(() => import("@/components/admin/languages-admin").then((m) => ({ default: m.LanguagesAdmin })));
+const GeminiAdmin = lazy(() => import("@/components/admin/gemini-admin").then((m) => ({ default: m.GeminiAdmin })));
 import { LangSwitcher } from "@/components/lang-switcher";
 import { Link } from "@tanstack/react-router";
 
@@ -481,6 +485,8 @@ function AdminPage() {
               </div>
             </div>
           ) : null}
+          <CardBoundary key={current}>
+          <Suspense fallback={<Skeleton rows={4} />}>
           {current === "home" ? (
             <DashboardHome
               go={go}
@@ -599,6 +605,8 @@ function AdminPage() {
               )}
             </>
           )}
+          </Suspense>
+          </CardBoundary>
         </div>
       </div>
       <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-paper pb-[env(safe-area-inset-bottom)] lg:hidden" aria-label={tr("تنقل الإدارة")}>

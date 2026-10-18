@@ -510,6 +510,10 @@
   "en": "Sports news today · Latest sports news · Rahat Post",
   "he": "חדשות ספורט היום · רהט פוסט"
  },
+ "أخبار قراء": {
+  "en": "Reader news",
+  "he": "ידיעות קוראים"
+ },
  "أخبار محلية": {
   "en": "Local news",
   "he": "חדשות מקומיות"
@@ -1079,6 +1083,10 @@
  "إعادة الإرسال": {
   "en": "Resend",
   "he": "שליחה חוזרת"
+ },
+ "إعادة المحاولة": {
+  "en": "Retry",
+  "he": "נסה שוב"
  },
  "إعادة تعيين كلمة المرور": {
   "en": "Password reset",
@@ -3639,6 +3647,10 @@
   "en": "Couldn't load members.",
   "he": "טעינת החברים נכשלה."
  },
+ "تعذّر تحميل الإحصائيات.": {
+  "en": "Couldn't load stats.",
+  "he": "טעינת הנתונים נכשלה."
+ },
  "تعذّر تحميل الإعلانات الآن.": {
   "en": "Couldn't load listings right now.",
   "he": "לא ניתן לטעון מודעות כעת."
@@ -3770,6 +3782,10 @@
  "تعذّر رفع الصورة. حاول مرة أخرى.": {
   "en": "Couldn't upload the image. Please try again.",
   "he": "העלאת התמונה נכשלה. נסה שוב."
+ },
+ "تعذّر عرض هذا الجزء.": {
+  "en": "Couldn't show this part.",
+  "he": "לא ניתן להציג חלק זה."
  },
  "تعذّر قراءة هذه الصورة. جرّب صورة JPG أو PNG.": {
   "en": "Couldn't read this image. Try a JPG or PNG.",
@@ -7138,6 +7154,10 @@
  "نشاط": {
   "en": "Business",
   "he": "עסק"
+ },
+ "نشاط اليوم": {
+  "en": "Today's activity",
+  "he": "פעילות היום"
  },
  "نشاط في الدليل": {
   "en": "Directory business",

@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { Component, useEffect, useState, type ReactNode } from "react";
 import { Check, ExternalLink, Search, X, type LucideIcon } from "lucide-react";
 import { tr, trv, getLang } from "@/lib/i18n/core";
 import { adminDashboard, adminReviewQueue, adminSearch, type Dashboard, type ReviewItem, type SearchHit } from "@/lib/admin/dashboard";
@@ -7,6 +7,41 @@ import { adminDecideNews } from "@/lib/reader-news/api";
 import { adminCommentAction } from "@/lib/comments/api";
 import { mediaUrl } from "@/lib/media/types";
 import type { HarajCategory } from "@/lib/market/categories";
+
+/** One failing card/tab shows a small notice instead of breaking the whole admin page. */
+export class CardBoundary extends Component<{ children: ReactNode }, { err: boolean }> {
+  state = { err: false };
+  static getDerivedStateFromError() {
+    return { err: true };
+  }
+  componentDidCatch(error: unknown) {
+    console.error("[admin] card failed", error);
+  }
+  render() {
+    return this.state.err ? (
+      <div className="rounded-3xl bg-paper p-4 text-sm font-bold text-muted shadow-[0_1px_3px_rgba(16,24,40,0.06)]" role="alert">
+        {tr("تعذّر عرض هذا الجزء.")}{" "}
+        <button type="button" className="underline" onClick={() => this.setState({ err: false })}>{tr("إعادة المحاولة")}</button>
+      </div>
+    ) : (
+      this.props.children
+    );
+  }
+}
+
+/** Fixed-height grey placeholders while data loads (no layout shift). */
+export function Skeleton({ rows = 3, tiles = 0 }: { rows?: number; tiles?: number }) {
+  return (
+    <div className="flex flex-col gap-3" aria-busy="true" aria-label={tr("جاري التحميل…")}>
+      {tiles ? (
+        <div className="grid grid-cols-2 gap-3">
+          {Array.from({ length: tiles }, (_, i) => <div key={i} className="h-[104px] animate-pulse rounded-3xl bg-paper" />)}
+        </div>
+      ) : null}
+      {Array.from({ length: rows }, (_, i) => <div key={i} className="h-28 animate-pulse rounded-3xl bg-paper" />)}
+    </div>
+  );
+}
 
 /** White rounded card on the grey admin canvas (reference: analytics mobile app). */
 export function Card({ title, action, children, className = "" }: { title?: string; action?: ReactNode; children: ReactNode; className?: string }) {
@@ -85,12 +120,14 @@ function Line({ days, a, b, la, lb }: { days: string[]; a: number[]; b: number[]
 
 export function DashboardHome({ icons, go }: { icons: Record<string, LucideIcon>; go: (section: string) => void }) {
   const [d, setD] = useState<Dashboard | null>(null);
+  const [failed, setFailed] = useState(false);
   const [cats, setCats] = useState<HarajCategory[]>([]);
   useEffect(() => {
-    adminDashboard().then(setD).catch(() => setD(null));
+    adminDashboard().then(setD).catch(() => setFailed(true));
     getAllHarajCategories().then(setCats).catch(() => {});
   }, []);
-  if (!d) return <Card><p className="font-semibold text-muted">{tr("جاري التحميل…")}</p></Card>;
+  if (failed) return <Card><p className="font-bold text-muted">{tr("تعذّر تحميل الإحصائيات.")}</p></Card>;
+  if (!d) return <Skeleton tiles={4} rows={2} />;
   const lang = getLang();
   const catName = (k: string) => {
     const c = cats.find((x) => x.key === k);
@@ -103,34 +140,49 @@ export function DashboardHome({ icons, go }: { icons: Record<string, LucideIcon>
     ["reports", "بلاغات مفتوحة", d.pending.reports, "reports"],
   ];
   const topMax = Math.max(1, ...d.topCategories.map((c) => c.n));
+  const todayRows: [string, number | null][] = [
+    ["إعلانات", d.today.listings],
+    ["تعليقات", d.today.comments],
+    ["أخبار قراء", d.today.news],
+    ["أعضاء جدد", d.today.members],
+  ];
   return (
     <div className="flex flex-col gap-3">
+      <CardBoundary><Card title={tr("نشاط اليوم")}>
+        <div className="grid grid-cols-4 gap-2 text-center">
+          {todayRows.filter((r) => r[1] !== null).map(([l, v]) => (
+            <div key={l} className="rounded-2xl bg-surface px-1 py-2">
+              <p className="text-xl font-extrabold tabular-nums">{v}</p>
+              <p className="text-[11px] font-semibold text-muted">{tr(l)}</p>
+            </div>
+          ))}
+        </div>
+      </Card></CardBoundary>
       <div className="grid grid-cols-2 gap-3">
         {tiles.filter((t) => t[2] !== null).map(([k, label, v, to]) => (
           <Tile key={k} icon={icons[k]} label={tr(label)} value={v ?? 0} hot onClick={() => go(to)} />
         ))}
-        {d.membersToday !== null ? <Tile icon={icons.members} label={tr("أعضاء جدد اليوم")} value={d.membersToday} onClick={() => go("members-list")} /> : null}
         {d.membersTotal !== null ? <Tile icon={icons.members} label={tr("كل الأعضاء")} value={d.membersTotal} onClick={() => go("members-list")} /> : null}
         {d.liveListings !== null ? <Tile icon={icons.haraj} label={tr("إعلانات منشورة الآن")} value={d.liveListings} onClick={() => go("ads")} /> : null}
         {d.sold30 !== null ? <Tile icon={icons.sold} label={tr("بيع خلال 30 يوماً")} value={d.sold30} onClick={() => go("ads")} /> : null}
         {d.visits ? <Tile icon={icons.stats} label={tr("مشاهدات اليوم")} value={d.visits.today} onClick={() => go("stats")} /> : null}
       </div>
       {d.days.length && (d.listings7.length || d.members7.length) ? (
-        <Card title={tr("آخر 7 أيام")}>
+        <CardBoundary><Card title={tr("آخر 7 أيام")}>
           {d.members7.length ? (
             <Line days={d.days} a={d.listings7} b={d.members7} la={tr("إعلانات جديدة")} lb={tr("أعضاء جدد")} />
           ) : (
             <Bars days={d.days} values={d.listings7} />
           )}
-        </Card>
+        </Card></CardBoundary>
       ) : null}
       {d.visits ? (
-        <Card title={tr("مشاهدات الصفحات (Google Analytics)")} action={<span className="text-xs font-semibold text-muted">{tr("{0} زائر خلال 7 أيام", d.visits.users7.toLocaleString("en"))}</span>}>
+        <CardBoundary><Card title={tr("مشاهدات الصفحات (Google Analytics)")} action={<span className="text-xs font-semibold text-muted">{tr("{0} زائر خلال 7 أيام", d.visits.users7.toLocaleString("en"))}</span>}>
           <Bars days={d.days} values={d.visits.views7} />
-        </Card>
+        </Card></CardBoundary>
       ) : null}
       {d.topCategories.length ? (
-        <Card title={tr("أكثر أقسام الحراج نشاطاً")}>
+        <CardBoundary><Card title={tr("أكثر أقسام الحراج نشاطاً")}>
           <ul className="flex flex-col gap-2.5">
             {d.topCategories.map((c) => (
               <li key={c.key}>
@@ -139,7 +191,7 @@ export function DashboardHome({ icons, go }: { icons: Record<string, LucideIcon>
               </li>
             ))}
           </ul>
-        </Card>
+        </Card></CardBoundary>
       ) : null}
     </div>
   );
@@ -161,7 +213,7 @@ export function ReviewQueue({ onCount }: { onCount?: (n: number) => void }) {
   const [busy, setBusy] = useState("");
   const load = () => adminReviewQueue().then((r) => { setItems(r.items); onCount?.(r.items.length); });
   useEffect(() => { void load(); }, []);
-  if (!items) return <Card><p className="font-semibold text-muted">{tr("جاري التحميل…")}</p></Card>;
+  if (!items) return <Skeleton rows={3} />;
   const decide = async (it: ReviewItem, ok: boolean) => {
     setBusy(it.type + it.id);
     try {

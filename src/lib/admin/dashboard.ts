@@ -14,6 +14,7 @@ export type Dashboard = {
   /** Real GA4 numbers when configured; null = card hidden. */
   visits: { today: number; views7: number[]; users7: number } | null;
   visitsNote: string;
+  today: { listings: number; comments: number; news: number; members: number | null };
 };
 export type ReviewType = "haraj" | "news" | "comment";
 export type ReviewItem = {
@@ -39,8 +40,19 @@ async function access() {
 }
 const n = (r: unknown) => Number((r as { n?: number }[])[0]?.n ?? 0);
 
+const dashCache = new Map<string, { at: number; v: Dashboard }>();
 export const adminDashboard = createServerFn({ method: "POST" }).handler(async (): Promise<Dashboard> => {
-  const empty: Dashboard = { authed: false, pending: { haraj: null, comments: null, news: null, reports: null }, membersToday: null, membersTotal: null, days: [], listings7: [], members7: [], topCategories: [], liveListings: null, sold30: null, visits: null, visitsNote: "" };
+  const acc = await access();
+  const ck = acc ? JSON.stringify(acc) : "";
+  const hit = ck ? dashCache.get(ck) : undefined;
+  if (hit && Date.now() - hit.at < 30_000) return hit.v;
+  const v = await buildDashboard();
+  if (ck && v.authed) dashCache.set(ck, { at: Date.now(), v });
+  return v;
+});
+
+async function buildDashboard(): Promise<Dashboard> {
+  const empty: Dashboard = { authed: false, pending: { haraj: null, comments: null, news: null, reports: null }, membersToday: null, membersTotal: null, days: [], listings7: [], members7: [], topCategories: [], liveListings: null, sold30: null, visits: null, visitsNote: "", today: { listings: 0, comments: 0, news: 0, members: null } };
   const a = await access();
   if (!a) return empty;
   const { getSql } = await import("@/lib/db");
@@ -84,6 +96,12 @@ export const adminDashboard = createServerFn({ method: "POST" }).handler(async (
     H ? q(`select count(*)::int as n from classifieds where not is_sample and sold_at > now() - interval '30 days'`).then(n) : null,
     visitsP,
   ]);
+  const since = `date_trunc('day', now() at time zone 'Asia/Jerusalem') at time zone 'Asia/Jerusalem'`;
+  const [tl, tc, tn] = await Promise.all([
+    q(`select count(*)::int as n from classifieds where not is_sample and created_at > ${since}`).then(n),
+    q(`select count(*)::int as n from comments where created_at > ${since}`).then(n),
+    q(`select count(*)::int as n from reader_news where created_at > ${since}`).then(n),
+  ]);
   return {
     authed: true,
     pending: { haraj, comments, news, reports },
@@ -96,9 +114,10 @@ export const adminDashboard = createServerFn({ method: "POST" }).handler(async (
     sold30: sold,
     visits: visits.v,
     visitsNote: visits.note,
+    today: { listings: tl, comments: tc, news: tn, members: today },
     topCategories: (top as Record<string, unknown>[]).map((r) => ({ key: String(r.key), n: Number(r.n) })),
   };
-});
+}
 
 export const adminReviewQueue = createServerFn({ method: "POST" }).handler(async (): Promise<{ authed: boolean; items: ReviewItem[] }> => {
   const a = await access();
