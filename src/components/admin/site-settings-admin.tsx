@@ -1,4 +1,5 @@
 import { useRouter } from "@tanstack/react-router";
+import { OSM_RAVKAV_POINTS } from "@/data/ravkav-points";
 import { ArrowDown, ArrowUp, Eye, EyeOff, Trash2 } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { compress } from "@/components/photo-picker";
@@ -32,6 +33,9 @@ const PARTS = {
   menus: "القوائم والأيقونات",
   links: "روابط سريعة",
   google: "خدمات جوجل",
+  busads: "إعلانات الباصات",
+  announce: "شريط الإعلان",
+  ravkav: "نقاط شحن رب-كاف",
 } as const;
 type Part = keyof typeof PARTS;
 
@@ -144,6 +148,9 @@ export function SiteSettingsAdmin({ only }: { only?: Part } = {}) {
       ) : null}
       {part === "links" ? <LinksPart s={s} set={set} /> : null}
       {part === "google" ? <GooglePart s={s} set={set} /> : null}
+      {part === "ravkav" ? <RavKavPart s={s} set={set} /> : null}
+      {part === "announce" ? <AnnouncePart s={s} set={set} /> : null}
+      {part === "busads" ? <BusAdsPart s={s} set={set} setMsg={setMsg} /> : null}
 
       <div className="sticky bottom-20 z-20 mt-4 flex flex-col gap-2 rounded-2xl bg-paper p-3 shadow-[var(--shadow-lift)] md:bottom-4">
         {msg ? <p className="font-bold">{trv(msg)}</p> : null}
@@ -541,6 +548,143 @@ function SliderPart({ s, set, setMsg }: PartProps & { setMsg: (m: string) => voi
           ))}
         </div>
       ) : null}
+    </Card>
+  );
+}
+
+function RavKavPart({ s, set }: PartProps) {
+  const pts = s.ravkavPoints ?? [];
+  const ui = s.ravkavUi ?? { button: true, points: true, hidden: [] };
+  const putUi = (patch: Partial<typeof ui>) => set({ ravkavUi: { ...ui, ...patch } });
+  const shown = (id: string) => !ui.hidden.includes(id);
+  const toggle = (id: string, on: boolean) => putUi({ hidden: on ? ui.hidden.filter((x) => x !== id) : [...ui.hidden, id] });
+  const Sw = ({ on, onChange, label }: { on: boolean; onChange: (v: boolean) => void; label: string }) => (
+    <label className="flex items-center justify-between gap-3 font-bold">
+      {label}
+      <input type="checkbox" role="switch" className="size-6 accent-[#FDB700]" checked={on} onChange={(e) => onChange(e.target.checked)} />
+    </label>
+  );
+  const update = (i: number, patch: Record<string, string | number>) =>
+    set({ ravkavPoints: pts.map((x, j) => (j === i ? { ...x, ...patch } : x)) });
+  return (
+    <Card
+      title={tr("نقاط شحن وبيع رب-كاف قرب رهط")}
+      hint={tr("لا توجد قائمة رسمية مفتوحة لهذه النقاط، فأضف فقط نقاطاً تأكدت منها. الإحداثيات: من خرائط جوجل (اضغط مطولاً على المكان وانسخ الرقمين).")}
+    >
+      <div className="flex flex-col gap-2 rounded-xl bg-[#FFF6DB] p-3">
+        <Sw label={tr("إظهار زر رب-كاف في صفحة الباصات")} on={ui.button} onChange={(button) => putUi({ button })} />
+        <Sw label={tr("إظهار قسم نقاط الشحن (الخريطة والقائمة)")} on={ui.points} onChange={(points) => putUi({ points })} />
+      </div>
+      <p className="text-sm font-bold">{tr("نقاط من OpenStreetMap (تلقائية)")}</p>
+      <ul className="flex flex-col gap-2">
+        {OSM_RAVKAV_POINTS.map((p) => (
+          <li key={p.id} className="rounded-xl border border-line p-3">
+            <Sw label={p.name} on={shown(p.id)} onChange={(v) => toggle(p.id, v)} />
+            <p className="text-xs font-semibold text-muted">{p.source}</p>
+          </li>
+        ))}
+      </ul>
+      <p className="text-sm font-bold">{tr("نقاط مضافة يدوياً")}</p>
+      <ul className="flex flex-col gap-3">
+        {pts.map((p, i) => (
+          <li key={p.id} className="flex flex-col gap-2 rounded-xl border border-line p-3">
+            <div className="flex items-center gap-2">
+              <span className="min-w-0 flex-1 font-bold">{p.name || tr("نقطة جديدة")}</span>
+              <input type="checkbox" role="switch" aria-label={tr("إظهار")} title={tr("إظهار")} className="size-6 accent-[#FDB700]" checked={shown(p.id)} onChange={(e) => toggle(p.id, e.target.checked)} />
+              <IconBtn label={tr("حذف")} onClick={() => set({ ravkavPoints: pts.filter((_, j) => j !== i) })}><Trash2 className="size-4" /></IconBtn>
+            </div>
+            <Field label={tr("الاسم (مثلاً: بقالة … / كشك …)")}><input className="field" maxLength={80} value={p.name} onChange={(e) => update(i, { name: e.target.value })} /></Field>
+            <Field label={tr("العنوان")}><input className="field" maxLength={140} value={p.address} onChange={(e) => update(i, { address: e.target.value })} /></Field>
+            <Field label={tr("ساعات العمل (اختياري)")}><input className="field" maxLength={80} value={p.hours} onChange={(e) => update(i, { hours: e.target.value })} /></Field>
+            <Field label={tr("الإحداثيات (خط العرض، خط الطول) مثل 31.3925, 34.7544")}>
+              <input
+                className="field"
+                dir="ltr"
+                defaultValue={p.lat ? `${p.lat}, ${p.lon}` : ""}
+                onChange={(e) => {
+                  const m = e.target.value.match(/(-?\d+(?:\.\d+)?)\s*[,\s]\s*(-?\d+(?:\.\d+)?)/);
+                  if (m) update(i, { lat: Number(m[1]), lon: Number(m[2]) });
+                }}
+              />
+            </Field>
+          </li>
+        ))}
+      </ul>
+      <button type="button" className="btn" disabled={pts.length >= 50} onClick={() => set({ ravkavPoints: [...pts, { id: newId(), name: "", address: "", hours: "", lat: 0, lon: 0 }] })}>
+        {tr("إضافة نقطة")}
+      </button>
+    </Card>
+  );
+}
+
+function AnnouncePart({ s, set }: PartProps) {
+  const a = s.announce ?? { enabled: false, text: "", link: "", kind: "info" as const, scope: "all" as const, rev: "" };
+  const put = (patch: Partial<typeof a>) => set({ announce: { ...a, ...patch } });
+  return (
+    <Card title={tr("شريط الإعلان أعلى الموقع")} hint={tr("يستطيع الزائر إغلاقه، ويظهر من جديد عند تغيير النص.")}>
+      <label className="flex items-center justify-between font-bold">
+        {tr("تشغيل الشريط")}
+        <input type="checkbox" role="switch" className="size-6 accent-[#FDB700]" checked={a.enabled} onChange={(e) => put({ enabled: e.target.checked })} />
+      </label>
+      <Field label={tr("النص")}>
+        <input className="field" value={a.text} maxLength={220} onChange={(e) => put({ text: e.target.value })} />
+      </Field>
+      <Field label={tr("رابط (اختياري)")}>
+        <input className="field" dir="ltr" value={a.link} maxLength={300} onChange={(e) => put({ link: e.target.value })} />
+      </Field>
+      <Field label={tr("النوع")}>
+        <select className="field" value={a.kind} onChange={(e) => put({ kind: e.target.value as typeof a.kind })}>
+          <option value="info">{tr("معلومة (أصفر)")}</option>
+          <option value="warning">{tr("تنبيه (برتقالي)")}</option>
+          <option value="urgent">{tr("عاجل (أحمر)")}</option>
+        </select>
+      </Field>
+      <Field label={tr("أين يظهر")}>
+        <select className="field" value={a.scope} onChange={(e) => put({ scope: e.target.value as typeof a.scope })}>
+          <option value="all">{tr("كل صفحات الموقع")}</option>
+          <option value="buses">{tr("صفحة الباصات فقط")}</option>
+        </select>
+      </Field>
+    </Card>
+  );
+}
+
+function BusAdsPart({ s, set, setMsg }: PartProps & { setMsg: (m: string) => void }) {
+  const ads = s.busAds ?? { enabled: false, items: [] };
+  const items = ads.items;
+  const put = (patch: Partial<typeof ads>) => set({ busAds: { ...ads, ...patch } });
+  const update = (i: number, patch: Record<string, string>) =>
+    put({ items: items.map((x, j) => (j === i ? { ...x, ...patch } : x)) });
+  return (
+    <Card title={tr("سلايدر إعلانات صفحة الباصات")} hint={tr("صور تتبدّل تلقائياً أعلى صفحة الباصات. الإعلان بدون صورة لا يُحفظ.")}>
+      <label className="flex items-center justify-between font-bold">
+        {tr("تشغيل السلايدر")}
+        <input type="checkbox" role="switch" className="size-6 accent-[#FDB700]" checked={ads.enabled} onChange={(e) => put({ enabled: e.target.checked })} />
+      </label>
+      <ul className="flex flex-col gap-3">
+        {items.map((x, i) => (
+          <li key={x.id} className="rounded-xl border border-line p-3">
+            <div className="flex items-center gap-2">
+              <span className="min-w-0 flex-1 font-bold">{x.title || tr("إعلان {0}", i + 1)}</span>
+              <IconBtn label={tr("أعلى")} onClick={() => put({ items: move(items, i, -1) })} disabled={i === 0}><ArrowUp className="size-4" /></IconBtn>
+              <IconBtn label={tr("أسفل")} onClick={() => put({ items: move(items, i, 1) })} disabled={i === items.length - 1}><ArrowDown className="size-4" /></IconBtn>
+              <IconBtn label={tr("حذف")} onClick={() => put({ items: items.filter((_, j) => j !== i) })}><Trash2 className="size-4" /></IconBtn>
+            </div>
+            <div className="mt-3 flex flex-col gap-2">
+              <ImagePick label={tr("الصورة (يُفضّل عرضية 16:6)")} value={x.imageKey} onChange={(imageKey) => update(i, { imageKey })} setMsg={setMsg} />
+              <Field label={tr("العنوان (يظهر على الصورة)")}>
+                <input className="field" value={x.title} maxLength={90} onChange={(e) => update(i, { title: e.target.value })} />
+              </Field>
+              <Field label={tr("رابط الصفحة عند الضغط (مثل /haraj أو https://…)")}>
+                <input className="field" dir="ltr" value={x.link} maxLength={300} onChange={(e) => update(i, { link: e.target.value })} />
+              </Field>
+            </div>
+          </li>
+        ))}
+      </ul>
+      <button type="button" className="btn" disabled={items.length >= 10} onClick={() => put({ items: [...items, { id: newId(), title: "", link: "", imageKey: "" }] })}>
+        {tr("إضافة إعلان")}
+      </button>
     </Card>
   );
 }

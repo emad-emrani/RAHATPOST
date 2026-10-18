@@ -36,6 +36,7 @@ import { Route as ApiNewsImageRouteImport } from './routes/api/news-image'
 import { Route as AppAuthDoneRouteImport } from './routes/app-auth.done'
 import { Route as AppAuthFinishRouteImport } from './routes/app-auth.finish'
 import { Route as AppAuthStartRouteImport } from './routes/app-auth.start'
+import { Route as BusesRavkavRouteImport } from './routes/buses_.ravkav'
 import { Route as DirectoryIndexRouteImport } from './routes/directory.index'
 import { Route as DirectorySlugRouteImport } from './routes/directory.$slug'
 import { Route as HarajIndexRouteImport } from './routes/haraj.index'
@@ -196,6 +197,11 @@ const AppAuthStartRoute = AppAuthStartRouteImport.update({
   path: '/app-auth/start',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BusesRavkavRoute = BusesRavkavRouteImport.update({
+  id: '/buses_/ravkav',
+  path: '/buses/ravkav',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DirectoryIndexRoute = DirectoryIndexRouteImport.update({
   id: '/directory/',
   path: '/directory/',
@@ -334,6 +340,7 @@ export interface FileRoutesByFullPath {
   '/app-auth/done': typeof AppAuthDoneRoute
   '/app-auth/finish': typeof AppAuthFinishRoute
   '/app-auth/start': typeof AppAuthStartRoute
+  '/buses/ravkav': typeof BusesRavkavRoute
   '/directory/$slug': typeof DirectorySlugRoute
   '/haraj/$id': typeof HarajIdRoute
   '/haraj/mine': typeof HarajMineRoute
@@ -385,6 +392,7 @@ export interface FileRoutesByTo {
   '/app-auth/done': typeof AppAuthDoneRoute
   '/app-auth/finish': typeof AppAuthFinishRoute
   '/app-auth/start': typeof AppAuthStartRoute
+  '/buses/ravkav': typeof BusesRavkavRoute
   '/directory/$slug': typeof DirectorySlugRoute
   '/haraj/$id': typeof HarajIdRoute
   '/haraj/mine': typeof HarajMineRoute
@@ -437,6 +445,7 @@ export interface FileRoutesById {
   '/app-auth/done': typeof AppAuthDoneRoute
   '/app-auth/finish': typeof AppAuthFinishRoute
   '/app-auth/start': typeof AppAuthStartRoute
+  '/buses_/ravkav': typeof BusesRavkavRoute
   '/directory/$slug': typeof DirectorySlugRoute
   '/haraj/$id': typeof HarajIdRoute
   '/haraj/mine': typeof HarajMineRoute
@@ -490,6 +499,7 @@ export interface FileRouteTypes {
     | '/app-auth/done'
     | '/app-auth/finish'
     | '/app-auth/start'
+    | '/buses/ravkav'
     | '/directory/$slug'
     | '/haraj/$id'
     | '/haraj/mine'
@@ -541,6 +551,7 @@ export interface FileRouteTypes {
     | '/app-auth/done'
     | '/app-auth/finish'
     | '/app-auth/start'
+    | '/buses/ravkav'
     | '/directory/$slug'
     | '/haraj/$id'
     | '/haraj/mine'
@@ -592,6 +603,7 @@ export interface FileRouteTypes {
     | '/app-auth/done'
     | '/app-auth/finish'
     | '/app-auth/start'
+    | '/buses_/ravkav'
     | '/directory/$slug'
     | '/haraj/$id'
     | '/haraj/mine'
@@ -644,6 +656,7 @@ export interface RootRouteChildren {
   AppAuthDoneRoute: typeof AppAuthDoneRoute
   AppAuthFinishRoute: typeof AppAuthFinishRoute
   AppAuthStartRoute: typeof AppAuthStartRoute
+  BusesRavkavRoute: typeof BusesRavkavRoute
   DirectorySlugRoute: typeof DirectorySlugRoute
   HarajIdRoute: typeof HarajIdRoute
   HarajMineRoute: typeof HarajMineRoute
@@ -860,6 +873,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAuthStartRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/buses_/ravkav': {
+      id: '/buses_/ravkav'
+      path: '/buses/ravkav'
+      fullPath: '/buses/ravkav'
+      preLoaderRoute: typeof BusesRavkavRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/directory/': {
       id: '/directory/'
       path: '/directory'
@@ -1045,6 +1065,7 @@ const rootRouteChildren: RootRouteChildren = {
   AppAuthDoneRoute: AppAuthDoneRoute,
   AppAuthFinishRoute: AppAuthFinishRoute,
   AppAuthStartRoute: AppAuthStartRoute,
+  BusesRavkavRoute: BusesRavkavRoute,
   DirectorySlugRoute: DirectorySlugRoute,
   HarajIdRoute: HarajIdRoute,
   HarajMineRoute: HarajMineRoute,

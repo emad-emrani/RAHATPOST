@@ -149,7 +149,7 @@ function ArticlePage() {
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                {tr("اقرأ الخبر كاملاً في المصدر")}
+                {tr("اقرأ الخبر كاملاً من المصدر · {0}", article.source)}
                 <ExternalLink className="size-4" aria-hidden />
               </a>
               <p className="mt-3 text-sm font-semibold text-muted">

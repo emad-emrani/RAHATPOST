@@ -1,9 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { LocateFixed, Map as MapIcon, RefreshCw } from "lucide-react";
+import { CreditCard, LocateFixed, Map as MapIcon, RefreshCw } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Shell } from "@/components/shell";
 import { busSchedule } from "@/data/bus-schedule";
-import { busLines, galimPhone, galimSource } from "@/data/buses";
+import { busLines as baseLines, galimPhone, galimSource, type BusLine } from "@/data/buses";
+import { BusAdsSlider, BusBoard } from "@/components/bus-board";
+import { useSiteSettings } from "@/lib/site-settings/context";
+import { applyOverrides, getBusOverrides, type BusOverride } from "@/lib/buses/overrides";
 import { getArrivals } from "@/lib/buses/api";
 import {
   departures,
@@ -28,7 +31,7 @@ export const Route = createFileRoute("/buses")({
       jsonLd: [breadcrumbLd([{ name: tr("باصات رهط"), path: "/buses" }])],
     }),
   // Server time as the first render's clock, so SSR and hydration agree.
-  loader: () => ({ now: Date.now() }),
+  loader: async () => ({ now: Date.now(), overrides: await getBusOverrides().catch(() => [] as BusOverride[]) }),
   component: BusesPage,
 });
 
@@ -61,11 +64,16 @@ function minutesLabel(diff: number) {
 }
 
 function BusesPage() {
-  const { now: serverNow } = Route.useLoaderData();
+  const { now: serverNow, overrides } = Route.useLoaderData();
+  const busLines = useMemo(() => applyOverrides(baseLines, overrides), [overrides]);
+  const notice = overrides.find((o) => o.number === "*")?.note;
+  const siteSt = useSiteSettings();
+  const busAds = siteSt.busAds;
+  const busRavkavButton = siteSt.ravkavUi?.button !== false;
   const [now, setNow] = useState(serverNow);
   useEffect(() => {
     setNow(Date.now());
-    const id = setInterval(() => setNow(Date.now()), 30_000);
+    const id = setInterval(() => setNow(Date.now()), 15_000);
     return () => clearInterval(id);
   }, []);
 
@@ -75,9 +83,27 @@ function BusesPage() {
   return (
     <Shell>
       <h1 className="text-2xl font-bold">{tr("باصات غاليم")}</h1>
+      {notice ? <p className="stamp mt-3 border-[#FDB700] bg-[#FFF6DB] p-3 font-bold">📢 {trv(notice)}</p> : null}
+      <BusBoard
+        now={now}
+        lines={busLines}
+        slot={busAds?.enabled ? <BusAdsSlider items={busAds.items} /> : null}
+      />
       <p className="mt-1 font-semibold text-muted">
         {tr("خطوط مدينة رهط والخطوط الخارجة منها. المواعيد تتحدّث تلقائياً كل يوم من بيانات وزارة المواصلات، آخر تحديث")} {trv(UPDATED)}.
       </p>
+      {busRavkavButton ? (
+      <Link to="/buses/ravkav" className="mt-4 flex items-center gap-3 rounded-2xl bg-[#16A34A] px-4 py-3 font-bold text-white shadow-sm hover:bg-[#15803D]">
+        <span className="flex shrink-0 items-center gap-1 rounded-lg bg-white px-2 py-1 text-sm font-black text-[#15803D]" dir="rtl" lang="he">
+          <CreditCard className="size-4" aria-hidden />
+          רב-קו
+        </span>
+        <span className="min-w-0 flex-1">
+          {tr("رب-كاف: الشحن والخدمات")}
+          <span className="block text-xs font-semibold text-white/85">{tr("نقاط الشحن، الشحن أونلاين، ملفات التخفيض")}</span>
+        </span>
+      </Link>
+      ) : null}
       <div className="mt-4 grid grid-cols-2 gap-2">
         <a className="btn" href={`tel:${galimPhone.replaceAll("-", "")}`}>
           {tr("غاليم")} {trv(galimPhone)}
@@ -87,9 +113,11 @@ function BusesPage() {
         </a>
       </div>
 
-      <LiveArrivals now={now} />
 
-      <Timetable now={now} dates={dates} today={today} />
+
+      <LiveArrivals now={now} lines={busLines} />
+
+      <Timetable now={now} dates={dates} today={today} busLines={busLines} />
     </Shell>
   );
 }
@@ -98,7 +126,7 @@ function BusesPage() {
 
 const STORAGE_KEY = "rp-bus-stop";
 
-function LiveArrivals({ now }: { now: number }) {
+function LiveArrivals({ now, lines }: { now: number; lines: BusLine[] }) {
   const [line, setLine] = useState(busSchedule.lines[0]?.number ?? "1");
   const info = lineInfo(line);
   const [dir, setDir] = useState(info?.dirs[0]?.dir ?? "1");
@@ -215,7 +243,7 @@ function LiveArrivals({ now }: { now: number }) {
         <label className="block">
           <span className="text-sm font-bold">{tr("الخط")}</span>
           <select className="field mt-1" value={line} onChange={(e) => chooseLine(e.target.value)}>
-            {busSchedule.lines.map((l) => (
+            {busSchedule.lines.filter((l) => lines.some((x) => x.number === l.number)).map((l) => (
               <option key={l.number} value={l.number}>
                 {tr("خط")} {trv(l.number)}
               </option>
@@ -355,10 +383,10 @@ function ArrivalRow({
 
 /* ------------------------------------------------------------- timetable */
 
-function Timetable({ now, dates, today }: { now: number; dates: string[]; today: string }) {
+function Timetable({ now, dates, today, busLines }: { now: number; dates: string[]; today: string; busLines: BusLine[] }) {
   const [date, setDate] = useState<string>(dates[0] ?? today);
   const [scope, setScope] = useState<"city" | "between">("city");
-  const list = useMemo(() => busLines.filter((line) => line.scope === scope), [scope]);
+  const list = useMemo(() => busLines.filter((line) => line.scope === scope), [scope, busLines]);
   const nowMinutes = israelClock(now).minutes;
   const selected = dates.includes(date) ? date : dates[0];
 

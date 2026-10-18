@@ -10,6 +10,8 @@ import {
   MessageSquare,
   Newspaper,
   PenSquare,
+  CreditCard,
+  Bus,
   Pill,
   Rss,
   Settings,
@@ -58,6 +60,7 @@ import { AdminSearch, CardBoundary, DashboardHome, ReviewQueue, Skeleton } from 
 import type { SiteSettingsPart } from "@/components/admin/site-settings-admin";
 const CommentsAdmin = lazy(() => import("@/components/admin/comments-admin").then((m) => ({ default: m.CommentsAdmin })));
 const AlertsAdmin = lazy(() => import("@/components/admin/content-admin").then((m) => ({ default: m.AlertsAdmin })));
+const BusLinesAdmin = lazy(() => import("@/components/admin/bus-admin").then((m) => ({ default: m.BusLinesAdmin })));
 const DutyAdmin = lazy(() => import("@/components/admin/content-admin").then((m) => ({ default: m.DutyAdmin })));
 const PushAdmin = lazy(() => import("@/components/admin/content-admin").then((m) => ({ default: m.PushAdmin })));
 const ReportsAdmin = lazy(() => import("@/components/admin/content-admin").then((m) => ({ default: m.ReportsAdmin })));
@@ -119,6 +122,9 @@ type Section =
   | "set-theme"
   | "set-home"
   | "set-slider"
+  | "set-busads"
+  | "set-announce"
+  | "set-ravkav"
   | "set-texts"
   | "set-menus"
   | "set-links"
@@ -139,6 +145,7 @@ type Section =
   | "comments"
   | "reports"
   | "duty"
+  | "bus-lines"
   | "alerts"
   | "push"
   | "languages"
@@ -168,6 +175,7 @@ const ALL_TABS: { key: Section; label: string; icon: LucideIcon }[] = [
   { key: "comments", label: "التعليقات", icon: MessageSquare },
   { key: "reports", label: "البلاغات", icon: Flag },
   { key: "duty", label: "صيدلية المناوبة", icon: Pill },
+  { key: "bus-lines", label: "خطوط الباصات", icon: Bus },
   { key: "alerts", label: "التنبيهات", icon: Siren },
   { key: "push", label: "الإشعارات", icon: Bell },
   { key: "members-list", label: "قائمة الأعضاء", icon: Users },
@@ -181,6 +189,9 @@ const ALL_TABS: { key: Section; label: string; icon: LucideIcon }[] = [
   { key: "set-home", label: "أقسام الرئيسية", icon: LayoutGrid },
   { key: "set-menus", label: "القوائم والأيقونات", icon: Menu },
   { key: "set-slider", label: "السلايدر", icon: GalleryHorizontal },
+  { key: "set-busads", label: "إعلانات الباصات", icon: GalleryHorizontal },
+  { key: "set-announce", label: "شريط الإعلان", icon: Megaphone },
+  { key: "set-ravkav", label: "نقاط رب-كاف", icon: CreditCard },
   { key: "set-links", label: "روابط سريعة", icon: Link2 },
   { key: "set-google", label: "خدمات جوجل (Analytics وAdSense وSearch Console)", icon: Settings },
   { key: "languages", label: "اللغات", icon: Globe },
@@ -193,12 +204,12 @@ const GROUPS: { id: string; label: string; icon: LucideIcon; keys: Section[] }[]
     id: "content",
     label: "المحتوى والأخبار",
     icon: Newspaper,
-    keys: ["news", "comments", "auto", "sec-news", "sec-israel", "sec-sports", "sec-tech", "sec-weather", "duty", "directory"],
+    keys: ["news", "comments", "auto", "sec-news", "sec-israel", "sec-sports", "sec-tech", "sec-weather", "duty", "bus-lines", "set-ravkav", "directory"],
   },
   { id: "haraj", label: "الحراج", icon: Megaphone, keys: ["ads", "haraj-cats", "reports"] },
   { id: "store", label: "المتجر", icon: ShoppingBag, keys: ["store"] },
   { id: "members", label: "الأعضاء والصلاحيات", icon: Users, keys: ["members-list", "members-roles", "members-invite"] },
-  { id: "marketing", label: "التسويق والتواصل", icon: MonitorUp, keys: ["popups", "emails", "push", "alerts", "set-google"] },
+  { id: "marketing", label: "التسويق والتواصل", icon: MonitorUp, keys: ["popups", "set-announce", "set-busads", "emails", "push", "alerts", "set-google"] },
   {
     id: "settings",
     label: "الإعدادات",
@@ -570,6 +581,8 @@ function AdminPage() {
             <CommentsAdmin />
           ) : current === "reports" ? (
             <ReportsAdmin />
+          ) : current === "bus-lines" ? (
+            <BusLinesAdmin />
           ) : current === "duty" ? (
             <DutyAdmin />
           ) : current === "alerts" ? (

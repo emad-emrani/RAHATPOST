@@ -175,6 +175,16 @@ def main():
         "patterns": pattern_list,
         "stops": dict(sorted(stop_out.items())),
     }
+    # Safety: never replace the last good schedule with a broken extraction (keeps the old file).
+    if not out_lines or not pattern_list or not any(days.values()):
+        sys.exit("extraction produced no lines/trips — keeping the last good schedule")
+    if os.path.exists(OUT):
+        try:
+            prev = json.loads(open(OUT, encoding="utf-8").read().split(" = ", 1)[1].rstrip().rstrip(";"))
+            if len(out_lines) < 0.7 * len(prev.get("lines", [])):
+                sys.exit(f"only {len(out_lines)} lines vs {len(prev['lines'])} before — keeping the last good schedule")
+        except (IndexError, ValueError):
+            pass
     # Only rewrite when the schedule itself changed (ignore generatedAt), to avoid daily no-op commits.
     if os.path.exists(OUT):
         try:
