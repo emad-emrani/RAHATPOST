@@ -33,7 +33,10 @@ export function SellerCard({ seller }: { seller: Seller }) {
     <Link to="/haraj/seller/$id" params={{ id: seller.id }} className="stamp press flex items-center gap-3 p-3">
       <SellerAvatar seller={seller} size={12} />
       <span className="min-w-0 flex-1">
-        <span className="block truncate font-bold">{seller.name}</span>
+        <span className="block truncate font-bold">
+          {seller.name}
+          {seller.badge ? <span className="chip chip-deep ms-1 align-middle text-xs">{trv(seller.badge)}</span> : null}
+        </span>
         <span className="block text-sm font-semibold text-muted">{tr("عضو منذ {0}", memberSince(seller.since))}</span>
       </span>
       <span className="text-sm font-bold text-accent">{tr("كل إعلاناته")}</span>
@@ -57,6 +60,7 @@ export function ListingCard({ item }: { item: Listing }) {
             <span className="chip chip-ink text-base">{tr("انباع")}</span>
           </span>
         ) : null}
+        {item.sample ? <span className="chip absolute top-2 end-2 bg-paper/95 text-xs">{tr("مثال")}</span> : null}
         {item.photos.length > 1 ? (
           <span className="chip absolute bottom-2 start-2 bg-paper/90 text-xs">{item.photos.length} 📷</span>
         ) : null}

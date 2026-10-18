@@ -22,6 +22,8 @@ const idOf = (input: { id?: unknown }) => ({ id: String(input?.id ?? "") });
 export const getListings = createServerFn({ method: "GET" }).handler(
   async (): Promise<{ ok: boolean; items: Listing[] }> => {
     try {
+      const { ensureSamplesOnPreview } = await import("./samples.server");
+      await ensureSamplesOnPreview();
       const { listPublic } = await import("./store.server");
       return { ok: true, items: await listPublic() };
     } catch (error) {
@@ -157,8 +159,8 @@ export const ownerAction = createServerFn({ method: "POST" })
 /* ------------------------------------------------------------- admin */
 
 async function requireAdmin() {
-  const { requireAdmin: check } = await import("@/lib/admin-auth");
-  await check();
+  const { requirePerm } = await import("@/lib/admin-auth");
+  await requirePerm("moderate_haraj");
 }
 
 export const adminListListings = createServerFn({ method: "POST" }).handler(
@@ -233,4 +235,14 @@ export const adminSaveHarajCategories = createServerFn({ method: "POST" })
     } catch {
       return { ok: false, cats: [], message: "تعذّر الحفظ. تأكد من وجود تصنيف واحد على الأقل." };
     }
+  });
+
+/* ------------------------------------------------------------ samples */
+
+export const adminSamples = createServerFn({ method: "POST" })
+  .inputValidator((input: { action: "add" | "remove" }) => ({ action: input?.action === "add" ? ("add" as const) : ("remove" as const) }))
+  .handler(async ({ data }): Promise<{ ok: boolean; count: number }> => {
+    await requireAdmin();
+    const s = await import("./samples.server");
+    return { ok: true, count: data.action === "add" ? await s.seedSamples() : await s.removeSamples() };
   });

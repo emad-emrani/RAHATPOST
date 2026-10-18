@@ -23,6 +23,7 @@
  */
 import { oneTimeToken } from "better-auth/plugins/one-time-token";
 import { betterAuth } from "better-auth";
+import { APIError, createAuthMiddleware } from "better-auth/api";
 import { randomBytes } from "node:crypto";
 import { Pool } from "pg";
 import { ensureDbReady, getPglite } from "../db";
@@ -47,6 +48,10 @@ export const authProviders = {
   facebook: Boolean(env("FACEBOOK_CLIENT_ID") && env("FACEBOOK_CLIENT_SECRET")),
   apple: Boolean(apple),
   devLogin: !onVercel && !databaseUrl && env("RP_DEV_LOGIN") === "1",
+  /** Email + password sign-up / sign-in (admin can switch it off). */
+  email: true,
+  /** "Forgot password" needs a mail sender (RESEND_API_KEY + STORE_EMAIL_FROM). */
+  resetEmail: Boolean(env("RESEND_API_KEY") && env("STORE_EMAIL_FROM")),
 };
 
 if (!databaseUrl) void ensureDbReady();
@@ -71,8 +76,13 @@ const baseURL =
 
 // Apple posts the sign-in result back (response_mode=form_post) from appleid.apple.com.
 const APPLE_ORIGIN = "https://appleid.apple.com";
+// Preview deployments also accept their own URLs (email sign-in works there; OAuth still returns to the main site).
+const previewOrigins =
+  env("VERCEL_ENV") === "preview"
+    ? [env("VERCEL_URL"), env("VERCEL_BRANCH_URL")].filter(Boolean).map((h) => `https://${h}`)
+    : [];
 const trustedOrigins = onVercel
-  ? [explicitBaseURL ?? SITE_URL, "https://www.rahatpost.com", ...(apple ? [APPLE_ORIGIN] : [])]
+  ? [explicitBaseURL ?? SITE_URL, "https://www.rahatpost.com", ...previewOrigins, ...(apple ? [APPLE_ORIGIN] : [])]
   : [
       ...(explicitBaseURL ? [explicitBaseURL] : []),
       ...LOCAL_ORIGINS,
@@ -124,7 +134,37 @@ export const auth = betterAuth({
     // Same verified email from Google, Facebook and Apple = same person.
     accountLinking: { enabled: true, trustedProviders: ["google", "facebook", "apple"] },
   },
-  ...(authProviders.devLogin ? { emailAndPassword: { enabled: true } } : {}),
+  emailAndPassword: {
+    enabled: true,
+    minPasswordLength: 8,
+    maxPasswordLength: 128,
+    autoSignIn: true,
+    resetPasswordTokenExpiresIn: 3600,
+    sendResetPassword: async ({ user, url }) => {
+      const { sendMail } = await import("@/lib/store/email.server");
+      await sendMail(
+        user.email,
+        "إعادة تعيين كلمة المرور · رهط بوست",
+        `مرحباً ${user.name},\n\nلإعادة تعيين كلمة المرور افتح الرابط (صالح لساعة واحدة):\n${url}\n\nإن لم تطلب ذلك فتجاهل هذه الرسالة.`,
+      );
+    },
+  },
+  // Admin switches (أعضاء وتسجيل الدخول): refuse a disabled method on the server too.
+  hooks: {
+    before: createAuthMiddleware(async (ctx) => {
+      const path = ctx.path;
+      if (!path.startsWith("/sign-in") && !path.startsWith("/sign-up") && !path.startsWith("/request-password-reset")) return;
+      const { getAuthMethods } = await import("./settings.server");
+      const m = await getAuthMethods();
+      const emailPath = path === "/sign-in/email" || path === "/sign-up/email" || path === "/request-password-reset";
+      if (emailPath && !m.email && !authProviders.devLogin) throw new APIError("FORBIDDEN", { message: "تسجيل الدخول بالبريد موقوف حالياً." });
+      if (path === "/sign-in/social") {
+        const provider = (ctx.body as { provider?: string } | undefined)?.provider;
+        if ((provider === "google" && !m.google) || (provider === "facebook" && !m.facebook))
+          throw new APIError("FORBIDDEN", { message: "طريقة الدخول هذه موقوفة حالياً." });
+      }
+    }),
+  },
   // No cookieCache: sign-in then sets a single cookie (session_token). When a server
   // already set response headers (e.g. Vite's dev CORS middleware), Node's writeHead
   // keeps only the last of several Set-Cookie headers, which dropped the session.
@@ -134,8 +174,27 @@ export const auth = betterAuth({
   // (see src/lib/auth/native.ts and /app-auth/*).
   // Pending team invites (admin_invites) take effect as soon as that verified email signs in.
   databaseHooks: {
+    // Someone could register a password account with another person's email before that person
+    // ever signs in. When the real owner then signs in with Google/Facebook (verified email →
+    // linked account), the password is dropped so only the owner can get in.
+    account: {
+      create: {
+        after: async (account) => {
+          if (account.providerId === "credential") return;
+          const { getSql } = await import("../db");
+          const sql = await getSql();
+          // Password accounts are never email-verified here (no verification mail), so a password
+          // can't be trusted once a provider with a verified email claims the same address.
+          await sql.query(`delete from "account" where "userId" = $1 and "providerId" = 'credential'`, [account.userId]);
+        },
+      },
+    },
     session: {
       create: {
+        before: async (session) => {
+          const { isBlocked } = await import("./settings.server");
+          if (await isBlocked(session.userId)) throw new APIError("FORBIDDEN", { message: "هذا الحساب موقوف. تواصل مع إدارة الموقع." });
+        },
         after: async (session) => {
           const { applyInvite } = await import("@/lib/team/invites.server");
           await applyInvite(session.userId);

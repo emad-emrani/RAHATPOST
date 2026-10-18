@@ -6,7 +6,7 @@
 export const emailConfigured = () =>
   Boolean(process.env.RESEND_API_KEY?.trim() && process.env.STORE_EMAIL_FROM?.trim());
 
-async function sendMail(to: string, subject: string, text: string): Promise<boolean> {
+export async function sendMail(to: string, subject: string, text: string): Promise<boolean> {
   if (!emailConfigured()) return false;
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",

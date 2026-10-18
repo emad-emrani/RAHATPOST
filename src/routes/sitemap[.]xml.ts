@@ -96,7 +96,7 @@ async function entries(): Promise<Entry[]> {
       changefreq: "monthly",
       priority: 0.6,
     })),
-    ...ads.filter((a) => !a.sold).map((a) => ({
+    ...ads.filter((a) => !a.sold && !a.sample).map((a) => ({
       path: `/haraj/${a.id}`,
       lastmod: day(a.createdAt),
       changefreq: "weekly",

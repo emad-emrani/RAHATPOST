@@ -107,7 +107,8 @@ export const deleteMyBusiness = createServerFn({ method: "POST" })
 /* ------------------------------------------------------------- admin */
 
 async function requireAdmin() {
-  const { requireAdmin: check } = await import("@/lib/admin-auth");
+  const { requirePerm } = await import("@/lib/admin-auth");
+  const check = () => requirePerm("moderate_directory");
   await check();
 }
 

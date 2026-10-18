@@ -44,6 +44,8 @@ export async function listForArticle(
       and (c.status = 'approved' or (c.status = 'pending' and c.user_id = ${viewerId ?? ""}))
     order by c.created_at asc
     limit 500`;
+  const { badgesFor } = await import("@/lib/team/roles.server");
+  const badges = await badgesFor([...new Set(rows.map((r) => r.user_id))]).catch(() => new Map<string, string>());
   const byId = new Map<string, CommentView>();
   const top: CommentView[] = [];
   let total = 0;
@@ -56,7 +58,7 @@ export async function listForArticle(
       createdAt: iso(r.created_at),
       editedAt: r.edited_at ? iso(r.edited_at) : null,
       status: r.status,
-      author: { name: (r.name ?? "").trim() || "قارئ", image: safeImage(r.image) },
+      author: { name: (r.name ?? "").trim() || "قارئ", image: safeImage(r.image), badge: badges.get(r.user_id) },
       mine: viewerId !== null && r.user_id === viewerId,
       replies: [],
     };

@@ -192,7 +192,10 @@ function CommentItem({
       <header className="flex items-center gap-3">
         <Avatar name={c.author.name} image={c.author.image} />
         <div className="min-w-0 flex-1">
-          <p className="truncate font-bold">{trv(c.author.name)}</p>
+          <p className="truncate font-bold">
+            {trv(c.author.name)}
+            {c.author.badge ? <span className="chip chip-deep ms-1 align-middle text-xs">{trv(c.author.badge)}</span> : null}
+          </p>
           <p className="text-sm font-semibold text-muted">
             <time dateTime={c.createdAt}>{relativeTimeAr(c.createdAt, now)}</time>
             {c.editedAt ? tr(" · معدّل") : ""}

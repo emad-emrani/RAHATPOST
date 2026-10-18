@@ -30,7 +30,7 @@ import { Shell } from "@/components/shell";
 import { CommentsAdmin } from "@/components/admin/comments-admin";
 import { AlertsAdmin, DutyAdmin, PushAdmin, ReportsAdmin } from "@/components/admin/content-admin";
 import { HarajCategoriesAdmin } from "@/components/admin/haraj-categories-admin";
-import { adminDecideListing, adminListListings } from "@/lib/market/api";
+import { adminDecideListing, adminListListings, adminSamples } from "@/lib/market/api";
 import { priceLabel, STATUS_LABEL, type ListingStatus, type OwnListing } from "@/lib/market/types";
 import type { OwnAd } from "@/lib/ads/types";
 import { adminDecide, adminList, adminLogin, adminLogout } from "@/lib/directory/api";
@@ -171,6 +171,7 @@ function AdminPage() {
   const [tab, setTab] = useState<BusinessSubmission["status"]>("pending");
   const [section, setSection] = useState<Section>("news");
   const [level, setLevel] = useState<AdminLevel | null>(null);
+  const [perms, setPerms] = useState<string[]>([]);
   const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
@@ -184,6 +185,7 @@ function AdminPage() {
   const refresh = useCallback(async () => {
     const me = await adminWhoami();
     setLevel(me.level);
+    setPerms(me.perms);
     setWho({ name: me.name, signedIn: me.signedIn });
     if (!me.level) {
       setState("login");
@@ -191,6 +193,10 @@ function AdminPage() {
     }
     if (me.level === "writer") {
       setSection("publish");
+      setState("ready");
+      return;
+    }
+    if (me.level === "moderator" && !me.perms.includes("moderate_directory")) {
       setState("ready");
       return;
     }
@@ -278,10 +284,22 @@ function AdminPage() {
   };
 
   const list = items.filter((i) => i.status === tab);
+  // Signed-in moderators get a limited view: only the tabs their role's permissions cover.
+  const TAB_PERM: Partial<Record<Section, string>> = {
+    ads: "moderate_haraj",
+    "haraj-cats": "moderate_haraj",
+    news: "moderate_news",
+    reports: "moderate_news",
+    comments: "moderate_comments",
+    directory: "moderate_directory",
+    publish: "write_news",
+  };
   const tabs = ALL_TABS.filter(({ key }) =>
-    level === "writer"
-      ? key === "publish"
-      : (key !== "members" && key !== "settings") || level === "owner",
+    level === "owner"
+      ? true
+      : level === "writer"
+        ? key === "publish"
+        : Boolean(TAB_PERM[key] && perms.includes(TAB_PERM[key]!)),
   );
   const current: Section = tabs.some((t) => t.key === section) ? section : (tabs[0]?.key ?? "news");
   const logout = async () => {
@@ -511,6 +529,18 @@ function AdsAdmin() {
 
   return (
     <>
+      <div className="stamp mb-3 flex flex-wrap items-center gap-2 p-3">
+        <p className="min-w-0 flex-1 text-sm font-semibold">
+          {tr("إعلانات المثال: {0} (تظهر بشارة «مثال» ولا تُفهرس).", items.filter((i) => i.sample).length)}
+        </p>
+        <button type="button" className="btn btn-ghost" disabled={busyId === "samples"} onClick={async () => {
+          if (!confirm(tr("حذف كل إعلانات المثال وصورها؟"))) return;
+          setBusyId("samples"); try { await adminSamples({ data: { action: "remove" } }); await refresh(); } finally { setBusyId(""); }
+        }}>{tr("حذف كل الأمثلة")}</button>
+        <button type="button" className="btn btn-ghost" disabled={busyId === "samples"} onClick={async () => {
+          setBusyId("samples"); try { await adminSamples({ data: { action: "add" } }); await refresh(); } finally { setBusyId(""); }
+        }}>{tr("إضافة الأمثلة")}</button>
+      </div>
       <p className="mb-3 font-semibold text-muted">{tr("كل إعلان جديد أو معدّل ينتظر الموافقة قبل ظهوره في الحراج. البلاغات المتكررة تعيد الإعلان للمراجعة.")}</p>
       <div className="scroll-row mb-4">
         {(Object.keys(STATUS_LABEL) as ListingStatus[]).map((s) => (
@@ -530,6 +560,7 @@ function AdsAdmin() {
                 <span className="chip">{trv(l.category)}</span>
                 <span className="chip">{trv(l.condition)}</span>
                 {l.sold ? <span className="chip chip-ink">{tr("انباع")}</span> : null}
+                {l.sample ? <span className="chip">{tr("مثال")}</span> : null}
                 {l.expired ? <span className="chip">{tr("منتهي")}</span> : null}
               </div>
               <h2 className="mt-2 text-xl font-bold">{trv(l.title)}</h2>

@@ -84,6 +84,10 @@
   "en": "October 11, 2026",
   "he": "11 באוקטובר 2026"
  },
+ "1–4 سنوات": {
+  "en": "1–4 years",
+  "he": "1–4 שנים"
+ },
  "2,400 ₪ / شهر": {},
  "200×90×80 سم": {
   "en": "200×90×80 cm",
@@ -236,6 +240,10 @@
  "{0} د": {
   "en": "{0} min",
   "he": "{0} ד'"
+ },
+ "{0} صلاحيات": {
+  "en": "{0} permissions",
+  "he": "{0} הרשאות"
  },
  "{0} طلب هذا الأسبوع": {
   "en": "{0} orders this week",
@@ -422,6 +430,10 @@
   "en": "Highlights",
   "he": "מומלצים"
  },
+ "أبل": {
+  "en": "Apple",
+  "he": "אפל"
+ },
  "أثاث": {
   "en": "Furniture",
   "he": "רהיטים"
@@ -544,6 +556,10 @@
   "en": "Send news from Rahat, a classified ad, or add your business to the Rahat directory.",
   "he": "שלח חדשה מרהט, מודעה, או הוסף את העסק שלך למדריך רהט."
  },
+ "أرسل رابط إعادة التعيين": {
+  "en": "Send reset link",
+  "he": "שלח קישור לאיפוס"
+ },
  "أرسلت عدة أخبار للتو. حاول بعد قليل.": {
   "en": "You just sent several news items. Try again shortly.",
   "he": "שלחת כמה חדשות הרגע. נסה שוב בעוד מעט."
@@ -583,6 +599,10 @@
  "أزرق": {
   "en": "Blue",
   "he": "כחול"
+ },
+ "أزرق فاتح": {
+  "en": "Light blue",
+  "he": "תכלת"
  },
  "أسفل": {
   "en": "Down",
@@ -744,6 +764,10 @@
   "en": "Heavy rain",
   "he": "גשם כבד"
  },
+ "أنت adminmaster: وحدك تعدّل الأدوار والصلاحيات وتمنح دور المدير.": {
+  "en": "You are adminmaster: only you edit roles and permissions and grant admin.",
+  "he": "אתה adminmaster: רק אתה עורך תפקידים והרשאות ומעניק ניהול."
+ },
  "أنت مسؤول عن صحة ما تنشره وعن حقك في نشر الصور والمعلومات.": {
   "en": "You're responsible for the accuracy of what you post and for your right to publish the images and information.",
   "he": "אתה אחראי לדיוק מה שאתה מפרסם ולזכותך לפרסם את התמונות והמידע."
@@ -767,6 +791,10 @@
  "أهم عناوين أخبار إسرائيل من واي نت والقناة 12 ومعاريف وغلوبس، مترجمة آلياً إلى العربية لأهالي رهط والنقب، مع رابط الخبر الأصلي بالعبرية.": {
   "en": "Top Israel news headlines from Ynet, Channel 12, Maariv and Globes, machine-translated into Arabic for the people of Rahat and the Negev, with a link to the original Hebrew story.",
   "he": "כותרות חדשות ישראל המובילות מ-ynet, חדשות 12, מעריב וגלובס, בתרגום מכונה לערבית לתושבי רהט והנגב, עם קישור לכתבה המקורית בעברית."
+ },
+ "أو بالبريد الإلكتروني": {
+  "en": "or with email",
+  "he": "או באימייל"
  },
  "أوتوماتيك": {
   "en": "Automatic",
@@ -928,6 +956,10 @@
   "en": "Add",
   "he": "הוסף"
  },
+ "إضافة الأمثلة": {
+  "en": "Add samples",
+  "he": "הוסף דוגמאות"
+ },
  "إضافة بالبريد الإلكتروني": {
   "en": "Add by email",
   "he": "הוספה לפי אימייל"
@@ -955,6 +987,10 @@
  "إضافة صورة": {
   "en": "Add photo",
   "he": "הוסף תמונה"
+ },
+ "إضافة عضو بالبريد": {
+  "en": "Add member by email",
+  "he": "הוספת חבר לפי אימייל"
  },
  "إضافة لغة": {
   "en": "Add language",
@@ -1037,6 +1073,10 @@
   "en": "Ads from Rahat residents, published after review.",
   "he": "מודעות של תושבי רהט, מתפרסמות לאחר בדיקה."
  },
+ "إعلانات المثال: {0} (تظهر بشارة «مثال» ولا تُفهرس).": {
+  "en": "Sample listings: {0} (badged «Sample», not indexed).",
+  "he": "מודעות דוגמה: {0} (מסומנות «דוגמה» ולא מאונדקסות)."
+ },
  "إعلانات رهط": {
   "en": "Rahat classifieds",
   "he": "מודעות רהט"
@@ -1089,6 +1129,14 @@
   "en": "Cancel edit",
   "he": "בטל עריכה"
  },
+ "إلغاء الحظر": {
+  "en": "Unblock",
+  "he": "בטל חסימה"
+ },
+ "إلغاء الدعوة": {
+  "en": "Cancel invite",
+  "he": "בטל הזמנה"
+ },
  "إلغاء الطلب؟": {
   "en": "Cancel the order?",
   "he": "לבטל את ההזמנה?"
@@ -1137,9 +1185,21 @@
   "en": "To ₪",
   "he": "עד ₪"
  },
+ "إن كان البريد مسجّلاً فستصلك رسالة فيها رابط لتعيين كلمة مرور جديدة.": {
+  "en": "If the email is registered, you'll get a link to set a new password.",
+  "he": "אם האימייל רשום, תקבל קישור לסיסמה חדשה."
+ },
  "إن لم يكن المزوّد مفعّلاً أو بيانات الاعتماد ناقصة، يبقى الدفع يدوياً تلقائياً. لا تُعلَّم أي عملية «مدفوعة» إلا بعد تحقق الخادم من شركة الدفع أو بزر «تم الدفع».": {
   "en": "If the provider isn't enabled or credentials are missing, payment automatically stays manual. No transaction is marked \"paid\" until the server verifies it with the payment provider or you press \"Paid\".",
   "he": "אם הספק לא מופעל או שפרטי ההתחברות חסרים, התשלום נשאר ידני אוטומטית. שום עסקה לא מסומנת \"שולם\" עד שהשרת מאמת אותה מול חברת התשלום או בכפתור \"שולם\"."
+ },
+ "إن لم يكن مسجّلاً بعد، تُحفظ الدعوة وتُفعَّل عند دخوله بـ Google أو Facebook بنفس البريد (البريد يجب أن يكون موثّقاً).": {
+  "en": "If not registered yet, the invite activates when they sign in with Google or Facebook using the same (verified) email.",
+  "he": "אם עדיין לא רשום, ההזמנה תופעל כשיתחבר עם Google או Facebook באותו אימייל (מאומת)."
+ },
+ "إنشاء الحساب": {
+  "en": "Create account",
+  "he": "צור חשבון"
  },
  "إنقاص": {
   "en": "Decrease",
@@ -1295,9 +1355,17 @@
   "en": "Restore all default settings? All customizations will be deleted.",
   "he": "לשחזר את כל הגדרות ברירת המחדל? כל ההתאמות יימחקו."
  },
+ "استعادة كلمة المرور بالبريد متاحة": {
+  "en": "Password reset by email available",
+  "he": "שחזור סיסמה במייל זמין"
+ },
  "اسم التصنيف الجديد (بالعربية)": {
   "en": "New category name (Arabic)",
   "he": "שם הקטגוריה החדשה (בערבית)"
+ },
+ "اسم الدور الجديد": {
+  "en": "New role name",
+  "he": "שם התפקיד החדש"
  },
  "اسم الصيدلية": {
   "en": "Pharmacy name",
@@ -1410,6 +1478,10 @@
  "اكتب اسم النشاط.": {
   "en": "Enter the business name.",
   "he": "הזן את שם העסק."
+ },
+ "اكتب اسمك (حرفان على الأقل).": {
+  "en": "Enter your name (at least 2 characters).",
+  "he": "כתוב את שמך (2 תווים לפחות)."
  },
  "اكتب الحي أو العنوان.": {
   "en": "Enter the neighborhood or address.",
@@ -1535,6 +1607,10 @@
  "الأخبار والمعلومات": {
   "en": "News and information",
   "he": "חדשות ומידע"
+ },
+ "الأدوار والصلاحيات": {
+  "en": "Roles & permissions",
+  "he": "תפקידים והרשאות"
  },
  "الأربعاء": {
   "en": "Wednesday",
@@ -1712,6 +1788,10 @@
   "en": "Official name:",
   "he": "שם רשמי:"
  },
+ "الاسم الكامل": {
+  "en": "Full name",
+  "he": "שם מלא"
+ },
  "الاسم بلغته (Français)": {
   "en": "Native name (Français)",
   "he": "שם בשפת המקור (Français)"
@@ -1755,6 +1835,18 @@
  "البحث": {
   "en": "Search",
   "he": "חיפוש"
+ },
+ "البريد أو كلمة المرور غير صحيحة.": {
+  "en": "Wrong email or password.",
+  "he": "אימייל או סיסמה שגויים."
+ },
+ "البريد الإلكتروني": {
+  "en": "Email",
+  "he": "אימייל"
+ },
+ "البريد وكلمة المرور": {
+  "en": "Email & password",
+  "he": "אימייל וסיסמה"
  },
  "البلاغات": {
   "en": "Reports",
@@ -1996,6 +2088,14 @@
   "en": "Guide not found · Rahat Post",
   "he": "המדריך לא נמצא · רהט פוסט"
  },
+ "الدور": {
+  "en": "Role",
+  "he": "תפקיד"
+ },
+ "الدور الافتراضي لكل عضو، بلا صلاحيات إضافية.": {
+  "en": "Default role, no extra permissions.",
+  "he": "תפקיד ברירת המחדל, ללא הרשאות נוספות."
+ },
  "الدول": {
   "en": "Countries",
   "he": "מדינות"
@@ -2039,6 +2139,10 @@
  "الرابط بالأحرف الإنجليزية والأرقام والشرطة فقط.": {
   "en": "The link can only contain English letters, numbers and hyphens.",
   "he": "הקישור יכול להכיל רק אותיות באנגלית, ספרות ומקפים."
+ },
+ "الرابط غير صالح أو انتهت مدته. اطلب رابطاً جديداً.": {
+  "en": "The link is invalid or expired. Request a new one.",
+  "he": "הקישור לא תקף או פג. בקש קישור חדש."
  },
  "الردود على تعليقاتي": {
   "en": "Replies to my comments",
@@ -2591,6 +2695,10 @@
   "en": "The Hebrew sites aren't responding right now. Try again shortly.",
   "he": "האתרים העבריים לא מגיבים כרגע. נסה שוב בקרוב."
  },
+ "الموثّق تُنشر إعلاناته بلا مراجعة مع شارة. المشرف يدخل /admin بحسابه ويرى أقسام المراجعة فقط. المدير له كل الصلاحيات.": {
+  "en": "Verified: posts without review, with a badge. Moderator: signs in to /admin and sees review tabs only. Admin: everything.",
+  "he": "מאומת: מפרסם בלי בדיקה ועם תג. מנהל תוכן: נכנס ל-/admin ורואה רק בדיקה. מנהל: הכל."
+ },
  "الموديل": {
   "en": "Model",
   "he": "דגם"
@@ -2719,6 +2827,10 @@
   "en": "Post comment",
   "he": "פרסם תגובה"
  },
+ "انضم {0}": {
+  "en": "Joined {0}",
+  "he": "הצטרף {0}"
+ },
  "انقطاع المياه في حي 10": {
   "en": "Water outage in Neighborhood 10",
   "he": "הפסקת מים בשכונה 10"
@@ -2807,6 +2919,10 @@
   "en": "None",
   "he": "ללא"
  },
+ "بدون «نسيت كلمة المرور» حتى يُضبط مزوّد بريد (RESEND_API_KEY و STORE_EMAIL_FROM)": {
+  "en": "No “forgot password” until a mail provider is set (RESEND_API_KEY + STORE_EMAIL_FROM)",
+  "he": "ללא «שכחתי סיסמה» עד להגדרת שירות מייל"
+ },
  "بدون اسم": {
   "en": "No name",
   "he": "ללא שם"
@@ -2842,6 +2958,10 @@
  "بريد التواصل (يظهر أسفل الصفحة)": {
   "en": "Contact email (shown in the footer)",
   "he": "אימייל ליצירת קשר (מוצג בתחתית)"
+ },
+ "بريد وكلمة مرور": {
+  "en": "Email/password",
+  "he": "אימייל וסיסמה"
  },
  "بريدك الإلكتروني لا يُعرض لأحد.": {
   "en": "Your email is never shown to anyone.",
@@ -2956,6 +3076,10 @@
  "تأكيد استلام الدفع؟ سيُسلَّم المنتج للمشتري تلقائياً.": {
   "en": "Confirm payment received? The product will be delivered to the buyer automatically.",
   "he": "לאשר שהתשלום התקבל? המוצר יימסר לקונה אוטומטית."
+ },
+ "تأكيد كلمة المرور": {
+  "en": "Confirm password",
+  "he": "אימות סיסמה"
  },
  "تابلت": {
   "en": "Tablet",
@@ -3127,6 +3251,10 @@
   "en": "Edit {0}",
   "he": "ערוך {0}"
  },
+ "تعديل الأدوار لـ adminmaster فقط. دخول كلمة مرور الإدارة له صلاحيات المدير دون تعديل الأدوار.": {
+  "en": "Only adminmaster edits roles. The admin-password login is admin without role editing.",
+  "he": "עריכת תפקידים ל-adminmaster בלבד. כניסה בסיסמת ניהול = מנהל ללא עריכת תפקידים."
+ },
  "تعديل الإعلان": {
   "en": "Edit listing",
   "he": "עריכת מודעה"
@@ -3171,6 +3299,14 @@
   "en": "Couldn't send the report. Check your connection.",
   "he": "שליחת הדיווח נכשלה. בדוק את החיבור."
  },
+ "تعذّر إرسال الرابط. حاول لاحقاً.": {
+  "en": "Couldn't send the link. Try later.",
+  "he": "שליחת הקישור נכשלה."
+ },
+ "تعذّر إنشاء الحساب.": {
+  "en": "Couldn't create the account.",
+  "he": "יצירת החשבון נכשלה."
+ },
  "تعذّر إنشاء الطلب.": {
   "en": "Couldn't create the order.",
   "he": "יצירת ההזמנה נכשלה."
@@ -3190,6 +3326,10 @@
  "تعذّر الاتصال.": {
   "en": "Couldn't connect.",
   "he": "החיבור נכשל."
+ },
+ "تعذّر الاتصال. حاول مرة أخرى.": {
+  "en": "Connection failed. Try again.",
+  "he": "בעיית חיבור. נסה שוב."
  },
  "تعذّر الاستعادة.": {
   "en": "Couldn't restore.",
@@ -3303,6 +3443,10 @@
   "en": "Couldn't sign out. Please try again.",
   "he": "ההתנתקות נכשלה. נסה שוב."
  },
+ "تعذّر تسجيل الدخول. حاول مرة أخرى.": {
+  "en": "Sign-in failed. Try again.",
+  "he": "ההתחברות נכשלה. נסה שוב."
+ },
  "تعذّر تغيير المصدر.": {
   "en": "Couldn't change the source.",
   "he": "שינוי המקור נכשל."
@@ -3407,6 +3551,10 @@
   "en": "Education",
   "he": "חינוך"
  },
+ "تعيين أدوار الأعضاء (عدا المدير)": {
+  "en": "Assign member roles (except admin)",
+  "he": "הקצאת תפקידים (למעט מנהל)"
+ },
  "تغيير اللغة": {
   "en": "Change language",
   "he": "שינוי שפה"
@@ -3488,6 +3636,10 @@
   "en": "Signed in.",
   "he": "התחברת."
  },
+ "تم تغيير كلمة المرور. سجّل الدخول بها الآن.": {
+  "en": "Password changed. Sign in now.",
+  "he": "הסיסמה שונתה. התחבר עכשיו."
+ },
  "تم حفظ التعديل ✓": {
   "en": "Edit saved ✓",
   "he": "העריכה נשמרה ✓"
@@ -3495,6 +3647,10 @@
  "تم رفع الصورة ✓": {
   "en": "Image uploaded ✓",
   "he": "התמונה הועלתה ✓"
+ },
+ "تم منح الدور للعضو الموجود.": {
+  "en": "Role granted to the existing member.",
+  "he": "התפקיד הוענק."
  },
  "تم منح صلاحية «{0}» للعضو الموجود.": {
   "en": "\"{0}\" permission granted to the existing member.",
@@ -3527,6 +3683,10 @@
  "تنبيهات عاجلة لرهط (انقطاع مياه أو كهرباء، طوارئ) تصلك حتى والتطبيق مغلق.": {
   "en": "Urgent alerts for Rahat (water or power outages, emergencies) reach you even when the app is closed.",
   "he": "התראות דחופות לרהט (הפסקות מים או חשמל, חירום) מגיעות אליך גם כשהאפליקציה סגורה."
+ },
+ "تنظيف": {
+  "en": "Cleaning",
+  "he": "ניקיון"
  },
  "تواصل عبر واتساب": {
   "en": "Contact on WhatsApp",
@@ -3770,6 +3930,14 @@
   "en": "Permanently delete this news item?",
   "he": "למחוק את החדשה לצמיתות?"
  },
+ "حذف الدور": {
+  "en": "Delete role",
+  "he": "מחק תפקיד"
+ },
+ "حذف الدور؟ أصحابه يعودون «عضو».": {
+  "en": "Delete role? Its members become «Member».",
+  "he": "למחוק? בעליו יחזרו ל«חבר»."
+ },
  "حذف الصورة {0}": {
   "en": "Delete photo {0}",
   "he": "מחק תמונה {0}"
@@ -3810,9 +3978,17 @@
   "en": "Delete section \"{0}\"? Its products and subsections stay without a section.",
   "he": "למחוק את המדור \"{0}\"? המוצרים ותתי-המדורים יישארו ללא מדור."
  },
+ "حذف كل إعلانات المثال وصورها؟": {
+  "en": "Delete all sample listings and photos?",
+  "he": "למחוק את כל מודעות הדוגמה?"
+ },
  "حذف كل الأكواد غير المستخدمة؟": {
   "en": "Delete all unused codes?",
   "he": "למחוק את כל הקודים שלא נוצלו?"
+ },
+ "حذف كل الأمثلة": {
+  "en": "Delete all samples",
+  "he": "מחק את כל הדוגמאות"
  },
  "حذف كل الأمثلة (": {
   "en": "Delete all samples (",
@@ -3850,6 +4026,10 @@
   "en": "Rahat Haraj · Used market | Rahat Post",
   "he": "יד שנייה רהט · שוק משומש | רהט פוסט"
  },
+ "حساب جديد": {
+  "en": "New account",
+  "he": "חשבון חדש"
+ },
  "حسابك ليس له صلاحية في لوحة الإدارة. اطلب من مالك الموقع إضافتك.": {
   "en": "Your account has no access to the admin panel. Ask the site owner to add you.",
   "he": "לחשבון שלך אין הרשאה ללוח הניהול. בקש מבעל האתר להוסיף אותך."
@@ -3862,6 +4042,14 @@
   "en": "Scheduled",
   "he": "לפי לוח"
  },
+ "حظر": {
+  "en": "Block",
+  "he": "חסום"
+ },
+ "حظر {0}؟ يُسجَّل خروجه فوراً ولا يستطيع الدخول.": {
+  "en": "Block {0}? They're signed out now and can't sign in.",
+  "he": "לחסום את {0}? ינותק מיד."
+ },
  "حظر المستخدم من التعليق": {
   "en": "Ban user from commenting",
   "he": "חסום משתמש מלהגיב"
@@ -3869,6 +4057,10 @@
  "حفظ": {
   "en": "Save",
   "he": "שמירה"
+ },
+ "حفظ الأدوار": {
+  "en": "Save roles",
+  "he": "שמור תפקידים"
  },
  "حفظ التعديل": {
   "en": "Save edit",
@@ -3881,6 +4073,14 @@
  "حفظ المناوبة": {
   "en": "Save shift",
   "he": "שמור תורנות"
+ },
+ "حفظ طرق الدخول": {
+  "en": "Save sign-in methods",
+  "he": "שמור שיטות כניסה"
+ },
+ "حفظ كلمة المرور": {
+  "en": "Save password",
+  "he": "שמור סיסמה"
  },
  "حفظ وإرسال للمراجعة": {
   "en": "Save and submit for review",
@@ -3925,6 +4125,10 @@
  "حُذف {0} منتج تجريبي.": {
   "en": "Deleted {0} sample products.",
   "he": "נמחקו {0} מוצרי דוגמה."
+ },
+ "حُفظت الدعوة.": {
+  "en": "Invite saved.",
+  "he": "ההזמנה נשמרה."
  },
  "حُفظت الدعوة. ستُفعَّل «{0}» عند دخول {1} بحساب Google.": {
   "en": "Invite saved. \"{0}\" will be activated when {1} signs in with Google.",
@@ -4083,6 +4287,10 @@
   "en": "Test sign-in (local only)",
   "he": "כניסת בדיקה (מקומית בלבד)"
  },
+ "دخولك أنت للوحة الإدارة يبقى بكلمة مرور الإدارة.": {
+  "en": "Your own admin login stays the admin password.",
+  "he": "הכניסה שלך לניהול נשארת בסיסמת הניהול."
+ },
  "دراجة": {
   "en": "Bicycle",
   "he": "אופניים"
@@ -4139,6 +4347,10 @@
  "دوار الاخاء כיכר אל אח׳א": {},
  "دوار النور": {},
  "دوام صباحي، خبرة سنة على الأقل في الرواتب والفواتير. أرسلوا الاسم وسنوات الخبرة على الواتساب.": {},
+ "دور جديد": {
+  "en": "New role",
+  "he": "תפקיד חדש"
+ },
  "ديزل": {
   "en": "Diesel",
   "he": "דיזל"
@@ -4235,6 +4447,10 @@
  "رجوع لأخبار إسرائيل": {
   "en": "Back to Israel news",
   "he": "חזרה לחדשות ישראל"
+ },
+ "رجوع لتسجيل الدخول": {
+  "en": "Back to sign in",
+  "he": "חזרה להתחברות"
  },
  "رجوع للأخبار": {
   "en": "Back to news",
@@ -4564,6 +4780,10 @@
   "en": "Your cart is empty",
   "he": "הסל שלך ריק"
  },
+ "سنة": {
+  "en": "1 year",
+  "he": "שנה"
+ },
  "سنة إلى": {
   "en": "Year to",
   "he": "עד שנה"
@@ -4622,6 +4842,10 @@
  "شارات (مفصولة بفاصلة)": {
   "en": "Badges (comma-separated)",
   "he": "תגיות (מופרדות בפסיק)"
+ },
+ "شارة «موثّق»": {
+  "en": "«Verified» badge",
+  "he": "תג «מאומת»"
  },
  "شارع السلام": {},
  "شارع صلاح الدين": {},
@@ -4804,6 +5028,10 @@
  "طاولة وكراسي": {
   "en": "Table & chairs",
   "he": "שולחן וכיסאות"
+ },
+ "طرق تسجيل الدخول للأعضاء": {
+  "en": "Member sign-in methods",
+  "he": "שיטות התחברות לחברים"
  },
  "طريقة الترجمة": {
   "en": "Translation mode",
@@ -5018,6 +5246,10 @@
   "en": "Headline and short excerpt from {0} as published in Hebrew.",
   "he": "כותרת וקטע קצר מאתר {0} כפי שפורסמו בעברית."
  },
+ "عواسي": {
+  "en": "Awassi",
+  "he": "אוואסי"
+ },
  "غائم": {
   "en": "Cloudy",
   "he": "מעונן"
@@ -5065,6 +5297,14 @@
  "غير مصرح.": {
   "en": "Unauthorized.",
   "he": "אין הרשאה."
+ },
+ "غير مضبوط في الخادم (مفاتيح Facebook ناقصة)": {
+  "en": "Not configured (Facebook keys missing)",
+  "he": "לא מוגדר בשרת (חסרים מפתחות Facebook)"
+ },
+ "غير مضبوط في الخادم (مفاتيح Google ناقصة)": {
+  "en": "Not configured (Google keys missing)",
+  "he": "לא מוגדר בשרת (חסרים מפתחות Google)"
  },
  "غير معروف": {
   "en": "Unknown",
@@ -5123,6 +5363,10 @@
   "en": "Request failed. Check the latest errors.",
   "he": "הבקשה נכשלה. בדוק את השגיאות האחרונות."
  },
+ "فضي": {
+  "en": "Silver",
+  "he": "כסוף"
+ },
  "فعّل «Google Search Console API»:": {
   "en": "Enable \"Google Search Console API\":",
   "he": "הפעל את \"Google Search Console API\":"
@@ -5175,6 +5419,10 @@
  "في هذا التصنيف {0} إعلان. الأفضل إيقافه بدل حذفه. حذف على أي حال؟": {
   "en": "{0} listings use this category. Better to disable it. Delete anyway?",
   "he": "בקטגוריה {0} מודעות. עדיף לכבות. למחוק בכל זאת?"
+ },
+ "فيات": {
+  "en": "Fiat",
+  "he": "פיאט"
  },
  "قائمة اختيارات": {
   "en": "Select list",
@@ -5256,6 +5504,10 @@
   "en": "Camera",
   "he": "מצלמה"
  },
+ "كتابة أخبار الموقع": {
+  "en": "Write site news",
+  "he": "כתיבת חדשות האתר"
+ },
  "كتبت عدة تعليقات للتو. انتظر قليلاً ثم حاول.": {
   "en": "You just wrote several comments. Wait a bit and try again.",
   "he": "כתבת כמה תגובות הרגע. המתן מעט ונסה שוב."
@@ -5324,6 +5576,10 @@
   "en": "All statuses",
   "he": "כל הסטטוסים"
  },
+ "كل الصلاحيات (مدير)": {
+  "en": "All permissions (admin)",
+  "he": "כל ההרשאות (מנהל)"
+ },
  "كل المتجر": {
   "en": "Whole store",
   "he": "כל החנות"
@@ -5352,9 +5608,25 @@
   "en": "Wrong password.",
   "he": "סיסמה שגויה."
  },
+ "كلمة المرور قصيرة (8 أحرف على الأقل).": {
+  "en": "Password too short (8+ characters).",
+  "he": "סיסמה קצרה (8 תווים לפחות)."
+ },
  "كلمة سر الواجهة (ApiPassword، اختيارية)": {
   "en": "API password (ApiPassword, optional)",
   "he": "סיסמת API (ApiPassword, אופציונלי)"
+ },
+ "كلمة مرور جديدة": {
+  "en": "New password",
+  "he": "סיסמה חדשה"
+ },
+ "كلمة مرور جديدة · رهط بوست": {
+  "en": "New password · Rahat Post",
+  "he": "סיסמה חדשה · רהט פוסט"
+ },
+ "كلمتا المرور غير متطابقتين.": {
+  "en": "Passwords don't match.",
+  "he": "הסיסמאות לא תואמות."
  },
  "كم": {
   "en": "km",
@@ -5584,6 +5856,10 @@
  "لاحقاً": {
   "en": "Later",
   "he": "אחר כך"
+ },
+ "لحظة…": {
+  "en": "One moment…",
+  "he": "רגע…"
  },
  "لديك طلبات بانتظار المراجعة. انتظر مراجعتها أولاً.": {
   "en": "You have requests awaiting review. Wait for them to be reviewed first.",
@@ -5924,9 +6200,29 @@
   "en": "Lifetime",
   "he": "לכל החיים"
  },
+ "مدير": {
+  "en": "Admin",
+  "he": "מנהל"
+ },
  "مرات الظهور": {
   "en": "Impressions",
   "he": "חשיפות"
+ },
+ "مراجعة أخبار القراء والبلاغات": {
+  "en": "Review reader news & reports",
+  "he": "בדיקת חדשות קוראים ודיווחים"
+ },
+ "مراجعة إعلانات الحراج": {
+  "en": "Review haraj listings",
+  "he": "בדיקת מודעות יד שנייה"
+ },
+ "مراجعة التعليقات": {
+  "en": "Review comments",
+  "he": "בדיקת תגובות"
+ },
+ "مراجعة الدليل": {
+  "en": "Review directory",
+  "he": "בדיקת המדריך"
  },
  "مرحباً بكم في رهط بوست، أخبار رهط والنقب.": {
   "en": "Welcome to Rahat Post, news of Rahat and the Negev.",
@@ -6137,6 +6433,10 @@
   "en": "Enabled",
   "he": "פעיל"
  },
+ "مفعّل في الخادم": {
+  "en": "Configured",
+  "he": "מוגדר בשרת"
+ },
  "مفعّلة": {
   "en": "On",
   "he": "פעיל"
@@ -6320,6 +6620,10 @@
   "en": "Published",
   "he": "פורסם"
  },
+ "منشوراته تُنشر بلا مراجعة": {
+  "en": "Posts publish without review",
+  "he": "פרסום ללא בדיקה"
+ },
  "منشوراتي": {
   "en": "My posts",
   "he": "הפוסטים שלי"
@@ -6439,6 +6743,14 @@
   "en": "Copy",
   "he": "העתק"
  },
+ "نسيت كلمة المرور؟": {
+  "en": "Forgot password?",
+  "he": "שכחת סיסמה?"
+ },
+ "نسيت كلمة المرور؟ ادخل بـ Google أو Facebook بنفس البريد، أو راسل إدارة الموقع.": {
+  "en": "Forgot your password? Sign in with Google or Facebook using the same email, or contact the site.",
+  "he": "שכחת סיסמה? התחבר עם Google או Facebook באותו אימייל, או פנה לניהול."
+ },
  "نشاط": {
   "en": "Business",
   "he": "עסק"
@@ -6498,6 +6810,10 @@
  "نص الخبر: ماذا حدث، متى، ومن المعنيّون؟": {
   "en": "News text: what happened, when, and who's involved?",
   "he": "טקסט החדשה: מה קרה, מתי, ומי מעורב?"
+ },
+ "نص الشارة (فارغ = بلا شارة)": {
+  "en": "Badge text (empty = none)",
+  "he": "טקסט התג (ריק = בלי תג)"
  },
  "نص زر الإضافة": {
   "en": "Add button text",
@@ -6592,6 +6908,10 @@
   "en": "Gifts",
   "he": "מתנות"
  },
+ "هذا إعلان مثال لعرض شكل الحراج فقط، وليس غرضاً حقيقياً للبيع.": {
+  "en": "This is a sample listing for display only, not a real item.",
+  "he": "זו מודעת דוגמה בלבד, לא פריט אמיתי."
+ },
  "هذا إعلان نموذجي لعرض الشكل فقط، وليس إعلاناً حقيقياً، لذلك لا يوجد رقم للتواصل.": {
   "en": "This is a sample ad to show the layout only, not a real ad, so there's no contact number.",
   "he": "זו מודעה לדוגמה להצגת המראה בלבד, לא מודעה אמיתית, ולכן אין מספר ליצירת קשר."
@@ -6607,6 +6927,10 @@
  "هذا الإعلان غير موجود أو انتهت مدته.": {
   "en": "This ad doesn't exist or has expired.",
   "he": "מודעה זו לא קיימת או שפג תוקפה."
+ },
+ "هذا البريد مسجّل. سجّل الدخول، أو ادخل بـ Google/Facebook إن سجّلت بهما.": {
+  "en": "This email is registered. Sign in, or use Google/Facebook if you signed up with them.",
+  "he": "האימייל רשום. התחבר, או השתמש ב-Google/Facebook."
  },
  "هذا الخبر لم يعد ضمن آخر أخبار إسرائيل.": {
   "en": "This story is no longer among the latest Israel news.",
@@ -6878,6 +7202,10 @@
   "en": "You can add a member directly by email: if they haven't registered yet, the invite is saved and activated automatically when they sign in with Google using the same email.",
   "he": "ניתן להוסיף חבר ישירות לפי אימייל: אם עדיין לא נרשם, ההזמנה נשמרת ומופעלת אוטומטית כשיתחבר עם Google באותו אימייל."
  },
+ "يمكنك تعيين الأدوار للأعضاء، عدا دور المدير وadminmaster.": {
+  "en": "You can assign roles, except admin and adminmaster.",
+  "he": "אפשר להקצות תפקידים, למעט מנהל ו-adminmaster."
+ },
  "يمكنك حذف أي منشور من صفحة": {
   "en": "You can delete any post from the page",
   "he": "ניתן למחוק כל פוסט מהעמוד"
@@ -6957,6 +7285,10 @@
  "•••• محفوظ{0} — الصق ملفاً جديداً لاستبداله": {
   "en": "•••• saved{0} — paste a new file to replace it",
   "he": "•••• שמור{0} — הדבק קובץ חדש כדי להחליף"
+ },
+ "✔ موثّق": {
+  "en": "✔ Verified",
+  "he": "✔ מאומת"
  },
  "📌 مثبّت": {
   "en": "📌 Pinned",

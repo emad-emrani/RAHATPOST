@@ -55,11 +55,11 @@ export const Route = createFileRoute("/haraj/$id")({
       description: l ? snippet(tr("{0} ({1}) في {2}: {3}", l.category, l.condition, l.area, l.description)) : tr("هذا الإعلان غير متوفر."),
       path,
       // Sold or expired items drop out of the index; the page stays for people with the link.
-      robots: l && !l.sold && !l.expired ? "index" : "noindex",
+      robots: l && !l.sold && !l.expired && !l.sample ? "index" : "noindex",
       image: l?.photos[0] ? `${SITE_URL}${mediaUrl(l.photos[0])}` : undefined,
       imageAlt: l?.photos[0] ? l.title : undefined,
       jsonLd: l
-        ? [breadcrumbLd([{ name: tr("حراج رهط"), path: "/haraj" }, { name: snippet(l.title, 80), path }]), ...(l.sold ? [] : [productLd(l, path)])]
+        ? [breadcrumbLd([{ name: tr("حراج رهط"), path: "/haraj" }, { name: snippet(l.title, 80), path }]), ...(l.sold || l.sample ? [] : [productLd(l, path)])]
         : [],
     });
   },
@@ -84,12 +84,15 @@ function ItemPage() {
           <Link to="/haraj" search={{ cat: l.category }} className="chip chip-deep">{findCat(cats, l.category)?.icon} {catName(findCat(cats, l.category), l.category)}</Link>
           <span className="chip">{trv(l.condition)}</span>
           {l.sold ? <span className="chip chip-ink">{tr("انباع")}</span> : null}
+          {l.sample ? <span className="chip">{tr("مثال")}</span> : null}
           {l.expired ? <span className="chip">{tr("منتهي")}</span> : null}
         </div>
         <h1 className="mt-2 text-2xl font-bold leading-tight">{trv(l.title)}</h1>
         <p className="mt-1 text-2xl font-bold">{trv(priceLabel(l))}</p>
         <p className="mt-1 font-semibold text-muted">📍 {trv(l.area)} · {new Date(l.renewedAt).toLocaleDateString("en-GB")}</p>
-        {l.sold ? (
+        {l.sample ? (
+          <p className="mt-3 rounded-xl bg-surface p-3 font-bold">{tr("هذا إعلان مثال لعرض شكل الحراج فقط، وليس غرضاً حقيقياً للبيع.")}</p>
+        ) : l.sold ? (
           <p className="mt-3 rounded-xl bg-surface p-3 font-bold">{tr("هذا الغرض انباع. شاهد إعلانات أخرى للبائع.")}</p>
         ) : (
           <div className="mt-4 flex flex-col gap-2">

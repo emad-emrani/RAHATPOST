@@ -9,7 +9,7 @@ export async function applyInvite(userId: string): Promise<string | null> {
            inv as (delete from admin_invites where email = (select email from u) returning role)
       select role from inv`;
     const role = rows[0]?.role;
-    if (role !== "moderator" && role !== "writer") return null;
+    if (!role || role === "member") return null;
     await sql`insert into admin_roles (user_id, role) values (${userId}, ${role})
       on conflict (user_id) do update set role = excluded.role`;
     return role;

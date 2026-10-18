@@ -113,7 +113,7 @@ export async function mediaAccess(key: string): Promise<MediaAccess | null> {
   const rows = await sql<{ content_type: string; user_id: string; approved: boolean }>`
     select m.content_type, m.user_id,
       coalesce(
-        (m.kind = 'ad' and exists (select 1 from classifieds c where c.id = m.owner_id and c.status = 'approved'))
+        (m.kind = 'ad' and exists (select 1 from classifieds c where c.id = m.owner_id and (c.status = 'approved' or c.is_sample)))
         or (m.kind = 'business' and exists (select 1 from business_submissions b where b.id = m.owner_id and b.status = 'approved')),
         false) as approved
     from media_uploads m where m.key = ${key}`;

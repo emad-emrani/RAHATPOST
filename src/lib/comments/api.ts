@@ -196,8 +196,8 @@ export const adminCommentAction = createServerFn({ method: "POST" })
     return { id: validId(input?.id), action: input.action };
   })
   .handler(async ({ data }) => {
-    const { requireAdmin } = await import("@/lib/admin-auth");
-    await requireAdmin();
+    const { requirePerm } = await import("@/lib/admin-auth");
+    await requirePerm("moderate_comments");
     const { adminAct } = await import("./store.server");
     await adminAct(data.id, data.action);
     return { ok: true };
@@ -210,8 +210,8 @@ export const adminBlockCommenter = createServerFn({ method: "POST" })
     return { userId, blocked: input?.blocked === true };
   })
   .handler(async ({ data }) => {
-    const { requireAdmin } = await import("@/lib/admin-auth");
-    await requireAdmin();
+    const { requirePerm } = await import("@/lib/admin-auth");
+    await requirePerm("moderate_comments");
     const { setBlocked } = await import("./store.server");
     await setBlocked(data.userId, data.blocked);
     return { ok: true };
@@ -220,8 +220,8 @@ export const adminBlockCommenter = createServerFn({ method: "POST" })
 export const adminSetPremod = createServerFn({ method: "POST" })
   .inputValidator((input: { on: boolean }) => ({ on: input?.on === true }))
   .handler(async ({ data }) => {
-    const { requireAdmin } = await import("@/lib/admin-auth");
-    await requireAdmin();
+    const { requirePerm } = await import("@/lib/admin-auth");
+    await requirePerm("moderate_comments");
     const { setSetting } = await import("./store.server");
     await setSetting("comments_premod", data.on ? "on" : "off");
     return { ok: true, premod: data.on };

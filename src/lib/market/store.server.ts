@@ -18,6 +18,7 @@ type Row = {
   hide_phone: boolean;
   status: ListingStatus;
   sold_at: Date | string | null;
+  is_sample: boolean;
   created_at: Date | string;
   updated_at: Date | string;
   renewed_at: Date | string | null;
@@ -44,6 +45,7 @@ function toOwn(r: Row): OwnListing {
     phone: r.phone,
     hidePhone: r.hide_phone,
     sold: Boolean(r.sold_at),
+    sample: Boolean(r.is_sample),
     expired: expiredAt(r),
     createdAt: iso(r.created_at),
     renewedAt: iso(r.renewed_at ?? r.created_at),
@@ -58,16 +60,18 @@ function toPublic(r: Row): Listing {
   return { ...rest, phone: hidePhone ? null : rest.phone };
 }
 
-async function withPhotos<T extends { id: string; photos: string[] }>(items: T[]): Promise<T[]> {
+async function withPhotos<T extends { id: string; photos: string[]; seller: Listing["seller"] }>(items: T[]): Promise<T[]> {
   const map = await mediaByOwner("ad", items.map((i) => i.id));
-  return items.map((i) => ({ ...i, photos: map.get(i.id) ?? [] }));
+  const { badgesFor } = await import("@/lib/team/roles.server");
+  const badges = await badgesFor([...new Set(items.map((i) => i.seller.id))]).catch(() => new Map<string, string>());
+  return items.map((i) => ({ ...i, photos: map.get(i.id) ?? [], seller: { ...i.seller, badge: badges.get(i.seller.id) } }));
 }
 
 const SELECT = `select c.id, c.user_id, c.title, c.category, c.price_mode, c.price_num, c.condition, c.neighborhood,
-  c.description, c.specs, c.phone, c.hide_phone, c.status, c.sold_at, c.created_at, c.updated_at, c.renewed_at,
+  c.description, c.specs, c.phone, c.hide_phone, c.status, c.sold_at, c.is_sample, c.created_at, c.updated_at, c.renewed_at,
   u."name" as seller_name, u."image" as seller_image, u."createdAt" as seller_since
   from classifieds c join "user" u on u."id" = c.user_id`;
-const LIVE = `c.status = 'approved' and coalesce(c.renewed_at, c.created_at) > now() - interval '${LISTING_DAYS} days'`;
+const LIVE = `(c.status = 'approved' or c.is_sample) and coalesce(c.renewed_at, c.created_at) > now() - interval '${LISTING_DAYS} days'`;
 
 /** Public grid: approved, not expired; unsold first, newest first. */
 export async function listPublic(limit = 200): Promise<Listing[]> {
@@ -78,7 +82,7 @@ export async function listPublic(limit = 200): Promise<Listing[]> {
 
 export async function getPublic(id: string): Promise<Listing | null> {
   const sql = await getSql();
-  const rows = await sql.query<Row>(`${SELECT} where c.id = $1 and c.status = 'approved'`, [id]);
+  const rows = await sql.query<Row>(`${SELECT} where c.id = $1 and (c.status = 'approved' or c.is_sample)`, [id]);
   return rows[0] ? (await withPhotos([toPublic(rows[0])]))[0] : null;
 }
 
@@ -119,8 +123,8 @@ export async function createListing(userId: string, input: ListingInput): Promis
   const id = randomBytes(8).toString("hex");
   await sql.query(
     `insert into classifieds (id, user_id, title, category, price_mode, price_num, condition, neighborhood, description, phone, hide_phone, specs, status, renewed_at, price)
-     values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12::jsonb, 'pending', now(), null)`,
-    [id, userId, ...VALUES(input)],
+     values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12::jsonb, $13, now(), null)`,
+    [id, userId, ...VALUES(input), (await autoApproved(userId)) ? "approved" : "pending"],
   );
   await setOwnerMedia(userId, "ad", id, input.photos);
   return id;
@@ -131,9 +135,9 @@ export async function updateListing(userId: string, id: string, input: ListingIn
   const sql = await getSql();
   const rows = await sql.query<{ id: string }>(
     `update classifieds set title = $3, category = $4, price_mode = $5, price_num = $6, condition = $7, neighborhood = $8,
-       description = $9, phone = $10, hide_phone = $11, specs = $12::jsonb, status = case when status = 'hidden' then 'hidden' else 'pending' end, updated_at = now()
+       description = $9, phone = $10, hide_phone = $11, specs = $12::jsonb, status = case when status = 'hidden' then 'hidden' else $13 end, updated_at = now()
      where id = $1 and user_id = $2 returning id`,
-    [id, userId, ...VALUES(input)],
+    [id, userId, ...VALUES(input), (await autoApproved(userId)) ? "approved" : "pending"],
   );
   if (rows.length) await setOwnerMedia(userId, "ad", id, input.photos);
   return rows.length > 0;
@@ -172,4 +176,15 @@ export async function adminSet(id: string, action: ListingStatus | "delete"): Pr
     await sql.query(`delete from classifieds where id = $1`, [id]);
     await deleteOwnerMedia("ad", id);
   } else await sql.query(`update classifieds set status = $2, updated_at = now() where id = $1`, [id, action]);
+}
+
+/** «موثّق» and other roles with auto_approve publish straight away. */
+async function autoApproved(userId: string): Promise<boolean> {
+  try {
+    const { roleOf } = await import("@/lib/team/roles.server");
+    const { hasPerm } = await import("@/lib/team/roles");
+    return hasPerm((await roleOf(userId)).perms, "auto_approve");
+  } catch {
+    return false;
+  }
 }

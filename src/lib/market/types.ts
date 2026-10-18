@@ -106,7 +106,7 @@ export const DEFAULT_SPECS: Record<string, readonly SpecField[]> = {
 
 export type Specs = Record<string, string | number>;
 
-export type Seller = { id: string; name: string; image: string | null; since: string };
+export type Seller = { id: string; name: string; image: string | null; since: string; badge?: string };
 
 export type Listing = {
   id: string;
@@ -122,6 +122,8 @@ export type Listing = {
   /** null when the seller hid it (WhatsApp still works through the server redirect). */
   phone: string | null;
   sold: boolean;
+  /** Example listing («مثال»), removable in one admin action. */
+  sample: boolean;
   expired: boolean;
   createdAt: string;
   renewedAt: string;

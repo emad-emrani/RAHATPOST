@@ -19,7 +19,7 @@ export type CommentView = {
   createdAt: string;
   editedAt: string | null;
   status: CommentStatus;
-  author: { name: string; image: string | null };
+  author: { name: string; image: string | null; badge?: string };
   /** Written by the signed-in viewer (can delete, and edit within EDIT_WINDOW_MS). */
   mine: boolean;
   replies: CommentView[];
