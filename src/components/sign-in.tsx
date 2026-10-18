@@ -60,10 +60,12 @@ export function SignInButtons({
   config,
   redirect,
   initialError = "",
+  noSignUp = false,
 }: {
   config: AuthConfig;
   redirect: string;
   initialError?: string;
+  noSignUp?: boolean;
 }) {
   const [busy, setBusy] = useState<string>("");
   const [error, setError] = useState(initialError);
@@ -125,7 +127,7 @@ export function SignInButtons({
               <span className="h-px flex-1 bg-line" />
             </p>
           ) : null}
-          <EmailAuth redirect={redirect} canReset={Boolean(config.resetEmail)} />
+          <EmailAuth redirect={redirect} canReset={Boolean(config.resetEmail)} noSignUp={noSignUp} />
         </>
       ) : config.devLogin ? (
         <DevLogin redirect={redirect} />
@@ -182,7 +184,7 @@ function DevLogin({ redirect }: { redirect: string }) {
 type EmailMode = "in" | "up" | "forgot";
 
 /** Email + password: sign in, create an account (with name), or request a reset link. */
-function EmailAuth({ redirect, canReset }: { redirect: string; canReset: boolean }) {
+function EmailAuth({ redirect, canReset, noSignUp = false }: { redirect: string; canReset: boolean; noSignUp?: boolean }) {
   const [mode, setMode] = useState<EmailMode>("in");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
@@ -236,7 +238,7 @@ function EmailAuth({ redirect, canReset }: { redirect: string; canReset: boolean
         }
       }}
     >
-      <div className="grid grid-cols-2 gap-1 rounded-xl bg-surface p-1" role="tablist">
+      <div className={noSignUp ? "hidden" : "grid grid-cols-2 gap-1 rounded-xl bg-surface p-1"} role="tablist">
         {(["in", "up"] as const).map((m) => (
           <button key={m} type="button" role="tab" aria-selected={mode === m} className={mode === m ? "chip chip-ink justify-center py-2" : "chip justify-center py-2"} onClick={() => { setMode(m); setMsg(""); setOk(""); }}>
             {m === "in" ? tr("تسجيل الدخول") : tr("حساب جديد")}

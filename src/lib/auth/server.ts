@@ -152,6 +152,13 @@ export const auth = betterAuth({
       if (!path.startsWith("/sign-in") && !path.startsWith("/sign-up") && !path.startsWith("/request-password-reset")) return;
       const { getAuthMethods } = await import("./settings.server");
       const m = await getAuthMethods();
+      // Team sign-in from /admin never creates accounts (members sign up on the public /login).
+      const cb = String((ctx.body as { callbackURL?: string } | undefined)?.callbackURL ?? "");
+      const ref = ctx.request?.headers.get("referer") ?? "";
+      const fromAdmin = cb.startsWith("/admin") || /[?&]redirect=%2Fadmin|\/admin(\b|$)/.test(ref);
+      if (path === "/sign-up/email" && fromAdmin) throw new APIError("FORBIDDEN", { message: "لا يمكن إنشاء حساب من صفحة الإدارة." });
+      if (path === "/sign-in/social")
+        ctx.setCookie("rp_nosignup", fromAdmin ? "1" : "", { path: "/", httpOnly: true, sameSite: "lax", secure: Boolean(process.env.VERCEL), maxAge: fromAdmin ? 900 : 0 });
       const emailPath = path === "/sign-in/email" || path === "/sign-up/email" || path === "/request-password-reset";
       if (emailPath && !m.email && !authProviders.devLogin) throw new APIError("FORBIDDEN", { message: "تسجيل الدخول بالبريد موقوف حالياً." });
       if (path === "/sign-in/social") {
@@ -174,6 +181,12 @@ export const auth = betterAuth({
     // One welcome e-mail per new member, whatever the sign-in method (toggle + texts in admin).
     user: {
       create: {
+        // OAuth started from /admin (rp_nosignup cookie): sign in existing accounts only.
+        before: async (user, ctx) => {
+          const cookie = (ctx as { request?: Request; headers?: Headers } | undefined)?.request?.headers.get("cookie") ?? (ctx as { headers?: Headers } | undefined)?.headers?.get("cookie") ?? "";
+          if (/(?:^|;\s*)rp_nosignup=1/.test(cookie)) return false;
+          return { data: user };
+        },
         after: async (user) => {
           const { requestLang, sendTemplate } = await import("@/lib/email/send.server");
           await sendTemplate("welcome", user.email, user.name, await requestLang(), "https://rahatpost.com/haraj");

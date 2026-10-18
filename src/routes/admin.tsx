@@ -240,6 +240,8 @@ function AdminMenu({
   );
 }
 
+const isDesktop = () => typeof window !== "undefined" && window.matchMedia("(min-width: 1024px)").matches;
+
 function AdminPage() {
   const [state, setState] = useState<"loading" | "login" | "ready">("loading");
   const [items, setItems] = useState<BusinessSubmission[]>([]);
@@ -251,6 +253,7 @@ function AdminPage() {
   const [level, setLevel] = useState<AdminLevel | null>(null);
   const [perms, setPerms] = useState<string[]>([]);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [sideCollapsed, setSideCollapsed] = useState(false);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -345,7 +348,7 @@ function AdminPage() {
             </p>
           ) : (
             <a className="btn btn-ghost" href="/login?redirect=%2Fadmin">
-              {tr("دخول بحساب Google")}
+              {tr("دخول أعضاء الفريق بحساباتهم")}
             </a>
           )}
         </div>
@@ -397,14 +400,6 @@ function AdminPage() {
     setMenuOpen(false);
     if (typeof window !== "undefined") window.scrollTo({ top: 0 });
   };
-  const BOTTOM: { key: Section; label: string; icon: LucideIcon }[] = (
-    [
-      { key: "home", label: "الرئيسية", icon: House },
-      { key: "review", label: "المراجعة", icon: ClipboardCheck },
-      { key: "grp-haraj", label: "الحراج", icon: Megaphone },
-      { key: "grp-members", label: "الأعضاء", icon: Users },
-    ] as const
-  ).filter((b) => tabs.some((t) => t.key === b.key) || visibleGroups.some((g) => `grp-${g.id}` === b.key));
   const landing = undefined as (typeof GROUPS)[number] | undefined;
   const curGroup = landing ?? GROUPS.find((g) => g.keys.includes(current));
   const logout = async () => {
@@ -415,8 +410,8 @@ function AdminPage() {
 
   return (
     <div className="min-h-screen bg-surface text-ink">
-      <div className="mx-auto max-w-6xl lg:grid lg:grid-cols-[16rem_minmax(0,1fr)] lg:gap-6 lg:px-6 lg:py-6">
-        <aside className="hidden lg:block">
+      <div className={`mx-auto max-w-6xl lg:grid lg:gap-6 lg:px-6 lg:py-6 ${sideCollapsed ? "lg:grid-cols-[minmax(0,1fr)]" : "lg:grid-cols-[16rem_minmax(0,1fr)]"}`}>
+        <aside className={sideCollapsed ? "hidden" : "hidden lg:block"}>
           <div className="sticky top-6 flex max-h-[calc(100vh-3rem)] flex-col gap-4 overflow-y-auto rounded-3xl bg-paper p-3 shadow-[0_1px_3px_rgba(16,24,40,0.06)]">
             <Link to="/" className="flex items-center gap-2 px-2 pt-1 text-sm font-bold text-muted hover:text-ink">
               <ArrowRight className="size-4 rtl:rotate-0 ltr:rotate-180" aria-hidden />
@@ -425,8 +420,18 @@ function AdminPage() {
             <AdminMenu tabs={tabs} section={current} onSelect={go} onLogout={logout} />
           </div>
         </aside>
-        <div className="min-w-0 px-4 pb-28 pt-4 lg:px-0 lg:pb-10 lg:pt-0">
+        <div className="min-w-0 px-4 pb-10 pt-4 lg:px-0 lg:pt-0">
           <header className="mb-4 flex items-center gap-3">
+            <button
+              type="button"
+              className="grid size-10 shrink-0 place-items-center rounded-2xl bg-paper shadow-[0_1px_3px_rgba(16,24,40,0.06)]"
+              aria-label={tr("فتح القائمة")}
+              aria-expanded={menuOpen || (!sideCollapsed && isDesktop())}
+              aria-controls="admin-drawer"
+              onClick={() => (isDesktop() ? setSideCollapsed((v) => !v) : setMenuOpen(true))}
+            >
+              <Menu className="size-5" aria-hidden />
+            </button>
             <div className="min-w-0 flex-1">
               <p className="truncate text-xs font-bold text-muted">{tr("لوحة الإدارة")}</p>
               <h1 className="flex items-center gap-2 truncate text-2xl font-extrabold">
@@ -467,22 +472,6 @@ function AdminPage() {
                   {trv(label)}
                 </button>
               ))}
-            </div>
-          ) : null}
-          {menuOpen ? (
-            <div className="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true" aria-label={tr("قائمة الإدارة")}>
-              <button type="button" className="absolute inset-0 h-full w-full bg-black/40" aria-label={tr("إغلاق القائمة")} onClick={() => setMenuOpen(false)} />
-              <div className="absolute inset-x-0 bottom-0 max-h-[80vh] overflow-y-auto rounded-t-3xl bg-paper p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] shadow-xl">
-                <div className="mx-auto mb-3 h-1.5 w-12 rounded-full bg-line" />
-                <div className="mb-2 flex items-center justify-between">
-                  <p className="text-lg font-extrabold">{tr("كل الأقسام")}</p>
-                  <button type="button" className="grid size-9 place-items-center rounded-full bg-surface" aria-label={tr("إغلاق")} onClick={() => setMenuOpen(false)}>
-                    <X className="size-5" aria-hidden />
-                  </button>
-                </div>
-                <AdminMenu tabs={tabs} section={current} onSelect={go} onLogout={logout} />
-                <Link to="/" className="mt-3 flex items-center gap-2 px-3 text-sm font-bold text-muted">{tr("العودة للموقع")}</Link>
-              </div>
             </div>
           ) : null}
           <CardBoundary key={current}>
@@ -609,23 +598,36 @@ function AdminPage() {
           </CardBoundary>
         </div>
       </div>
-      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-paper pb-[env(safe-area-inset-bottom)] lg:hidden" aria-label={tr("تنقل الإدارة")}>
-        <div className="mx-auto flex max-w-xl">
-          {BOTTOM.map(({ key, label, icon: Icon }) => (
-            <button key={key} type="button" aria-current={current === key || (key.startsWith("grp-") && curGroup && `grp-${curGroup.id}` === key) ? "page" : undefined} onClick={() => go(key)}
-              className={`relative flex flex-1 flex-col items-center gap-0.5 py-2 text-[11px] font-bold ${current === key || (curGroup && `grp-${curGroup.id}` === key) ? "text-ink" : "text-muted"}`}>
-              <span className={`grid h-7 w-12 place-items-center rounded-full ${current === key || (curGroup && `grp-${curGroup.id}` === key) ? "bg-brand" : ""}`}><Icon className="size-5" aria-hidden /></span>
-              {trv(label)}
-              {key === "review" && reviewCount ? <span className="absolute top-1 start-[55%] rounded-full bg-alert px-1.5 text-[10px] text-white">{reviewCount}</span> : null}
+      <div className={`fixed inset-0 z-50 lg:hidden ${menuOpen ? "" : "pointer-events-none"}`} aria-hidden={!menuOpen}>
+        <button
+          type="button"
+          tabIndex={menuOpen ? 0 : -1}
+          className={`absolute inset-0 h-full w-full bg-black/40 transition-opacity duration-200 ${menuOpen ? "opacity-100" : "opacity-0"}`}
+          aria-label={tr("إغلاق القائمة")}
+          onClick={() => setMenuOpen(false)}
+        />
+        <div
+          id="admin-drawer"
+          role="dialog"
+          aria-modal="true"
+          aria-label={tr("قائمة الإدارة")}
+          className={`absolute inset-y-0 start-0 flex w-72 max-w-[85vw] flex-col gap-3 overflow-y-auto bg-paper p-4 shadow-xl transition-transform duration-200 ${
+            menuOpen ? "translate-x-0" : "ltr:-translate-x-full rtl:translate-x-full"
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <p className="text-lg font-extrabold">{tr("لوحة الإدارة")}</p>
+            <button type="button" className="grid size-9 place-items-center rounded-full bg-surface" aria-label={tr("إغلاق")} onClick={() => setMenuOpen(false)}>
+              <X className="size-5" aria-hidden />
             </button>
-          ))}
-          <button type="button" aria-label={tr("فتح القائمة")} aria-expanded={menuOpen} onClick={() => setMenuOpen(true)}
-            className={`flex flex-1 flex-col items-center gap-0.5 py-2 text-[11px] font-bold ${!BOTTOM.some((b) => b.key === current || (curGroup && `grp-${curGroup.id}` === b.key)) ? "text-ink" : "text-muted"}`}>
-            <span className={`grid h-7 w-12 place-items-center rounded-full ${!BOTTOM.some((b) => b.key === current || (curGroup && `grp-${curGroup.id}` === b.key)) ? "bg-brand" : ""}`}><LayoutGrid className="size-5" aria-hidden /></span>
-            {tr("المزيد")}
-          </button>
+          </div>
+          {menuOpen ? <AdminMenu tabs={tabs} section={current} onSelect={go} onLogout={logout} /> : null}
+          <Link to="/" className="mt-auto flex items-center gap-2 px-3 pt-2 text-sm font-bold text-muted">
+            <ArrowRight className="size-4 ltr:rotate-180" aria-hidden />
+            {tr("العودة للموقع")}
+          </Link>
         </div>
-      </nav>
+      </div>
     </div>
   );
 }

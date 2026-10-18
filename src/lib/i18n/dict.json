@@ -4555,6 +4555,10 @@
   "en": "Sign in",
   "he": "כניסה"
  },
+ "دخول أعضاء الفريق بحساباتهم": {
+  "en": "Team members: sign in with your account",
+  "he": "כניסת חברי צוות"
+ },
  "دخول المالك بكلمة المرور، أو أعضاء الفريق بحساباتهم.": {
   "en": "Owner signs in with the password; team members with their accounts.",
   "he": "כניסת בעלים בסיסמה, או חברי צוות בחשבון."
@@ -4570,6 +4574,10 @@
  "دخول تجريبي (محلي فقط)": {
   "en": "Test sign-in (local only)",
   "he": "כניסת בדיקה (מקומית בלבד)"
+ },
+ "دخول فريق الإدارة": {
+  "en": "Team sign-in",
+  "he": "כניסת צוות"
  },
  "دخولك أنت للوحة الإدارة يبقى بكلمة مرور الإدارة.": {
   "en": "Your own admin login stays the admin password.",
@@ -6173,6 +6181,10 @@
   "en": "No arrival expected for line",
   "he": "אין הגעה צפויה לקו"
  },
+ "لا يمكن إنشاء حساب من صفحة الإدارة.": {
+  "en": "Accounts can't be created from the admin page.",
+  "he": "לא ניתן ליצור חשבון מדף הניהול."
+ },
  "لا يمكن تشفير المفتاح على هذا الخادم.": {
   "en": "The key can't be encrypted on this server.",
   "he": "לא ניתן להצפין את המפתח בשרת זה."
@@ -6268,6 +6280,10 @@
  "للتواصل:": {
   "en": "Contact:",
   "he": "ליצירת קשר:"
+ },
+ "للحسابات الموجودة فقط. لا يمكن إنشاء حساب جديد من هنا.": {
+  "en": "Existing accounts only. You can't create an account here.",
+  "he": "לחשבונות קיימים בלבד."
  },
  "لم تتغير الحالة (قد يكون الطلب ليس بانتظار الدفع، أو نقص في الأكواد).": {
   "en": "The status didn't change (the order may not be awaiting payment, or codes ran short).",

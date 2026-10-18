@@ -31,8 +31,8 @@ function LoginPage() {
 
   return (
     <AuthLayout
-      title={!isPending && user ? tr("أهلاً بعودتك") : tr("تسجيل الدخول")}
-      subtitle={tr("سجّل الدخول لتنشر أخباراً وإعلانات وتضيف نشاطك باسمك، وتتابعها من «منشوراتي».")}
+      title={!isPending && user ? tr("أهلاً بعودتك") : redirect.startsWith("/admin") ? tr("دخول فريق الإدارة") : tr("تسجيل الدخول")}
+      subtitle={redirect.startsWith("/admin") ? tr("للحسابات الموجودة فقط. لا يمكن إنشاء حساب جديد من هنا.") : tr("سجّل الدخول لتنشر أخباراً وإعلانات وتضيف نشاطك باسمك، وتتابعها من «منشوراتي».")}
       footer={
         <>
           {tr("نستخدم اسمك وصورتك من الحساب لعرضهما مع منشوراتك فقط، ولا ننشر شيئاً على حسابك. بتسجيل الدخول أنت توافق على")}{" "}
@@ -50,6 +50,7 @@ function LoginPage() {
         <SignInButtons
           config={config}
           redirect={redirect}
+          noSignUp={redirect.startsWith("/admin")}
           initialError={search.error ? tr("لم يكتمل تسجيل الدخول. حاول مرة أخرى.") : ""}
         />
       )}
