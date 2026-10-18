@@ -195,7 +195,8 @@ const GROUPS: { id: string; label: string; icon: LucideIcon; keys: Section[] }[]
     icon: Newspaper,
     keys: ["publish", "news", "comments", "auto", "sec-news", "sec-israel", "sec-sports", "sec-tech", "sec-weather", "duty", "directory"],
   },
-  { id: "haraj", label: "الحراج", icon: Megaphone, keys: ["ads", "haraj-cats", "reports", "store"] },
+  { id: "haraj", label: "الحراج", icon: Megaphone, keys: ["ads", "haraj-cats", "reports"] },
+  { id: "store", label: "المتجر", icon: ShoppingBag, keys: ["store"] },
   { id: "members", label: "الأعضاء والصلاحيات", icon: Users, keys: ["members-list", "members-roles", "members-invite"] },
   { id: "marketing", label: "التسويق والتواصل", icon: MonitorUp, keys: ["popups", "emails", "push", "alerts", "set-google"] },
   {
