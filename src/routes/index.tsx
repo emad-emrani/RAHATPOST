@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { PushCta } from "@/components/growth";
 import { Bus, ChevronLeft, Search } from "lucide-react";
 import { Fragment, useMemo, useState, type ReactNode } from "react";
 import { useSiteSettings } from "@/lib/site-settings/context";
@@ -409,6 +410,7 @@ function Home() {
         <h1 className="sr-only">{tr("رهط بوست: أخبار وخدمات رهط والنقب")}</h1>
         {/* Top: alerts (only when active), weather + prayer, banner slider, then search. */}
         <AlertsBanner alerts={board.alerts} />
+        <PushCta />
         {breaking ? (
           <Link
             to="/news/$slug"

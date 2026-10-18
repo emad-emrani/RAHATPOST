@@ -102,17 +102,13 @@ test("does not duplicate x:creator tags", () => {
   assert.equal(twice.split('property="x:creator:id"').length - 1, 1);
 });
 
-test("platform chrome overwrites share-card metas and always sets og:title", () => {
+test("pages with their own og:title keep their share card (rahatpost)", () => {
   const html =
-    '<html><head><title>Hello World</title><meta property="og:title" content="Old"><meta name="twitter:card" content="summary"></head></html>';
+    '<html><head><title>Hello World</title><meta property="og:title" content="Own"><meta property="og:image" content="https://x.test/a.jpg"></head></html>';
   const out = injectGrokPwaHead(html, { appName: "Wild Race" });
-  assert.match(out, /name="twitter:card" content="summary_large_image"/);
-  assert.match(out, /property="og:title" content="Hello World"/);
-  assert.doesNotMatch(out, /content="Old"/);
-  assert.doesNotMatch(out, /content="summary"/);
-  assert.equal(out.split('name="twitter:card"').length - 1, 1);
+  assert.match(out, /property="og:title" content="Own"/);
+  assert.match(out, /content="https:\/\/x.test\/a.jpg"/);
   assert.equal(out.split('property="og:title"').length - 1, 1);
-  assert.doesNotMatch(out, /property="og:image"/);
 });
 
 test("does not duplicate twitter:card or og:title", () => {

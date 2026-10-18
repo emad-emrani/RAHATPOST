@@ -445,7 +445,10 @@ export function injectGrokPwaHead(html, ctx = {}) {
     host,
     documentTitle,
   );
-  let next = stripShareMetaTags(html);
+  // rahatpost: pages that emit their own share card (src/lib/seo.ts) keep it, so each article /
+  // listing previews with its own title, description and image on WhatsApp etc.
+  const ownsOg = /<meta\b[^>]*property=["']og:title["']/i.test(html);
+  let next = ownsOg ? html : stripShareMetaTags(html);
   if (!readGrokExtensionsEnabled()) next = stripGrokExtensionsScript(next);
 
   const missing = grokPwaHeadTags(appName)
@@ -458,7 +461,7 @@ export function injectGrokPwaHead(html, ctx = {}) {
 
   next = insertAfterHeadOpen(
     next,
-    grokOgHeadTags({ host, appName, site, documentTitle, cwd }).join(""),
+    ownsOg ? "" : grokOgHeadTags({ host, appName, site, documentTitle, cwd }).join(""),
   );
 
   if (readGrokExtensionsEnabled() && !next.includes("/grok-app-builder/extensions.js")) {

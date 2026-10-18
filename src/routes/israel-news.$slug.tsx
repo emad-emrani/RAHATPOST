@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { PushCta, ShareWhatsApp } from "@/components/growth";
 import { ExternalLink } from "lucide-react";
 import { Comments } from "@/components/comments";
 import { Shell } from "@/components/shell";
@@ -145,6 +146,8 @@ function IsraelArticlePage() {
           </p>
         </div>
       </article>
+      <ShareWhatsApp className="mt-4" title={article.titleAr ?? article.titleHe} path={`/israel-news/${article.slug}`} />
+      <PushCta className="mt-3" />
       <Comments key={article.slug} articleKey={`israel-news/${article.slug}`} />
       {related.length > 0 ? (
         <>

@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { PushCta, ShareWhatsApp } from "@/components/growth";
 import { ExternalLink } from "lucide-react";
 import { Comments } from "@/components/comments";
 import { Shell } from "@/components/shell";
@@ -158,24 +159,16 @@ function ArticlePage() {
           )}
         </div>
       </article>
-      <div className="mt-4 grid grid-cols-2 gap-2">
-        <a
-          className="btn"
-          href={`https://t.me/share/url?url=${encodeURIComponent(url)}&text=${share}`}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          {tr("تليجرام")}
-        </a>
-        <a
-          className="btn btn-ghost"
-          href={`https://wa.me/?text=${share}%0A${encodeURIComponent(url)}`}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          {tr("واتساب")}
-        </a>
-      </div>
+      <ShareWhatsApp className="mt-4" title={article.title} path={`/news/${article.slug}`} />
+      <a
+        className="btn mt-2 w-full"
+        href={`https://t.me/share/url?url=${encodeURIComponent(url)}&text=${share}`}
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        {tr("تليجرام")}
+      </a>
+      <PushCta className="mt-4" />
       <AdSlots placement="article" />
       <Comments key={article.slug} articleKey={`news/${article.slug}`} />
       {related.length > 0 ? (
