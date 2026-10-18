@@ -6,6 +6,7 @@ import { Shell } from "@/components/shell";
 import { gmapsPlace } from "@/lib/buses/map";
 import { useSiteSettings } from "@/lib/site-settings/context";
 import type { RavKavPoint } from "@/lib/site-settings/types";
+import { OSM_RAVKAV_POINTS } from "@/data/ravkav-points";
 import { breadcrumbLd, seo } from "@/lib/seo";
 import { tr, trv } from "@/lib/i18n/core";
 
@@ -32,7 +33,8 @@ const SERVICES = [
 ];
 
 function RavKavPage() {
-  const points = useSiteSettings().ravkavPoints ?? [];
+  const admin = useSiteSettings().ravkavPoints ?? [];
+  const points: RavKavPoint[] = [...admin, ...OSM_RAVKAV_POINTS.filter((o) => !admin.some((a) => Math.abs(a.lat - o.lat) < 1e-4 && Math.abs(a.lon - o.lon) < 1e-4))];
   return (
     <Shell>
       <Link to="/buses" className="inline-flex items-center gap-1 text-sm font-bold text-muted">
@@ -62,6 +64,9 @@ function RavKavPage() {
               </li>
             ))}
           </ul>
+          <p className="mt-2 text-xs font-semibold text-muted">
+            {tr("بعض النقاط من خريطة OpenStreetMap المفتوحة (© مساهمو OpenStreetMap). لأحدث قائمة رسمية: تطبيق رب-كاف أونلاين ← «نقاط الشحن».")}
+          </p>
         </>
       ) : (
         <p className="stamp mt-3 p-4 font-semibold">
