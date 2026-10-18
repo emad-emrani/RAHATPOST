@@ -25,7 +25,8 @@ const roleName = (r: MemberRole | undefined) => {
 };
 
 /** «الأعضاء والصلاحيات» (owner only): sign-in methods, roles & permissions, members (role, block). */
-export function MembersAdmin() {
+export function MembersAdmin({ only }: { only?: "list" | "roles" | "invite" | "methods" } = {}) {
+  const show = (k: string) => !only || only === k;
   const [data, setData] = useState<AuthAdminData | null>(null);
   const [msg, setMsg] = useState("");
   const load = useCallback(async () => {
@@ -40,17 +41,17 @@ export function MembersAdmin() {
   if (!data.authed) return <p className="stamp p-4 font-bold">{msg}</p>;
   return (
     <div className="flex flex-col gap-5">
-      <MethodsCard data={data} onSaved={load} />
-      <p className="stamp p-3 text-sm font-semibold">
+      {show("methods") ? <MethodsCard data={data} onSaved={load} /> : null}
+      {show("roles") ? <p className="stamp p-3 text-sm font-semibold">
         {data.master
           ? tr("أنت adminmaster: وحدك تعدّل الأدوار والصلاحيات وتمنح دور المدير.")
           : data.canManageRoles
             ? tr("يمكنك تعيين الأدوار للأعضاء، عدا دور المدير وadminmaster.")
             : tr("تعديل الأدوار لـ adminmaster فقط. دخول كلمة مرور الإدارة له صلاحيات المدير دون تعديل الأدوار.")}
-      </p>
-      <RolesCard roles={data.roles} editable={data.master} onSaved={(roles) => setData({ ...data, roles })} />
-      {data.canManageRoles ? <InviteByEmail roles={data.roles} master={data.master} /> : null}
-      <MembersList roles={data.roles} canManage={data.canManageRoles} master={data.master} />
+      </p> : null}
+      {show("roles") ? <RolesCard roles={data.roles} editable={data.master} onSaved={(roles) => setData({ ...data, roles })} /> : null}
+      {show("invite") ? (data.canManageRoles ? <InviteByEmail roles={data.roles} master={data.master} /> : <p className="stamp p-3 font-semibold">{tr("إضافة الأعضاء بالبريد لمن يملك صلاحية إدارة الأدوار.")}</p>) : null}
+      {show("list") ? <MembersList roles={data.roles} canManage={data.canManageRoles} master={data.master} /> : null}
     </div>
   );
 }

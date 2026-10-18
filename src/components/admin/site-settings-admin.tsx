@@ -63,10 +63,12 @@ async function uploadImage(file: File): Promise<string> {
 }
 
 /** «إعدادات الموقع» (owner only; the server re-checks and sanitizes every save). */
-export function SiteSettingsAdmin() {
+export type SiteSettingsPart = Part;
+export function SiteSettingsAdmin({ only }: { only?: Part } = {}) {
   const router = useRouter();
   const [s, setS] = useState<SiteSettings | null>(null);
-  const [part, setPart] = useState<Part>("theme");
+  const [partState, setPart] = useState<Part>("theme");
+  const part = only ?? partState;
   const [msg, setMsg] = useState("");
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
@@ -109,7 +111,7 @@ export function SiteSettingsAdmin() {
 
   return (
     <>
-      <div className="scroll-row mb-4">
+      <div className={only ? "hidden" : "scroll-row mb-4"}>
         {(Object.keys(PARTS) as Part[]).map((p) => (
           <button
             key={p}

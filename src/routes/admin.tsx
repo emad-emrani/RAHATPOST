@@ -22,6 +22,19 @@ import {
   Cpu,
   Trophy,
   CloudSun,
+  House,
+  ClipboardCheck,
+  LayoutGrid,
+  BadgeCheck,
+  ArrowRight,
+  UserPlus,
+  KeyRound,
+  Palette,
+  Type,
+  GalleryHorizontal,
+  Link2,
+  Mail,
+  ChevronLeft,
 } from "lucide-react";
 import { createFileRoute } from "@tanstack/react-router";
 import { PhotoStrip } from "@/components/photo-picker";
@@ -37,7 +50,7 @@ import { adminDecide, adminList, adminLogin, adminLogout } from "@/lib/directory
 import type { BusinessSubmission } from "@/lib/directory/types";
 import { AutoNewsAdmin } from "@/components/admin/auto-news-admin";
 import { SectionAdmin } from "@/components/admin/section-admin";
-import { SiteSettingsAdmin } from "@/components/admin/site-settings-admin";
+import { SiteSettingsAdmin, type SiteSettingsPart } from "@/components/admin/site-settings-admin";
 import { MembersAdmin } from "@/components/admin/members-admin";
 import { EmailAdmin } from "@/components/admin/email-admin";
 import { adminWhoami } from "@/lib/team/api";
@@ -50,6 +63,9 @@ import { GeminiAdmin } from "@/components/admin/gemini-admin";
 import { adminDecideNews, adminListNews } from "@/lib/reader-news/api";
 import type { OwnReaderNews } from "@/lib/reader-news/types";
 import { tr, trv } from "@/lib/i18n/core";
+import { AdminSearch, DashboardHome, ReviewQueue } from "@/components/admin/admin-v2";
+import { LangSwitcher } from "@/components/lang-switcher";
+import { Link } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({
@@ -65,12 +81,24 @@ const STATUS: Record<BusinessSubmission["status"], string> = {
 };
 
 type Section =
+  | "home"
+  | "review"
   | "stats"
   | "store"
-  | "settings"
+  | "set-theme"
+  | "set-home"
+  | "set-slider"
+  | "set-texts"
+  | "set-menus"
+  | "set-links"
+  | "set-google"
+  | `grp-${string}`
   | "auto"
   | "publish"
-  | "members"
+  | "members-list"
+  | "members-roles"
+  | "members-invite"
+  | "members-methods"
   | "emails"
   | "news"
   | "ads"
@@ -90,6 +118,8 @@ type Section =
   | "sec-weather";
 
 const ALL_TABS: { key: Section; label: string; icon: LucideIcon }[] = [
+  { key: "home", label: "الرئيسية", icon: House },
+  { key: "review", label: "المراجعة", icon: ClipboardCheck },
   { key: "stats", label: "الإحصائيات", icon: BarChart3 },
   { key: "publish", label: "نشر خبر", icon: PenSquare },
   { key: "auto", label: "الأخبار التلقائية", icon: Rss },
@@ -108,58 +138,96 @@ const ALL_TABS: { key: Section; label: string; icon: LucideIcon }[] = [
   { key: "duty", label: "صيدلية المناوبة", icon: Pill },
   { key: "alerts", label: "التنبيهات", icon: Siren },
   { key: "push", label: "الإشعارات", icon: Bell },
-  { key: "members", label: "الأعضاء والصلاحيات", icon: Users },
-  { key: "emails", label: "رسائل البريد", icon: Bell },
-  { key: "settings", label: "إعدادات الموقع", icon: Settings },
+  { key: "members-list", label: "قائمة الأعضاء", icon: Users },
+  { key: "members-roles", label: "الأدوار والصلاحيات", icon: BadgeCheck },
+  { key: "members-invite", label: "إضافة عضو بالبريد", icon: UserPlus },
+  { key: "members-methods", label: "طرق تسجيل الدخول", icon: KeyRound },
+  { key: "emails", label: "قوالب رسائل البريد", icon: Mail },
+  { key: "set-theme", label: "المظهر والألوان", icon: Palette },
+  { key: "set-texts", label: "النصوص والشعار", icon: Type },
+  { key: "set-home", label: "أقسام الرئيسية", icon: LayoutGrid },
+  { key: "set-menus", label: "القوائم والأيقونات", icon: Menu },
+  { key: "set-slider", label: "السلايدر", icon: GalleryHorizontal },
+  { key: "set-links", label: "روابط سريعة", icon: Link2 },
+  { key: "set-google", label: "خدمات جوجل (Analytics وAdSense وSearch Console)", icon: Settings },
   { key: "languages", label: "اللغات", icon: Globe },
   { key: "gemini", label: "الذكاء الاصطناعي والترجمة", icon: Sparkles },
 ];
+
+const GROUPS: { id: string; label: string; icon: LucideIcon; keys: Section[] }[] = [
+  { id: "main", label: "عام", icon: House, keys: ["home", "review"] },
+  { id: "content", label: "المحتوى والأخبار", icon: Newspaper, keys: ["publish", "news", "comments", "reports"] },
+  { id: "services", label: "الخدمات والتنبيهات", icon: Siren, keys: ["duty", "alerts", "push", "directory", "store"] },
+  { id: "haraj", label: "الحراج", icon: Megaphone, keys: ["ads", "haraj-cats"] },
+  { id: "members", label: "الأعضاء والصلاحيات", icon: Users, keys: ["members-list", "members-roles", "members-invite", "members-methods"] },
+  { id: "emails", label: "البريد", icon: Mail, keys: ["emails"] },
+  { id: "auto", label: "الأقسام التلقائية", icon: Rss, keys: ["auto", "sec-news", "sec-israel", "sec-sports", "sec-tech", "sec-weather"] },
+  { id: "i18n", label: "الترجمة واللغات والذكاء الاصطناعي", icon: Globe, keys: ["languages", "gemini"] },
+  { id: "analytics", label: "الإحصائيات والتسويق", icon: BarChart3, keys: ["stats", "set-google"] },
+  { id: "settings", label: "إعدادات الموقع", icon: Settings, keys: ["set-theme", "set-texts", "set-home", "set-menus", "set-slider", "set-links"] },
+];
+const groupItems = (g: (typeof GROUPS)[number], tabs: typeof ALL_TABS) =>
+  g.keys.map((k) => tabs.find((t) => t.key === k)).filter((t): t is (typeof ALL_TABS)[number] => Boolean(t));
+
+function GroupLanding({ group, tabs, go }: { group: (typeof GROUPS)[number]; tabs: typeof ALL_TABS; go: (k: string) => void }) {
+  return (
+    <ul className="flex flex-col gap-2">
+      {groupItems(group, tabs).map(({ key, label, icon: Icon }) => (
+        <li key={key}>
+          <button type="button" onClick={() => go(key)} className="flex w-full items-center gap-3 rounded-3xl bg-paper p-4 text-start shadow-[0_1px_3px_rgba(16,24,40,0.06)] active:scale-[0.99]">
+            <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-primary-soft text-primary-ink"><Icon className="size-5" aria-hidden /></span>
+            <span className="min-w-0 flex-1 font-bold">{trv(label)}</span>
+            <ChevronLeft className="size-5 text-muted ltr:rotate-180" aria-hidden />
+          </button>
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 function AdminMenu({
   tabs,
   section,
   onSelect,
   onLogout,
-  level,
-  name,
 }: {
   tabs: typeof ALL_TABS;
   section: Section;
   onSelect: (key: Section) => void;
   onLogout: () => void;
-  level: AdminLevel | null;
-  name: string;
 }) {
   return (
-    <nav aria-label={tr("أقسام الإدارة")} className="flex flex-col gap-1">
-      <p className="px-3 pb-2 text-sm font-semibold text-muted">
-        {level === "owner" ? tr("المالك") : `${name} · ${level === "writer" ? tr("كاتب") : tr("مشرف")}`}
-      </p>
-      {tabs.map(({ key, label, icon: Icon }, i) => (
-        <Fragment key={key}>
-        {key.startsWith("sec-") && !tabs[i - 1]?.key.startsWith("sec-") ? (
-          <p className="px-3 pt-2 text-xs font-bold text-muted">{tr("الأقسام التلقائية")}</p>
-        ) : null}
-        <button
-          type="button"
-          aria-current={section === key ? "page" : undefined}
-          className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-start font-bold transition-colors ${key.startsWith("sec-") ? "ps-6 text-sm" : ""} ${
-            section === key ? "bg-primary text-ink" : "hover:bg-primary-soft"
-          }`}
-          onClick={() => onSelect(key)}
-        >
-          <Icon className="size-5 shrink-0" aria-hidden />
-          {trv(label)}
-        </button>
-        </Fragment>
-      ))}
-      <hr className="my-2 border-line" />
-      <button
-        type="button"
-        className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-start font-bold hover:bg-primary-soft"
-        onClick={onLogout}
-      >
-        <LogOut className="size-5 shrink-0" aria-hidden />
+    <nav aria-label={tr("أقسام الإدارة")} className="flex flex-col gap-3">
+      {GROUPS.map((g) => {
+        const items = groupItems(g, tabs);
+        if (!items.length) return null;
+        return (
+          <div key={g.id}>
+            {g.id === "main" ? null : (
+              <button type="button" onClick={() => onSelect(`grp-${g.id}`)} aria-current={section === `grp-${g.id}` ? "page" : undefined}
+                className={`w-full rounded-xl px-3 pb-1 pt-1 text-start text-[11px] font-bold tracking-wide ${section === `grp-${g.id}` ? "text-ink" : "text-muted hover:text-ink"}`}>
+                {trv(g.label)}
+              </button>
+            )}
+            {items.map(({ key, label, icon: Icon }) => (
+              <button
+                key={key}
+                type="button"
+                aria-current={section === key ? "page" : undefined}
+                className={`flex w-full items-center gap-3 rounded-2xl px-3 py-2 text-start text-sm font-bold transition-colors ${
+                  section === key ? "bg-brand text-ink" : "hover:bg-surface"
+                }`}
+                onClick={() => onSelect(key)}
+              >
+                <Icon className="size-[18px] shrink-0" aria-hidden />
+                {trv(label)}
+              </button>
+            ))}
+          </div>
+        );
+      })}
+      <button type="button" className="flex w-full items-center gap-3 rounded-2xl px-3 py-2 text-start text-sm font-bold hover:bg-surface" onClick={onLogout}>
+        <LogOut className="size-[18px] shrink-0" aria-hidden />
         {tr("خروج")}
       </button>
     </nav>
@@ -172,7 +240,8 @@ function AdminPage() {
   const [error, setError] = useState("");
   const [busyId, setBusyId] = useState("");
   const [tab, setTab] = useState<BusinessSubmission["status"]>("pending");
-  const [section, setSection] = useState<Section>("news");
+  const [section, setSection] = useState<Section>("home");
+  const [reviewCount, setReviewCount] = useState<number | null>(null);
   const [level, setLevel] = useState<AdminLevel | null>(null);
   const [perms, setPerms] = useState<string[]>([]);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -297,14 +366,34 @@ function AdminPage() {
     directory: "moderate_directory",
     publish: "write_news",
   };
+  const isMod = level === "moderator" && ["moderate_haraj", "moderate_news", "moderate_comments"].some((p) => perms.includes(p));
   const tabs = ALL_TABS.filter(({ key }) =>
     level === "owner"
       ? true
       : level === "writer"
         ? key === "publish"
-        : Boolean(TAB_PERM[key] && perms.includes(TAB_PERM[key]!)),
+        : key === "home" || key === "review"
+          ? isMod
+          : Boolean(TAB_PERM[key] && perms.includes(TAB_PERM[key]!)),
   );
-  const current: Section = tabs.some((t) => t.key === section) ? section : (tabs[0]?.key ?? "news");
+  const visibleGroups = GROUPS.filter((g) => groupItems(g, tabs).length);
+  const current: Section =
+    tabs.some((t) => t.key === section) || visibleGroups.some((g) => `grp-${g.id}` === section) ? section : (tabs[0]?.key ?? "news");
+  const go = (k: string) => {
+    setSection(k as Section);
+    setMenuOpen(false);
+    if (typeof window !== "undefined") window.scrollTo({ top: 0 });
+  };
+  const BOTTOM: { key: Section; label: string; icon: LucideIcon }[] = (
+    [
+      { key: "home", label: "الرئيسية", icon: House },
+      { key: "review", label: "المراجعة", icon: ClipboardCheck },
+      { key: "grp-haraj", label: "الحراج", icon: Megaphone },
+      { key: "grp-members", label: "الأعضاء", icon: Users },
+    ] as const
+  ).filter((b) => tabs.some((t) => t.key === b.key) || visibleGroups.some((g) => `grp-${g.id}` === b.key));
+  const landing = current.startsWith("grp-") ? GROUPS.find((g) => `grp-${g.id}` === current) : undefined;
+  const curGroup = landing ?? GROUPS.find((g) => g.keys.includes(current));
   const logout = async () => {
     setMenuOpen(false);
     await adminLogout();
@@ -312,78 +401,68 @@ function AdminPage() {
   };
 
   return (
-    <Shell wide>
-      <div className="lg:grid lg:grid-cols-[15rem_minmax(0,1fr)] lg:gap-6">
+    <div className="min-h-screen bg-surface text-ink">
+      <div className="mx-auto max-w-6xl lg:grid lg:grid-cols-[16rem_minmax(0,1fr)] lg:gap-6 lg:px-6 lg:py-6">
         <aside className="hidden lg:block">
-          <div className="stamp sticky top-24 p-3">
-            <AdminMenu
-              tabs={tabs}
-              section={current}
-              onSelect={setSection}
-              onLogout={logout}
-              level={level}
-              name={who.name}
-            />
+          <div className="sticky top-6 flex max-h-[calc(100vh-3rem)] flex-col gap-4 overflow-y-auto rounded-3xl bg-paper p-3 shadow-[0_1px_3px_rgba(16,24,40,0.06)]">
+            <Link to="/" className="flex items-center gap-2 px-2 pt-1 text-sm font-bold text-muted hover:text-ink">
+              <ArrowRight className="size-4 rtl:rotate-0 ltr:rotate-180" aria-hidden />
+              {tr("العودة للموقع")}
+            </Link>
+            <AdminMenu tabs={tabs} section={current} onSelect={go} onLogout={logout} />
           </div>
         </aside>
-        <div className="min-w-0">
-          <div className="mb-4 flex items-center gap-3">
-            <button
-              type="button"
-              className="btn btn-ghost px-3 lg:hidden"
-              aria-label={tr("فتح القائمة")}
-              aria-expanded={menuOpen}
-              onClick={() => setMenuOpen(true)}
-            >
-              <Menu className="size-5" aria-hidden />
-            </button>
+        <div className="min-w-0 px-4 pb-28 pt-4 lg:px-0 lg:pb-10 lg:pt-0">
+          <header className="mb-4 flex items-center gap-3">
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold text-muted">{tr("الإدارة")}</p>
-              <h1 className="truncate text-2xl font-bold">
-                {trv(tabs.find((t) => t.key === current)?.label ?? "الإدارة")}
-              </h1>
+              {curGroup && !landing && curGroup.id !== "main" ? (
+                <button type="button" onClick={() => go(`grp-${curGroup.id}`)} className="flex max-w-full items-center gap-1 truncate text-xs font-bold text-muted hover:text-ink">
+                  <ArrowRight className="size-3.5 shrink-0 ltr:rotate-180" aria-hidden />
+                  {trv(curGroup.label)}
+                </button>
+              ) : (
+                <p className="truncate text-xs font-bold text-muted">{tr("لوحة الإدارة")}</p>
+              )}
+              <h1 className="truncate text-2xl font-extrabold">{trv(landing?.label ?? tabs.find((t) => t.key === current)?.label ?? "الإدارة")}</h1>
             </div>
-          </div>
-          {menuOpen ? (
-            <div
-              className="fixed inset-0 z-50 lg:hidden"
-              role="dialog"
-              aria-modal="true"
-              aria-label={tr("قائمة الإدارة")}
+            <LangSwitcher />
+            <span
+              className="grid size-10 shrink-0 place-items-center rounded-full bg-brand text-sm font-extrabold text-ink"
+              title={level === "owner" ? tr("المالك") : who.name}
+              aria-label={level === "owner" ? tr("المالك") : who.name}
             >
-              <button
-                type="button"
-                className="absolute inset-0 h-full w-full bg-black/40"
-                aria-label={tr("إغلاق القائمة")}
-                onClick={() => setMenuOpen(false)}
-              />
-              <div className="absolute inset-y-0 start-0 flex w-72 max-w-[85vw] flex-col overflow-y-auto bg-paper p-3 shadow-xl">
-                <div className="mb-2 flex items-center justify-between px-2">
-                  <p className="text-lg font-bold">{tr("لوحة التحكم")}</p>
-                  <button
-                    type="button"
-                    className="btn btn-ghost px-3"
-                    aria-label={tr("إغلاق")}
-                    onClick={() => setMenuOpen(false)}
-                  >
+              {level === "owner" && !who.name ? <BadgeCheck className="size-5" aria-hidden /> : (who.name || "?").slice(0, 1)}
+            </span>
+          </header>
+          {level !== "writer" ? (
+            <div className="mb-4">
+              <AdminSearch sections={tabs.map((t) => ({ key: t.key, label: t.label }))} go={go} />
+            </div>
+          ) : null}
+          {menuOpen ? (
+            <div className="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true" aria-label={tr("قائمة الإدارة")}>
+              <button type="button" className="absolute inset-0 h-full w-full bg-black/40" aria-label={tr("إغلاق القائمة")} onClick={() => setMenuOpen(false)} />
+              <div className="absolute inset-x-0 bottom-0 max-h-[80vh] overflow-y-auto rounded-t-3xl bg-paper p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] shadow-xl">
+                <div className="mx-auto mb-3 h-1.5 w-12 rounded-full bg-line" />
+                <div className="mb-2 flex items-center justify-between">
+                  <p className="text-lg font-extrabold">{tr("كل الأقسام")}</p>
+                  <button type="button" className="grid size-9 place-items-center rounded-full bg-surface" aria-label={tr("إغلاق")} onClick={() => setMenuOpen(false)}>
                     <X className="size-5" aria-hidden />
                   </button>
                 </div>
-                <AdminMenu
-                  tabs={tabs}
-                  section={current}
-                  onSelect={(k) => {
-                    setSection(k);
-                    setMenuOpen(false);
-                  }}
-                  onLogout={logout}
-                  level={level}
-                  name={who.name}
-                />
+                <AdminMenu tabs={tabs} section={current} onSelect={go} onLogout={logout} />
+                <Link to="/" className="mt-3 flex items-center gap-2 px-3 text-sm font-bold text-muted">{tr("العودة للموقع")}</Link>
               </div>
             </div>
           ) : null}
-          {current === "publish" ? (
+          {current === "home" ? (
+            <DashboardHome
+              go={go}
+              icons={{ haraj: Megaphone, comments: MessageSquare, news: Newspaper, reports: Flag, members: Users, sold: ShoppingBag, stats: BarChart3 }}
+            />
+          ) : current === "review" ? (
+            <ReviewQueue onCount={setReviewCount} />
+          ) : current === "publish" ? (
             <PublishAdmin />
           ) : current === "languages" ? (
             <LanguagesAdmin />
@@ -393,16 +472,18 @@ function AdminPage() {
             <StatsAdmin />
           ) : current === "store" ? (
             <StoreAdmin isOwner={level === "owner"} />
-          ) : current === "settings" ? (
-            <SiteSettingsAdmin />
+          ) : landing ? (
+            <GroupLanding group={landing} tabs={tabs} go={go} />
+          ) : current.startsWith("set-") ? (
+            <SiteSettingsAdmin key={current} only={current.slice(4) as SiteSettingsPart} />
           ) : current.startsWith("sec-") ? (
             <SectionAdmin key={current} id={current.slice(4) as "news"} />
           ) : current === "auto" ? (
             <AutoNewsAdmin />
           ) : current === "emails" ? (
             <EmailAdmin />
-          ) : current === "members" ? (
-            <MembersAdmin />
+          ) : current.startsWith("members-") ? (
+            <MembersAdmin key={current} only={current.slice(8) as "list"} />
           ) : current === "comments" ? (
             <CommentsAdmin />
           ) : current === "reports" ? (
@@ -492,7 +573,24 @@ function AdminPage() {
           )}
         </div>
       </div>
-    </Shell>
+      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-paper pb-[env(safe-area-inset-bottom)] lg:hidden" aria-label={tr("تنقل الإدارة")}>
+        <div className="mx-auto flex max-w-xl">
+          {BOTTOM.map(({ key, label, icon: Icon }) => (
+            <button key={key} type="button" aria-current={current === key || (key.startsWith("grp-") && curGroup && `grp-${curGroup.id}` === key) ? "page" : undefined} onClick={() => go(key)}
+              className={`relative flex flex-1 flex-col items-center gap-0.5 py-2 text-[11px] font-bold ${current === key || (curGroup && `grp-${curGroup.id}` === key) ? "text-ink" : "text-muted"}`}>
+              <span className={`grid h-7 w-12 place-items-center rounded-full ${current === key || (curGroup && `grp-${curGroup.id}` === key) ? "bg-brand" : ""}`}><Icon className="size-5" aria-hidden /></span>
+              {trv(label)}
+              {key === "review" && reviewCount ? <span className="absolute top-1 start-[55%] rounded-full bg-alert px-1.5 text-[10px] text-white">{reviewCount}</span> : null}
+            </button>
+          ))}
+          <button type="button" aria-label={tr("فتح القائمة")} aria-expanded={menuOpen} onClick={() => setMenuOpen(true)}
+            className={`flex flex-1 flex-col items-center gap-0.5 py-2 text-[11px] font-bold ${!BOTTOM.some((b) => b.key === current || (curGroup && `grp-${curGroup.id}` === b.key)) ? "text-ink" : "text-muted"}`}>
+            <span className={`grid h-7 w-12 place-items-center rounded-full ${!BOTTOM.some((b) => b.key === current || (curGroup && `grp-${curGroup.id}` === b.key)) ? "bg-brand" : ""}`}><LayoutGrid className="size-5" aria-hidden /></span>
+            {tr("المزيد")}
+          </button>
+        </div>
+      </nav>
+    </div>
   );
 }
 

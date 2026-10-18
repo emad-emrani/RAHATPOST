@@ -241,6 +241,10 @@
   "en": "{0} min",
   "he": "{0} ד'"
  },
+ "{0} زائر خلال 7 أيام": {
+  "en": "{0} visitors in 7 days",
+  "he": "{0} מבקרים ב-7 ימים"
+ },
  "{0} صلاحيات": {
   "en": "{0} permissions",
   "he": "{0} הרשאות"
@@ -352,6 +356,10 @@
  "؟": {
   "en": "?",
   "he": "?"
+ },
+ "آخر 7 أيام": {
+  "en": "Last 7 days",
+  "he": "7 ימים אחרונים"
  },
  "آخر أخبار التقنية والتكنولوجيا بالعربية: الهواتف الذكية، الذكاء الاصطناعي، التطبيقات والأجهزة، من أبرز المواقع التقنية العربية مع رابط المصدر.": {
   "en": "The latest tech news in Arabic: smartphones, AI, apps and devices, from leading Arabic tech sites with a link to the source.",
@@ -688,6 +696,14 @@
   "en": "Team members (moderator / writer)",
   "he": "חברי צוות (מנהל / כותב)"
  },
+ "أعضاء جدد": {
+  "en": "New members",
+  "he": "חברים חדשים"
+ },
+ "أعضاء جدد اليوم": {
+  "en": "New members today",
+  "he": "חברים חדשים היום"
+ },
  "أعلى": {
   "en": "Up",
   "he": "למעלה"
@@ -735,6 +751,10 @@
  "أقل قيمة": {
   "en": "Min value",
   "he": "ערך מינימלי"
+ },
+ "أكثر أقسام الحراج نشاطاً": {
+  "en": "Most active haraj categories",
+  "he": "קטגוריות פעילות"
  },
  "أكثر عبارات البحث": {
   "en": "Top search queries",
@@ -972,6 +992,10 @@
   "en": "Add",
   "he": "הוסף"
  },
+ "إضافة الأعضاء بالبريد لمن يملك صلاحية إدارة الأدوار.": {
+  "en": "Only for role managers.",
+  "he": "רק למנהלי תפקידים."
+ },
  "إضافة الأمثلة": {
   "en": "Add samples",
   "he": "הוסף דוגמאות"
@@ -1101,6 +1125,14 @@
   "en": "Sample listings: {0} (badged «Sample», not indexed).",
   "he": "מודעות דוגמה: {0} (מסומנות «דוגמה» ולא מאונדקסות)."
  },
+ "إعلانات بانتظار المراجعة": {
+  "en": "Listings pending",
+  "he": "מודעות ממתינות"
+ },
+ "إعلانات جديدة": {
+  "en": "New listings",
+  "he": "מודעות חדשות"
+ },
  "إعلانات رهط": {
   "en": "Rahat classifieds",
   "he": "מודעות רהט"
@@ -1116,6 +1148,10 @@
  "إعلانات منشورة": {
   "en": "Published ads",
   "he": "מודעות שפורסמו"
+ },
+ "إعلانات منشورة الآن": {
+  "en": "Live listings",
+  "he": "מודעות פעילות"
  },
  "إعلانات نموذجية لعرض الشكل فقط، وليست إعلانات حقيقية.": {
   "en": "Sample ads to show the layout only, not real ads.",
@@ -1253,6 +1289,10 @@
  "ابحث في الأخبار والدليل والإعلانات": {
   "en": "Search news, the directory and classifieds",
   "he": "חפש בחדשות, במדריך ובמודעות"
+ },
+ "ابحث في الإدارة: قسم، إعلان، خبر، عضو…": {
+  "en": "Search admin: section, listing, news, member…",
+  "he": "חיפוש: מדור, מודעה, ידיעה, חבר…"
  },
  "ابحث في الحراج…": {
   "en": "Search the haraj…",
@@ -1720,6 +1760,10 @@
   "en": "Statistics",
   "he": "סטטיסטיקה"
  },
+ "الإحصائيات والتسويق": {
+  "en": "Analytics & marketing",
+  "he": "סטטיסטיקה ושיווק"
+ },
  "الإدارة": {
   "en": "Admin",
   "he": "ניהול"
@@ -1868,6 +1912,10 @@
   "en": "Search",
   "he": "חיפוש"
  },
+ "البريد": {
+  "en": "Email",
+  "he": "אימייל"
+ },
  "البريد أو كلمة المرور غير صحيحة.": {
   "en": "Wrong email or password.",
   "he": "אימייל או סיסמה שגויים."
@@ -1920,6 +1968,10 @@
  "الترجمة": {
   "en": "Translation",
   "he": "תרגום"
+ },
+ "الترجمة واللغات والذكاء الاصطناعي": {
+  "en": "Translation, languages & AI",
+  "he": "תרגום, שפות ו-AI"
  },
  "التست ساري حتى": {
   "en": "Test valid until",
@@ -2042,6 +2094,10 @@
   "en": "Daily image cap",
   "he": "מכסה יומית לתמונות"
  },
+ "الحراج": {
+  "en": "Haraj",
+  "he": "יד שנייה"
+ },
  "الحساب": {
   "en": "Account",
   "he": "חשבון"
@@ -2069,6 +2125,10 @@
  "الخبر غير متوفر · رهط بوست": {
   "en": "Story unavailable · Rahat Post",
   "he": "הכתבה לא זמינה · רהט פוסט"
+ },
+ "الخدمات والتنبيهات": {
+  "en": "Services & alerts",
+  "he": "שירותים והתראות"
  },
  "الخدمة": {
   "en": "The service",
@@ -2481,6 +2541,10 @@
   "en": "Back to the app · Rahat Post",
   "he": "חזרה לאפליקציה · רהט פוסט"
  },
+ "العودة للموقع": {
+  "en": "Back to site",
+  "he": "חזרה לאתר"
+ },
  "الغرف": {
   "en": "Rooms",
   "he": "חדרים"
@@ -2606,6 +2670,10 @@
   "en": "Total",
   "he": "סה\"כ"
  },
+ "المحتوى والأخبار": {
+  "en": "Content & news",
+  "he": "תוכן וחדשות"
+ },
  "المحتوى والأعضاء": {
   "en": "Content & members",
   "he": "תוכן וחברים"
@@ -2628,6 +2696,10 @@
  },
  "المدينة المنورة، الحديقة": {},
  "المدينة المنورة، شمال غرب": {},
+ "المراجعة": {
+  "en": "Review",
+  "he": "בדיקה"
+ },
  "المراجعة المسبقة": {
   "en": "Pre-moderation",
   "he": "בדיקה מוקדמת"
@@ -2637,6 +2709,10 @@
  "المزوّد": {
   "en": "Provider",
   "he": "ספק"
+ },
+ "المزيد": {
+  "en": "More",
+  "he": "עוד"
  },
  "المزيد من أخبار إسرائيل": {
   "en": "More Israel news",
@@ -2967,6 +3043,10 @@
   "en": "Google Search (Search Console)",
   "he": "חיפוש Google (Search Console)"
  },
+ "بحث في الإدارة": {
+  "en": "Admin search",
+  "he": "חיפוש בניהול"
+ },
  "بحث في الدليل": {
   "en": "Search the directory",
   "he": "חיפוש במדריך"
@@ -3088,6 +3168,10 @@
   "en": "Reports",
   "he": "דיווחים"
  },
+ "بلاغات مفتوحة": {
+  "en": "Open reports",
+  "he": "דיווחים פתוחים"
+ },
  "بلاغات:": {
   "en": "Reports:",
   "he": "דיווחים:"
@@ -3132,6 +3216,10 @@
  "بيع أو إيجار": {
   "en": "Sale or rent",
   "he": "מכירה או השכרה"
+ },
+ "بيع خلال 30 يوماً": {
+  "en": "Sold in 30 days",
+  "he": "נמכרו ב-30 יום"
  },
  "بيع واشترِ أغراضاً مستعملة في رهط والنقب: سيارات، إلكترونيات، أثاث، ملابس وعقارات. تواصل مع البائع مباشرة عبر واتساب.": {
   "en": "Buy and sell used items in Rahat and the Negev: cars, electronics, furniture, clothes and property. Contact sellers directly on WhatsApp.",
@@ -3619,6 +3707,10 @@
   "en": "Comments",
   "he": "תגובות"
  },
+ "تعليقات بانتظار الموافقة": {
+  "en": "Comments pending",
+  "he": "תגובות ממתינות"
+ },
  "تعليم": {
   "en": "Education",
   "he": "חינוך"
@@ -3763,6 +3855,10 @@
  "تنظيف": {
   "en": "Cleaning",
   "he": "ניקיון"
+ },
+ "تنقل الإدارة": {
+  "en": "Admin navigation",
+  "he": "ניווט ניהול"
  },
  "تواصل عبر واتساب": {
   "en": "Contact on WhatsApp",
@@ -4244,6 +4340,10 @@
  },
  "خدمات جوجل": {
   "en": "Google services",
+  "he": "שירותי Google"
+ },
+ "خدمات جوجل (Analytics وAdSense وSearch Console)": {
+  "en": "Google services (Analytics, AdSense, Search Console)",
   "he": "שירותי Google"
  },
  "خدمات عامة": {
@@ -5121,6 +5221,10 @@
   "en": "Table & chairs",
   "he": "שולחן וכיסאות"
  },
+ "طرق تسجيل الدخول": {
+  "en": "Sign-in methods",
+  "he": "שיטות כניסה"
+ },
  "طرق تسجيل الدخول للأعضاء": {
   "en": "Member sign-in methods",
   "he": "שיטות התחברות לחברים"
@@ -5419,6 +5523,10 @@
   "en": "Fax:",
   "he": "פקס:"
  },
+ "فتح": {
+  "en": "Open",
+  "he": "פתח"
+ },
  "فتح الخبر": {
   "en": "Open article",
   "he": "פתח כתבה"
@@ -5524,6 +5632,10 @@
   "en": "News list",
   "he": "רשימת החדשות"
  },
+ "قائمة الأعضاء": {
+  "en": "Members list",
+  "he": "רשימת חברים"
+ },
  "قائمة الإدارة": {
   "en": "Admin menu",
   "he": "תפריט ניהול"
@@ -5579,6 +5691,10 @@
   "en": "Coming soon: we're preparing options and prices for this section.",
   "he": "בקרוב: אנו מכינים אפשרויות ומחירים למדור זה."
  },
+ "قسم": {
+  "en": "Section",
+  "he": "מדור"
+ },
  "قسم جديد": {
   "en": "New section",
   "he": "מדור חדש"
@@ -5591,6 +5707,10 @@
  "قماش": {
   "en": "Fabric",
   "he": "בד"
+ },
+ "قوالب رسائل البريد": {
+  "en": "Email templates",
+  "he": "תבניות אימייל"
  },
  "قيد المعالجة · ": {
   "en": "Processing · ",
@@ -5663,6 +5783,10 @@
  "كل الأرقام": {
   "en": "All numbers",
   "he": "כל המספרים"
+ },
+ "كل الأعضاء": {
+  "en": "All members",
+  "he": "כל החברים"
  },
  "كل الأغراض التي يعرضها هذا العضو للبيع في حراج رهط.": {
   "en": "Everything this member is selling on Rahat Haraj.",
@@ -5873,6 +5997,10 @@
   "en": "No trips on this day according to the schedule.",
   "he": "אין נסיעות ביום זה לפי הלוח."
  },
+ "لا شيء بانتظار المراجعة 🎉": {
+  "en": "Nothing to review 🎉",
+  "he": "אין מה לבדוק 🎉"
+ },
  "لا طلبات بعد.": {
   "en": "No orders yet.",
   "he": "אין עדיין הזמנות."
@@ -6064,6 +6192,10 @@
  "لمن": {
   "en": "For",
   "he": "למי"
+ },
+ "لوحة الإدارة": {
+  "en": "Admin panel",
+  "he": "לוח ניהול"
  },
  "لوحة التحكم": {
   "en": "Dashboard",
@@ -6415,6 +6547,14 @@
  "مشاهدات الصفحات": {
   "en": "Page views",
   "he": "צפיות בעמודים"
+ },
+ "مشاهدات الصفحات (Google Analytics)": {
+  "en": "Page views (Google Analytics)",
+  "he": "צפיות בדפים (GA)"
+ },
+ "مشاهدات اليوم": {
+  "en": "Views today",
+  "he": "צפיות היום"
  },
  "مشاهدة": {
   "en": "views",
