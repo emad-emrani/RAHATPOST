@@ -188,7 +188,7 @@ const ALL_TABS: { key: Section; label: string; icon: LucideIcon }[] = [
 ];
 
 const GROUPS: { id: string; label: string; icon: LucideIcon; keys: Section[] }[] = [
-  { id: "main", label: "الرئيسية", icon: House, keys: ["home", "publish", "review", "stats"] },
+  { id: "main", label: "الرئيسية", icon: House, keys: ["home", "review", "stats"] },
   {
     id: "content",
     label: "المحتوى والأخبار",
@@ -238,6 +238,17 @@ function AdminMenu({
 }) {
   return (
     <nav aria-label={tr("أقسام الإدارة")} className="flex flex-col gap-1">
+      {tabs.some((t) => t.key === "publish") ? (
+        <button
+          type="button"
+          aria-current={section === "publish" ? "page" : undefined}
+          className={`mb-2 flex w-full items-center justify-center gap-2 rounded-2xl bg-[#16A34A] px-4 py-3 font-bold text-white shadow-sm transition-colors hover:bg-[#15803D] ${section === "publish" ? "ring-2 ring-[#16A34A]/40 ring-offset-2" : ""}`}
+          onClick={() => onSelect("publish")}
+        >
+          <PenSquare className="size-5 shrink-0" aria-hidden />
+          {tr("نشر خبر")}
+        </button>
+      ) : null}
       {GROUPS.map((g) => {
         const items = groupItems(g, tabs);
         if (!items.length) return null;
