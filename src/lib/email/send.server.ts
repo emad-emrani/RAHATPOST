@@ -2,7 +2,7 @@ import { getSql } from "@/lib/db";
 import { DEFAULT_TEMPLATES, sanitizeTemplates, type EmailKind, type EmailLang, type EmailTemplates } from "./templates";
 
 const SITE = "https://rahatpost.com";
-const LOGO = `${SITE}/apple-touch-icon.png`;
+const LOGO = `${SITE}/email-logo.png`;
 const SITE_NAME: Record<EmailLang, string> = { ar: "رهط بوست", he: "רהט פוסט", en: "Rahat Post" };
 const FOOTER: Record<EmailLang, { privacy: string; why: string }> = {
   ar: { privacy: "سياسة الخصوصية", why: "وصلتك هذه الرسالة لأن لديك حساباً في رهط بوست." },
@@ -56,7 +56,7 @@ export function render(tpl: EmailTemplates, kind: EmailKind, lang: EmailLang, na
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:18px;overflow:hidden;border:1px solid #e6e1cf">
 <tr><td style="background:#FBF3D5;border-bottom:1px solid #EFE3B8;padding:22px 24px" dir="${dir}" align="${align}">
 <table role="presentation" cellpadding="0" cellspacing="0" dir="${dir}"><tr>
-<td style="padding-${rtl ? "left" : "right"}:12px"><img src="${LOGO}" width="52" height="52" alt="${esc(SITE_NAME[lang])}" style="display:block;border-radius:14px;border:0"></td>
+<td style="padding-${rtl ? "left" : "right"}:12px"><img src="${LOGO}" width="64" height="64" alt="${esc(SITE_NAME[lang])} – ${lang === "en" ? "logo" : lang === "he" ? "לוגו" : "شعار"}" style="display:block;width:64px;height:64px;border-radius:14px;border:0;outline:none;text-decoration:none"></td>
 <td style="font-size:22px;font-weight:bold;color:#263238">${esc(SITE_NAME[lang])}<div style="font-size:13px;font-weight:normal;color:#6B5B2E">${lang === "en" ? "Rahat &amp; the Negev" : lang === "he" ? "רהט והנגב" : "رهط والنقب"}</div></td>
 </tr></table></td></tr>
 <tr><td style="padding:28px 24px 8px" dir="${dir}" align="${align}">
