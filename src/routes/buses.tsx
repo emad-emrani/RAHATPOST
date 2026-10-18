@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { LocateFixed, Map as MapIcon, RefreshCw } from "lucide-react";
+import { CreditCard, LocateFixed, Map as MapIcon, RefreshCw } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Shell } from "@/components/shell";
 import { busSchedule } from "@/data/bus-schedule";
@@ -90,6 +90,16 @@ function BusesPage() {
       <p className="mt-1 font-semibold text-muted">
         {tr("خطوط مدينة رهط والخطوط الخارجة منها. المواعيد تتحدّث تلقائياً كل يوم من بيانات وزارة المواصلات، آخر تحديث")} {trv(UPDATED)}.
       </p>
+      <Link to="/buses/ravkav" className="mt-4 flex items-center gap-3 rounded-2xl bg-[#16A34A] px-4 py-3 font-bold text-white shadow-sm hover:bg-[#15803D]">
+        <span className="flex shrink-0 items-center gap-1 rounded-lg bg-white px-2 py-1 text-sm font-black text-[#15803D]" dir="rtl" lang="he">
+          <CreditCard className="size-4" aria-hidden />
+          רב-קו
+        </span>
+        <span className="min-w-0 flex-1">
+          {tr("رب-كاف: الشحن والخدمات")}
+          <span className="block text-xs font-semibold text-white/85">{tr("نقاط الشحن، الشحن أونلاين، ملفات التخفيض")}</span>
+        </span>
+      </Link>
       <div className="mt-4 grid grid-cols-2 gap-2">
         <a className="btn" href={`tel:${galimPhone.replaceAll("-", "")}`}>
           {tr("غاليم")} {trv(galimPhone)}

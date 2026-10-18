@@ -55,6 +55,7 @@ export type Slide =
   | { type: "builtin"; id: BuiltinSlideId }
   | { type: "custom"; id: string; title: string; subtitle: string; link: string; imageKey: string };
 
+export type RavKavPoint = { id: string; name: string; address: string; hours: string; lat: number; lon: number };
 export type BusAd = { id: string; title: string; link: string; imageKey: string };
 export type QuickLink = { id: string; title: string; subtitle: string; url: string; emoji: string };
 export type Toggle<T extends string> = { id: T; visible: boolean };
@@ -100,6 +101,8 @@ export type SiteSettings = {
   /** Rotating ad slider on /buses (marketing → «إعلانات الباصات»). */
   busAds: { enabled: boolean; items: BusAd[] };
   /** Announcement bar (marketing → «شريط الإعلان»). `rev` changes on every edit so dismissals reset. */
+  /** Rav-Kav charging/sale points entered by the admin (no open dataset exists). */
+  ravkavPoints: RavKavPoint[];
   announce: { enabled: boolean; text: string; link: string; kind: "info" | "warning" | "urgent"; scope: "all" | "buses"; rev: string };
 };
 
@@ -160,6 +163,7 @@ export const DEFAULT_SETTINGS: SiteSettings = {
   tiles: (Object.keys(TILE_ITEMS) as TileId[]).map((id) => ({ id, visible: true })),
   quickLinks: [],
   busAds: { enabled: false, items: [] },
+  ravkavPoints: [],
   announce: { enabled: false, text: "", link: "", kind: "info", scope: "all", rev: "" },
 };
 
@@ -306,6 +310,10 @@ export function sanitizeSettings(input: unknown): SiteSettings {
     tiles: toggles(i.tiles, Object.keys(TILE_ITEMS) as TileId[]),
     quickLinks,
     busAds: { enabled: ba.enabled === true, items: busAdItems },
+    ravkavPoints: (Array.isArray(i.ravkavPoints) ? i.ravkavPoints : [])
+      .slice(0, 50)
+      .map((p: any) => ({ id: String(p?.id ?? ""), name: str(p?.name, 80), address: str(p?.address, 140), hours: str(p?.hours, 80), lat: Number(p?.lat), lon: Number(p?.lon) }))
+      .filter((p: RavKavPoint) => ID.test(p.id) && p.name && p.lat > 29 && p.lat < 34 && p.lon > 33 && p.lon < 36),
     announce: (() => {
       const an = (i.announce ?? {}) as Record<string, any>;
       const text = str(an.text, 220);

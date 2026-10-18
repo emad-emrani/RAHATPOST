@@ -34,6 +34,7 @@ const PARTS = {
   google: "خدمات جوجل",
   busads: "إعلانات الباصات",
   announce: "شريط الإعلان",
+  ravkav: "نقاط شحن رب-كاف",
 } as const;
 type Part = keyof typeof PARTS;
 
@@ -146,6 +147,7 @@ export function SiteSettingsAdmin({ only }: { only?: Part } = {}) {
       ) : null}
       {part === "links" ? <LinksPart s={s} set={set} /> : null}
       {part === "google" ? <GooglePart s={s} set={set} /> : null}
+      {part === "ravkav" ? <RavKavPart s={s} set={set} /> : null}
       {part === "announce" ? <AnnouncePart s={s} set={set} /> : null}
       {part === "busads" ? <BusAdsPart s={s} set={set} setMsg={setMsg} /> : null}
 
@@ -549,6 +551,46 @@ function SliderPart({ s, set, setMsg }: PartProps & { setMsg: (m: string) => voi
   );
 }
 
+function RavKavPart({ s, set }: PartProps) {
+  const pts = s.ravkavPoints ?? [];
+  const update = (i: number, patch: Record<string, string | number>) =>
+    set({ ravkavPoints: pts.map((x, j) => (j === i ? { ...x, ...patch } : x)) });
+  return (
+    <Card
+      title={tr("نقاط شحن وبيع رب-كاف قرب رهط")}
+      hint={tr("لا توجد قائمة رسمية مفتوحة لهذه النقاط، فأضف فقط نقاطاً تأكدت منها. الإحداثيات: من خرائط جوجل (اضغط مطولاً على المكان وانسخ الرقمين).")}
+    >
+      <ul className="flex flex-col gap-3">
+        {pts.map((p, i) => (
+          <li key={p.id} className="flex flex-col gap-2 rounded-xl border border-line p-3">
+            <div className="flex items-center gap-2">
+              <span className="min-w-0 flex-1 font-bold">{p.name || tr("نقطة جديدة")}</span>
+              <IconBtn label={tr("حذف")} onClick={() => set({ ravkavPoints: pts.filter((_, j) => j !== i) })}><Trash2 className="size-4" /></IconBtn>
+            </div>
+            <Field label={tr("الاسم (مثلاً: بقالة … / كشك …)")}><input className="field" maxLength={80} value={p.name} onChange={(e) => update(i, { name: e.target.value })} /></Field>
+            <Field label={tr("العنوان")}><input className="field" maxLength={140} value={p.address} onChange={(e) => update(i, { address: e.target.value })} /></Field>
+            <Field label={tr("ساعات العمل (اختياري)")}><input className="field" maxLength={80} value={p.hours} onChange={(e) => update(i, { hours: e.target.value })} /></Field>
+            <Field label={tr("الإحداثيات (خط العرض، خط الطول) مثل 31.3925, 34.7544")}>
+              <input
+                className="field"
+                dir="ltr"
+                defaultValue={p.lat ? `${p.lat}, ${p.lon}` : ""}
+                onChange={(e) => {
+                  const m = e.target.value.match(/(-?\d+(?:\.\d+)?)\s*[,\s]\s*(-?\d+(?:\.\d+)?)/);
+                  if (m) update(i, { lat: Number(m[1]), lon: Number(m[2]) });
+                }}
+              />
+            </Field>
+          </li>
+        ))}
+      </ul>
+      <button type="button" className="btn" disabled={pts.length >= 50} onClick={() => set({ ravkavPoints: [...pts, { id: newId(), name: "", address: "", hours: "", lat: 0, lon: 0 }] })}>
+        {tr("إضافة نقطة")}
+      </button>
+    </Card>
+  );
+}
+
 function AnnouncePart({ s, set }: PartProps) {
   const a = s.announce ?? { enabled: false, text: "", link: "", kind: "info" as const, scope: "all" as const, rev: "" };
   const put = (patch: Partial<typeof a>) => set({ announce: { ...a, ...patch } });
@@ -604,10 +646,10 @@ function BusAdsPart({ s, set, setMsg }: PartProps & { setMsg: (m: string) => voi
             </div>
             <div className="mt-3 flex flex-col gap-2">
               <ImagePick label={tr("الصورة (يُفضّل عرضية 16:6)")} value={x.imageKey} onChange={(imageKey) => update(i, { imageKey })} setMsg={setMsg} />
-              <Field label={tr("عنوان (اختياري، للوصف)")}>
+              <Field label={tr("العنوان (يظهر على الصورة)")}>
                 <input className="field" value={x.title} maxLength={90} onChange={(e) => update(i, { title: e.target.value })} />
               </Field>
-              <Field label={tr("الرابط (صفحة في الموقع أو https)")}>
+              <Field label={tr("رابط الصفحة عند الضغط (مثل /haraj أو https://…)")}>
                 <input className="field" dir="ltr" value={x.link} maxLength={300} onChange={(e) => update(i, { link: e.target.value })} />
               </Field>
             </div>

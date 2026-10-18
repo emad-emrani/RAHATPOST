@@ -142,14 +142,14 @@ function ArticlePage() {
             <ReaderBody article={article} />
           ) : (
             <>
-              {article.summary ? <p className="mt-4 text-lg">{trv(article.summary)}</p> : null}
+              {article.summary ? <p className="mt-4 text-lg">{trv(snippet(article.summary, 320))}</p> : null}
               <a
                 className="btn mt-5 w-full"
                 href={article.link}
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                {tr("اقرأ الخبر كاملاً في المصدر")}
+                {tr("اقرأ الخبر كاملاً من المصدر · {0}", article.source)}
                 <ExternalLink className="size-4" aria-hidden />
               </a>
               <p className="mt-3 text-sm font-semibold text-muted">

@@ -81,12 +81,11 @@ function BusMapPage() {
         13,
       );
       Lf.control.zoom({ position: "bottomleft" }).addTo(m);
-      // Clean modern basemap (CARTO Voyager, free with attribution).
-      Lf.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
-        maxZoom: 20,
-        subdomains: "abcd",
-        attribution:
-          '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a>',
+      // OSM tiles, softened via .rp-soft-tiles (styles.css) for a cleaner modern look.
+      Lf.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19,
+        className: "rp-soft-tiles",
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>',
       }).addTo(m);
       routeLayer.current = Lf.layerGroup().addTo(m);
       busLayer.current = Lf.layerGroup().addTo(m);

@@ -610,3 +610,6 @@ html[lang="he"] body {
   min-height: 3rem;
   background: var(--color-surface);
 }
+
+/* Softer, cleaner OSM basemap under bus routes */
+.rp-soft-tiles { filter: saturate(0.45) brightness(1.06) contrast(0.95); }

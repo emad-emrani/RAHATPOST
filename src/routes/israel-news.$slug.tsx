@@ -113,11 +113,11 @@ function IsraelArticlePage() {
           {summary ? (
             article.summaryAr ? (
               <p lang="ar" className="mt-4 text-lg">
-                {trv(summary)}
+                {trv(snippet(summary, 320))}
               </p>
             ) : (
               <p lang="he" dir="rtl" className="mt-4 text-lg">
-                {trv(summary)}
+                {trv(snippet(summary, 320))}
               </p>
             )
           ) : null}
@@ -135,7 +135,7 @@ function IsraelArticlePage() {
             target="_blank"
             rel="noopener noreferrer"
           >
-            {tr("الخبر الأصلي بالعبرية")}
+            {tr("اقرأ الخبر كاملاً من المصدر · {0}", article.source)}
             <ExternalLink className="size-4" aria-hidden />
           </a>
           <p className="mt-3 text-sm font-semibold text-muted">

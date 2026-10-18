@@ -172,12 +172,19 @@ export function BusAdsSlider({ items }: { items: { id: string; title: string; li
       >
         {items.map((a, n) => {
           const img = (
-            <img src={mediaUrl(a.imageKey)} alt={a.title || tr("إعلان")} loading={n === 0 ? "eager" : "lazy"} decoding="async" className="aspect-[16/6] w-full object-cover" />
+            <span className="relative block">
+              <img src={mediaUrl(a.imageKey)} alt={a.title || tr("إعلان")} loading={n === 0 ? "eager" : "lazy"} decoding="async" className="aspect-[16/7] w-full object-cover" />
+              {a.title ? (
+                <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-3 pb-2 pt-6 text-base font-bold text-white">
+                  {trv(a.title)}
+                </span>
+              ) : null}
+            </span>
           );
           return (
             <div key={a.id} className="w-full shrink-0 snap-center">
               {a.link ? (
-                <a href={a.link} target={a.link.startsWith("/") ? undefined : "_blank"} rel="noopener sponsored">{img}</a>
+                <a href={a.link} className="block" target={a.link.startsWith("/") ? undefined : "_blank"} rel="noopener sponsored">{img}</a>
               ) : img}
             </div>
           );
