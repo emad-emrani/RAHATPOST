@@ -852,6 +852,10 @@
   "en": "Sent to {0} device{1}{2}.",
   "he": "נשלח ל-{0} מכשירים{1}{2}."
  },
+ "أُرسلت التجربة إلى {0}.": {
+  "en": "Test sent to {0}.",
+  "he": "נשלח אל {0}."
+ },
  "أُضيف {0} كود.": {
   "en": "Added {0} codes.",
   "he": "נוספו {0} קודים."
@@ -927,6 +931,14 @@
  "إرسال الإشعار الآن لكل المشتركين في هذا الموضوع؟": {
   "en": "Send the notification now to everyone subscribed to this topic?",
   "he": "לשלוח את ההתראה עכשיו לכל המנויים בנושא זה?"
+ },
+ "إرسال تجربة": {
+  "en": "Send a test",
+  "he": "שליחת בדיקה"
+ },
+ "إرسال رسالة ترحيب لكل عضو جديد (Google وFacebook والبريد)": {
+  "en": "Send a welcome email to every new member (Google, Facebook, email)",
+  "he": "שלח הודעת ברוכים הבאים לכל חבר חדש"
  },
  "إرسال للمراجعة": {
   "en": "Submit for review",
@@ -1023,6 +1035,10 @@
  "إعادة الإرسال": {
   "en": "Resend",
   "he": "שליחה חוזרת"
+ },
+ "إعادة تعيين كلمة المرور": {
+  "en": "Password reset",
+  "he": "איפוס סיסמה"
  },
  "إعادة محاولة التسليم": {
   "en": "Retry delivery",
@@ -1264,6 +1280,10 @@
  "احذف حسابي نهائياً": {
   "en": "Permanently delete my account",
   "he": "מחק את החשבון שלי לצמיתות"
+ },
+ "احفظ وأرسل تجربة لي": {
+  "en": "Save and send me a test",
+  "he": "שמור ושלח לי בדיקה"
  },
  "اختبار": {
   "en": "Test",
@@ -2417,9 +2437,17 @@
   "en": "Title",
   "he": "כותרת"
  },
+ "العنوان (Subject)": {
+  "en": "Subject",
+  "he": "נושא"
+ },
  "العنوان الأصلي بالعبرية": {
   "en": "Original Hebrew headline",
   "he": "הכותרת המקורית בעברית"
+ },
+ "العنوان داخل الرسالة": {
+  "en": "Heading",
+  "he": "כותרת בהודעה"
  },
  "العنوان قصير (5 أحرف على الأقل).": {
   "en": "The title is too short (at least 5 characters).",
@@ -2545,6 +2573,10 @@
  "المتجر | رهط بوست": {
   "en": "Store | Rahat Post",
   "he": "חנות | רהט פוסט"
+ },
+ "المتغيرات: {name} اسم العضو، {site} اسم الموقع، {link} الرابط. تُرسل الرسالة بلغة الموقع التي كان العضو يتصفح بها.": {
+  "en": "Placeholders: {name} member, {site} site, {link} link. Sent in the language the member was browsing in.",
+  "he": "משתנים: {name} שם, {site} אתר, {link} קישור. נשלח בשפת הגלישה של החבר."
  },
  "المثبتة": {
   "en": "Pinned",
@@ -2738,6 +2770,10 @@
  "النص": {
   "en": "Text",
   "he": "טקסט"
+ },
+ "النص (سطر فارغ = فقرة جديدة)": {
+  "en": "Body (blank line = new paragraph)",
+  "he": "טקסט (שורה ריקה = פסקה)"
  },
  "النصوص والشعار": {
   "en": "Texts & logo",
@@ -2962,6 +2998,10 @@
  "بريد وكلمة مرور": {
   "en": "Email/password",
   "he": "אימייל וסיסמה"
+ },
+ "بريدك": {
+  "en": "Your email",
+  "he": "האימייל שלך"
  },
  "بريدك الإلكتروني لا يُعرض لأحد.": {
   "en": "Your email is never shown to anyone.",
@@ -4487,6 +4527,14 @@
  "رذاذ": {
   "en": "Drizzle",
   "he": "טפטוף"
+ },
+ "رسائل البريد": {
+  "en": "Emails",
+  "he": "הודעות אימייל"
+ },
+ "رسالة الترحيب": {
+  "en": "Welcome email",
+  "he": "הודעת ברוכים הבאים"
  },
  "رفح / البوئي": {},
  "رفض": {
@@ -6242,6 +6290,10 @@
  },
  "مركز التسوق": {},
  "مركز بايس رهط": {},
+ "مزوّد البريد غير مضبوط (RESEND_API_KEY و STORE_EMAIL_FROM)، فلن تُرسل الرسائل.": {
+  "en": "Mail provider not configured; emails won't be sent.",
+  "he": "שירות המייל לא מוגדר, הודעות לא יישלחו."
+ },
  "مساجد": {
   "en": "Mosques",
   "he": "מסגדים"
@@ -6810,6 +6862,10 @@
  "نص الخبر: ماذا حدث، متى، ومن المعنيّون؟": {
   "en": "News text: what happened, when, and who's involved?",
   "he": "טקסט החדשה: מה קרה, מתי, ומי מעורב?"
+ },
+ "نص الزر": {
+  "en": "Button text",
+  "he": "טקסט הכפתור"
  },
  "نص الشارة (فارغ = بلا شارة)": {
   "en": "Badge text (empty = none)",

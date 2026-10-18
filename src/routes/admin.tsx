@@ -39,6 +39,7 @@ import { AutoNewsAdmin } from "@/components/admin/auto-news-admin";
 import { SectionAdmin } from "@/components/admin/section-admin";
 import { SiteSettingsAdmin } from "@/components/admin/site-settings-admin";
 import { MembersAdmin } from "@/components/admin/members-admin";
+import { EmailAdmin } from "@/components/admin/email-admin";
 import { adminWhoami } from "@/lib/team/api";
 import type { AdminLevel } from "@/lib/admin-auth";
 import { PublishAdmin } from "@/components/admin/publish-admin";
@@ -70,6 +71,7 @@ type Section =
   | "auto"
   | "publish"
   | "members"
+  | "emails"
   | "news"
   | "ads"
   | "haraj-cats"
@@ -107,6 +109,7 @@ const ALL_TABS: { key: Section; label: string; icon: LucideIcon }[] = [
   { key: "alerts", label: "التنبيهات", icon: Siren },
   { key: "push", label: "الإشعارات", icon: Bell },
   { key: "members", label: "الأعضاء والصلاحيات", icon: Users },
+  { key: "emails", label: "رسائل البريد", icon: Bell },
   { key: "settings", label: "إعدادات الموقع", icon: Settings },
   { key: "languages", label: "اللغات", icon: Globe },
   { key: "gemini", label: "الذكاء الاصطناعي والترجمة", icon: Sparkles },
@@ -396,6 +399,8 @@ function AdminPage() {
             <SectionAdmin key={current} id={current.slice(4) as "news"} />
           ) : current === "auto" ? (
             <AutoNewsAdmin />
+          ) : current === "emails" ? (
+            <EmailAdmin />
           ) : current === "members" ? (
             <MembersAdmin />
           ) : current === "comments" ? (

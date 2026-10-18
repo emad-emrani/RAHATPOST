@@ -141,12 +141,8 @@ export const auth = betterAuth({
     autoSignIn: true,
     resetPasswordTokenExpiresIn: 3600,
     sendResetPassword: async ({ user, url }) => {
-      const { sendMail } = await import("@/lib/store/email.server");
-      await sendMail(
-        user.email,
-        "إعادة تعيين كلمة المرور · رهط بوست",
-        `مرحباً ${user.name},\n\nلإعادة تعيين كلمة المرور افتح الرابط (صالح لساعة واحدة):\n${url}\n\nإن لم تطلب ذلك فتجاهل هذه الرسالة.`,
-      );
+      const { requestLang, sendTemplate } = await import("@/lib/email/send.server");
+      await sendTemplate("reset", user.email, user.name, await requestLang(), url);
     },
   },
   // Admin switches (أعضاء وتسجيل الدخول): refuse a disabled method on the server too.
@@ -174,6 +170,15 @@ export const auth = betterAuth({
   // (see src/lib/auth/native.ts and /app-auth/*).
   // Pending team invites (admin_invites) take effect as soon as that verified email signs in.
   databaseHooks: {
+    // One welcome e-mail per new member, whatever the sign-in method (toggle + texts in admin).
+    user: {
+      create: {
+        after: async (user) => {
+          const { requestLang, sendTemplate } = await import("@/lib/email/send.server");
+          await sendTemplate("welcome", user.email, user.name, await requestLang(), "https://rahatpost.com/haraj");
+        },
+      },
+    },
     // Someone could register a password account with another person's email before that person
     // ever signs in. When the real owner then signs in with Google/Facebook (verified email →
     // linked account), the password is dropped so only the owner can get in.
