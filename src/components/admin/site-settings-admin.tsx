@@ -1,4 +1,5 @@
 import { useRouter } from "@tanstack/react-router";
+import { OSM_RAVKAV_POINTS } from "@/data/ravkav-points";
 import { ArrowDown, ArrowUp, Eye, EyeOff, Trash2 } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { compress } from "@/components/photo-picker";
@@ -553,6 +554,16 @@ function SliderPart({ s, set, setMsg }: PartProps & { setMsg: (m: string) => voi
 
 function RavKavPart({ s, set }: PartProps) {
   const pts = s.ravkavPoints ?? [];
+  const ui = s.ravkavUi ?? { button: true, points: true, hidden: [] };
+  const putUi = (patch: Partial<typeof ui>) => set({ ravkavUi: { ...ui, ...patch } });
+  const shown = (id: string) => !ui.hidden.includes(id);
+  const toggle = (id: string, on: boolean) => putUi({ hidden: on ? ui.hidden.filter((x) => x !== id) : [...ui.hidden, id] });
+  const Sw = ({ on, onChange, label }: { on: boolean; onChange: (v: boolean) => void; label: string }) => (
+    <label className="flex items-center justify-between gap-3 font-bold">
+      {label}
+      <input type="checkbox" role="switch" className="size-6 accent-[#FDB700]" checked={on} onChange={(e) => onChange(e.target.checked)} />
+    </label>
+  );
   const update = (i: number, patch: Record<string, string | number>) =>
     set({ ravkavPoints: pts.map((x, j) => (j === i ? { ...x, ...patch } : x)) });
   return (
@@ -560,11 +571,26 @@ function RavKavPart({ s, set }: PartProps) {
       title={tr("نقاط شحن وبيع رب-كاف قرب رهط")}
       hint={tr("لا توجد قائمة رسمية مفتوحة لهذه النقاط، فأضف فقط نقاطاً تأكدت منها. الإحداثيات: من خرائط جوجل (اضغط مطولاً على المكان وانسخ الرقمين).")}
     >
+      <div className="flex flex-col gap-2 rounded-xl bg-[#FFF6DB] p-3">
+        <Sw label={tr("إظهار زر رب-كاف في صفحة الباصات")} on={ui.button} onChange={(button) => putUi({ button })} />
+        <Sw label={tr("إظهار قسم نقاط الشحن (الخريطة والقائمة)")} on={ui.points} onChange={(points) => putUi({ points })} />
+      </div>
+      <p className="text-sm font-bold">{tr("نقاط من OpenStreetMap (تلقائية)")}</p>
+      <ul className="flex flex-col gap-2">
+        {OSM_RAVKAV_POINTS.map((p) => (
+          <li key={p.id} className="rounded-xl border border-line p-3">
+            <Sw label={p.name} on={shown(p.id)} onChange={(v) => toggle(p.id, v)} />
+            <p className="text-xs font-semibold text-muted">{p.source}</p>
+          </li>
+        ))}
+      </ul>
+      <p className="text-sm font-bold">{tr("نقاط مضافة يدوياً")}</p>
       <ul className="flex flex-col gap-3">
         {pts.map((p, i) => (
           <li key={p.id} className="flex flex-col gap-2 rounded-xl border border-line p-3">
             <div className="flex items-center gap-2">
               <span className="min-w-0 flex-1 font-bold">{p.name || tr("نقطة جديدة")}</span>
+              <input type="checkbox" role="switch" aria-label={tr("إظهار")} title={tr("إظهار")} className="size-6 accent-[#FDB700]" checked={shown(p.id)} onChange={(e) => toggle(p.id, e.target.checked)} />
               <IconBtn label={tr("حذف")} onClick={() => set({ ravkavPoints: pts.filter((_, j) => j !== i) })}><Trash2 className="size-4" /></IconBtn>
             </div>
             <Field label={tr("الاسم (مثلاً: بقالة … / كشك …)")}><input className="field" maxLength={80} value={p.name} onChange={(e) => update(i, { name: e.target.value })} /></Field>

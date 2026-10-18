@@ -103,6 +103,8 @@ export type SiteSettings = {
   /** Announcement bar (marketing → «شريط الإعلان»). `rev` changes on every edit so dismissals reset. */
   /** Rav-Kav charging/sale points entered by the admin (no open dataset exists). */
   ravkavPoints: RavKavPoint[];
+  /** Show/hide: the bus-page button, the points section, and individual point ids. */
+  ravkavUi: { button: boolean; points: boolean; hidden: string[] };
   announce: { enabled: boolean; text: string; link: string; kind: "info" | "warning" | "urgent"; scope: "all" | "buses"; rev: string };
 };
 
@@ -164,6 +166,7 @@ export const DEFAULT_SETTINGS: SiteSettings = {
   quickLinks: [],
   busAds: { enabled: false, items: [] },
   ravkavPoints: [],
+  ravkavUi: { button: true, points: true, hidden: [] },
   announce: { enabled: false, text: "", link: "", kind: "info", scope: "all", rev: "" },
 };
 
@@ -314,6 +317,14 @@ export function sanitizeSettings(input: unknown): SiteSettings {
       .slice(0, 50)
       .map((p: any) => ({ id: String(p?.id ?? ""), name: str(p?.name, 80), address: str(p?.address, 140), hours: str(p?.hours, 80), lat: Number(p?.lat), lon: Number(p?.lon) }))
       .filter((p: RavKavPoint) => ID.test(p.id) && p.name && p.lat > 29 && p.lat < 34 && p.lon > 33 && p.lon < 36),
+    ravkavUi: (() => {
+      const u = (i.ravkavUi ?? {}) as Record<string, any>;
+      return {
+        button: u.button !== false,
+        points: u.points !== false,
+        hidden: (Array.isArray(u.hidden) ? u.hidden : []).map(String).filter((x: string) => /^[a-z0-9]{4,24}$/.test(x)).slice(0, 100),
+      };
+    })(),
     announce: (() => {
       const an = (i.announce ?? {}) as Record<string, any>;
       const text = str(an.text, 220);

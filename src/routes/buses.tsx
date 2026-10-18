@@ -67,7 +67,9 @@ function BusesPage() {
   const { now: serverNow, overrides } = Route.useLoaderData();
   const busLines = useMemo(() => applyOverrides(baseLines, overrides), [overrides]);
   const notice = overrides.find((o) => o.number === "*")?.note;
-  const busAds = useSiteSettings().busAds;
+  const siteSt = useSiteSettings();
+  const busAds = siteSt.busAds;
+  const busRavkavButton = siteSt.ravkavUi?.button !== false;
   const [now, setNow] = useState(serverNow);
   useEffect(() => {
     setNow(Date.now());
@@ -90,6 +92,7 @@ function BusesPage() {
       <p className="mt-1 font-semibold text-muted">
         {tr("خطوط مدينة رهط والخطوط الخارجة منها. المواعيد تتحدّث تلقائياً كل يوم من بيانات وزارة المواصلات، آخر تحديث")} {trv(UPDATED)}.
       </p>
+      {busRavkavButton ? (
       <Link to="/buses/ravkav" className="mt-4 flex items-center gap-3 rounded-2xl bg-[#16A34A] px-4 py-3 font-bold text-white shadow-sm hover:bg-[#15803D]">
         <span className="flex shrink-0 items-center gap-1 rounded-lg bg-white px-2 py-1 text-sm font-black text-[#15803D]" dir="rtl" lang="he">
           <CreditCard className="size-4" aria-hidden />
@@ -100,6 +103,7 @@ function BusesPage() {
           <span className="block text-xs font-semibold text-white/85">{tr("نقاط الشحن، الشحن أونلاين، ملفات التخفيض")}</span>
         </span>
       </Link>
+      ) : null}
       <div className="mt-4 grid grid-cols-2 gap-2">
         <a className="btn" href={`tel:${galimPhone.replaceAll("-", "")}`}>
           {tr("غاليم")} {trv(galimPhone)}

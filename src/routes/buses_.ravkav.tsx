@@ -33,8 +33,10 @@ const SERVICES = [
 ];
 
 function RavKavPage() {
-  const admin = useSiteSettings().ravkavPoints ?? [];
-  const points: RavKavPoint[] = [...admin, ...OSM_RAVKAV_POINTS.filter((o) => !admin.some((a) => Math.abs(a.lat - o.lat) < 1e-4 && Math.abs(a.lon - o.lon) < 1e-4))];
+  const st = useSiteSettings();
+  const admin = st.ravkavPoints ?? [];
+  const ui = st.ravkavUi ?? { button: true, points: true, hidden: [] };
+  const points: RavKavPoint[] = [...admin, ...OSM_RAVKAV_POINTS.filter((o) => !admin.some((a) => Math.abs(a.lat - o.lat) < 1e-4 && Math.abs(a.lon - o.lon) < 1e-4))].filter((p) => !ui.hidden.includes(p.id));
   return (
     <Shell>
       <Link to="/buses" className="inline-flex items-center gap-1 text-sm font-bold text-muted">
@@ -47,6 +49,8 @@ function RavKavPage() {
       </h1>
       <p className="mt-1 font-semibold text-muted">{tr("كل خدمات بطاقة المواصلات من المواقع الرسمية فقط.")}</p>
 
+      {ui.points ? (
+        <>
       <h2 className="mt-5 text-xl font-bold">{tr("نقاط الشحن قرب رهط")}</h2>
       {points.length ? (
         <>
@@ -73,6 +77,9 @@ function RavKavPage() {
           {tr("لم تُضف نقاط شحن بعد. لمعرفة أقرب نقطة شحن رسمية الآن افتح تطبيق رب-كاف أونلاين ← «نقاط الشحن».")}
         </p>
       )}
+
+        </>
+      ) : null}
 
       <h2 className="mt-6 text-xl font-bold">{tr("خدمات رب-كاف الرسمية")}</h2>
       <ul className="mt-3 grid gap-2 sm:grid-cols-2">
