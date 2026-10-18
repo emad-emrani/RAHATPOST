@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import { AnnounceBar } from "@/components/announce-bar";
 import { Bus, ChevronLeft, ShoppingCart, House, Megaphone, Newspaper, Plus, Siren, Store } from "lucide-react";
 import type { ReactNode } from "react";
 import logoUrl from "@/assets/logo.jpg";
@@ -28,6 +29,7 @@ export function Shell({ children, wide = false }: { children: ReactNode; wide?: 
     .filter((x): x is (typeof NAV)[number] => Boolean(x));
   return (
     <div className="min-h-screen bg-surface text-ink">
+      <AnnounceBar />
       <header className="edge-b sticky top-0 z-30 bg-paper">
         <div className="mx-auto flex max-w-3xl items-center gap-2 px-3 py-2 sm:gap-3 sm:px-4">
           <Link to="/" className="shrink-0 rounded-2xl" aria-label={tr("{0}، الرئيسية", t.siteName)}>

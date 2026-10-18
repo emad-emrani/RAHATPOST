@@ -11,6 +11,7 @@ import { GmapsStopButtons } from "@/components/gmaps-buttons";
 import { lineInfo, stopName } from "@/lib/buses/schedule";
 import type { ArrivalsResult } from "@/lib/buses/types";
 import { seo } from "@/lib/seo";
+import { getBusOverrides } from "@/lib/buses/overrides";
 import { tr, trv } from "@/lib/i18n/core";
 
 type Vehicle = { ref: string; dir: string; lat: number; lon: number; at: string };
@@ -20,11 +21,20 @@ export const Route = createFileRoute("/buses_/map/$line")({
     stop:
       typeof search.stop === "string" && /^\d{3,6}$/.test(search.stop) ? search.stop : undefined,
   }),
-  loader: ({ params }) => {
+  loader: async ({ params }) => {
     const info = lineInfo(params.line);
     if (!info) throw notFound();
     const meta = busLines.find((l) => l.number === params.line);
-    return { line: params.line, from: meta?.from ?? "", to: meta?.to ?? "" };
+    const ov = (await getBusOverrides().catch(() => [])).find((o) => o.number === params.line);
+    if (ov?.hidden) throw notFound();
+    return {
+      line: params.line,
+      from: ov?.labelFrom || meta?.from || "",
+      to: ov?.labelTo || meta?.to || "",
+      note: ov?.note || meta?.note || "",
+      shape: ov?.shape ?? null,
+      hiddenStops: ov?.hiddenStops ?? [],
+    };
   },
   head: ({ params }) =>
     seo({
@@ -38,7 +48,7 @@ export const Route = createFileRoute("/buses_/map/$line")({
 const REFRESH_MS = 30_000;
 
 function BusMapPage() {
-  const { line, from, to } = Route.useLoaderData();
+  const { line, from, to, note, shape: shapeOverride, hiddenStops } = Route.useLoaderData();
   const info = lineInfo(line)!;
   const { stop: focusStop } = Route.useSearch();
   const [dir, setDir] = useState(
@@ -71,10 +81,12 @@ function BusMapPage() {
         13,
       );
       Lf.control.zoom({ position: "bottomleft" }).addTo(m);
-      Lf.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        maxZoom: 19,
+      // Clean modern basemap (CARTO Voyager, free with attribution).
+      Lf.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
+        maxZoom: 20,
+        subdomains: "abcd",
         attribution:
-          '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>',
+          '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a>',
       }).addTo(m);
       routeLayer.current = Lf.layerGroup().addTo(m);
       busLayer.current = Lf.layerGroup().addTo(m);
@@ -97,24 +109,43 @@ function BusMapPage() {
     routeLayer.current.clearLayers();
     const stopPts = d.stops
       .map(([code]) => ({ code, s: busSchedule.stops[code] }))
-      .filter((x) => x.s);
-    void fetch(`/data/bus-shapes/${shapeFile(line)}.json`)
+      .filter((x) => x.s && !hiddenStops.includes(x.code));
+    void (shapeOverride?.[d.dir] ? Promise.resolve({ source: "admin", line, dirs: shapeOverride } as LineShapes) : fetch(`/data/bus-shapes/${shapeFile(line)}.json`)
       .then((r) => (r.ok ? (r.json() as Promise<LineShapes>) : null))
-      .catch(() => null)
+      .catch(() => null))
       .then((shapes) => {
         if (cancelled || !routeLayer.current || !map.current) return;
         const path =
           shapes?.dirs[d.dir] ?? stopPts.map((x) => [x.s.lat, x.s.lon] as [number, number]);
-        const poly = Lf.polyline(path, { color: "#263238", weight: 5, opacity: 0.85 }).addTo(
+        // White casing + coloured line + direction arrows every ~400 m.
+        Lf.polyline(path, { color: "#ffffff", weight: 10, opacity: 1 }).addTo(routeLayer.current);
+        const poly = Lf.polyline(path, { color: "#E08A00", weight: 6, opacity: 1 }).addTo(
           routeLayer.current,
         );
+        let acc = 0;
+        for (let i = 1; i < path.length; i++) {
+          const [a1, o1] = path[i - 1];
+          const [a2, o2] = path[i];
+          acc += Math.hypot((a2 - a1) * 111_000, (o2 - o1) * 95_000);
+          if (acc < 400) continue;
+          acc = 0;
+          const deg = (Math.atan2((o2 - o1) * 0.85, a2 - a1) * 180) / Math.PI;
+          Lf.marker([a2, o2], {
+            interactive: false,
+            icon: Lf.divIcon({
+              className: "",
+              iconSize: [14, 14],
+              html: `<div style="transform:rotate(${deg}deg);width:14px;height:14px;display:grid;place-items:center;color:#fff;font-size:11px;line-height:1">▲</div>`,
+            }),
+          }).addTo(routeLayer.current);
+        }
         for (const [i, x] of stopPts.entries()) {
           const end = i === 0 || i === stopPts.length - 1;
           Lf.circleMarker([x.s.lat, x.s.lon], {
             radius: end ? 8 : 6,
-            color: "#263238",
+            color: end ? "#263238" : "#E08A00",
             weight: 2,
-            fillColor: end ? "#f2c94c" : "#ffffff",
+            fillColor: end ? "#FDB700" : "#ffffff",
             fillOpacity: 1,
           })
             .addTo(routeLayer.current)
@@ -234,6 +265,7 @@ function BusMapPage() {
           <RefreshCw className="size-5" aria-hidden />
         </button>
       </header>
+      {note ? <p className="mx-3 mt-2 rounded-xl bg-[#FFF6DB] px-3 py-2 text-sm font-bold">📢 {trv(note)}</p> : null}
       {d && busSchedule.stops[d.from] && busSchedule.stops[d.to] ? (
         <div className="px-3 pt-2">
           <a

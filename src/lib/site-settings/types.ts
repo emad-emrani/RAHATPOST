@@ -55,6 +55,7 @@ export type Slide =
   | { type: "builtin"; id: BuiltinSlideId }
   | { type: "custom"; id: string; title: string; subtitle: string; link: string; imageKey: string };
 
+export type BusAd = { id: string; title: string; link: string; imageKey: string };
 export type QuickLink = { id: string; title: string; subtitle: string; url: string; emoji: string };
 export type Toggle<T extends string> = { id: T; visible: boolean };
 
@@ -96,6 +97,10 @@ export type SiteSettings = {
   nav: Toggle<NavId>[];
   tiles: Toggle<TileId>[];
   quickLinks: QuickLink[];
+  /** Rotating ad slider on /buses (marketing → «إعلانات الباصات»). */
+  busAds: { enabled: boolean; items: BusAd[] };
+  /** Announcement bar (marketing → «شريط الإعلان»). `rev` changes on every edit so dismissals reset. */
+  announce: { enabled: boolean; text: string; link: string; kind: "info" | "warning" | "urgent"; scope: "all" | "buses"; rev: string };
 };
 
 export const THEME_DEFAULT = {
@@ -154,6 +159,8 @@ export const DEFAULT_SETTINGS: SiteSettings = {
   nav: (Object.keys(NAV_ITEMS) as NavId[]).map((id) => ({ id, visible: true })),
   tiles: (Object.keys(TILE_ITEMS) as TileId[]).map((id) => ({ id, visible: true })),
   quickLinks: [],
+  busAds: { enabled: false, items: [] },
+  announce: { enabled: false, text: "", link: "", kind: "info", scope: "all", rev: "" },
 };
 
 const HEX = /^#[0-9a-f]{6}$/i;
@@ -245,6 +252,14 @@ export function sanitizeSettings(input: unknown): SiteSettings {
           emoji: str(q.emoji, 4),
         });
     }
+  const ba = (i.busAds ?? {}) as Record<string, any>;
+  const busAdItems: BusAd[] = [];
+  if (Array.isArray(ba.items))
+    for (const a of ba.items.slice(0, 10)) {
+      const imageKey = KEY.test(String(a?.imageKey ?? "")) ? String(a.imageKey) : "";
+      if (imageKey && ID.test(String(a?.id)))
+        busAdItems.push({ id: String(a.id), title: str(a.title, 90), link: safeUrl(a.link), imageKey });
+    }
   const g = (i.google ?? {}) as Record<string, any>;
   const pick = (v: unknown, re: RegExp) => {
     const t = typeof v === "string" ? v.trim() : "";
@@ -290,6 +305,18 @@ export function sanitizeSettings(input: unknown): SiteSettings {
     nav: toggles(i.nav, Object.keys(NAV_ITEMS) as NavId[]),
     tiles: toggles(i.tiles, Object.keys(TILE_ITEMS) as TileId[]),
     quickLinks,
+    busAds: { enabled: ba.enabled === true, items: busAdItems },
+    announce: (() => {
+      const an = (i.announce ?? {}) as Record<string, any>;
+      const text = str(an.text, 220);
+      const link = safeUrl(an.link);
+      const kind = (["info", "warning", "urgent"] as const).find((k) => k === an.kind) ?? "info";
+      const scope = an.scope === "buses" ? "buses" : "all";
+      // Content-derived revision: a new text/link means visitors see it again.
+      let h = 0;
+      for (const ch of `${text}|${link}|${kind}`) h = (h * 31 + ch.charCodeAt(0)) | 0;
+      return { enabled: an.enabled === true && Boolean(text), text, link, kind, scope, rev: (h >>> 0).toString(36) } as SiteSettings["announce"];
+    })(),
   };
 }
 
@@ -337,5 +364,6 @@ export function settingsImageKeys(s: SiteSettings): string[] {
     s.logoKey,
     s.faviconKey,
     ...s.slides.map((x) => (x.type === "custom" ? x.imageKey : "")),
+    ...(s.busAds?.enabled ? s.busAds.items.map((x) => x.imageKey) : []),
   ].filter(Boolean);
 }
