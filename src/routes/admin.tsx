@@ -35,6 +35,7 @@ import {
   Link2,
   Mail,
   ChevronLeft,
+  MonitorUp,
 } from "lucide-react";
 import { createFileRoute } from "@tanstack/react-router";
 import { PhotoStrip } from "@/components/photo-picker";
@@ -52,6 +53,7 @@ import { AutoNewsAdmin } from "@/components/admin/auto-news-admin";
 import { SectionAdmin } from "@/components/admin/section-admin";
 import { SiteSettingsAdmin, type SiteSettingsPart } from "@/components/admin/site-settings-admin";
 import { MembersAdmin } from "@/components/admin/members-admin";
+import { PopupsAdmin } from "@/components/admin/popups-admin";
 import { EmailAdmin } from "@/components/admin/email-admin";
 import { adminWhoami } from "@/lib/team/api";
 import type { AdminLevel } from "@/lib/admin-auth";
@@ -100,6 +102,7 @@ type Section =
   | "members-invite"
   | "members-methods"
   | "emails"
+  | "popups"
   | "news"
   | "ads"
   | "haraj-cats"
@@ -143,6 +146,7 @@ const ALL_TABS: { key: Section; label: string; icon: LucideIcon }[] = [
   { key: "members-invite", label: "إضافة عضو بالبريد", icon: UserPlus },
   { key: "members-methods", label: "طرق تسجيل الدخول", icon: KeyRound },
   { key: "emails", label: "قوالب رسائل البريد", icon: Mail },
+  { key: "popups", label: "الإعلانات المنبثقة", icon: MonitorUp },
   { key: "set-theme", label: "المظهر والألوان", icon: Palette },
   { key: "set-texts", label: "النصوص والشعار", icon: Type },
   { key: "set-home", label: "أقسام الرئيسية", icon: LayoutGrid },
@@ -163,7 +167,7 @@ const GROUPS: { id: string; label: string; icon: LucideIcon; keys: Section[] }[]
   { id: "emails", label: "البريد", icon: Mail, keys: ["emails"] },
   { id: "auto", label: "الأقسام التلقائية", icon: Rss, keys: ["auto", "sec-news", "sec-israel", "sec-sports", "sec-tech", "sec-weather"] },
   { id: "i18n", label: "الترجمة واللغات والذكاء الاصطناعي", icon: Globe, keys: ["languages", "gemini"] },
-  { id: "analytics", label: "الإحصائيات والتسويق", icon: BarChart3, keys: ["stats", "set-google"] },
+  { id: "analytics", label: "الإحصائيات والتسويق", icon: BarChart3, keys: ["stats", "popups", "set-google"] },
   { id: "settings", label: "إعدادات الموقع", icon: Settings, keys: ["set-theme", "set-texts", "set-home", "set-menus", "set-slider", "set-links"] },
 ];
 const groupItems = (g: (typeof GROUPS)[number], tabs: typeof ALL_TABS) =>
@@ -480,6 +484,8 @@ function AdminPage() {
             <SectionAdmin key={current} id={current.slice(4) as "news"} />
           ) : current === "auto" ? (
             <AutoNewsAdmin />
+          ) : current === "popups" ? (
+            <PopupsAdmin />
           ) : current === "emails" ? (
             <EmailAdmin />
           ) : current.startsWith("members-") ? (

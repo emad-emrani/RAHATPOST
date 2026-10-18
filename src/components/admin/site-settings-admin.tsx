@@ -45,7 +45,7 @@ function move<T>(list: T[], i: number, d: number): T[] {
   return out;
 }
 
-async function uploadImage(file: File): Promise<string> {
+export async function uploadImage(file: File): Promise<string> {
   const blob = await compress(file);
   const res = await fetch("/api/media?kind=staff", {
     method: "POST",

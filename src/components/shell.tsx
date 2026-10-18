@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import logoUrl from "@/assets/logo.jpg";
 import { UserMenu } from "@/components/user-menu";
 import { LangSwitcher } from "@/components/lang-switcher";
+import { PopupHost } from "@/components/popup-host";
 import { mediaUrl } from "@/lib/media/types";
 import { useSiteSettings } from "@/lib/site-settings/context";
 import { cartCount, useCart } from "@/lib/store/cart";
@@ -128,6 +129,7 @@ export function Shell({ children, wide = false }: { children: ReactNode; wide?: 
           })}
         </div>
       </nav>
+      <PopupHost />
     </div>
   );
 }
