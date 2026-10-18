@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Shell } from "@/components/shell";
+import { AuthLayout } from "@/components/auth-layout";
 import { SignInButtons } from "@/components/sign-in";
 import { getAuthConfig } from "@/lib/auth/api";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
@@ -30,41 +30,29 @@ function LoginPage() {
   const { user, isPending } = useCurrentUserState();
 
   return (
-    <Shell>
-      <div className="mx-auto max-w-md">
-        <h1 className="mb-1 text-2xl font-bold">{tr("تسجيل الدخول")}</h1>
-        <p className="mb-4 font-semibold text-muted">
-          {tr("سجّل الدخول لتنشر أخباراً وإعلانات وتضيف نشاطك باسمك، وتتابعها من «منشوراتي».")}
-        </p>
-
-        {!isPending && user ? (
-          <div className="stamp flex flex-col gap-3 p-4">
-            <p className="font-bold">{tr("أنت مسجّل الدخول باسم")} {trv(user.displayName)}.</p>
-            <Link to="/my-posts" className="btn">
-              {tr("منشوراتي")}
-            </Link>
-          </div>
-        ) : (
-          <div className="stamp flex flex-col gap-3 p-4">
-            <SignInButtons
-              config={config}
-              redirect={redirect}
-              initialError={search.error ? tr("لم يكتمل تسجيل الدخول. حاول مرة أخرى.") : ""}
-            />
-            <p className="text-sm font-semibold text-muted">
-              {tr("نستخدم اسمك وصورتك من الحساب لعرضهما مع منشوراتك فقط، ولا ننشر شيئاً على حسابك. بتسجيل الدخول أنت توافق على")}{" "}
-              <Link to="/terms" className="font-bold underline">
-                {tr("شروط الاستخدام")}
-              </Link>{" "}
-              {tr("و")}
-              <Link to="/privacy" className="font-bold underline">
-                {tr("سياسة الخصوصية")}
-              </Link>
-              .
-            </p>
-          </div>
-        )}
-      </div>
-    </Shell>
+    <AuthLayout
+      title={!isPending && user ? tr("أهلاً بعودتك") : tr("تسجيل الدخول")}
+      subtitle={tr("سجّل الدخول لتنشر أخباراً وإعلانات وتضيف نشاطك باسمك، وتتابعها من «منشوراتي».")}
+      footer={
+        <>
+          {tr("نستخدم اسمك وصورتك من الحساب لعرضهما مع منشوراتك فقط، ولا ننشر شيئاً على حسابك. بتسجيل الدخول أنت توافق على")}{" "}
+          <Link to="/terms" className="font-bold underline">{tr("شروط الاستخدام")}</Link> {tr("و")}
+          <Link to="/privacy" className="font-bold underline">{tr("سياسة الخصوصية")}</Link>.
+        </>
+      }
+    >
+      {!isPending && user ? (
+        <>
+          <p className="font-bold">{tr("أنت مسجّل الدخول باسم")} {trv(user.displayName)}.</p>
+          <Link to="/my-posts" className="btn">{tr("منشوراتي")}</Link>
+        </>
+      ) : (
+        <SignInButtons
+          config={config}
+          redirect={redirect}
+          initialError={search.error ? tr("لم يكتمل تسجيل الدخول. حاول مرة أخرى.") : ""}
+        />
+      )}
+    </AuthLayout>
   );
 }

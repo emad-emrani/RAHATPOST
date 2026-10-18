@@ -37,10 +37,11 @@ export function checkPassword(input: string): boolean {
   return safeEqual(sign(input, key), sign(key, key));
 }
 
-export function issueSession(): string {
+export const REMEMBER_MS = 30 * 24 * 60 * 60_000;
+export function issueSession(ms = SESSION_MS): string {
   const key = secret();
   if (!key) throw new Error("admin not configured");
-  const exp = String(Date.now() + SESSION_MS);
+  const exp = String(Date.now() + ms);
   return `${exp}.${sign(exp, key)}`;
 }
 

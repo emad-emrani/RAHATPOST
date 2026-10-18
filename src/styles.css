@@ -599,3 +599,14 @@ html[dir="ltr"] .lucide-arrow-right {
 html[lang="he"] body {
   font-family: "Segoe UI", "Arial Hebrew", Arial, "IBM Plex Sans Arabic", sans-serif;
 }
+
+/* Sign-in pages (AuthLayout): pill buttons and soft fields. */
+.auth-card .btn {
+  border-radius: 9999px;
+  min-height: 3rem;
+}
+.auth-card .field {
+  border-radius: 1rem;
+  min-height: 3rem;
+  background: var(--color-surface);
+}

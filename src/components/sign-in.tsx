@@ -200,6 +200,9 @@ function EmailAuth({ redirect, canReset }: { redirect: string; canReset: boolean
   return (
     <form
       className="flex flex-col gap-2"
+      method="post"
+      action="/login"
+      autoComplete="on"
       onSubmit={async (event) => {
         event.preventDefault();
         setMsg("");
@@ -219,10 +222,10 @@ function EmailAuth({ redirect, canReset }: { redirect: string; canReset: boolean
             const name = String(f.get("name") ?? "").trim();
             if (name.length < 2) return setMsg(tr("اكتب اسمك (حرفان على الأقل)."));
             if (password !== String(f.get("password2") ?? "")) return setMsg(tr("كلمتا المرور غير متطابقتين."));
-            const res = await authClient.signUp.email({ email, password, name });
+            const res = await authClient.signUp.email({ email, password, name, rememberMe: f.get("remember") === "on" } as { email: string; password: string; name: string });
             if (res.error) return setMsg(friendly(res.error.code ?? res.error.message, tr("تعذّر إنشاء الحساب.")));
           } else {
-            const res = await authClient.signIn.email({ email, password });
+            const res = await authClient.signIn.email({ email, password, rememberMe: f.get("remember") === "on" });
             if (res.error) return setMsg(friendly(res.error.code ?? res.error.message));
           }
           window.location.href = redirect;
@@ -241,12 +244,18 @@ function EmailAuth({ redirect, canReset }: { redirect: string; canReset: boolean
         ))}
       </div>
       {mode === "up" ? <input name="name" required minLength={2} maxLength={60} autoComplete="name" placeholder={tr("الاسم الكامل")} aria-label={tr("الاسم الكامل")} className="field" /> : null}
-      <input name="email" type="email" required autoComplete="email" dir="ltr" placeholder={tr("البريد الإلكتروني")} aria-label={tr("البريد الإلكتروني")} className="field" />
+      <input name="email" id="auth-email" type="email" required autoComplete="username" dir="ltr" placeholder={tr("البريد الإلكتروني")} aria-label={tr("البريد الإلكتروني")} className="field" />
       {mode !== "forgot" ? (
         <input name="password" type="password" required minLength={8} maxLength={128} autoComplete={mode === "up" ? "new-password" : "current-password"} dir="ltr" placeholder={tr("كلمة المرور")} aria-label={tr("كلمة المرور")} className="field" />
       ) : null}
       {mode === "up" ? (
         <input name="password2" type="password" required minLength={8} maxLength={128} autoComplete="new-password" dir="ltr" placeholder={tr("تأكيد كلمة المرور")} aria-label={tr("تأكيد كلمة المرور")} className="field" />
+      ) : null}
+      {mode !== "forgot" ? (
+        <label className="flex items-center gap-2 text-sm font-bold">
+          <input type="checkbox" name="remember" defaultChecked className="size-5 accent-[#FDB700]" />
+          {tr("تذكرني")}
+        </label>
       ) : null}
       <button type="submit" className="btn" disabled={busy}>
         {busy ? tr("لحظة…") : mode === "in" ? tr("دخول") : mode === "up" ? tr("إنشاء الحساب") : tr("أرسل رابط إعادة التعيين")}

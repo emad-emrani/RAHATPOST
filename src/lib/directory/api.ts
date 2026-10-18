@@ -115,12 +115,13 @@ async function requireAdmin() {
 const loginHits = new Map<string, number[]>();
 
 export const adminLogin = createServerFn({ method: "POST" })
-  .inputValidator((input: { password: string }) => ({
+  .inputValidator((input: { password: string; remember?: boolean }) => ({
     password: String(input?.password ?? "").slice(0, 200),
+    remember: input?.remember === true,
   }))
   .handler(async ({ data }): Promise<{ ok: boolean; message?: string }> => {
     const { getRequestIP, setCookie } = await import("@tanstack/react-start/server");
-    const { ADMIN_COOKIE, checkPassword, issueSession, sessionMaxAge } =
+    const { ADMIN_COOKIE, checkPassword, issueSession, sessionMaxAge, REMEMBER_MS } =
       await import("./auth.server");
     const ip = getRequestIP({ xForwardedFor: true }) ?? "unknown";
     const now = Date.now();
@@ -131,13 +132,15 @@ export const adminLogin = createServerFn({ method: "POST" })
       loginHits.set(ip, recent);
       return { ok: false, message: "كلمة المرور غير صحيحة." };
     }
-    setCookie(ADMIN_COOKIE, issueSession(), {
+    // «تذكرني»: 30-day persistent cookie; otherwise a browser-session cookie (token still expires in 12h).
+    setCookie(ADMIN_COOKIE, data.remember ? issueSession(REMEMBER_MS) : issueSession(), {
       httpOnly: true,
       secure: Boolean(process.env.VERCEL),
       sameSite: "strict",
       path: "/",
-      maxAge: sessionMaxAge(),
+      ...(data.remember ? { maxAge: REMEMBER_MS / 1000 } : {}),
     });
+    void sessionMaxAge;
     return { ok: true };
   });
 

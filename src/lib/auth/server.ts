@@ -164,7 +164,8 @@ export const auth = betterAuth({
   // No cookieCache: sign-in then sets a single cookie (session_token). When a server
   // already set response headers (e.g. Vite's dev CORS middleware), Node's writeHead
   // keeps only the last of several Set-Cookie headers, which dropped the session.
-  session: { cookieCache: { enabled: false } },
+  // 60-day sessions, refreshed daily while used (sliding). «تذكرني» off = browser-session cookie.
+  session: { cookieCache: { enabled: false }, expiresIn: 60 * 24 * 60 * 60, updateAge: 24 * 60 * 60 },
   // Store app (Capacitor): Google refuses sign-in inside an embedded WebView, so the app signs in
   // in the system browser and hands the session back with a short-lived, single-use token
   // (see src/lib/auth/native.ts and /app-auth/*).

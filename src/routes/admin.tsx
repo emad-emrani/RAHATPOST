@@ -41,6 +41,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { PhotoStrip } from "@/components/photo-picker";
 import { Fragment, useCallback, useEffect, useState } from "react";
 import { Shell } from "@/components/shell";
+import { AuthLayout } from "@/components/auth-layout";
 import { CommentsAdmin } from "@/components/admin/comments-admin";
 import { AlertsAdmin, DutyAdmin, PushAdmin, ReportsAdmin } from "@/components/admin/content-admin";
 import { HarajCategoriesAdmin } from "@/components/admin/haraj-categories-admin";
@@ -300,14 +301,14 @@ function AdminPage() {
 
   if (state === "login") {
     return (
-      <Shell>
-        <h1 className="mb-3 text-2xl font-bold">{tr("الإدارة")}</h1>
+      <AuthLayout title={tr("لوحة الإدارة")} subtitle={tr("دخول المالك بكلمة المرور، أو أعضاء الفريق بحساباتهم.")}>
         <form
-          className="stamp flex flex-col gap-3 p-4"
+          className="flex flex-col gap-3"
           onSubmit={async (event) => {
             event.preventDefault();
-            const password = String(new FormData(event.currentTarget).get("password") ?? "");
-            const res = await adminLogin({ data: { password } });
+            const fd = new FormData(event.currentTarget);
+            const password = String(fd.get("password") ?? "");
+            const res = await adminLogin({ data: { password, remember: fd.get("remember") === "on" } });
             if (res.ok) {
               setError("");
               await refresh();
@@ -316,6 +317,7 @@ function AdminPage() {
         >
           <label className="block font-bold">
             {tr("كلمة المرور")}
+            <input type="text" name="username" value="admin" autoComplete="username" readOnly hidden />
             <input
               name="password"
               type="password"
@@ -325,12 +327,16 @@ function AdminPage() {
               dir="ltr"
             />
           </label>
+          <label className="flex items-center gap-2 text-sm font-bold">
+            <input type="checkbox" name="remember" defaultChecked className="size-5 accent-[#FDB700]" />
+            {tr("تذكرني (30 يوماً)")}
+          </label>
           {error ? <p className="font-bold">{trv(error)}</p> : null}
           <button type="submit" className="btn">
             {tr("دخول")}
           </button>
         </form>
-        <div className="stamp mt-4 flex flex-col gap-2 p-4">
+        <div className="mt-2 flex flex-col gap-2 border-t border-line pt-4">
           <p className="font-bold">{tr("أعضاء الفريق (مشرف / كاتب)")}</p>
           {who.signedIn ? (
             <p className="font-semibold text-muted">
@@ -342,7 +348,7 @@ function AdminPage() {
             </a>
           )}
         </div>
-      </Shell>
+      </AuthLayout>
     );
   }
 

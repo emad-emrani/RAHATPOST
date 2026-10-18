@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { Shell } from "@/components/shell";
+import { AuthLayout } from "@/components/auth-layout";
 import { authClient } from "@/lib/auth/client";
 import { tr } from "@/lib/i18n/core";
 
@@ -19,17 +19,15 @@ function ResetPage() {
   const [done, setDone] = useState(false);
   const [busy, setBusy] = useState(false);
   return (
-    <Shell>
-      <div className="mx-auto max-w-md">
-        <h1 className="mb-3 text-2xl font-bold">{tr("كلمة مرور جديدة")}</h1>
+    <AuthLayout title={tr("كلمة مرور جديدة")} subtitle={tr("اختر كلمة مرور من 8 أحرف على الأقل.")}>
         {done ? (
-          <div className="stamp flex flex-col gap-3 p-4">
+          <div className="flex flex-col gap-3">
             <p className="font-bold">{tr("تم تغيير كلمة المرور. سجّل الدخول بها الآن.")}</p>
             <Link to="/login" className="btn">{tr("تسجيل الدخول")}</Link>
           </div>
         ) : (
           <form
-            className="stamp flex flex-col gap-2 p-4"
+            className="flex flex-col gap-3"
             onSubmit={async (e) => {
               e.preventDefault();
               const f = new FormData(e.currentTarget);
@@ -49,7 +47,6 @@ function ResetPage() {
             <Link to="/login" className="text-sm font-bold underline">{tr("رجوع لتسجيل الدخول")}</Link>
           </form>
         )}
-      </div>
-    </Shell>
+    </AuthLayout>
   );
 }

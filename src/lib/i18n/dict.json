@@ -812,6 +812,10 @@
   "en": "Unlimited Tech",
   "he": "Unlimited Tech"
  },
+ "أهلاً بعودتك": {
+  "en": "Welcome back",
+  "he": "ברוך שובך"
+ },
  "أهم عناوين أخبار إسرائيل من واي نت والقناة 12 ومعاريف وغلوبس، مترجمة آلياً إلى العربية لأهالي رهط والنقب، مع رابط الخبر الأصلي بالعبرية.": {
   "en": "Top Israel news headlines from Ynet, Channel 12, Maariv and Globes, machine-translated into Arabic for the people of Rahat and the Negev, with a link to the original Hebrew story.",
   "he": "כותרות חדשות ישראל המובילות מ-ynet, חדשות 12, מעריב וגלובס, בתרגום מכונה לערבית לתושבי רהט והנגב, עם קישור לכתבה המקורית בעברית."
@@ -1388,6 +1392,10 @@
  "اختر سبب الإبلاغ.": {
   "en": "Choose a reason for the report.",
   "he": "בחר סיבה לדיווח."
+ },
+ "اختر كلمة مرور من 8 أحرف على الأقل.": {
+  "en": "Choose a password of at least 8 characters.",
+  "he": "בחר סיסמה של 8 תווים לפחות."
  },
  "اختر ملف صورة.": {
   "en": "Choose an image file.",
@@ -3342,6 +3350,14 @@
   "he": "קמפינג"
  },
  "تداول العملات": {},
+ "تذكرني": {
+  "en": "Remember me",
+  "he": "זכור אותי"
+ },
+ "تذكرني (30 يوماً)": {
+  "en": "Remember me (30 days)",
+  "he": "זכור אותי (30 יום)"
+ },
  "ترتيب الأقسام في الصفحة الرئيسية يُضبط من «إعدادات الموقع».": {
   "en": "Home section order is set in “Site settings”.",
   "he": "סדר המדורים בעמוד הבית נקבע ב«הגדרות האתר»."
@@ -4506,6 +4522,10 @@
  "دخول": {
   "en": "Sign in",
   "he": "כניסה"
+ },
+ "دخول المالك بكلمة المرور، أو أعضاء الفريق بحساباتهم.": {
+  "en": "Owner signs in with the password; team members with their accounts.",
+  "he": "כניסת בעלים בסיסמה, או חברי צוות בחשבון."
  },
  "دخول بحساب Google": {
   "en": "Sign in with Google",
