@@ -10,13 +10,18 @@
 export type AdminLevel = "owner" | "moderator" | "writer";
 export type AdminAccess = { level: AdminLevel; userId: string; name: string; perms: string[]; master?: boolean } | null;
 
-export const masterEmail = () => (process.env.ADMIN_MASTER_EMAIL?.trim() || "amad.wwf@gmail.com").toLowerCase();
+/** ADMIN_MASTER_EMAIL may list several addresses, comma-separated. */
+export const masterEmails = (): string[] => {
+  const list = (process.env.ADMIN_MASTER_EMAIL ?? "").split(",").map((e) => e.trim().toLowerCase()).filter((e) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e));
+  return list.length ? list : ["amad.wwf@gmail.com"];
+};
+export const masterEmail = () => masterEmails()[0];
 
 /** True only for the master account with a provider-verified email (password sign-ups are never verified). */
 export async function isMasterUser(userId: string): Promise<boolean> {
   const { getSql } = await import("@/lib/db");
   const sql = await getSql();
-  const rows = await sql.query<{ id: string }>(`select "id" from "user" where "id" = $1 and lower("email") = $2 and "emailVerified" = true`, [userId, masterEmail()]);
+  const rows = await sql.query<{ id: string }>(`select "id" from "user" where "id" = $1 and lower("email") = any($2::text[]) and "emailVerified" = true`, [userId, masterEmails()]);
   return rows.length > 0;
 }
 

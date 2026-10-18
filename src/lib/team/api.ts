@@ -160,8 +160,8 @@ export const adminInviteByEmail = createServerFn({ method: "POST" })
     async ({ data }): Promise<{ ok: boolean; result?: "assigned" | "invited"; error?: string }> => {
       if (!EMAIL_RE.test(data.email)) return { ok: false, error: "بريد إلكتروني غير صالح." };
       if (!data.role) return { ok: false, error: "اختر الصلاحية." };
-      const { masterEmail } = await import("@/lib/admin-auth");
-      if (data.email === masterEmail()) return { ok: false, error: "لا يمكن تغيير دور adminmaster." };
+      const { masterEmails } = await import("@/lib/admin-auth");
+      if (masterEmails().includes(data.email.toLowerCase())) return { ok: false, error: "لا يمكن تغيير دور adminmaster." };
       const check = await canAssign(null, data.role);
       if (check) return { ok: false, error: check };
       try {

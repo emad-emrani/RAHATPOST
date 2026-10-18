@@ -46,12 +46,12 @@ export async function listMembers(q = ""): Promise<Member[]> {
     `select u."id", u."name", u."email", u."image", u."createdAt",
        (select array_agg(distinct a."providerId") from "account" a where a."userId" = u."id") as methods,
        exists (select 1 from user_blocks b where b.user_id = u."id") as blocked,
-       case when lower(u."email") = $2 and u."emailVerified" then 'adminmaster'
+       case when lower(u."email") = any($2::text[]) and u."emailVerified" then 'adminmaster'
             else (select r.role from admin_roles r where r.user_id = u."id") end as role
      from "user" u
      where u."id" <> 'haraj-sample-seller' and ($1 = '' or u."name" ilike $3 or u."email" ilike $3)
      order by u."createdAt" desc limit 300`,
-    [q, (await import("@/lib/admin-auth")).masterEmail(), `%${q.replace(/[%_\\]/g, "\\$&")}%`],
+    [q, (await import("@/lib/admin-auth")).masterEmails(), `%${q.replace(/[%_\\]/g, "\\$&")}%`],
   );
   return rows.map((r) => ({
     id: r.id,
