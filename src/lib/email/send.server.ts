@@ -54,15 +54,15 @@ export function render(tpl: EmailTemplates, kind: EmailKind, lang: EmailLang, na
 <body style="margin:0;padding:0;background:#f1f2f4;font-family:Tahoma,Arial,'Segoe UI',sans-serif">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f1f2f4;padding:24px 12px"><tr><td align="center">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:18px;overflow:hidden;border:1px solid #e6e1cf">
-<tr><td style="background:#f2c94c;padding:22px 24px" dir="${dir}" align="${align}">
+<tr><td style="background:#FBF3D5;border-bottom:1px solid #EFE3B8;padding:22px 24px" dir="${dir}" align="${align}">
 <table role="presentation" cellpadding="0" cellspacing="0" dir="${dir}"><tr>
 <td style="padding-${rtl ? "left" : "right"}:12px"><img src="${LOGO}" width="52" height="52" alt="${esc(SITE_NAME[lang])}" style="display:block;border-radius:14px;border:0"></td>
-<td style="font-size:22px;font-weight:bold;color:#263238">${esc(SITE_NAME[lang])}<div style="font-size:13px;font-weight:normal;color:#5b4a12">${lang === "en" ? "Rahat &amp; the Negev" : lang === "he" ? "רהט והנגב" : "رهط والنقب"}</div></td>
+<td style="font-size:22px;font-weight:bold;color:#263238">${esc(SITE_NAME[lang])}<div style="font-size:13px;font-weight:normal;color:#6B5B2E">${lang === "en" ? "Rahat &amp; the Negev" : lang === "he" ? "רהט והנגב" : "رهط والنقب"}</div></td>
 </tr></table></td></tr>
 <tr><td style="padding:28px 24px 8px" dir="${dir}" align="${align}">
 <h1 style="margin:0 0 16px;font-size:22px;line-height:1.4;color:#263238">${esc(heading)}</h1>
 ${paras}
-<table role="presentation" cellpadding="0" cellspacing="0" style="margin:8px 0 20px"><tr><td style="background:#f2c94c;border-radius:12px;border:1px solid #d9a92a">
+<table role="presentation" cellpadding="0" cellspacing="0" style="margin:8px 0 20px"><tr><td style="background:#E9D38C;border-radius:12px;border:1px solid #D9C273">
 <a href="${esc(link)}" style="display:inline-block;padding:13px 26px;font-size:16px;font-weight:bold;color:#263238;text-decoration:none">${esc(t.button)}</a></td></tr></table>
 ${kind === "welcome" ? `<p style="margin:0 0 6px;font-size:14px;color:#5f6b72"><a href="${SITE}/news" style="color:#b45309">${lang === "en" ? "Latest news" : lang === "he" ? "חדשות אחרונות" : "آخر الأخبار"}</a> · <a href="${SITE}/haraj" style="color:#b45309">${lang === "en" ? "Rahat Haraj" : lang === "he" ? "יד שנייה רהט" : "حراج رهط"}</a> · <a href="${SITE}/my-posts" style="color:#b45309">${lang === "en" ? "My posts" : lang === "he" ? "הפרסומים שלי" : "منشوراتي"}</a></p>` : `<p style="margin:0 0 6px;font-size:12px;color:#8a949a;word-break:break-all" dir="ltr">${esc(link)}</p>`}
 </td></tr>
