@@ -425,7 +425,14 @@ function AdminPage() {
           <header className="mb-4 flex items-center gap-3">
             <div className="min-w-0 flex-1">
               <p className="truncate text-xs font-bold text-muted">{tr("لوحة الإدارة")}</p>
-              <h1 className="truncate text-2xl font-extrabold">{trv(curGroup?.label ?? "الإدارة")}</h1>
+              <h1 className="flex items-center gap-2 truncate text-2xl font-extrabold">
+                {curGroup ? (
+                  <span className="grid size-9 shrink-0 place-items-center rounded-2xl bg-primary-soft text-primary-ink">
+                    <curGroup.icon className="size-5" aria-hidden />
+                  </span>
+                ) : null}
+                {trv(curGroup?.label ?? "الإدارة")}
+              </h1>
             </div>
             <LangSwitcher />
             <span
