@@ -142,7 +142,7 @@ function ArticlePage() {
             <ReaderBody article={article} />
           ) : (
             <>
-              {article.summary ? <p className="mt-4 text-lg">{trv(snippet(article.summary, 320))}</p> : null}
+              {article.summary ? <p className="mt-4 text-lg">{trv(article.summary)}</p> : null}
               <a
                 className="btn mt-5 w-full"
                 href={article.link}

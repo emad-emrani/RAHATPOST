@@ -113,11 +113,11 @@ function IsraelArticlePage() {
           {summary ? (
             article.summaryAr ? (
               <p lang="ar" className="mt-4 text-lg">
-                {trv(snippet(summary, 320))}
+                {trv(summary)}
               </p>
             ) : (
               <p lang="he" dir="rtl" className="mt-4 text-lg">
-                {trv(snippet(summary, 320))}
+                {trv(summary)}
               </p>
             )
           ) : null}
