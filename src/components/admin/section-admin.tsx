@@ -96,6 +96,18 @@ export function SectionAdmin({ id }: { id: Id }) {
             {tr("التحديث كل (دقائق)")}
             <input className="field" type="number" min={1} max={1440} value={sec.refreshMin} onChange={(e) => setSec({ ...sec, refreshMin: Number(e.target.value) })} />
           </label>
+          {hasFeeds ? (
+            <>
+              <label className="flex flex-col gap-1 text-sm font-bold">
+                {tr("أقصى عدد للأخبار")}
+                <input className="field" type="number" min={5} max={300} value={sec.maxItems} onChange={(e) => setSec({ ...sec, maxItems: Number(e.target.value) })} />
+              </label>
+              <label className="flex flex-col gap-1 text-sm font-bold">
+                {tr("أقصى عمر للخبر (أيام، 0 = بلا حد)")}
+                <input className="field" type="number" min={0} max={365} value={sec.maxAgeDays} onChange={(e) => setSec({ ...sec, maxAgeDays: Number(e.target.value) })} />
+              </label>
+            </>
+          ) : null}
         </div>
         <div className="flex items-center gap-2">
           <button type="button" className="btn" disabled={busy === "sec"} onClick={saveSec}>{tr("حفظ")}</button>

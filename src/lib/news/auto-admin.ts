@@ -155,6 +155,8 @@ export type AdminSection = {
   home: boolean;
   position: number;
   refreshMin: number;
+  maxItems: number;
+  maxAgeDays: number;
   customFeeds: boolean;
   feeds: {
     id: string;
@@ -213,7 +215,7 @@ async function expireAll() {
 }
 
 export const adminSaveSection = createServerFn({ method: "POST" })
-  .inputValidator((v: unknown) => v as { id: string; name: string; enabled: boolean; home: boolean; position: number; refreshMin: number })
+  .inputValidator((v: unknown) => v as { id: string; name: string; enabled: boolean; home: boolean; position: number; refreshMin: number; maxItems: number; maxAgeDays: number })
   .handler(async ({ data }): Promise<{ ok: boolean; message?: string }> => {
     const { isAdmin } = await import("@/lib/admin-auth");
     if (!(await isAdmin())) return { ok: false, message: "انتهت الجلسة." };
@@ -228,6 +230,8 @@ export const adminSaveSection = createServerFn({ method: "POST" })
       home: Boolean(data.home),
       position: Math.max(0, Math.min(99, Math.round(Number(data.position) || 0))),
       refreshMin: Math.max(1, Math.min(1440, Math.round(Number(data.refreshMin) || 4))),
+      maxItems: Math.max(5, Math.min(300, Math.round(Number(data.maxItems) || 80))),
+      maxAgeDays: Math.max(0, Math.min(365, Math.round(Number(data.maxAgeDays) || 0))),
     });
     await expireAll();
     return { ok: true };

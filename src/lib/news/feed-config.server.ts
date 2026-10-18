@@ -6,7 +6,7 @@ import { getSql } from "@/lib/db";
 
 export type SectionId = "news" | "israel" | "tech" | "weather" | "sports";
 export const SECTION_IDS: SectionId[] = ["news", "israel", "sports", "tech", "weather"];
-export type SectionCfg = { id: SectionId; name: string; enabled: boolean; home: boolean; position: number; customFeeds: boolean; refreshMin: number };
+export type SectionCfg = { id: SectionId; name: string; enabled: boolean; home: boolean; position: number; customFeeds: boolean; refreshMin: number; maxItems: number; maxAgeDays: number };
 export type FeedCfg = {
   id: string;
   section: SectionId;
@@ -20,11 +20,11 @@ export type FeedCfg = {
 export type FeedConfig = { sections: SectionCfg[]; feeds: FeedCfg[] };
 
 export const DEFAULT_SECTIONS: SectionCfg[] = [
-  { id: "news", name: "آخر الأخبار", enabled: true, home: true, position: 0, customFeeds: false, refreshMin: 4 },
-  { id: "israel", name: "أخبار إسرائيل", enabled: true, home: true, position: 1, customFeeds: false, refreshMin: 4 },
-  { id: "sports", name: "رياضة", enabled: true, home: true, position: 2, customFeeds: false, refreshMin: 4 },
-  { id: "tech", name: "أخبار تقنية", enabled: true, home: true, position: 2, customFeeds: false, refreshMin: 4 },
-  { id: "weather", name: "الطقس", enabled: true, home: true, position: 3, customFeeds: false, refreshMin: 4 },
+  { id: "news", name: "آخر الأخبار", enabled: true, home: true, position: 0, customFeeds: false, refreshMin: 4, maxItems: 80, maxAgeDays: 0 },
+  { id: "israel", name: "أخبار إسرائيل", enabled: true, home: true, position: 1, customFeeds: false, refreshMin: 4, maxItems: 60, maxAgeDays: 0 },
+  { id: "sports", name: "رياضة", enabled: true, home: true, position: 2, customFeeds: false, refreshMin: 4, maxItems: 80, maxAgeDays: 0 },
+  { id: "tech", name: "أخبار تقنية", enabled: true, home: true, position: 2, customFeeds: false, refreshMin: 4, maxItems: 80, maxAgeDays: 0 },
+  { id: "weather", name: "الطقس", enabled: true, home: true, position: 3, customFeeds: false, refreshMin: 4, maxItems: 80, maxAgeDays: 0 },
 ];
 
 export async function defaultFeeds(section: SectionId): Promise<FeedCfg[]> {
@@ -55,7 +55,7 @@ export async function loadFeedConfig(): Promise<FeedConfig> {
   try {
     const sql = await getSql();
     [srows, frows] = await Promise.all([
-      sql<SectionCfg>`select id, name, enabled, home, position, custom_feeds as "customFeeds", refresh_min as "refreshMin" from news_sections`,
+      sql<SectionCfg>`select id, name, enabled, home, position, custom_feeds as "customFeeds", refresh_min as "refreshMin", max_items as "maxItems", max_age_days as "maxAgeDays" from news_sections`,
       sql<FeedCfg>`select id, section, source_id as "sourceId", source, home, url, enabled, position from news_feeds order by position, id`,
     ]);
   } catch (error) {
@@ -63,7 +63,10 @@ export async function loadFeedConfig(): Promise<FeedConfig> {
     console.error("[feeds] config unavailable", error);
     if (cache) return cache.value;
   }
-  const sections = DEFAULT_SECTIONS.map((d) => srows.find((r) => r.id === d.id) ?? d).sort((a, b) => a.position - b.position);
+  const sections = DEFAULT_SECTIONS.map((d) => {
+    const r = srows.find((x) => x.id === d.id);
+    return r ? { ...r, maxItems: r.maxItems || d.maxItems, maxAgeDays: Number(r.maxAgeDays) || 0 } : d;
+  }).sort((a, b) => a.position - b.position);
   const feeds: FeedCfg[] = [];
   for (const s of sections)
     feeds.push(...(s.customFeeds ? frows.filter((f) => f.section === s.id) : await defaultFeeds(s.id)));
@@ -109,13 +112,16 @@ export async function loadFeedStats(): Promise<FeedStat[]> {
 
 /* ------------------------------------------------------------------ admin writes */
 
-export async function saveSection(s: Pick<SectionCfg, "id" | "name" | "enabled" | "home" | "position" | "refreshMin">) {
+export async function saveSection(s: Pick<SectionCfg, "id" | "name" | "enabled" | "home" | "position" | "refreshMin" | "maxItems" | "maxAgeDays">) {
   const sql = await getSql();
   const r = Math.min(1440, Math.max(1, Math.round(s.refreshMin) || 4));
-  await sql`insert into news_sections (id, name, enabled, home, position, refresh_min)
-    values (${s.id}, ${s.name}, ${s.enabled}, ${s.home}, ${s.position}, ${r})
+  const mi = Math.min(300, Math.max(5, Math.round(s.maxItems) || 80));
+  const ma = Math.min(365, Math.max(0, Math.round(s.maxAgeDays) || 0));
+  await sql`insert into news_sections (id, name, enabled, home, position, refresh_min, max_items, max_age_days)
+    values (${s.id}, ${s.name}, ${s.enabled}, ${s.home}, ${s.position}, ${r}, ${mi}, ${ma})
     on conflict (id) do update set name = excluded.name, enabled = excluded.enabled, home = excluded.home,
-      position = excluded.position, refresh_min = excluded.refresh_min, updated_at = now()`;
+      position = excluded.position, refresh_min = excluded.refresh_min, max_items = excluded.max_items,
+      max_age_days = excluded.max_age_days, updated_at = now()`;
   clearFeedConfigCache();
 }
 
@@ -177,4 +183,10 @@ export async function sectionTtl(id: SectionId): Promise<number> {
   } catch {
     return 4 * 60_000;
   }
+}
+
+/** Apply a section's «أقصى عدد» and «أقصى عمر» to newest-first items. */
+export function applyLimits<T extends { publishedAt: string }>(items: T[], s: Pick<SectionCfg, "maxItems" | "maxAgeDays">): T[] {
+  const cutoff = s.maxAgeDays > 0 ? Date.now() - s.maxAgeDays * 86_400_000 : 0;
+  return items.filter((i) => !cutoff || Date.parse(i.publishedAt) >= cutoff).slice(0, s.maxItems || 80);
 }

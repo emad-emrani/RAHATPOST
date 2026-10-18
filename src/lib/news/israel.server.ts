@@ -58,7 +58,6 @@ export const ISRAEL_SOURCES = SOURCES.map(({ name, nameHe, home }) => ({ name, n
 
 const TTL_MS = 4 * 60_000;
 const MAX_AGE_MS = 3 * 24 * 60 * 60_000;
-const MAX_ITEMS = 60;
 const PER_SOURCE = 15;
 /** Titles translated eagerly (what /today and the list show first); the rest on demand. */
 const TRANSLATE_FIRST = 24;
@@ -187,8 +186,8 @@ async function loadFeed(): Promise<Feed> {
 }
 
 async function refresh(): Promise<Feed> {
-  const { sectionConfig, recordFeedStats } = await import("./feed-config.server");
-  const { feeds } = await sectionConfig("israel");
+  const { sectionConfig, recordFeedStats, applyLimits } = await import("./feed-config.server");
+  const { feeds, section: secCfg } = await sectionConfig("israel");
   const groups = new Map<string, Source>();
   for (const f of feeds) {
     if (!f.enabled) continue;
@@ -236,7 +235,8 @@ async function refresh(): Promise<Feed> {
       seen.add(key);
       return true;
     })
-    .slice(0, MAX_ITEMS);
+    ;
+  items.splice(0, items.length, ...applyLimits(items, secCfg));
 
   await fillOgImages(items, new Set(active.filter((s) => s.ogImage).map((s) => s.name)));
 

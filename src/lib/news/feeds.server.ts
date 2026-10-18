@@ -91,7 +91,6 @@ export const builtinSources = (section: string): FeedSource[] => (section === "t
 const TTL_MS = 4 * 60_000;
 const FEED_TIMEOUT_MS = 8_000;
 const MAX_AGE_MS = 21 * 24 * 60 * 60_000;
-const MAX_ITEMS = 80;
 export const USER_AGENT = "Mozilla/5.0 (compatible; RahatPostBot/1.0; +https://rahatpost.com)";
 
 type Entry = { result: NewsFeedResult; at: number };
@@ -158,8 +157,8 @@ export async function testFeedUrl(url: string): Promise<{ count: number; images:
 }
 
 async function refresh(section: FeedSectionId): Promise<NewsFeedResult> {
-  const { sectionConfig, recordFeedStats } = await import("./feed-config.server");
-  const { feeds } = await sectionConfig(section);
+  const { sectionConfig, recordFeedStats, applyLimits } = await import("./feed-config.server");
+  const { feeds, section: secCfg } = await sectionConfig(section);
   const builtins = builtinSources(section);
   const groups = new Map<string, { source: FeedSource; urls: string[] }>();
   for (const f of feeds) {
@@ -206,7 +205,8 @@ async function refresh(section: FeedSectionId): Promise<NewsFeedResult> {
       seen.add(key);
       return true;
     })
-    .slice(0, MAX_ITEMS);
+    ;
+  items.splice(0, items.length, ...applyLimits(items, secCfg));
 
   await fillOgImages(items, new Set([...groups.values()].filter((g) => g.source.ogImage).map((g) => g.source.name)));
 

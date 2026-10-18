@@ -133,7 +133,7 @@ const ALL_TABS: { key: Section; label: string; icon: LucideIcon }[] = [
   { key: "sec-tech", label: "أخبار تقنية", icon: Cpu },
   { key: "sec-weather", label: "الطقس", icon: CloudSun },
   { key: "news", label: "أخبار القراء", icon: Newspaper },
-  { key: "ads", label: "حراج (سوق المستعمل)", icon: Megaphone },
+  { key: "ads", label: "الإعلانات", icon: Megaphone },
   { key: "haraj-cats", label: "تصنيفات الحراج", icon: Megaphone },
   { key: "store", label: "المتجر", icon: ShoppingBag },
   { key: "directory", label: "طلبات الدليل", icon: Store },
@@ -160,16 +160,22 @@ const ALL_TABS: { key: Section; label: string; icon: LucideIcon }[] = [
 ];
 
 const GROUPS: { id: string; label: string; icon: LucideIcon; keys: Section[] }[] = [
-  { id: "main", label: "عام", icon: House, keys: ["home", "review"] },
-  { id: "content", label: "المحتوى والأخبار", icon: Newspaper, keys: ["publish", "news", "comments", "reports"] },
-  { id: "services", label: "الخدمات والتنبيهات", icon: Siren, keys: ["duty", "alerts", "push", "directory", "store"] },
-  { id: "haraj", label: "الحراج", icon: Megaphone, keys: ["ads", "haraj-cats"] },
-  { id: "members", label: "الأعضاء والصلاحيات", icon: Users, keys: ["members-list", "members-roles", "members-invite", "members-methods"] },
-  { id: "emails", label: "البريد", icon: Mail, keys: ["emails"] },
-  { id: "auto", label: "الأقسام التلقائية", icon: Rss, keys: ["auto", "sec-news", "sec-israel", "sec-sports", "sec-tech", "sec-weather"] },
-  { id: "i18n", label: "الترجمة واللغات والذكاء الاصطناعي", icon: Globe, keys: ["languages", "gemini"] },
-  { id: "analytics", label: "الإحصائيات والتسويق", icon: BarChart3, keys: ["stats", "popups", "set-google"] },
-  { id: "settings", label: "إعدادات الموقع", icon: Settings, keys: ["set-theme", "set-texts", "set-home", "set-menus", "set-slider", "set-links"] },
+  { id: "main", label: "الرئيسية", icon: House, keys: ["home", "review", "stats"] },
+  {
+    id: "content",
+    label: "المحتوى والأخبار",
+    icon: Newspaper,
+    keys: ["publish", "news", "comments", "auto", "sec-news", "sec-israel", "sec-sports", "sec-tech", "sec-weather", "duty", "directory"],
+  },
+  { id: "haraj", label: "الحراج", icon: Megaphone, keys: ["ads", "haraj-cats", "reports", "store"] },
+  { id: "members", label: "الأعضاء والصلاحيات", icon: Users, keys: ["members-list", "members-roles", "members-invite"] },
+  { id: "marketing", label: "التسويق والتواصل", icon: MonitorUp, keys: ["popups", "emails", "push", "alerts", "set-google"] },
+  {
+    id: "settings",
+    label: "الإعدادات",
+    icon: Settings,
+    keys: ["set-texts", "set-theme", "set-home", "set-menus", "set-slider", "set-links", "languages", "gemini", "members-methods"],
+  },
 ];
 const groupItems = (g: (typeof GROUPS)[number], tabs: typeof ALL_TABS) =>
   g.keys.map((k) => tabs.find((t) => t.key === k)).filter((t): t is (typeof ALL_TABS)[number] => Boolean(t));
@@ -202,33 +208,24 @@ function AdminMenu({
   onLogout: () => void;
 }) {
   return (
-    <nav aria-label={tr("أقسام الإدارة")} className="flex flex-col gap-3">
+    <nav aria-label={tr("أقسام الإدارة")} className="flex flex-col gap-1">
       {GROUPS.map((g) => {
         const items = groupItems(g, tabs);
         if (!items.length) return null;
+        const active = g.keys.includes(section);
+        const Icon = g.icon;
         return (
-          <div key={g.id}>
-            {g.id === "main" ? null : (
-              <button type="button" onClick={() => onSelect(`grp-${g.id}`)} aria-current={section === `grp-${g.id}` ? "page" : undefined}
-                className={`w-full rounded-xl px-3 pb-1 pt-1 text-start text-[11px] font-bold tracking-wide ${section === `grp-${g.id}` ? "text-ink" : "text-muted hover:text-ink"}`}>
-                {trv(g.label)}
-              </button>
-            )}
-            {items.map(({ key, label, icon: Icon }) => (
-              <button
-                key={key}
-                type="button"
-                aria-current={section === key ? "page" : undefined}
-                className={`flex w-full items-center gap-3 rounded-2xl px-3 py-2 text-start text-sm font-bold transition-colors ${
-                  section === key ? "bg-brand text-ink" : "hover:bg-surface"
-                }`}
-                onClick={() => onSelect(key)}
-              >
-                <Icon className="size-[18px] shrink-0" aria-hidden />
-                {trv(label)}
-              </button>
-            ))}
-          </div>
+          <button
+            key={g.id}
+            type="button"
+            aria-current={active ? "page" : undefined}
+            className={`flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-start font-bold transition-colors ${active ? "bg-brand text-ink" : "hover:bg-surface"}`}
+            onClick={() => onSelect(`grp-${g.id}`)}
+          >
+            <Icon className="size-5 shrink-0" aria-hidden />
+            <span className="flex-1">{trv(g.label)}</span>
+            <span className="text-xs font-semibold opacity-60">{items.length}</span>
+          </button>
         );
       })}
       <button type="button" className="flex w-full items-center gap-3 rounded-2xl px-3 py-2 text-start text-sm font-bold hover:bg-surface" onClick={onLogout}>
@@ -390,6 +387,8 @@ function AdminPage() {
   const current: Section =
     tabs.some((t) => t.key === section) || visibleGroups.some((g) => `grp-${g.id}` === section) ? section : (tabs[0]?.key ?? "news");
   const go = (k: string) => {
+    const g = k.startsWith("grp-") ? GROUPS.find((x) => `grp-${x.id}` === k) : undefined;
+    if (g) k = groupItems(g, tabs)[0]?.key ?? "home";
     setSection(k as Section);
     setMenuOpen(false);
     if (typeof window !== "undefined") window.scrollTo({ top: 0 });
@@ -402,7 +401,7 @@ function AdminPage() {
       { key: "grp-members", label: "الأعضاء", icon: Users },
     ] as const
   ).filter((b) => tabs.some((t) => t.key === b.key) || visibleGroups.some((g) => `grp-${g.id}` === b.key));
-  const landing = current.startsWith("grp-") ? GROUPS.find((g) => `grp-${g.id}` === current) : undefined;
+  const landing = undefined as (typeof GROUPS)[number] | undefined;
   const curGroup = landing ?? GROUPS.find((g) => g.keys.includes(current));
   const logout = async () => {
     setMenuOpen(false);
@@ -425,15 +424,8 @@ function AdminPage() {
         <div className="min-w-0 px-4 pb-28 pt-4 lg:px-0 lg:pb-10 lg:pt-0">
           <header className="mb-4 flex items-center gap-3">
             <div className="min-w-0 flex-1">
-              {curGroup && !landing && curGroup.id !== "main" ? (
-                <button type="button" onClick={() => go(`grp-${curGroup.id}`)} className="flex max-w-full items-center gap-1 truncate text-xs font-bold text-muted hover:text-ink">
-                  <ArrowRight className="size-3.5 shrink-0 ltr:rotate-180" aria-hidden />
-                  {trv(curGroup.label)}
-                </button>
-              ) : (
-                <p className="truncate text-xs font-bold text-muted">{tr("لوحة الإدارة")}</p>
-              )}
-              <h1 className="truncate text-2xl font-extrabold">{trv(landing?.label ?? tabs.find((t) => t.key === current)?.label ?? "الإدارة")}</h1>
+              <p className="truncate text-xs font-bold text-muted">{tr("لوحة الإدارة")}</p>
+              <h1 className="truncate text-2xl font-extrabold">{trv(curGroup?.label ?? "الإدارة")}</h1>
             </div>
             <LangSwitcher />
             <span
@@ -447,6 +439,23 @@ function AdminPage() {
           {level !== "writer" ? (
             <div className="mb-4">
               <AdminSearch sections={tabs.map((t) => ({ key: t.key, label: t.label }))} go={go} />
+            </div>
+          ) : null}
+          {curGroup && groupItems(curGroup, tabs).length > 1 ? (
+            <div className="scroll-row -mx-4 mb-4 px-4 lg:mx-0 lg:px-0" role="tablist" aria-label={trv(curGroup.label)}>
+              {groupItems(curGroup, tabs).map(({ key, label, icon: Icon }) => (
+                <button
+                  key={key}
+                  type="button"
+                  role="tab"
+                  aria-selected={current === key}
+                  onClick={() => go(key)}
+                  className={`flex shrink-0 items-center gap-1.5 rounded-full px-4 py-2 text-sm font-bold ${current === key ? "bg-ink text-paper" : "bg-paper shadow-[0_1px_3px_rgba(16,24,40,0.06)]"}`}
+                >
+                  <Icon className="size-4" aria-hidden />
+                  {trv(label)}
+                </button>
+              ))}
             </div>
           ) : null}
           {menuOpen ? (
