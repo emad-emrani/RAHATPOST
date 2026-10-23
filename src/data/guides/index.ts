@@ -1,8 +1,11 @@
+import { healthGuide } from "./health";
+import { municipalityGuide } from "./municipality";
 import { postGuide } from "./post";
+import { transportGuide } from "./transport";
 import type { Guide } from "./types";
 
-/** Add new guides here (e.g. National Insurance, the municipality). Order = display order. */
-export const guides: Guide[] = [postGuide];
+/** Structured local service guides for Rahat. Order = display order. */
+export const guides: Guide[] = [postGuide, municipalityGuide, healthGuide, transportGuide];
 
 export const getGuide = (slug: string): Guide | undefined => guides.find((g) => g.slug === slug);
 
