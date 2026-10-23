@@ -1,10 +1,12 @@
 import { Link } from "@tanstack/react-router";
 import {
   BookOpen,
+  Bus,
   ChevronDown,
   ChevronLeft,
   Clock,
   ExternalLink,
+  HeartPulse,
   Info,
   Landmark,
   MapPin,
@@ -13,6 +15,7 @@ import {
   TriangleAlert,
 } from "lucide-react";
 import type { Guide, GuideBlock, GuideBranch, GuideLink, GuideSection } from "@/data/guides/types";
+import { guides } from "@/data/guides";
 import { tr, trv } from "@/lib/i18n/core";
 
 const sectionIcons: Record<GuideSection["icon"], typeof Receipt> = {
@@ -27,23 +30,45 @@ export function GuideIcon({ icon, className }: { icon: GuideSection["icon"]; cla
   return <Icon className={className} aria-hidden />;
 }
 
+const GUIDE_SLUGS_ICONS: Record<string, typeof BookOpen> = {
+  post: Receipt,
+  municipality: Landmark,
+  health: HeartPulse,
+  transport: Bus,
+};
+
 /** Prominent card linking to a guide (directory list, place pages). */
 export function GuideCard({ guide, compact = false }: { guide: Guide; compact?: boolean }) {
+  const Icon = GUIDE_SLUGS_ICONS[guide.slug] ?? BookOpen;
   return (
     <Link
       to="/directory/guide/$guide"
       params={{ guide: guide.slug }}
-      className={`stamp press flex items-center gap-3 border-2 border-primary p-3 ${compact ? "" : "bg-primary-soft"}`}
+      className={`stamp press flex items-center gap-3 border-2 border-primary p-3.5 ${compact ? "" : "bg-primary-soft"}`}
     >
-      <span className="icon-badge size-14 rounded-2xl bg-paper">
-        <BookOpen className="size-7" aria-hidden />
+      <span className="icon-badge size-13 rounded-2xl bg-paper shadow-2xs">
+        <Icon className="size-6" aria-hidden />
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block text-lg font-bold leading-snug">{trv(guide.title)}</span>
-        <span className="block text-sm font-semibold text-muted">{trv(guide.cardSubtitle)}</span>
+        <span className="block text-base font-extrabold leading-snug sm:text-lg">{trv(guide.title)}</span>
+        <span className="mt-0.5 line-clamp-2 block text-xs font-semibold text-muted sm:text-sm">{trv(guide.cardSubtitle)}</span>
       </span>
-      <ChevronLeft className="size-5 shrink-0" aria-hidden />
+      <ChevronLeft className="size-5 shrink-0 text-primary-ink" aria-hidden />
     </Link>
+  );
+}
+
+/**
+ * Home «أدلة خدمات رهط» grid: showcases all 4 local guides (Post, Municipality & Arnona, Health & Clinics, Buses)
+ * in a balanced 2x2 grid on desktop/tablet and a clean stack on mobile.
+ */
+export function HomeGuidesGrid() {
+  return (
+    <div className="grid gap-3 sm:grid-cols-2">
+      {guides.map((g) => (
+        <GuideCard key={g.slug} guide={g} />
+      ))}
+    </div>
   );
 }
 
@@ -255,8 +280,7 @@ export function BranchCard({ branch }: { branch: GuideBranch }) {
 }
 
 /**
- * Home «خدمة البريد» card: what the post office guide covers, each row jumping to its section,
- * plus a button to the whole guide. Wording stays generic; the facts live in the guide itself.
+ * Home «خدمة البريد» card: retained for backward compatibility, plus full 4-guides grid support.
  */
 export function HomePostCard({ guide }: { guide: Guide }) {
   const rows: { section: string; icon: GuideSection["icon"]; title: string; text: string }[] = [

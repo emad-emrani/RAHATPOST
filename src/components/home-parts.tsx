@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Bus, Megaphone, Newspaper, Phone, Plus, Siren, Store, Timer } from "lucide-react";
+import { Bus, MapPin, Megaphone, Newspaper, Phone, Plus, Siren, Store, Timer } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { NewsImage } from "@/components/news-image";
 import { newsByline } from "@/lib/news/format";
@@ -11,13 +11,14 @@ import { tr, trv } from "@/lib/i18n/core";
 const tiles = [
   { to: "/news", label: "الأخبار", icon: Newspaper },
   { to: "/buses", label: "الباصات", icon: Bus },
-  { to: "/store", label: "المتجر", icon: Store },
+  { to: "/directory", label: "الدليل", icon: MapPin },
   { to: "/haraj", label: "حراج", icon: Megaphone },
   { to: "/today", label: "اليوم", icon: Siren },
+  { to: "/store", label: "المتجر", icon: Store },
   { to: "/submit", label: "أضف", icon: Plus },
 ] as const;
 
-/** Horizontally scrolling category tiles (icon square + label). */
+/** Horizontally scrolling category tiles on mobile, full balanced row on desktop. */
 export function HomeTiles() {
   const st = useSiteSettings();
   const order = st.tiles;
@@ -27,13 +28,13 @@ export function HomeTiles() {
     .filter((t): t is (typeof tiles)[number] => Boolean(t));
   if (!list.length) return null;
   return (
-    <nav className="scroll-row -mx-4 px-4" aria-label={tr("الأقسام")}>
+    <nav className="scroll-row -mx-4 px-4 sm:mx-0 sm:grid sm:grid-cols-7 sm:gap-3 sm:px-0" aria-label={tr("الأقسام")}>
       {list.map((t) => {
         const Icon = t.icon;
         return (
-          <Link key={t.to} to={t.to} className="tile">
-            <span className="tile-icon">
-              <Icon className="size-7" aria-hidden />
+          <Link key={t.to} to={t.to} className="tile sm:w-full">
+            <span className="tile-icon sm:w-full">
+              <Icon className="size-6 sm:size-7" aria-hidden />
             </span>
             {t.to === "/haraj" ? trv(st.texts.harajNav) : trv(t.label)}
           </Link>
@@ -45,7 +46,6 @@ export function HomeTiles() {
 
 type Slide = { key: string; className: string; content: ReactNode };
 
-/** Snap-scrolling banner carousel with dots; auto-advances unless reduced motion is preferred. */
 /** One slide per news section: its latest item. */
 export type SectionSlide = {
   key: string;
@@ -70,15 +70,15 @@ function SectionSlideView({ s }: { s: SectionSlide }) {
     <Link to={s.link.to} params={s.link.params} className="flex h-full flex-col justify-between gap-3">
       <span className="absolute inset-0" aria-hidden>
         {s.item.image ? (
-          <NewsImage item={s.item} size="full" className="size-full" iconClassName="size-16" eager />
+          <NewsImage item={{ ...s.item, title: "" }} size="full" className="size-full" iconClassName="size-16" eager />
         ) : (
-          // No photo: a plain section-coloured backdrop (the branded card would repeat the headline).
-          <span className="block size-full" style={{ background: SLIDE_BG[s.key] ?? SLIDE_BG.news }} />
+          // No photo: use a clean section-coloured backdrop with subtle icon so the headline is never drawn twice.
+          <span className="block size-full" style={{ background: SLIDE_BG[s.key] ?? "linear-gradient(135deg, #1f2937, #111827)" }} />
         )}
       </span>
       <span className="banner-shade" aria-hidden />
       <span className="relative chip w-fit bg-white/20 text-white">{trv(s.label)}</span>
-      <span className="relative line-clamp-3 text-xl font-bold leading-snug">{s.title ?? trv(s.item.title)}</span>
+      <span className="relative line-clamp-3 text-xl font-extrabold leading-snug sm:text-2xl">{s.title ?? trv(s.item.title)}</span>
       <span className="relative text-sm font-semibold text-white/90">{s.meta}</span>
     </Link>
   );
@@ -112,7 +112,7 @@ export function HomeCarousel({ lead, leadTime, sections = [] }: { lead?: NewsIte
                 <span className="relative chip w-fit bg-white/20 text-white">
                   {tr("آخر خبر ·")} {newsByline(lead)}
                 </span>
-                <span className="relative line-clamp-3 text-xl font-bold leading-snug">
+                <span className="relative line-clamp-3 text-xl font-extrabold leading-snug sm:text-2xl">
                   {trv(lead.title)}
                 </span>
                 <span className="relative text-sm font-semibold text-white/90">{trv(leadTime)}</span>
@@ -124,7 +124,7 @@ export function HomeCarousel({ lead, leadTime, sections = [] }: { lead?: NewsIte
                 className="flex h-full flex-col justify-between gap-3"
               >
                 <span className="chip w-fit bg-ink/10">{tr("آخر خبر ·")} {newsByline(lead)}</span>
-                <span className="line-clamp-3 text-xl font-bold leading-snug">{trv(lead.title)}</span>
+                <span className="line-clamp-3 text-xl font-extrabold leading-snug sm:text-2xl">{trv(lead.title)}</span>
                 <span className="text-sm font-semibold">{trv(leadTime)}</span>
                 <Newspaper className="banner-icon size-36" aria-hidden />
               </Link>
@@ -138,9 +138,9 @@ export function HomeCarousel({ lead, leadTime, sections = [] }: { lead?: NewsIte
       content: (
         <Link to="/buses" className="flex h-full flex-col justify-between gap-3">
           <span className="chip w-fit bg-white/15 text-white">{tr("باصات رهط")}</span>
-          <span className="text-2xl font-bold leading-snug">{tr("متى يصل الباص؟")}</span>
+          <span className="text-2xl font-extrabold leading-snug">{tr("متى يصل الباص؟")}</span>
           <span className="text-sm font-semibold text-white/85">
-            {tr("أوقات مباشرة وجدول محدّث يومياً")}
+            {tr("أوقات مباشرة وجدول محدّث يومياً لجميع خطوط غاليم")}
           </span>
           <Timer className="banner-icon size-36" aria-hidden />
         </Link>
@@ -155,9 +155,9 @@ export function HomeCarousel({ lead, leadTime, sections = [] }: { lead?: NewsIte
           search={{ mode: "نشاط" }}
           className="flex h-full flex-col justify-between gap-3"
         >
-          <span className="chip w-fit bg-ink/10">{tr("الدليل")}</span>
-          <span className="text-2xl font-bold leading-snug">{tr("أضف نشاطك في دليل رهط")}</span>
-          <span className="text-sm font-semibold">{tr("يظهر بعلامة «موثّق» بعد المراجعة")}</span>
+          <span className="chip w-fit bg-ink/10">{tr("الدليل التجاري")}</span>
+          <span className="text-2xl font-extrabold leading-snug">{tr("أضف مصلحتك في دليل رهط مجاناً")}</span>
+          <span className="text-sm font-semibold">{tr("يظهر بعلامة «موثّق» في الموقع ونتائج بحث جوجل")}</span>
           <Store className="banner-icon size-36" aria-hidden />
         </Link>
       ),
@@ -168,14 +168,13 @@ export function HomeCarousel({ lead, leadTime, sections = [] }: { lead?: NewsIte
       content: (
         <Link to="/today" className="flex h-full flex-col justify-between gap-3">
           <span className="chip w-fit bg-ink/10">{tr("لوحة اليوم")}</span>
-          <span className="text-2xl font-bold leading-snug">{tr("أرقام الطوارئ وصيدلية الحراسة")}</span>
-          <span className="text-sm font-semibold">{tr("الشرطة 100 · الإسعاف 101 · الإطفاء 102")}</span>
+          <span className="text-2xl font-extrabold leading-snug">{tr("أرقام الطوارئ وصيدلية الحراسة")}</span>
+          <span className="text-sm font-semibold">{tr("الشرطة 100 · الإسعاف 101 · الإطفاء 102 · البلدية 106")}</span>
           <Phone className="banner-icon size-36" aria-hidden />
         </Link>
       ),
     },
   ];
-  // Section slides first; the built-in «آخر خبر» slide is replaced by them when there are any.
   const slides: Slide[] = [...sectionSlides, ...config
     .map((c): Slide | undefined =>
       c.type === "builtin"
@@ -286,7 +285,7 @@ function CustomSlide({
         <>
           <img
             src={mediaUrl(imageKey)}
-            alt=""
+            alt={trv(title)}
             className="absolute inset-0 size-full object-cover"
           />
           <span className="banner-shade" aria-hidden />
@@ -319,7 +318,7 @@ export function QuickLinks() {
   if (!links.length) return null;
   return (
     <section aria-label={tr("روابط سريعة")}>
-      <ul className="grid grid-cols-2 gap-3">
+      <ul className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {links.map((l) => {
           const external = /^https?:/.test(l.url);
           return (
