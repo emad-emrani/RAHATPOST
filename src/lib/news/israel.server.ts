@@ -81,6 +81,9 @@ export async function loadIsraelNews(): Promise<IsraelNewsResult> {
   return withTranslations(feed);
 }
 
+/** Alias so both loadIsraelNews() and getIsraelNews() work from server routes. */
+export const getIsraelNews = loadIsraelNews;
+
 /** Force an immediate live refresh of Israel news feeds and return item count + elapsed ms. */
 export async function forceRefreshIsrael(): Promise<{ count: number; ms: number; failedSources: string[] }> {
   const t0 = Date.now();
