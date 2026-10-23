@@ -1,12 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { CreditCard, LocateFixed, Map as MapIcon, RefreshCw } from "lucide-react";
+import { LocateFixed, Map as MapIcon, RefreshCw } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Shell } from "@/components/shell";
 import { busSchedule } from "@/data/bus-schedule";
-import { busLines as baseLines, galimPhone, galimSource, type BusLine } from "@/data/buses";
-import { BusAdsSlider, BusBoard } from "@/components/bus-board";
-import { useSiteSettings } from "@/lib/site-settings/context";
-import { applyOverrides, getBusOverrides, type BusOverride } from "@/lib/buses/overrides";
+import { busLines, galimPhone, galimSource } from "@/data/buses";
 import { getArrivals } from "@/lib/buses/api";
 import {
   departures,
@@ -26,12 +23,21 @@ export const Route = createFileRoute("/buses")({
     seo({
       title: tr("باصات رهط: مواعيد خطوط غاليم ووصول الباص المباشر · رهط بوست"),
       description:
-        tr("مواعيد باصات رهط لحظة بلحظة: خطوط شركة غاليم داخل رهط وإلى تل السبع وكسيفة وعرعرة النقب، وصول الباص إلى المحطة مباشرة وجدول رحلات اليوم."),
+        tr("مواعيد باصات رهط لحظة بلحظة: خطوط شركة غاليم داخل رهط (1 حتى 6) وإلى بئر السبع وتل السبع وكسيفة وعرعرة النقب وسديروت وعسقلان، وصول الباص إلى المحطة مباشرة وجدول رحلات اليوم."),
       path: "/buses",
+      keywords: [
+        "باصات رهط",
+        "باصات غاليم رهط",
+        "مواعيد باصات رهط",
+        "خط 450 رهط بئر السبع",
+        "خط 425 رهط تل السبع",
+        "خط 423 رهط كسيفة",
+        "خط 427 رهط عرعرة النقب",
+      ],
       jsonLd: [breadcrumbLd([{ name: tr("باصات رهط"), path: "/buses" }])],
     }),
   // Server time as the first render's clock, so SSR and hydration agree.
-  loader: async () => ({ now: Date.now(), overrides: await getBusOverrides().catch(() => [] as BusOverride[]) }),
+  loader: () => ({ now: Date.now() }),
   component: BusesPage,
 });
 
@@ -64,16 +70,11 @@ function minutesLabel(diff: number) {
 }
 
 function BusesPage() {
-  const { now: serverNow, overrides } = Route.useLoaderData();
-  const busLines = useMemo(() => applyOverrides(baseLines, overrides), [overrides]);
-  const notice = overrides.find((o) => o.number === "*")?.note;
-  const siteSt = useSiteSettings();
-  const busAds = siteSt.busAds;
-  const busRavkavButton = siteSt.ravkavUi?.button !== false;
+  const { now: serverNow } = Route.useLoaderData();
   const [now, setNow] = useState(serverNow);
   useEffect(() => {
     setNow(Date.now());
-    const id = setInterval(() => setNow(Date.now()), 15_000);
+    const id = setInterval(() => setNow(Date.now()), 30_000);
     return () => clearInterval(id);
   }, []);
 
@@ -83,27 +84,9 @@ function BusesPage() {
   return (
     <Shell>
       <h1 className="text-2xl font-bold">{tr("باصات غاليم")}</h1>
-      {notice ? <p className="stamp mt-3 border-[#FDB700] bg-[#FFF6DB] p-3 font-bold">📢 {trv(notice)}</p> : null}
-      <BusBoard
-        now={now}
-        lines={busLines}
-        slot={busAds?.enabled ? <BusAdsSlider items={busAds.items} /> : null}
-      />
       <p className="mt-1 font-semibold text-muted">
         {tr("خطوط مدينة رهط والخطوط الخارجة منها. المواعيد تتحدّث تلقائياً كل يوم من بيانات وزارة المواصلات، آخر تحديث")} {trv(UPDATED)}.
       </p>
-      {busRavkavButton ? (
-      <Link to="/buses/ravkav" className="mt-4 flex items-center gap-3 rounded-2xl bg-[#16A34A] px-4 py-3 font-bold text-white shadow-sm hover:bg-[#15803D]">
-        <span className="flex shrink-0 items-center gap-1 rounded-lg bg-white px-2 py-1 text-sm font-black text-[#15803D]" dir="rtl" lang="he">
-          <CreditCard className="size-4" aria-hidden />
-          רב-קו
-        </span>
-        <span className="min-w-0 flex-1">
-          {tr("رب-كاف: الشحن والخدمات")}
-          <span className="block text-xs font-semibold text-white/85">{tr("نقاط الشحن، الشحن أونلاين، ملفات التخفيض")}</span>
-        </span>
-      </Link>
-      ) : null}
       <div className="mt-4 grid grid-cols-2 gap-2">
         <a className="btn" href={`tel:${galimPhone.replaceAll("-", "")}`}>
           {tr("غاليم")} {trv(galimPhone)}
@@ -113,11 +96,11 @@ function BusesPage() {
         </a>
       </div>
 
+      <LiveArrivals now={now} />
 
+      <Timetable now={now} dates={dates} today={today} />
 
-      <LiveArrivals now={now} lines={busLines} />
-
-      <Timetable now={now} dates={dates} today={today} busLines={busLines} />
+      <AllBusLinesLinks />
     </Shell>
   );
 }
@@ -126,7 +109,7 @@ function BusesPage() {
 
 const STORAGE_KEY = "rp-bus-stop";
 
-function LiveArrivals({ now, lines }: { now: number; lines: BusLine[] }) {
+function LiveArrivals({ now }: { now: number }) {
   const [line, setLine] = useState(busSchedule.lines[0]?.number ?? "1");
   const info = lineInfo(line);
   const [dir, setDir] = useState(info?.dirs[0]?.dir ?? "1");
@@ -243,7 +226,7 @@ function LiveArrivals({ now, lines }: { now: number; lines: BusLine[] }) {
         <label className="block">
           <span className="text-sm font-bold">{tr("الخط")}</span>
           <select className="field mt-1" value={line} onChange={(e) => chooseLine(e.target.value)}>
-            {busSchedule.lines.filter((l) => lines.some((x) => x.number === l.number)).map((l) => (
+            {busSchedule.lines.map((l) => (
               <option key={l.number} value={l.number}>
                 {tr("خط")} {trv(l.number)}
               </option>
@@ -383,10 +366,10 @@ function ArrivalRow({
 
 /* ------------------------------------------------------------- timetable */
 
-function Timetable({ now, dates, today, busLines }: { now: number; dates: string[]; today: string; busLines: BusLine[] }) {
+function Timetable({ now, dates, today }: { now: number; dates: string[]; today: string }) {
   const [date, setDate] = useState<string>(dates[0] ?? today);
   const [scope, setScope] = useState<"city" | "between">("city");
-  const list = useMemo(() => busLines.filter((line) => line.scope === scope), [scope, busLines]);
+  const list = useMemo(() => busLines.filter((line) => line.scope === scope), [scope]);
   const nowMinutes = israelClock(now).minutes;
   const selected = dates.includes(date) ? date : dates[0];
 
@@ -486,6 +469,36 @@ function Timetable({ now, dates, today, busLines }: { now: number; dates: string
       <p className="mt-4 text-sm font-semibold text-muted">
         {tr("مصدر المواعيد: بيانات GTFS المفتوحة من وزارة المواصلات، وتُحدَّث يومياً. قد تتغير المواعيد في الأعياد والطوارئ.")}
       </p>
+    </section>
+  );
+}
+
+/** Server-rendered directory of all city and intercity bus line map pages for search crawlers and users. */
+function AllBusLinesLinks() {
+  return (
+    <section className="stamp mt-8 p-4" aria-label={tr("خرائط ومسارات جميع خطوط باصات رهط")}>
+      <h2 className="text-lg font-bold">{tr("خرائط ومسارات جميع خطوط باصات رهط")}</h2>
+      <p className="mt-1 text-sm font-semibold text-muted">
+        {tr("اختر رقم الخط لعرض مساره الكامل ومحطاته ومواقع الباصات المباشرة على الخريطة:")}
+      </p>
+      <ul className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+        {busLines.map((l) => (
+          <li key={l.number}>
+            <Link
+              to="/buses/map/$line"
+              params={{ line: l.number }}
+              className="flex items-center justify-between gap-2 rounded-xl border border-line bg-surface px-3 py-2 text-sm font-bold hover:bg-primary-soft"
+            >
+              <span className="chip chip-ink shrink-0">
+                {tr("خط")} {trv(l.number)}
+              </span>
+              <span className="min-w-0 flex-1 truncate text-start">
+                {trv(l.from)} ↔ {trv(l.to)}
+              </span>
+            </Link>
+          </li>
+        ))}
+      </ul>
     </section>
   );
 }

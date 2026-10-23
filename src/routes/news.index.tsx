@@ -8,19 +8,50 @@ import { CommentCount } from "@/components/comment-count";
 import { getNews } from "@/lib/news/api";
 import { newsByline, relativeTimeAr, useNow } from "@/lib/news/format";
 import { newsCategories } from "@/lib/news/types";
-import { breadcrumbLd, seo } from "@/lib/seo";
+import { absoluteUrl, breadcrumbLd, seo } from "@/lib/seo";
 import { tr, trv } from "@/lib/i18n/core";
-import { localized, localizedIsrael } from "@/lib/i18n/localize";
+import { localized } from "@/lib/i18n/localize";
 
 export const Route = createFileRoute("/news/")({
-  head: () =>
-    seo({
+  head: ({ loaderData }) => {
+    const items = (loaderData?.items ?? []).slice(0, 15);
+    const listLd = items.length
+      ? {
+          "@context": "https://schema.org",
+          "@type": "CollectionPage",
+          name: tr("أخبار رهط والنقب اليوم · رهط بوست"),
+          url: absoluteUrl("/news"),
+          inLanguage: "ar",
+          mainEntity: {
+            "@type": "ItemList",
+            itemListElement: items.map((item, i) => ({
+              "@type": "ListItem",
+              position: i + 1,
+              name: item.title,
+              url: absoluteUrl(`/news/${item.slug}`),
+            })),
+          },
+        }
+      : null;
+    return seo({
       title: tr("أخبار رهط والنقب اليوم · رهط بوست"),
       description:
         tr("آخر أخبار رهط والنقب على مدار اليوم: بلدية رهط، التعليم، الصحة، الرياضة والمجتمع من المواقع العربية المحلية، وأخبار يكتبها أهالي رهط في «من القراء»."),
       path: "/news",
-      jsonLd: [breadcrumbLd([{ name: tr("أخبار رهط"), path: "/news" }])],
-    }),
+      keywords: [
+        "أخبار رهط",
+        "أخبار النقب",
+        "رهط بوست",
+        "بلدية رهط",
+        "أخبار رهط اليوم",
+        "عاجل رهط",
+      ],
+      jsonLd: [
+        breadcrumbLd([{ name: tr("أخبار رهط"), path: "/news" }]),
+        ...(listLd ? [listLd] : []),
+      ],
+    });
+  },
   loader: async () => localized(await getNews(), (d) => [{ items: d.items, fields: ["title", "summary", "body"] }], "auto"),
   staleTime: 5 * 60_000,
   component: NewsPage,
@@ -38,7 +69,10 @@ function NewsPage() {
 
   return (
     <Shell>
-      <h1 className="mb-3 text-2xl font-bold">{tr("الأخبار")}</h1>
+      <h1 className="mb-1 text-2xl font-bold">{tr("أخبار رهط والنقب")}</h1>
+      <p className="mb-3 font-semibold text-muted">
+        {tr("تغطية مستمرة لأخبار مدينة رهط وبلدات النقب والمجتمع المحلي على مدار الساعة.")}
+      </p>
       {data.items.length === 0 ? (
         <NewsUnavailable />
       ) : (

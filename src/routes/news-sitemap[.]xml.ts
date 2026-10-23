@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { SITE_NAME, SITE_URL } from "@/lib/seo";
 
-/** Google News sitemap: our own (indexable) news from the last 48 hours. */
+/** Google News sitemap: indexable news from the last 48 hours (with fallback to latest 25). */
 const esc = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
@@ -23,12 +23,41 @@ async function items(): Promise<Item[]> {
   } catch (e) {
     console.error("[news-sitemap] reader", e);
   }
+  try {
+    const { loadNews, loadSportsNews, loadTechNews } = await import("@/lib/news/feeds.server");
+    const [newsRes, sportsRes, techRes] = await Promise.all([
+      loadNews().catch(() => ({ items: [] })),
+      loadSportsNews().catch(() => ({ items: [] })),
+      loadTechNews().catch(() => ({ items: [] })),
+    ]);
+    for (const n of [...newsRes.items, ...sportsRes.items, ...techRes.items]) {
+      out.push({ path: `/news/${n.slug}`, title: n.title, date: n.publishedAt });
+    }
+  } catch (e) {
+    console.error("[news-sitemap] feeds", e);
+  }
+  try {
+    const israel = await (await import("@/lib/news/israel.server")).getIsraelNews();
+    for (const n of israel.items) {
+      if (n.titleAr) {
+        out.push({ path: `/israel-news/${n.slug}`, title: n.titleAr, date: n.publishedAt });
+      }
+    }
+  } catch (e) {
+    console.error("[news-sitemap] israel", e);
+  }
+
+  const seen = new Set<string>();
   const valid = out
-    .filter((i) => Number.isFinite(Date.parse(i.date)))
+    .filter((i) => {
+      if (!Number.isFinite(Date.parse(i.date)) || seen.has(i.path)) return false;
+      seen.add(i.path);
+      return true;
+    })
     .sort((a, b) => Date.parse(b.date) - Date.parse(a.date));
   const recent = valid.filter((i) => Date.parse(i.date) >= cutoff).slice(0, 1000);
-  // Never emit an empty <urlset>: fall back to the latest 10 articles.
-  return recent.length ? recent : valid.slice(0, 10);
+  // Never emit an empty <urlset>: fall back to the latest 25 articles.
+  return recent.length ? recent : valid.slice(0, 25);
 }
 
 function render(list: Item[]): string {
@@ -37,7 +66,7 @@ function render(list: Item[]): string {
   const urls = list
     .map(
       (i) => `  <url>
-    <loc>${esc(SITE_URL + i.path)}</loc>
+    <loc>${esc(`${SITE_URL}${encodeURI(i.path)}`)}</loc>
     <news:news>
       <news:publication><news:name>${esc(SITE_NAME)}</news:name><news:language>ar</news:language></news:publication>
       <news:publication_date>${new Date(i.date).toISOString()}</news:publication_date>

@@ -1,5 +1,4 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { PushCta, ShareWhatsApp } from "@/components/growth";
 import { ExternalLink } from "lucide-react";
 import { Comments } from "@/components/comments";
 import { Shell } from "@/components/shell";
@@ -13,9 +12,9 @@ import {
 } from "@/components/israel-news";
 import { getIsraelNewsItem } from "@/lib/news/israel-api";
 import { relativeTimeAr, useNow } from "@/lib/news/format";
-import { breadcrumbLd, seo, snippet } from "@/lib/seo";
+import { breadcrumbLd, newsArticleLd, seo, snippet } from "@/lib/seo";
 import { tr, trv } from "@/lib/i18n/core";
-import { localized, localizedIsrael } from "@/lib/i18n/localize";
+import { localizedIsrael } from "@/lib/i18n/localize";
 
 export const Route = createFileRoute("/israel-news/$slug")({
   loader: async ({ params }) => {
@@ -35,21 +34,34 @@ export const Route = createFileRoute("/israel-news/$slug")({
     const a = loaderData?.article;
     const path = `/israel-news/${params.slug}`;
     const title = a?.titleAr ?? a?.titleHe ?? tr("خبر");
+    const description = a
+      ? snippet(a.summaryAr) ||
+        tr("ترجمة إلى العربية لخبر من {0}: {1}", a.source, snippet(title, 100))
+      : tr("هذا الخبر لم يعد ضمن آخر أخبار إسرائيل.");
+    const image = a
+      ? (a.image ?? newsCardUrl({ title: a.titleAr ?? a.titleHe, category: a.category, source: a.source }))
+      : undefined;
     return seo({
-      title: tr("{0} · رهط بوست", title),
-      description: a
-        ? snippet(a.summaryAr) ||
-          tr("ترجمة آلية إلى العربية لخبر من {0}: {1}", a.source, snippet(title, 100))
-        : tr("هذا الخبر لم يعد ضمن آخر أخبار إسرائيل."),
+      title: tr("{0} · أخبار إسرائيل بالعربية · رهط بوست", title),
+      description,
       path,
       type: "article",
-      image: a ? (a.image ?? newsCardUrl({ title: a.titleAr ?? a.titleHe, category: a.category, source: a.source })) : undefined,
+      image,
       publishedTime: a?.publishedAt,
-      // Machine-translated headline + excerpt of another outlet's story: not indexed (thin /
-      // duplicate), links followed. The /israel-news list stays indexable.
-      robots: "noindex",
+      section: tr("أخبار إسرائيل"),
+      keywords: [a?.source ?? "", "أخبار إسرائيل بالعربية", "رهط بوست", "أخبار النقب"].filter(Boolean),
+      robots: a ? "index" : "noindex",
       jsonLd: a
         ? [
+            newsArticleLd({
+              path,
+              headline: title,
+              description,
+              datePublished: a.publishedAt,
+              publisherName: a.source,
+              image,
+              section: tr("أخبار إسرائيل"),
+            }),
             breadcrumbLd([
               { name: tr("أخبار إسرائيل"), path: "/israel-news" },
               { name: snippet(title, 80), path },
@@ -135,7 +147,7 @@ function IsraelArticlePage() {
             target="_blank"
             rel="noopener noreferrer"
           >
-            {tr("اقرأ الخبر كاملاً من المصدر · {0}", article.source)}
+            {tr("الخبر الأصلي بالعبرية")}
             <ExternalLink className="size-4" aria-hidden />
           </a>
           <p className="mt-3 text-sm font-semibold text-muted">
@@ -146,8 +158,6 @@ function IsraelArticlePage() {
           </p>
         </div>
       </article>
-      <ShareWhatsApp className="mt-4" title={article.titleAr ?? article.titleHe} path={`/israel-news/${article.slug}`} />
-      <PushCta className="mt-3" />
       <Comments key={article.slug} articleKey={`israel-news/${article.slug}`} />
       {related.length > 0 ? (
         <>

@@ -1,5 +1,4 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { PushCta, ShareWhatsApp } from "@/components/growth";
 import { ExternalLink } from "lucide-react";
 import { Comments } from "@/components/comments";
 import { Shell } from "@/components/shell";
@@ -13,13 +12,13 @@ import { breadcrumbLd, newsArticleLd, seo, snippet } from "@/lib/seo";
 import { ReportButton } from "@/components/report";
 import { AdSlots } from "@/components/google-services";
 import { tr, trv } from "@/lib/i18n/core";
-import { localized, localizedIsrael } from "@/lib/i18n/localize";
+import { localized } from "@/lib/i18n/localize";
 
 export const Route = createFileRoute("/news/$slug")({
   loader: async ({ params }) => {
     let data = await localized(await getNews(), (d) => [{ items: d.items, fields: ["title", "summary", "body"] }], "auto");
     if (!data.items.some((item) => item.slug === params.slug)) {
-      // «أخبار تقنية» items share the article page.
+      // «أخبار تقنية» and «رياضة» items share the article page.
       const [techFeed, sportsFeed] = await Promise.all([getTechNews().catch(() => null), getSportsNews().catch(() => null)]);
       const tech = techFeed?.items.some((item) => item.slug === params.slug) ? techFeed : sportsFeed;
       const hit = tech?.items.find((item) => item.slug === params.slug);
@@ -44,7 +43,8 @@ export const Route = createFileRoute("/news/$slug")({
         robots: "noindex",
       });
     }
-    const description = snippet(a.summary) || tr("{0} — أخبار رهط والنقب.", a.title);
+    const description = snippet(a.summary || a.body) || tr("{0} — أخبار رهط والنقب على رهط بوست.", a.title);
+    const image = a.image ?? newsCardUrl(a);
     const crumbs = breadcrumbLd([
       { name: tr("أخبار رهط"), path: "/news" },
       { name: snippet(a.title, 80), path },
@@ -54,26 +54,25 @@ export const Route = createFileRoute("/news/$slug")({
       description,
       path,
       type: "article",
-      image: a.image ?? newsCardUrl(a),
+      image,
       publishedTime: a.publishedAt,
-      // Feed items are a headline + excerpt linking to the publisher (the original is the
-      // canonical source), so keep them out of the index but let crawlers follow the links.
-      // Reader posts are original content and are indexed with NewsArticle markup.
-      robots: a.reader || a.staff ? "index" : "noindex",
-      jsonLd: a.reader
-        ? [
-            newsArticleLd({
-              path,
-              headline: a.title,
-              description,
-              datePublished: a.publishedAt,
-              authorName: a.reader.name,
-              image: a.image,
-              commentCount: a.comments,
-            }),
-            crumbs,
-          ]
-        : [crumbs],
+      section: a.category,
+      keywords: [a.category, a.source, "أخبار رهط", "أخبار النقب", "رهط بوست"].filter(Boolean),
+      robots: "index",
+      jsonLd: [
+        newsArticleLd({
+          path,
+          headline: a.title,
+          description,
+          datePublished: a.publishedAt,
+          authorName: a.reader?.name ?? a.author,
+          publisherName: a.reader || a.staff ? undefined : a.source,
+          image,
+          section: a.category,
+          commentCount: a.comments,
+        }),
+        crumbs,
+      ],
     });
   },
   component: ArticlePage,
@@ -149,7 +148,7 @@ function ArticlePage() {
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                {tr("اقرأ الخبر كاملاً من المصدر · {0}", article.source)}
+                {tr("اقرأ الخبر كاملاً في المصدر")}
                 <ExternalLink className="size-4" aria-hidden />
               </a>
               <p className="mt-3 text-sm font-semibold text-muted">
@@ -159,16 +158,24 @@ function ArticlePage() {
           )}
         </div>
       </article>
-      <ShareWhatsApp className="mt-4" title={article.title} path={`/news/${article.slug}`} />
-      <a
-        className="btn mt-2 w-full"
-        href={`https://t.me/share/url?url=${encodeURIComponent(url)}&text=${share}`}
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        {tr("تليجرام")}
-      </a>
-      <PushCta className="mt-4" />
+      <div className="mt-4 grid grid-cols-2 gap-2">
+        <a
+          className="btn"
+          href={`https://t.me/share/url?url=${encodeURIComponent(url)}&text=${share}`}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          {tr("تليجرام")}
+        </a>
+        <a
+          className="btn btn-ghost"
+          href={`https://wa.me/?text=${share}%0A${encodeURIComponent(url)}`}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          {tr("واتساب")}
+        </a>
+      </div>
       <AdSlots placement="article" />
       <Comments key={article.slug} articleKey={`news/${article.slug}`} />
       {related.length > 0 ? (

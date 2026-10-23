@@ -1,10 +1,40 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { CalendarCheck, Info } from "lucide-react";
-import { Accordion, BranchCard, ExtLink, GuideBlocks, GuideIcon } from "@/components/guide";
+import { Accordion, BranchCard, ExtLink, GuideBlocks, GuideCard, GuideIcon } from "@/components/guide";
 import { Shell } from "@/components/shell";
-import { formatCheckedAt, getGuide, guidePath } from "@/data/guides";
-import { breadcrumbLd, seo } from "@/lib/seo";
+import { formatCheckedAt, getGuide, guidePath, guides, type Guide } from "@/data/guides";
+import { absoluteUrl, breadcrumbLd, LOGO_URL, OG_IMAGE, seo, SITE_NAME, SITE_URL } from "@/lib/seo";
 import { tr, trv } from "@/lib/i18n/core";
+
+function guideFaqLd(g: Guide) {
+  const questions: { "@type": string; name: string; acceptedAnswer: { "@type": string; text: string } }[] = [];
+  for (const s of g.sections) {
+    for (const item of s.items ?? []) {
+      const texts: string[] = [];
+      for (const b of item.blocks) {
+        if (b.kind === "p" || b.kind === "note") texts.push(b.text);
+        else if (b.kind === "list" || b.kind === "steps") texts.push(b.items.join(" • "));
+      }
+      const answer = texts.join(" ").trim();
+      if (item.title && answer) {
+        questions.push({
+          "@type": "Question",
+          name: item.title,
+          acceptedAnswer: {
+            "@type": "Answer",
+            text: answer,
+          },
+        });
+      }
+    }
+  }
+  if (!questions.length) return null;
+  return {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: questions,
+  };
+}
 
 export const Route = createFileRoute("/directory/guide/$guide")({
   loader: ({ params }) => ({ slug: getGuide(params.guide) ? params.guide : null }),
@@ -19,10 +49,13 @@ export const Route = createFileRoute("/directory/guide/$guide")({
       });
     }
     const path = guidePath(g);
+    const faq = guideFaqLd(g);
     return seo({
       title: g.seoTitle,
       description: g.seoDescription,
       path,
+      type: "article",
+      modifiedTime: g.checkedAt,
       jsonLd: [
         breadcrumbLd([
           { name: tr("دليل رهط"), path: "/directory" },
@@ -34,9 +67,22 @@ export const Route = createFileRoute("/directory/guide/$guide")({
           headline: g.title,
           description: g.seoDescription,
           inLanguage: "ar",
+          datePublished: g.checkedAt,
           dateModified: g.checkedAt,
-          mainEntityOfPage: path,
+          image: [OG_IMAGE],
+          author: { "@id": `${SITE_URL}/#organization` },
+          publisher: {
+            "@type": "NewsMediaOrganization",
+            "@id": `${SITE_URL}/#organization`,
+            name: SITE_NAME,
+            logo: { "@type": "ImageObject", url: LOGO_URL, width: 512, height: 512 },
+          },
+          mainEntityOfPage: {
+            "@type": "WebPage",
+            "@id": absoluteUrl(path),
+          },
         },
+        ...(faq ? [faq] : []),
       ],
     });
   },
@@ -59,6 +105,7 @@ function GuidePage() {
   }
 
   const checked = formatCheckedAt(guide.checkedAt);
+  const otherGuides = guides.filter((g) => g.slug !== guide.slug);
 
   return (
     <Shell>
@@ -136,6 +183,19 @@ function GuidePage() {
             ))}
           </ol>
         </section>
+
+        {otherGuides.length ? (
+          <section aria-label={tr("أدلة خدمات أخرى في رهط")}>
+            <h2 className="mb-3 text-xl font-bold">{tr("أدلة خدمات أخرى في رهط")}</h2>
+            <ul className="flex flex-col gap-3">
+              {otherGuides.map((g) => (
+                <li key={g.slug}>
+                  <GuideCard guide={g} />
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
       </article>
     </Shell>
   );

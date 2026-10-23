@@ -1,13 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { PushCta } from "@/components/growth";
-import { Bus, ChevronLeft, Search } from "lucide-react";
+import { Bus, ChevronLeft, MapPin, Search } from "lucide-react";
 import { Fragment, useMemo, useState, type ReactNode } from "react";
 import { useSiteSettings } from "@/lib/site-settings/context";
 import type { HomeSectionId } from "@/lib/site-settings/types";
 import { AdSlots } from "@/components/google-services";
 import { NewsImage } from "@/components/news-image";
-import { HomePostCard } from "@/components/guide";
-import { getGuide } from "@/data/guides";
+import { HomeGuidesGrid } from "@/components/guide";
 import { CommentCount } from "@/components/comment-count";
 import { HomeCarousel, HomeTiles, QuickLinks, type SectionSlide } from "@/components/home-parts";
 import { SectionTitle, Shell } from "@/components/shell";
@@ -21,7 +19,7 @@ import { NotifyPrompt } from "@/components/notify";
 import { NewsLead, NewsUnavailable, newestFirst } from "@/components/news";
 import { getApprovedEntries } from "@/lib/directory/api";
 import { osmEntries, type DirectoryEntry } from "@/lib/directory/types";
-import { getAutoSectionFlags, getNews, getSportsNews, getTechNews } from "@/lib/news/api";
+import { getAutoSectionFlags, getCustomSectionsNews, getNews, getSportsNews, getTechNews } from "@/lib/news/api";
 import { newsByline, relativeTimeAr, useNow } from "@/lib/news/format";
 import type { IsraelNewsItem, IsraelNewsResult, NewsItem } from "@/lib/news/types";
 import { getIsraelNews } from "@/lib/news/israel-api";
@@ -50,7 +48,7 @@ export const Route = createFileRoute("/")({
       jsonLd: [organizationLd, websiteLd],
     }),
   loader: async () => {
-    const [news, approved, ads, israel, weather, board, store, tech, flags, sports] = await Promise.all([
+    const [news, approved, ads, israel, weather, board, store, tech, flags, sports, customSections] = await Promise.all([
       getNews(),
       getApprovedEntries(),
       getListings(),
@@ -61,6 +59,7 @@ export const Route = createFileRoute("/")({
       getTechNews().catch(() => null),
       getAutoSectionFlags().catch(() => ({}) as Record<string, boolean>),
       getSportsNews().catch(() => null),
+      getCustomSectionsNews().catch(() => []),
     ]);
     const [lNews, lIsrael, lStore, lTech, lSports] = await Promise.all([
       localized(news, (d) => [{ items: d.items, fields: ["title", "summary", "body"] }], "auto"),
@@ -69,15 +68,13 @@ export const Route = createFileRoute("/")({
       tech ? localized(tech, (d) => [{ items: d.items.slice(0, 5), fields: ["title", "summary"] }], "auto") : null,
       sports ? localized(sports, (d) => [{ items: d.items.slice(0, 5), fields: ["title", "summary"] }], "auto") : null,
     ]);
-    return { news: lNews, approved: approved.entries, ads, israel: lIsrael, weather, board, store: lStore, tech: lTech, sports: lSports, flags };
+    return { news: lNews, approved: approved.entries, ads, israel: lIsrael, weather, board, store: lStore, tech: lTech, sports: lSports, flags, customSections };
   },
   // New items must show up within a minute or two: short CDN cache, revalidated in the background.
   headers: () => ({ "Cache-Control": HOME_CACHE }),
   staleTime: 60_000,
   component: Home,
 });
-
-const postGuide = getGuide("post");
 
 const HOME_CACHE = "public, max-age=0, s-maxage=60, stale-while-revalidate=180";
 
@@ -86,7 +83,7 @@ const HOME_CACHE = "public, max-age=0, s-maxage=60, stale-while-revalidate=180";
  * page. On a cold cache we give up after a short wait (the server keeps warming its cache for the
  * next visit) and simply hide the section.
  */
-const ISRAEL_HOME_WAIT_MS = 4_000;
+const ISRAEL_HOME_WAIT_MS = 3_500;
 async function israelNewsForHome(): Promise<IsraelNewsResult | null> {
   try {
     return await Promise.race([
@@ -99,10 +96,11 @@ async function israelNewsForHome(): Promise<IsraelNewsResult | null> {
 }
 
 function Home() {
-  const { news, approved, ads: adsData, israel, weather, board, store, tech, sports, flags } = Route.useLoaderData();
+  const { news, approved, ads: adsData, israel, weather, board, store, tech, sports, flags, customSections } = Route.useLoaderData();
   const showSec = (id: string) => flags[id] !== false;
   const techTop = tech?.home ? tech.items.slice(0, 5) : [];
   const sportsTop = sports?.home ? sports.items.slice(0, 5) : [];
+  const visibleCustomSections = (customSections ?? []).filter((s) => s.home && s.items.length > 0);
   const settings = useSiteSettings();
   const israelItems = useMemo(() => israel?.items ?? [], [israel]);
   // Translated headlines first (each group stays newest first), then Hebrew-only ones.
@@ -123,16 +121,13 @@ function Home() {
   const search = Route.useSearch();
   const [q, setQ] = useState(search.q ?? "");
   const query = q.trim();
-  // Strictly newest first (feeds + reader posts) — no local-first or has-photo ranking. The banner
-  // carousel at the top shows the very latest story (a story without a photo gets the yellow
-  // banner); the news section continues with the next ones.
   const ranked = newestFirst(news.items);
   const breaking = news.items.find((item) => item.breaking);
   const israelBreaking = israelItems.find((item) => item.breaking);
   const top = ranked[0];
   const remaining = ranked.slice(1);
   const lead = remaining[0] ?? top;
-  const rest = remaining.slice(1, 5);
+  const rest = remaining.slice(1, 7);
 
   // Slider: the latest item of every enabled section (sections with nothing are skipped).
   const latestFeed = ranked.find((i) => !i.reader);
@@ -147,6 +142,7 @@ function Home() {
   const israelFirst = israelTop[0];
   const sectionSlides: SectionSlide[] = [
     ...(showSec("news") && latestFeed ? [newsSlide("news", "آخر الأخبار", latestFeed)] : []),
+    ...visibleCustomSections.map((cs) => newsSlide(`custom-${cs.id}`, cs.name, cs.items[0])),
     ...(showSec("israel") && israelFirst
       ? [
           {
@@ -189,6 +185,35 @@ function Home() {
     };
   }, [query, news.items, places, classifieds, israelItems]);
 
+  const directoryPreview = places.length ? (
+    <section>
+      <SectionTitle title={tr("دليل محلات وخدمات رهط")} to="/directory" more={tr("كل الدليل")} />
+      <ul className="grid gap-3 sm:grid-cols-2">
+        {places.slice(0, 6).map((place) => (
+          <li key={place.slug}>
+            <Link
+              to="/directory/$slug"
+              params={{ slug: place.slug }}
+              className="stamp press flex items-center gap-3 px-4 py-3"
+            >
+              <span className="icon-badge shrink-0">
+                <MapPin className="size-5" aria-hidden />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block font-bold leading-snug">{trv(place.name)}</span>
+                <span className="text-sm font-semibold text-muted">
+                  {trv(place.category)}
+                  {place.address || place.area ? ` · ${trv(place.address ?? place.area ?? "")}` : ""}
+                </span>
+              </span>
+              <ChevronLeft className="size-5 shrink-0 text-muted" aria-hidden />
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </section>
+  ) : null;
+
   const blocks: Record<HomeSectionId, ReactNode> = {
     weather: !showSec("weather") ? null : <HomeTodayChips weather={weather} serverNow={news.now} />,
     slider: <HomeCarousel lead={top} leadTime={top ? relativeTimeAr(top.publishedAt, now) : ""} sections={sectionSlides} />,
@@ -201,7 +226,7 @@ function Home() {
           className="field"
           value={q}
           onChange={(event) => setQ(event.target.value)}
-          placeholder={tr("ابحث في الأخبار والدليل والإعلانات")}
+          placeholder={tr("ابحث في أخبار رهط والباصات والدليل والحراج…")}
         />
       </label>
     ),
@@ -212,15 +237,17 @@ function Home() {
         <section>
           <SectionTitle title={tr("آخر الأخبار")} to="/news" more={tr("كل الأخبار")} />
           {lead ? (
-            <>
-              <NewsLead item={lead} now={now} />
-              <ul className="stack-list">
+            <div className="grid gap-4 lg:grid-cols-12">
+              <div className="lg:col-span-6">
+                <NewsLead item={lead} now={now} />
+              </div>
+              <ul className="stack-list lg:col-span-6">
                 {rest.map((item) => (
                   <li key={item.slug}>
                     <Link
                       to="/news/$slug"
                       params={{ slug: item.slug }}
-                      className="flex items-center gap-3 px-4 py-3"
+                      className="flex items-center gap-3 px-4 py-3 transition hover:bg-surface/60"
                     >
                       <NewsImage item={item} className="size-16 rounded-xl" />
                       <span className="min-w-0 flex-1">
@@ -235,11 +262,38 @@ function Home() {
                   </li>
                 ))}
               </ul>
-            </>
+            </div>
           ) : (
             <NewsUnavailable />
           )}
         </section>
+        {visibleCustomSections.map((cs) => (
+          <section key={cs.id} className="mt-6">
+            <SectionTitle title={trv(cs.name)} to="/news" more={tr("كل الأخبار")} />
+            <div className="grid gap-4 lg:grid-cols-12">
+              <div className="lg:col-span-6">
+                <NewsLead item={cs.items[0]} now={now} />
+              </div>
+              {cs.items.length > 1 ? (
+                <ul className="stack-list lg:col-span-6">
+                  {cs.items.slice(1, 6).map((item) => (
+                    <li key={item.slug}>
+                      <Link to="/news/$slug" params={{ slug: item.slug }} className="flex items-center gap-3 px-4 py-3 transition hover:bg-surface/60">
+                        <NewsImage item={item} className="size-16 rounded-xl" />
+                        <span className="min-w-0 flex-1">
+                          <span className="block font-bold leading-snug">{trv(item.title)}</span>
+                          <span className="text-sm font-semibold text-muted">
+                            {trv(item.category)} · {relativeTimeAr(item.publishedAt, now)} · {newsByline(item)}
+                          </span>
+                        </span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+            </div>
+          </section>
+        ))}
         <AdSlots placement="home" />
       </>
     ),
@@ -247,67 +301,79 @@ function Home() {
       sportsTop.length > 0 ? (
         <section>
           <SectionTitle title={tr("رياضة")} to="/sports-news" more={tr("عرض الكل")} />
-          <NewsLead item={sportsTop[0]} now={now} />
-          <ul className="stack-list">
-            {sportsTop.slice(1).map((item) => (
-              <li key={item.slug}>
-                <Link to="/news/$slug" params={{ slug: item.slug }} className="flex items-center gap-3 px-4 py-3">
-                  <NewsImage item={item} className="size-16 rounded-xl" />
-                  <span className="min-w-0 flex-1">
-                    <span dir="auto" className="block font-bold leading-snug">{trv(item.title)}</span>
-                    <span className="text-sm font-semibold text-muted">
-                      {relativeTimeAr(item.publishedAt, now)} · {trv(item.source)}
+          <div className="grid gap-4 lg:grid-cols-12">
+            <div className="lg:col-span-6">
+              <NewsLead item={sportsTop[0]} now={now} />
+            </div>
+            <ul className="stack-list lg:col-span-6">
+              {sportsTop.slice(1).map((item) => (
+                <li key={item.slug}>
+                  <Link to="/news/$slug" params={{ slug: item.slug }} className="flex items-center gap-3 px-4 py-3 transition hover:bg-surface/60">
+                    <NewsImage item={item} className="size-16 rounded-xl" />
+                    <span className="min-w-0 flex-1">
+                      <span dir="auto" className="block font-bold leading-snug">{trv(item.title)}</span>
+                      <span className="text-sm font-semibold text-muted">
+                        {relativeTimeAr(item.publishedAt, now)} · {trv(item.source)}
+                      </span>
                     </span>
-                  </span>
-                </Link>
-              </li>
-            ))}
-          </ul>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
         </section>
       ) : null,
     tech:
       techTop.length > 0 ? (
         <section>
           <SectionTitle title={tr("أخبار تقنية")} to="/tech-news" more={tr("عرض الكل")} />
-          <NewsLead item={techTop[0]} now={now} />
-          <ul className="stack-list">
-            {techTop.slice(1).map((item) => (
-              <li key={item.slug}>
-                <Link to="/news/$slug" params={{ slug: item.slug }} className="flex items-center gap-3 px-4 py-3">
-                  <NewsImage item={item} className="size-16 rounded-xl" />
-                  <span className="min-w-0 flex-1">
-                    <span className="block font-bold leading-snug">{trv(item.title)}</span>
-                    <span className="text-sm font-semibold text-muted">
-                      {relativeTimeAr(item.publishedAt, now)} · {trv(item.source)}
+          <div className="grid gap-4 lg:grid-cols-12">
+            <div className="lg:col-span-6">
+              <NewsLead item={techTop[0]} now={now} />
+            </div>
+            <ul className="stack-list lg:col-span-6">
+              {techTop.slice(1).map((item) => (
+                <li key={item.slug}>
+                  <Link to="/news/$slug" params={{ slug: item.slug }} className="flex items-center gap-3 px-4 py-3 transition hover:bg-surface/60">
+                    <NewsImage item={item} className="size-16 rounded-xl" />
+                    <span className="min-w-0 flex-1">
+                      <span className="block font-bold leading-snug">{trv(item.title)}</span>
+                      <span className="text-sm font-semibold text-muted">
+                        {relativeTimeAr(item.publishedAt, now)} · {trv(item.source)}
+                      </span>
                     </span>
-                  </span>
-                </Link>
-              </li>
-            ))}
-          </ul>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
         </section>
       ) : null,
     israel:
       showSec("israel") && israelTop.length > 0 && israel ? (
         <section>
           <SectionTitle title={tr("أخبار إسرائيل")} to="/israel-news" more={tr("عرض الكل")} />
-          <IsraelNewsLead item={israelTop[0]} now={now} />
-          <ul className="stack-list">
-            {israelTop.slice(1).map((item) => (
-              <li key={item.slug}>
-                <IsraelNewsRow item={item} now={now} />
-              </li>
-            ))}
-          </ul>
+          <div className="grid gap-4 lg:grid-cols-12">
+            <div className="lg:col-span-6">
+              <IsraelNewsLead item={israelTop[0]} now={now} />
+            </div>
+            <ul className="stack-list lg:col-span-6">
+              {israelTop.slice(1).map((item) => (
+                <li key={item.slug}>
+                  <IsraelNewsRow item={item} now={now} />
+                </li>
+              ))}
+            </ul>
+          </div>
           <IsraelNewsCredit data={israel} />
         </section>
       ) : null,
-    post: postGuide ? (
+    post: (
       <section>
-        <SectionTitle title={tr("خدمة البريد")} />
-        <HomePostCard guide={postGuide} />
+        <SectionTitle title={tr("أدلة خدمات رهط (البريد، البلدية، الصحة، والباصات)")} to="/directory" more={tr("كل الأدلة")} />
+        <HomeGuidesGrid />
       </section>
-    ) : null,
+    ),
     install: (
       <>
         <InstallBanner />
@@ -316,34 +382,38 @@ function Home() {
     ),
     buses: (
       <section>
-        <SectionTitle title={tr("باصات غاليم")} to="/buses" more={tr("كل المواعيد")} />
+        <SectionTitle title={tr("باصات غاليم في رهط والنقب")} to="/buses" more={tr("كل المواعيد")} />
         <Link to="/buses" className="stamp press flex items-center gap-3 p-4">
           <span className="icon-badge">
             <Bus className="size-6" aria-hidden />
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block font-bold">{tr("خطوط المدينة 1 حتى 6، وبئر السبع وما حولها")}</span>
+            <span className="block font-bold">{tr("خطوط المدينة 1 حتى 6، وبئر السبع والبلدات المجاورة")}</span>
             <span className="text-sm font-semibold text-muted">
-              {tr("شركة גלים · أوقات مباشرة وجدول اليوم")}
+              {tr("شركة גלים · تتبع مباشر على الخريطة وجدول أوقات اليوم")}
             </span>
           </span>
           <ChevronLeft className="size-5 text-muted" aria-hidden />
         </Link>
       </section>
     ),
-    // «من المتجر»: hidden until there are real products.
-    directory: store.products.length ? (
-      <section>
-        <SectionTitle title={tr("من المتجر")} to="/store" more={tr("كل المتجر")} />
-        <ul className="scroll-row -mx-4 px-4 pb-2">
-          {store.products.slice(0, 8).map((p) => (
-            <li key={p.id} className="w-48 shrink-0">
-              <ProductCard p={p} currency={store.settings.currency} />
-            </li>
-          ))}
-        </ul>
-      </section>
-    ) : null,
+    directory: (
+      <>
+        {store.products.length ? (
+          <section>
+            <SectionTitle title={tr("من المتجر")} to="/store" more={tr("كل المتجر")} />
+            <ul className="scroll-row -mx-4 px-4 pb-2 sm:mx-0 sm:px-0">
+              {store.products.slice(0, 8).map((p) => (
+                <li key={p.id} className="w-48 shrink-0">
+                  <ProductCard p={p} currency={store.settings.currency} />
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
+        {directoryPreview}
+      </>
+    ),
     ads: (
       <section>
         <SectionTitle title={tr("جديد {0}", settings.texts.harajName)} to="/haraj" more={tr("كل الإعلانات")} />
@@ -352,7 +422,7 @@ function Home() {
             {tr("عندك غرض للبيع؟ أضفه إلى الحراج مجاناً.")}
           </Link>
         ) : null}
-        <ul className="flex flex-col gap-3">
+        <ul className="grid gap-3 sm:grid-cols-2">
           {classifieds.slice(0, 4).map((item) => (
             <li key={item.id}>
               <Link
@@ -363,7 +433,7 @@ function Home() {
                 {item.photo ? (
                   <img
                     src={mediaUrl(item.photo)}
-                    alt=""
+                    alt={trv(item.title)}
                     className="thumb size-16"
                     loading="lazy"
                     decoding="async"
@@ -385,32 +455,36 @@ function Home() {
     duty: board.dutyVisible === false ? null : <DutyCard duty={board.duty} />,
     emergency: (
       <section>
-        <SectionTitle title={tr("أرقام تُحفظ")} to="/today" more={tr("كل الأرقام")} />
-        <div className="scroll-row">
+        <SectionTitle title={tr("أرقام الطوارئ في رهط")} to="/today" more={tr("كل الأرقام")} />
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {emergency.slice(0, 4).map((item) => (
             <a
               key={item.phone}
               href={`tel:${item.phone}`}
-              className="stamp press flex w-28 shrink-0 flex-col items-center px-3 py-3 text-center"
+              className="stamp press flex flex-col items-center px-3 py-3.5 text-center"
             >
-              <span className="text-2xl font-bold leading-none">{trv(item.phone)}</span>
-              <span className="mt-1 text-sm font-bold">{trv(item.name)}</span>
+              <span className="text-2xl font-extrabold leading-none text-primary-ink">{trv(item.phone)}</span>
+              <span className="mt-1.5 text-sm font-bold">{trv(item.name)}</span>
             </a>
           ))}
         </div>
       </section>
     ),
   };
+
+  // Ensure the install banner never blocks above-the-fold news even if an older DB order had it at #2
+  const rawOrder = settings.home.filter((h) => h.visible).map((h) => h.id);
+  const order: HomeSectionId[] = [
+    ...rawOrder.filter((id) => id !== "install"),
+    ...(rawOrder.includes("install") ? (["install"] as HomeSectionId[]) : []),
+  ];
   const TOP: HomeSectionId[] = ["weather", "slider", "search"];
-  const order = settings.home.filter((h) => h.visible).map((h) => h.id);
 
   return (
     <Shell>
       <div className="flex flex-col gap-6">
         <h1 className="sr-only">{tr("رهط بوست: أخبار وخدمات رهط والنقب")}</h1>
-        {/* Top: alerts (only when active), weather + prayer, banner slider, then search. */}
         <AlertsBanner alerts={board.alerts} />
-        <PushCta />
         {breaking ? (
           <Link
             to="/news/$slug"
@@ -449,7 +523,12 @@ function Home() {
             <SearchResults query={query} results={results} />
           </>
         ) : (
-          order.map((id) => <Fragment key={id}>{trv(blocks[id])}</Fragment>)
+          <>
+            {order.map((id) => (
+              <Fragment key={id}>{trv(blocks[id])}</Fragment>
+            ))}
+            {!order.includes("directory") ? directoryPreview : null}
+          </>
         )}
       </div>
     </Shell>
@@ -524,5 +603,3 @@ function SearchResults({
     </div>
   );
 }
-
-/** First Israel headline as a big card (same look as the latest-news lead). */

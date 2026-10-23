@@ -10,8 +10,6 @@ import {
   MessageSquare,
   Newspaper,
   PenSquare,
-  CreditCard,
-  Bus,
   Pill,
   Rss,
   Settings,
@@ -37,6 +35,8 @@ import {
   Link2,
   Mail,
   ChevronLeft,
+  ChevronDown,
+  FolderPlus,
   MonitorUp,
   ShieldX,
 } from "lucide-react";
@@ -48,7 +48,6 @@ import { Shell } from "@/components/shell";
 import { AuthLayout } from "@/components/auth-layout";
 import { adminDecideListing, adminListListings, adminSamples } from "@/lib/market/api";
 import { priceLabel, STATUS_LABEL, type ListingStatus, type OwnListing } from "@/lib/market/types";
-import type { OwnAd } from "@/lib/ads/types";
 import { adminDecide, adminList, adminLogin, adminLogout } from "@/lib/directory/api";
 import type { BusinessSubmission } from "@/lib/directory/types";
 import { adminGate, adminWhoami } from "@/lib/team/api";
@@ -60,7 +59,6 @@ import { AdminSearch, CardBoundary, DashboardHome, ReviewQueue, Skeleton } from 
 import type { SiteSettingsPart } from "@/components/admin/site-settings-admin";
 const CommentsAdmin = lazy(() => import("@/components/admin/comments-admin").then((m) => ({ default: m.CommentsAdmin })));
 const AlertsAdmin = lazy(() => import("@/components/admin/content-admin").then((m) => ({ default: m.AlertsAdmin })));
-const BusLinesAdmin = lazy(() => import("@/components/admin/bus-admin").then((m) => ({ default: m.BusLinesAdmin })));
 const DutyAdmin = lazy(() => import("@/components/admin/content-admin").then((m) => ({ default: m.DutyAdmin })));
 const PushAdmin = lazy(() => import("@/components/admin/content-admin").then((m) => ({ default: m.PushAdmin })));
 const ReportsAdmin = lazy(() => import("@/components/admin/content-admin").then((m) => ({ default: m.ReportsAdmin })));
@@ -84,7 +82,6 @@ export const Route = createFileRoute("/admin")({
     meta: [{ title: tr("إدارة · رهط بوست") }, { name: "robots", content: "noindex, nofollow" }],
   }),
   loader: () => adminGate(),
-  // The HTML document itself is 403 for a signed-in account without an admin role.
   server: {
     middleware: [
       createMiddleware().server(async ({ next }) => {
@@ -122,9 +119,6 @@ type Section =
   | "set-theme"
   | "set-home"
   | "set-slider"
-  | "set-busads"
-  | "set-announce"
-  | "set-ravkav"
   | "set-texts"
   | "set-menus"
   | "set-links"
@@ -145,7 +139,6 @@ type Section =
   | "comments"
   | "reports"
   | "duty"
-  | "bus-lines"
   | "alerts"
   | "push"
   | "languages"
@@ -157,66 +150,62 @@ type Section =
   | "sec-weather";
 
 const ALL_TABS: { key: Section; label: string; icon: LucideIcon }[] = [
-  { key: "home", label: "الرئيسية", icon: House },
-  { key: "review", label: "المراجعة", icon: ClipboardCheck },
-  { key: "stats", label: "الإحصائيات", icon: BarChart3 },
-  { key: "publish", label: "نشر خبر", icon: PenSquare },
+  { key: "home", label: "نظرة عامة", icon: House },
+  { key: "review", label: "طابور المراجعة", icon: ClipboardCheck },
+  { key: "stats", label: "الإحصائيات والزوار", icon: BarChart3 },
+  { key: "publish", label: "نشر خبر جديد", icon: PenSquare },
+  { key: "sec-news", label: "إدارة الأقسام (+ إضافة قسم)", icon: FolderPlus },
   { key: "auto", label: "الأخبار التلقائية", icon: Rss },
-  { key: "sec-news", label: "الأخبار المحلية", icon: Newspaper },
+  { key: "news", label: "أخبار القراء", icon: Newspaper },
+  { key: "comments", label: "التعليقات", icon: MessageSquare },
   { key: "sec-israel", label: "أخبار إسرائيل", icon: Rss },
   { key: "sec-sports", label: "رياضة", icon: Trophy },
   { key: "sec-tech", label: "أخبار تقنية", icon: Cpu },
   { key: "sec-weather", label: "الطقس", icon: CloudSun },
-  { key: "news", label: "أخبار القراء", icon: Newspaper },
-  { key: "ads", label: "الإعلانات", icon: Megaphone },
-  { key: "haraj-cats", label: "تصنيفات الحراج", icon: Megaphone },
-  { key: "store", label: "المتجر", icon: ShoppingBag },
-  { key: "directory", label: "طلبات الدليل", icon: Store },
-  { key: "comments", label: "التعليقات", icon: MessageSquare },
+  { key: "ads", label: "إعلانات الحراج", icon: Megaphone },
+  { key: "haraj-cats", label: "تصنيفات الحراج", icon: LayoutGrid },
   { key: "reports", label: "البلاغات", icon: Flag },
+  { key: "directory", label: "طلبات الدليل التجاري", icon: Store },
   { key: "duty", label: "صيدلية المناوبة", icon: Pill },
-  { key: "bus-lines", label: "خطوط الباصات", icon: Bus },
-  { key: "alerts", label: "التنبيهات", icon: Siren },
-  { key: "push", label: "الإشعارات", icon: Bell },
+  { key: "store", label: "إدارة المتجر", icon: ShoppingBag },
   { key: "members-list", label: "قائمة الأعضاء", icon: Users },
   { key: "members-roles", label: "الأدوار والصلاحيات", icon: BadgeCheck },
-  { key: "members-invite", label: "إضافة عضو بالبريد", icon: UserPlus },
+  { key: "members-invite", label: "دعوة عضو للفريق", icon: UserPlus },
   { key: "members-methods", label: "طرق تسجيل الدخول", icon: KeyRound },
-  { key: "emails", label: "قوالب رسائل البريد", icon: Mail },
-  { key: "popups", label: "الإعلانات المنبثقة", icon: MonitorUp },
-  { key: "set-theme", label: "المظهر والألوان", icon: Palette },
-  { key: "set-texts", label: "النصوص والشعار", icon: Type },
-  { key: "set-home", label: "أقسام الرئيسية", icon: LayoutGrid },
+  { key: "alerts", label: "شريط التنبيهات العاجلة", icon: Siren },
+  { key: "push", label: "إشعارات الهواتف (Push)", icon: Bell },
+  { key: "popups", label: "النوافذ الترويجية", icon: MonitorUp },
+  { key: "emails", label: "قوالب البريد الإلكتروني", icon: Mail },
+  { key: "set-home", label: "ترتيب الصفحة الرئيسية", icon: LayoutGrid },
   { key: "set-menus", label: "القوائم والأيقونات", icon: Menu },
-  { key: "set-slider", label: "السلايدر", icon: GalleryHorizontal },
-  { key: "set-busads", label: "إعلانات الباصات", icon: GalleryHorizontal },
-  { key: "set-announce", label: "شريط الإعلان", icon: Megaphone },
-  { key: "set-ravkav", label: "نقاط رب-كاف", icon: CreditCard },
-  { key: "set-links", label: "روابط سريعة", icon: Link2 },
-  { key: "set-google", label: "خدمات جوجل (Analytics وAdSense وSearch Console)", icon: Settings },
-  { key: "languages", label: "اللغات", icon: Globe },
-  { key: "gemini", label: "الذكاء الاصطناعي والترجمة", icon: Sparkles },
+  { key: "set-texts", label: "الهوية والنصوص والشعار", icon: Type },
+  { key: "set-theme", label: "المظهر والألوان", icon: Palette },
+  { key: "set-slider", label: "السلايدر الرئيسي", icon: GalleryHorizontal },
+  { key: "set-links", label: "الروابط السريعة", icon: Link2 },
+  { key: "set-google", label: "خدمات جوجل والسيو", icon: Settings },
+  { key: "languages", label: "اللغات والترجمة", icon: Globe },
+  { key: "gemini", label: "الذكاء الاصطناعي (Gemini)", icon: Sparkles },
 ];
 
 const GROUPS: { id: string; label: string; icon: LucideIcon; keys: Section[] }[] = [
-  { id: "main", label: "الرئيسية", icon: House, keys: ["home", "review", "stats"] },
+  { id: "main", label: "لوحة المتابعة", icon: House, keys: ["home", "review", "stats"] },
   {
     id: "content",
-    label: "المحتوى والأخبار",
+    label: "الأخبار والأقسام",
     icon: Newspaper,
-    keys: ["news", "comments", "auto", "sec-news", "sec-israel", "sec-sports", "sec-tech", "sec-weather", "duty", "bus-lines", "set-ravkav", "directory"],
+    keys: ["publish", "sec-news", "auto", "news", "comments", "sec-israel", "sec-sports", "sec-tech", "sec-weather"],
   },
-  { id: "haraj", label: "الحراج", icon: Megaphone, keys: ["ads", "haraj-cats", "reports"] },
-  { id: "store", label: "المتجر", icon: ShoppingBag, keys: ["store"] },
-  { id: "members", label: "الأعضاء والصلاحيات", icon: Users, keys: ["members-list", "members-roles", "members-invite"] },
-  { id: "marketing", label: "التسويق والتواصل", icon: MonitorUp, keys: ["popups", "set-announce", "set-busads", "emails", "push", "alerts", "set-google"] },
+  { id: "haraj", label: "الحراج والخدمات", icon: Megaphone, keys: ["ads", "haraj-cats", "directory", "duty", "reports", "store"] },
   {
     id: "settings",
-    label: "الإعدادات",
-    icon: Settings,
-    keys: ["set-texts", "set-theme", "set-home", "set-menus", "set-slider", "set-links", "languages", "gemini", "members-methods"],
+    label: "تنظيم المظهر والموقع",
+    icon: LayoutGrid,
+    keys: ["set-home", "set-menus", "set-texts", "set-theme", "set-slider", "set-links", "languages", "gemini"],
   },
+  { id: "marketing", label: "التنبيهات والتسويق", icon: Bell, keys: ["alerts", "push", "popups", "emails", "set-google"] },
+  { id: "members", label: "الفريق والأعضاء", icon: Users, keys: ["members-list", "members-roles", "members-invite", "members-methods"] },
 ];
+
 const groupItems = (g: (typeof GROUPS)[number], tabs: typeof ALL_TABS) =>
   g.keys.map((k) => tabs.find((t) => t.key === k)).filter((t): t is (typeof ALL_TABS)[number] => Boolean(t));
 
@@ -239,49 +228,120 @@ function GroupLanding({ group, tabs, go }: { group: (typeof GROUPS)[number]; tab
 function AdminMenu({
   tabs,
   section,
+  reviewCount,
   onSelect,
   onLogout,
 }: {
   tabs: typeof ALL_TABS;
   section: Section;
+  reviewCount: number | null;
   onSelect: (key: Section) => void;
   onLogout: () => void;
 }) {
+  const activeGroup = GROUPS.find((g) => g.keys.includes(section))?.id ?? "main";
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({ [activeGroup]: true, main: true, content: true });
+
+  useEffect(() => {
+    if (activeGroup) setExpanded((prev) => ({ ...prev, [activeGroup]: true }));
+  }, [activeGroup]);
+
   return (
-    <nav aria-label={tr("أقسام الإدارة")} className="flex flex-col gap-1">
-      {tabs.some((t) => t.key === "publish") ? (
-        <button
-          type="button"
-          aria-current={section === "publish" ? "page" : undefined}
-          className={`mb-2 flex w-full items-center justify-center gap-2 rounded-2xl bg-[#16A34A] px-4 py-3 font-bold text-white shadow-sm transition-colors hover:bg-[#15803D] ${section === "publish" ? "ring-2 ring-[#16A34A]/40 ring-offset-2" : ""}`}
-          onClick={() => onSelect("publish")}
-        >
-          <PenSquare className="size-5 shrink-0" aria-hidden />
-          {tr("نشر خبر")}
-        </button>
-      ) : null}
-      {GROUPS.map((g) => {
-        const items = groupItems(g, tabs);
-        if (!items.length) return null;
-        const active = g.keys.includes(section);
-        const Icon = g.icon;
-        return (
+    <nav aria-label={tr("أقسام الإدارة")} className="flex flex-col gap-2">
+      {/* Primary Quick Actions at Top of Sidebar */}
+      <div className="grid grid-cols-1 gap-2 pb-2 border-b border-line">
+        {tabs.some((t) => t.key === "publish") ? (
           <button
-            key={g.id}
             type="button"
-            aria-current={active ? "page" : undefined}
-            className={`flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-start font-bold transition-colors ${active ? "bg-brand text-ink" : "hover:bg-surface"}`}
-            onClick={() => onSelect(`grp-${g.id}`)}
+            aria-current={section === "publish" ? "page" : undefined}
+            className={`flex w-full items-center justify-center gap-2 rounded-2xl bg-[#16A34A] px-4 py-2.5 text-sm font-bold text-white shadow-xs transition hover:bg-[#15803D] ${
+              section === "publish" ? "ring-2 ring-[#16A34A]/40 ring-offset-2" : ""
+            }`}
+            onClick={() => onSelect("publish")}
           >
-            <Icon className="size-5 shrink-0" aria-hidden />
-            <span className="flex-1">{trv(g.label)}</span>
-            <span className="text-xs font-semibold opacity-60">{items.length}</span>
+            <PenSquare className="size-4 shrink-0" aria-hidden />
+            {tr("نشر خبر جديد")}
           </button>
-        );
-      })}
-      <button type="button" className="flex w-full items-center gap-3 rounded-2xl px-3 py-2 text-start text-sm font-bold hover:bg-surface" onClick={onLogout}>
+        ) : null}
+        {tabs.some((t) => t.key === "sec-news") ? (
+          <button
+            type="button"
+            aria-current={section === "sec-news" ? "page" : undefined}
+            className={`flex w-full items-center justify-center gap-2 rounded-2xl bg-brand px-4 py-2.5 text-sm font-bold text-ink shadow-xs transition hover:opacity-90 ${
+              section === "sec-news" ? "ring-2 ring-ink/30 ring-offset-2" : ""
+            }`}
+            onClick={() => onSelect("sec-news")}
+          >
+            <FolderPlus className="size-4 shrink-0" aria-hidden />
+            {tr("إضافة وتعديل الأقسام")}
+          </button>
+        ) : null}
+      </div>
+
+      {/* Organized Collapsible Groups */}
+      <div className="flex flex-col gap-1">
+        {GROUPS.map((g) => {
+          const items = groupItems(g, tabs);
+          if (!items.length) return null;
+          const active = g.keys.includes(section);
+          const isOpen = Boolean(expanded[g.id]);
+          const Icon = g.icon;
+          return (
+            <div key={g.id} className="rounded-2xl bg-surface/50 p-1">
+              <button
+                type="button"
+                aria-expanded={isOpen}
+                className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-start text-sm font-extrabold transition-colors ${
+                  active ? "bg-paper text-ink shadow-2xs" : "text-ink/80 hover:bg-paper/60"
+                }`}
+                onClick={() => {
+                  setExpanded((prev) => ({ ...prev, [g.id]: !isOpen }));
+                  if (!active) onSelect(items[0].key);
+                }}
+              >
+                <Icon className="size-4 shrink-0 text-primary-ink" aria-hidden />
+                <span className="flex-1 truncate">{trv(g.label)}</span>
+                <ChevronDown className={`size-4 shrink-0 text-muted transition-transform ${isOpen ? "rotate-180" : ""}`} aria-hidden />
+              </button>
+              {isOpen ? (
+                <ul className="mt-1 flex flex-col gap-0.5 ps-2">
+                  {items.map((item) => {
+                    const SubIcon = item.icon;
+                    const subActive = section === item.key;
+                    return (
+                      <li key={item.key}>
+                        <button
+                          type="button"
+                          aria-current={subActive ? "page" : undefined}
+                          onClick={() => onSelect(item.key)}
+                          className={`flex w-full items-center gap-2 rounded-xl px-3 py-2 text-start text-xs font-bold transition ${
+                            subActive ? "bg-brand text-ink shadow-2xs" : "text-muted hover:bg-paper hover:text-ink"
+                          }`}
+                        >
+                          <SubIcon className="size-3.5 shrink-0" aria-hidden />
+                          <span className="flex-1 truncate">{trv(item.label)}</span>
+                          {item.key === "review" && reviewCount ? (
+                            <span className="rounded-full bg-alert px-1.5 py-0.5 text-[10px] font-extrabold text-white">
+                              {reviewCount}
+                            </span>
+                          ) : null}
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              ) : null}
+            </div>
+          );
+        })}
+      </div>
+
+      <button
+        type="button"
+        className="mt-2 flex w-full items-center gap-3 rounded-2xl border border-line px-3 py-2.5 text-start text-sm font-bold text-muted hover:bg-surface hover:text-ink"
+        onClick={onLogout}
+      >
         <LogOut className="size-[18px] shrink-0" aria-hidden />
-        {tr("خروج")}
+        {tr("تسجيل الخروج")}
       </button>
     </nav>
   );
@@ -440,7 +500,6 @@ function AdminPage() {
   };
 
   const list = items.filter((i) => i.status === tab);
-  // Signed-in moderators get a limited view: only the tabs their role's permissions cover.
   const TAB_PERM: Partial<Record<Section, string>> = {
     ads: "moderate_haraj",
     "haraj-cats": "moderate_haraj",
@@ -472,6 +531,7 @@ function AdminPage() {
   };
   const landing = undefined as (typeof GROUPS)[number] | undefined;
   const curGroup = landing ?? GROUPS.find((g) => g.keys.includes(current));
+  const activeTabObj = tabs.find((t) => t.key === current);
   const logout = async () => {
     setMenuOpen(false);
     await adminLogout();
@@ -480,21 +540,27 @@ function AdminPage() {
 
   return (
     <div className="min-h-screen bg-surface text-ink">
-      <div className={`mx-auto max-w-6xl lg:grid lg:gap-6 lg:px-6 lg:py-6 ${sideCollapsed ? "lg:grid-cols-[minmax(0,1fr)]" : "lg:grid-cols-[16rem_minmax(0,1fr)]"}`}>
+      <div className={`mx-auto max-w-6xl lg:grid lg:gap-6 lg:px-6 lg:py-6 ${sideCollapsed ? "lg:grid-cols-[minmax(0,1fr)]" : "lg:grid-cols-[17.5rem_minmax(0,1fr)]"}`}>
         <aside className={sideCollapsed ? "hidden" : "hidden lg:block"}>
-          <div className="sticky top-6 flex max-h-[calc(100vh-3rem)] flex-col gap-4 overflow-y-auto rounded-3xl bg-paper p-3 shadow-[0_1px_3px_rgba(16,24,40,0.06)]">
-            <Link to="/" className="flex items-center gap-2 px-2 pt-1 text-sm font-bold text-muted hover:text-ink">
-              <ArrowRight className="size-4 rtl:rotate-0 ltr:rotate-180" aria-hidden />
-              {tr("العودة للموقع")}
-            </Link>
-            <AdminMenu tabs={tabs} section={current} onSelect={go} onLogout={logout} />
+          <div className="sticky top-6 flex max-h-[calc(100vh-3rem)] flex-col gap-3 overflow-y-auto rounded-3xl bg-paper p-3.5 shadow-[0_1px_3px_rgba(16,24,40,0.06)]">
+            <div className="flex items-center justify-between px-2 pt-1">
+              <Link to="/" className="flex items-center gap-2 text-sm font-bold text-muted hover:text-ink">
+                <ArrowRight className="size-4 rtl:rotate-0 ltr:rotate-180" aria-hidden />
+                {tr("العودة للموقع")}
+              </Link>
+              <span className="rounded-full bg-primary-soft px-2.5 py-0.5 text-[11px] font-extrabold text-primary-ink">
+                {level === "owner" ? tr("المالك") : level === "moderator" ? tr("مشرف") : tr("كاتب")}
+              </span>
+            </div>
+            <AdminMenu tabs={tabs} section={current} reviewCount={reviewCount} onSelect={go} onLogout={logout} />
           </div>
         </aside>
         <div className="min-w-0 px-4 pb-10 pt-4 lg:px-0 lg:pt-0">
-          <header className="mb-4 flex items-center gap-3">
+          {/* Tidy Header Bar */}
+          <header className="mb-4 flex flex-wrap items-center gap-3 rounded-3xl bg-paper p-3.5 shadow-[0_1px_3px_rgba(16,24,40,0.06)]">
             <button
               type="button"
-              className="grid size-10 shrink-0 place-items-center rounded-2xl bg-paper shadow-[0_1px_3px_rgba(16,24,40,0.06)]"
+              className="grid size-10 shrink-0 place-items-center rounded-2xl bg-surface hover:bg-primary-soft"
               aria-label={tr("فتح القائمة")}
               aria-expanded={menuOpen || (!sideCollapsed && isDesktop())}
               aria-controls="admin-drawer"
@@ -503,25 +569,35 @@ function AdminPage() {
               <Menu className="size-5" aria-hidden />
             </button>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-xs font-bold text-muted">{tr("لوحة الإدارة")}</p>
-              <h1 className="flex items-center gap-2 truncate text-2xl font-extrabold">
-                {curGroup ? (
-                  <span className="grid size-9 shrink-0 place-items-center rounded-2xl bg-primary-soft text-primary-ink">
-                    <curGroup.icon className="size-5" aria-hidden />
-                  </span>
-                ) : null}
-                {trv(curGroup?.label ?? "الإدارة")}
+              <p className="truncate text-xs font-bold text-muted">
+                {tr("لوحة تحكم رهط بوست")} {curGroup ? `· ${trv(curGroup.label)}` : ""}
+              </p>
+              <h1 className="truncate text-xl font-extrabold sm:text-2xl">
+                {trv(activeTabObj?.label ?? curGroup?.label ?? "الإدارة")}
               </h1>
             </div>
-            <LangSwitcher />
-            <span
-              className="grid size-10 shrink-0 place-items-center rounded-full bg-brand text-sm font-extrabold text-ink"
-              title={level === "owner" ? tr("المالك") : who.name}
-              aria-label={level === "owner" ? tr("المالك") : who.name}
-            >
-              {level === "owner" && !who.name ? <BadgeCheck className="size-5" aria-hidden /> : (who.name || "?").slice(0, 1)}
-            </span>
+            <div className="flex items-center gap-2">
+              {level === "owner" ? (
+                <button
+                  type="button"
+                  onClick={() => go("sec-news")}
+                  className="hidden sm:flex items-center gap-1.5 rounded-2xl bg-brand px-3.5 py-2 text-xs font-extrabold text-ink shadow-2xs transition hover:opacity-90"
+                >
+                  <FolderPlus className="size-4" aria-hidden />
+                  {tr("إضافة قسم جديد")}
+                </button>
+              ) : null}
+              <LangSwitcher />
+              <span
+                className="grid size-10 shrink-0 place-items-center rounded-full bg-brand text-sm font-extrabold text-ink"
+                title={level === "owner" ? tr("المالك") : who.name}
+                aria-label={level === "owner" ? tr("المالك") : who.name}
+              >
+                {level === "owner" && !who.name ? <BadgeCheck className="size-5" aria-hidden /> : (who.name || "?").slice(0, 1)}
+              </span>
+            </div>
           </header>
+
           {level !== "writer" ? (
             <div className="mb-4">
               <AdminSearch sections={tabs.map((t) => ({ key: t.key, label: t.label }))} go={go} />
@@ -536,7 +612,9 @@ function AdminPage() {
                   role="tab"
                   aria-selected={current === key}
                   onClick={() => go(key)}
-                  className={`flex shrink-0 items-center gap-1.5 rounded-full px-4 py-2 text-sm font-bold ${current === key ? "bg-ink text-paper" : "bg-paper shadow-[0_1px_3px_rgba(16,24,40,0.06)]"}`}
+                  className={`flex shrink-0 items-center gap-1.5 rounded-full px-4 py-2 text-sm font-bold transition ${
+                    current === key ? "bg-ink text-paper shadow-xs" : "bg-paper shadow-[0_1px_3px_rgba(16,24,40,0.06)] hover:bg-primary-soft"
+                  }`}
                 >
                   <Icon className="size-4" aria-hidden />
                   {trv(label)}
@@ -568,7 +646,7 @@ function AdminPage() {
           ) : current.startsWith("set-") ? (
             <SiteSettingsAdmin key={current} only={current.slice(4) as SiteSettingsPart} />
           ) : current.startsWith("sec-") ? (
-            <SectionAdmin key={current} id={current.slice(4) as "news"} />
+            <SectionAdmin key={current} id={current.slice(4)} />
           ) : current === "auto" ? (
             <AutoNewsAdmin />
           ) : current === "popups" ? (
@@ -581,8 +659,6 @@ function AdminPage() {
             <CommentsAdmin />
           ) : current === "reports" ? (
             <ReportsAdmin />
-          ) : current === "bus-lines" ? (
-            <BusLinesAdmin />
           ) : current === "duty" ? (
             <DutyAdmin />
           ) : current === "alerts" ? (
@@ -693,7 +769,7 @@ function AdminPage() {
               <X className="size-5" aria-hidden />
             </button>
           </div>
-          {menuOpen ? <AdminMenu tabs={tabs} section={current} onSelect={go} onLogout={logout} /> : null}
+          {menuOpen ? <AdminMenu tabs={tabs} section={current} reviewCount={reviewCount} onSelect={go} onLogout={logout} /> : null}
           <Link to="/" className="mt-auto flex items-center gap-2 px-3 pt-2 text-sm font-bold text-muted">
             <ArrowRight className="size-4 ltr:rotate-180" aria-hidden />
             {tr("العودة للموقع")}

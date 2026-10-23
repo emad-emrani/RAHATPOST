@@ -19,6 +19,15 @@ export const Route = createFileRoute("/directory/")({
       description:
         tr("دليل رهط للأعمال والخدمات: مطاعم ومقاهي، بقالات، عيادات وصحة، مدارس، مساجد، ورش وسيارات وغيرها في مدينة رهط بالنقب، مع العنوان والخريطة."),
       path: "/directory",
+      keywords: [
+        "دليل رهط",
+        "محلات رهط",
+        "مطاعم رهط",
+        "صيدليات رهط",
+        "عيادات رهط",
+        "مدارس رهط",
+        "مساجد رهط",
+      ],
       jsonLd: [breadcrumbLd([{ name: tr("دليل رهط"), path: "/directory" }])],
     }),
   loader: () => getApprovedEntries(),
@@ -119,7 +128,7 @@ function DirectoryPage() {
                 {item.photo ? (
                   <img
                     src={mediaUrl(item.photo)}
-                    alt=""
+                    alt={tr("صورة {0}", item.name)}
                     className="thumb size-14 rounded-2xl"
                     loading="lazy"
                     decoding="async"

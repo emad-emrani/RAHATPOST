@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Phone } from "lucide-react";
 import { AlertsBanner, DutyCard } from "@/components/duty";
+import { GuideCard } from "@/components/guide";
 import { getBoard } from "@/lib/board/api";
 import {
   IsraelNewsCredit,
@@ -11,12 +12,36 @@ import {
 import { SectionTitle, Shell } from "@/components/shell";
 import { PrayerCard, WeatherCard } from "@/components/today-cards";
 import { emergency } from "@/data/content";
+import { guides } from "@/data/guides";
 import { useNow } from "@/lib/news/format";
 import { getIsraelNews } from "@/lib/news/israel-api";
 import { weatherWithin } from "@/lib/weather/api";
 import { breadcrumbLd, seo } from "@/lib/seo";
 import { tr, trv } from "@/lib/i18n/core";
-import { localized, localizedIsrael } from "@/lib/i18n/localize";
+import { localizedIsrael } from "@/lib/i18n/localize";
+
+const todayFaqLd = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: [
+    {
+      "@type": "Question",
+      name: "ما هي أرقام الطوارئ والبلدية في مدينة رهط؟",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "أرقام الطوارئ في رهط: الشرطة 100، الإسعاف (نجمة داود الحمراء) 101، الإطفاء والإنقاذ 102، شركة الكهرباء 103، الجبهة الداخلية 104، مركز بلدية رهط 106، الطوارئ الموحد 112، واتحاد الإنقاذ 1221.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "كيف أعرف صيدلية الحراسة المناوبة وأوقات الصلاة والطقس في رهط اليوم؟",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "تعرض صفحة «لوحة اليوم» على موقع رهط بوست حالة الطقس المباشرة في رهط، وأوقات الصلوات الخمس حسب توقيت مدينة رهط، وبيانات صيدلية المناوبة اليومية مع رقم الهاتف والاتجاهات.",
+      },
+    },
+  ],
+};
 
 export const Route = createFileRoute("/today")({
   head: () =>
@@ -25,7 +50,14 @@ export const Route = createFileRoute("/today")({
       description:
         tr("لوحة اليوم في رهط والنقب: الطقس الآن، أوقات الصلاة، صيدلية الحراسة اليوم، أرقام الطوارئ والإسعاف والشرطة، التنبيهات، وأهم أخبار إسرائيل مترجمة إلى العربية."),
       path: "/today",
-      jsonLd: [breadcrumbLd([{ name: tr("لوحة اليوم"), path: "/today" }])],
+      keywords: [
+        "طقس رهط اليوم",
+        "أوقات الصلاة في رهط",
+        "صيدلية المناوبة رهط",
+        "أرقام الطوارئ رهط",
+        "بلدية رهط 106",
+      ],
+      jsonLd: [breadcrumbLd([{ name: tr("لوحة اليوم"), path: "/today" }]), todayFaqLd],
     }),
   loader: async () => {
     const [israel, weather, board] = await Promise.all([
@@ -51,7 +83,10 @@ function TodayPage() {
   const [lead, ...rest] = israel.items.slice(0, TODAY_ISRAEL_ITEMS);
   return (
     <Shell>
-      <h1 className="mb-4 text-2xl font-bold">{tr("لوحة اليوم")}</h1>
+      <h1 className="mb-1 text-2xl font-bold">{tr("لوحة اليوم في رهط")}</h1>
+      <p className="mb-4 font-semibold text-muted">
+        {tr("حالة الطقس، مواقيت الصلاة، صيدلية الحراسة، أرقام الطوارئ وأهم عناوين اليوم.")}
+      </p>
       <div className="flex flex-col gap-4">
         <AlertsBanner alerts={board.alerts} />
 
@@ -100,6 +135,17 @@ function TodayPage() {
                   <span className="flex-1 font-bold">{trv(item.name)}</span>
                   <span className="text-2xl font-bold leading-none">{trv(item.phone)}</span>
                 </a>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <section aria-label={tr("أدلة الخدمات في رهط")}>
+          <SectionTitle title={tr("أدلة الخدمات في رهط")} to="/directory" more={tr("كل الدليل")} />
+          <ul className="flex flex-col gap-3">
+            {guides.map((g) => (
+              <li key={g.slug}>
+                <GuideCard guide={g} />
               </li>
             ))}
           </ul>
