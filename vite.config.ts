@@ -75,7 +75,9 @@ export default defineConfig(({ command, isPreview }) => ({
   // BING_SITE_VERIFICATION in the Vercel env and redeploy (see SEO.md).
   define: {
     __SITE_VERIFICATION__: JSON.stringify({
-      google: verificationToken(process.env.GOOGLE_SITE_VERIFICATION),
+      google:
+        verificationToken(process.env.GOOGLE_SITE_VERIFICATION) ||
+        "gZirpZH5RWc4SxozAbvqJJPBxhk4DyFprqchBfkZhOU",
       bing: verificationToken(process.env.BING_SITE_VERIFICATION),
     }),
   },

@@ -1,34 +1,32 @@
-# SEO — رهط بوست
+# دليل تحسين محركات البحث (SEO) — رهط بوست (rahatpost.com)
 
-## What the site provides
+## 1. التحسينات البرمجية المطبّقة في الموقع
 
-- Per-route Arabic `<title>`, meta description, canonical (`https://rahatpost.com/...`), robots, Open Graph and Twitter tags: `src/lib/seo.ts` + each route's `head()` (server-rendered).
-- JSON-LD: `NewsMediaOrganization` + `WebSite` with `SearchAction` (`/?q=`) on the home page, `BreadcrumbList` on sections/detail pages, `LocalBusiness` on directory places (only real fields; owner phone numbers are not put in markup), `NewsArticle` on reader posts.
-- Indexing policy:
-  - indexed: home, /news, /israel-news, /today, /buses, /directory + places, /ads + real ads, reader posts (`/news/reader-…`), /app.
-  - `noindex, follow`: external-feed news pages (`/news/<slug>` from RSS) and `/israel-news/<slug>` — they only hold a headline + excerpt (or a machine translation) that links to the publisher, so they are thin/duplicate of the original; the links are still followed. Also sample ads, /submit.
-  - `noindex`: /login, /my-posts, /app-auth/*, /offline.html; `noindex, nofollow`: /admin.
-- `/robots.txt` (static, `public/`) and `/sitemap.xml` (dynamic: `src/routes/sitemap[.]xml.ts`).
-- `www.rahatpost.com` → 308 → `rahatpost.com` (Vercel project domain redirect).
-- Platform note: on Vercel the platform head injector rewrites `og:title/description/image/url/type/site_name` and `twitter:*`. og:title follows the page `<title>` (no fixed title in `src/lib/og/site.json`); og:image is the site card `/og.jpg`. Per-article share images would need a change in `server/middleware/grok-pwa.ts` / `scripts/grok-pwa-shared.mjs`.
+1. **تفعيل فهرسة جميع الأخبار والمقالات (`robots: "index"`) والبيانات المنظمة (`NewsArticle` JSON-LD)**:
+   - تم تعديل `src/routes/news.$slug.tsx` و`src/routes/israel-news.$slug.tsx` لإزالة وسم `noindex` عن صفحات الأخبار الفعلية وتفعيل أرشفتها في محرك بحث جوجل مع إضافة البيانات المنظمة الكاملة (`NewsArticle` + `BreadcrumbList`).
+2. **توسيع خريطة الموقع (`sitemap.xml`) وخريطة أخبار جوجل (`news-sitemap.xml`)**:
+   - في `src/routes/sitemap[.]xml.ts`: تمت إضافة جميع صفحات خرائط ومسارات خطوط باصات رهط الـ 20 (`/buses/map/1` حتى `/buses/map/471`)، بالإضافة إلى جميع الأخبار النشطة (أخبار رهط والنقب، الرياضة، التقنية، وأخبار إسرائيل المترجمة)، و83+ مصلحة ومؤسسة محلية في دليل رهط (`/directory/*`).
+   - في `src/routes/news-sitemap[.]xml.ts`: تمت إضافة الأخبار النشطة والمترجمة لضمان امتلاء خريطة أخبار جوجل (`news-sitemap.xml`) بأحدث العناوين العربية على مدار الساعة.
+3. **إصلاح حقن وسوم المشاركة والسيو في الخادم (`scripts/grok-pwa-shared.mjs` و`src/lib/og/site.json`)**:
+   - تم إصلاح الحاقن الوسيط في الخادم ليحافظ على الوصف الخاص بكل صفحة (`og:description` و`twitter:description`)، والرابط الأساسي (`og:url`)، واسم الموقع (`og:site_name`)، ونوع المقال (`og:type="article"`)، وصورة الخبر أو المنتج أو الإعلان الخاصة (`og:image` و`twitter:image`) بدلاً من حذفها.
+4. **تعزيز الترابط الداخلي (Internal Linking) وإبراز «دليل رهط» و«خطوط الباصات»**:
+   - تحديث الفوتر (`src/components/shell.tsx`) والقائمة الرئيسية وشريط الأقسام (`src/components/home-parts.tsx`) والصفحة الرئيسية (`src/routes/index.tsx`) لربط جميع الأقسام المفهرسة وعرض قسم «دليل محلات وخدمات رهط» (`/directory`).
+   - إضافة قسم روابط مباشر لجميع خطوط باصات رهط الـ 20 في صفحة `/buses` وتحسين عناوين صفحات `/buses/map/$line` لتشمل نقطة الانطلاق والوصول (مثل `خط باص 450 (رهط ↔ بئر السبع)`).
+5. **تثبيت كود التحقق من Google Search Console والوسوم الجغرافية المحلية**:
+   - تثبيت رمز التحقق `gZirpZH5RWc4SxozAbvqJJPBxhk4DyFprqchBfkZhOU` كقيمة افتراضية في `vite.config.ts` و`src/lib/site-settings/types.ts` لضمان عدم اختفائه أبداً.
+   - إضافة الكلمات المفتاحية المحلية، ووسوم الموقع الجغرافي لمدينة رهط والنقب (`geo.region`, `geo.placename`, `geo.position`)، وروابط اللغة القياسية (`hreflang`).
 
-## Google Search Console (بالعربية بالأسفل)
+## 2. خطوات التفعيل الفوري في Google Search Console
 
-1. Open https://search.google.com/search-console → **Add property**.
-2. Recommended: **Domain** property `rahatpost.com` (covers www + apex) → Google shows a TXT record `google-site-verification=…`.
-   - GoDaddy → My Products → rahatpost.com → **DNS** → **Add New Record** → Type **TXT**, Name **@**, Value = the full string, TTL 1 hour → Save. Then click **Verify** (can take minutes to a few hours).
-3. Alternative: **URL prefix** `https://rahatpost.com/` → **HTML tag** method → copy only the `content="…"` value → in Vercel → Project rahatpost → Settings → Environment Variables → add `GOOGLE_SITE_VERIFICATION` = that value (Production) → redeploy → Verify.
-4. After verifying: **Sitemaps** → submit `sitemap.xml`. Use **URL Inspection** → "Request indexing" for the home page, /news, /buses, /directory.
-
-## Bing Webmaster Tools
-
-1. https://www.bing.com/webmasters → sign in → **Import from Google Search Console** (fastest, once Google is verified), or **Add site** `https://rahatpost.com/`.
-2. Manual verification: **HTML meta tag** → copy the `content` value → Vercel env `BING_SITE_VERIFICATION` → redeploy; or **CNAME** record in GoDaddy DNS as Bing shows it.
-3. Submit `https://rahatpost.com/sitemap.xml` under **Sitemaps**.
-
-## بالعربية
-
-1. **Google:** افتح Search Console ← أضف موقعاً ← اختر «نطاق» واكتب `rahatpost.com` ← انسخ سجل TXT ← في GoDaddy: منتجاتي ← rahatpost.com ← DNS ← إضافة سجل: النوع TXT، الاسم @، القيمة كما هي ← حفظ ← ارجع واضغط «تحقق».
-   - أو طريقة «علامة HTML»: انسخ قيمة content فقط وضعها في Vercel كمتغير `GOOGLE_SITE_VERIFICATION` ثم أعد النشر.
-   - بعد التحقق: «خرائط الموقع» ← أرسل `sitemap.xml`.
-2. **Bing:** افتح Bing Webmaster ← «استيراد من Google Search Console» (الأسهل)، أو أضف الموقع وتحقق بعلامة meta عبر المتغير `BING_SITE_VERIFICATION` في Vercel ← ثم أرسل خريطة الموقع.
+1. ارفع التعديلات المحدثة إلى الفرع `main` في مستودع GitHub ليقوم Vercel ببناء النسخة الجديدة تلقائياً.
+2. افتح [Google Search Console](https://search.google.com/search-console) واختر موقع `https://rahatpost.com/`.
+3. من القائمة الجانبية، افتح **خرائط المواقع (Sitemaps)** وأرسل الخريطتين التاليتين:
+   - `https://rahatpost.com/sitemap.xml`
+   - `https://rahatpost.com/news-sitemap.xml`
+4. من شريط **فحص عنوان URL (URL Inspection)** في الأعلى، افحص الروابط الرئيسية التالية واضغط على **طلب الفهرسة (Request Indexing)** لكل منها:
+   - `https://rahatpost.com/`
+   - `https://rahatpost.com/news`
+   - `https://rahatpost.com/buses`
+   - `https://rahatpost.com/directory`
+   - `https://rahatpost.com/haraj`
+   - `https://rahatpost.com/today`

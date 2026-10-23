@@ -1,0 +1,22 @@
+# رهط بوست — https://rahatpost.com
+# Private pages (admin, login, my-posts, submit, app-auth, offline) stay crawlable on purpose:
+# they carry <meta name="robots" content="noindex">, which crawlers can only see if allowed.
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /_serverFn/
+Disallow: /__grok/
+
+User-agent: Googlebot
+Allow: /
+Disallow: /api/
+Disallow: /_serverFn/
+
+User-agent: Googlebot-News
+Allow: /
+
+User-agent: Googlebot-Image
+Allow: /
+
+Sitemap: https://rahatpost.com/sitemap.xml
+Sitemap: https://rahatpost.com/news-sitemap.xml
