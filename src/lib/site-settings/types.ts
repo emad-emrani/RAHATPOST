@@ -10,35 +10,37 @@ export const HOME_SECTIONS = {
   tiles: "أيقونات الأقسام",
   quicklinks: "روابط سريعة",
   news: "آخر الأخبار",
-  israel: "أخبار إسرائيل",
+  post: "أدلة خدمات رهط",
+  buses: "الباصات",
+  duty: "صيدلية المناوبة",
+  directory: "الدليل والمتجر",
+  ads: "جديد الحراج",
   sports: "رياضة",
   tech: "أخبار تقنية",
-  post: "خدمة البريد",
-  install: "تثبيت التطبيق والإشعارات",
-  buses: "الباصات",
-  directory: "من المتجر",
-  ads: "جديد الحراج",
-  duty: "صيدلية المناوبة",
+  israel: "أخبار إسرائيل",
   emergency: "أرقام الطوارئ",
+  install: "تثبيت التطبيق والإشعارات",
 } as const;
 export type HomeSectionId = keyof typeof HOME_SECTIONS;
 
 export const NAV_ITEMS = {
   "/": "الرئيسية",
   "/news": "الأخبار",
-  "/today": "اليوم",
   "/buses": "باصات",
-  "/store": "المتجر",
+  "/directory": "الدليل",
   "/haraj": "حراج",
+  "/today": "اليوم",
+  "/store": "المتجر",
 } as const;
 export type NavId = keyof typeof NAV_ITEMS;
 
 export const TILE_ITEMS = {
   "/news": "الأخبار",
   "/buses": "الباصات",
-  "/store": "المتجر",
+  "/directory": "الدليل",
   "/haraj": "حراج",
   "/today": "اليوم",
+  "/store": "المتجر",
   "/submit": "أضف",
 } as const;
 export type TileId = keyof typeof TILE_ITEMS;
@@ -55,8 +57,6 @@ export type Slide =
   | { type: "builtin"; id: BuiltinSlideId }
   | { type: "custom"; id: string; title: string; subtitle: string; link: string; imageKey: string };
 
-export type RavKavPoint = { id: string; name: string; address: string; hours: string; lat: number; lon: number };
-export type BusAd = { id: string; title: string; link: string; imageKey: string };
 export type QuickLink = { id: string; title: string; subtitle: string; url: string; emoji: string };
 export type Toggle<T extends string> = { id: T; visible: boolean };
 
@@ -98,14 +98,6 @@ export type SiteSettings = {
   nav: Toggle<NavId>[];
   tiles: Toggle<TileId>[];
   quickLinks: QuickLink[];
-  /** Rotating ad slider on /buses (marketing → «إعلانات الباصات»). */
-  busAds: { enabled: boolean; items: BusAd[] };
-  /** Announcement bar (marketing → «شريط الإعلان»). `rev` changes on every edit so dismissals reset. */
-  /** Rav-Kav charging/sale points entered by the admin (no open dataset exists). */
-  ravkavPoints: RavKavPoint[];
-  /** Show/hide: the bus-page button, the points section, and individual point ids. */
-  ravkavUi: { button: boolean; points: boolean; hidden: string[] };
-  announce: { enabled: boolean; text: string; link: string; kind: "info" | "warning" | "urgent"; scope: "all" | "buses"; rev: string };
 };
 
 export const THEME_DEFAULT = {
@@ -141,18 +133,18 @@ export const DEFAULT_SETTINGS: SiteSettings = {
     adsenseEnabled: false,
     autoAds: false,
     slots: [],
-    gaId: "",
-    gaEnabled: false,
+    gaId: "G-2B1R786GM0",
+    gaEnabled: true,
     gtmId: "",
-    gscCode: "",
+    gscCode: "gZirpZH5RWc4SxozAbvqJJPBxhk4DyFprqchBfkZhOU",
   },
   theme: THEME_DEFAULT,
   texts: {
     siteName: "رهط بوست",
-    tagline: "رهط والنقب",
+    tagline: "أخبار وخدمات رهط والنقب في مكان واحد",
     addButton: "أضف",
     footer:
-      "أرقام الطوارئ الوطنية حقيقية. الأخبار والدليل والباصات من مصادر حقيقية مذكورة في كل صفحة.",
+      "منصة رهط بوست — بوابة أخبار رهط والنقب، مواعيد باصات غاليم، دليل المصالح والخدمات، وحراج رهط. أرقام الطوارئ الوطنية حقيقية ومعتمدة.",
     contactEmail: "",
     harajName: "حراج رهط",
     harajNav: "حراج",
@@ -164,10 +156,6 @@ export const DEFAULT_SETTINGS: SiteSettings = {
   nav: (Object.keys(NAV_ITEMS) as NavId[]).map((id) => ({ id, visible: true })),
   tiles: (Object.keys(TILE_ITEMS) as TileId[]).map((id) => ({ id, visible: true })),
   quickLinks: [],
-  busAds: { enabled: false, items: [] },
-  ravkavPoints: [],
-  ravkavUi: { button: true, points: true, hidden: [] },
-  announce: { enabled: false, text: "", link: "", kind: "info", scope: "all", rev: "" },
 };
 
 const HEX = /^#[0-9a-f]{6}$/i;
@@ -201,13 +189,10 @@ function toggles<T extends string>(input: unknown, all: readonly T[]): Toggle<T>
   if (Array.isArray(input))
     for (const x of input) {
       const raw = (x as { id?: unknown })?.id;
-      // «الدليل» tab/tile became «المتجر» (/directory stays reachable from the store).
-      // «الإعلانات» became «حراج رهط» (/ads redirects to /haraj).
-      const id = (raw === "/directory" ? "/store" : raw === "/ads" ? "/haraj" : raw) as T;
+      const id = (raw === "/ads" ? "/haraj" : raw) as T;
       if (all.includes(id) && !out.some((o) => o.id === id))
         out.push({ id, visible: (x as { visible?: unknown }).visible !== false });
     }
-  // New ids land right after their predecessor in the default order (e.g. «أخبار تقنية» after «أخبار إسرائيل»).
   all.forEach((id, i) => {
     if (out.some((o) => o.id === id)) return;
     const prev = i > 0 ? out.findIndex((o) => o.id === all[i - 1]) : -1;
@@ -259,14 +244,6 @@ export function sanitizeSettings(input: unknown): SiteSettings {
           emoji: str(q.emoji, 4),
         });
     }
-  const ba = (i.busAds ?? {}) as Record<string, any>;
-  const busAdItems: BusAd[] = [];
-  if (Array.isArray(ba.items))
-    for (const a of ba.items.slice(0, 10)) {
-      const imageKey = KEY.test(String(a?.imageKey ?? "")) ? String(a.imageKey) : "";
-      if (imageKey && ID.test(String(a?.id)))
-        busAdItems.push({ id: String(a.id), title: str(a.title, 90), link: safeUrl(a.link), imageKey });
-    }
   const g = (i.google ?? {}) as Record<string, any>;
   const pick = (v: unknown, re: RegExp) => {
     const t = typeof v === "string" ? v.trim() : "";
@@ -279,16 +256,21 @@ export function sanitizeSettings(input: unknown): SiteSettings {
       if (slot && ID.test(String(a?.id)) && a?.placement in AD_PLACEMENTS)
         slotsOut.push({ id: String(a.id), slot, placement: a.placement });
     }
+  const rawTagline = str(x.tagline, 60);
+  const cleanTagline =
+    !rawTagline || rawTagline === "جمع الاخبار في مكان واحد"
+      ? d.texts.tagline
+      : rawTagline;
   return {
     google: {
       adsensePub: pick(g.adsensePub, /^ca-pub-\d{10,20}$/),
       adsenseEnabled: g.adsenseEnabled === true,
       autoAds: g.autoAds === true,
       slots: slotsOut,
-      gaId: pick(g.gaId, /^G-[A-Z0-9]{4,16}$/),
-      gaEnabled: g.gaEnabled === true,
+      gaId: pick(g.gaId, /^G-[A-Z0-9]{4,16}$/) || d.google.gaId,
+      gaEnabled: g.gaEnabled !== undefined ? g.gaEnabled === true : d.google.gaEnabled,
       gtmId: pick(g.gtmId, /^GTM-[A-Z0-9]{4,12}$/),
-      gscCode: pick(g.gscCode, /^[A-Za-z0-9_-]{10,100}$/),
+      gscCode: pick(g.gscCode, /^[A-Za-z0-9_-]{10,100}$/) || d.google.gscCode,
     },
     theme: {
       primary: color(t.primary, d.theme.primary),
@@ -298,9 +280,9 @@ export function sanitizeSettings(input: unknown): SiteSettings {
     },
     texts: {
       siteName: str(x.siteName, 40) || d.texts.siteName,
-      tagline: str(x.tagline, 60),
+      tagline: cleanTagline,
       addButton: str(x.addButton, 16) || d.texts.addButton,
-      footer: str(x.footer, 400),
+      footer: str(x.footer, 400) || d.texts.footer,
       contactEmail: safeEmail(x.contactEmail),
       harajName: str(x.harajName, 40) || d.texts.harajName,
       harajNav: str(x.harajNav, 16) || d.texts.harajNav,
@@ -312,30 +294,6 @@ export function sanitizeSettings(input: unknown): SiteSettings {
     nav: toggles(i.nav, Object.keys(NAV_ITEMS) as NavId[]),
     tiles: toggles(i.tiles, Object.keys(TILE_ITEMS) as TileId[]),
     quickLinks,
-    busAds: { enabled: ba.enabled === true, items: busAdItems },
-    ravkavPoints: (Array.isArray(i.ravkavPoints) ? i.ravkavPoints : [])
-      .slice(0, 50)
-      .map((p: any) => ({ id: String(p?.id ?? ""), name: str(p?.name, 80), address: str(p?.address, 140), hours: str(p?.hours, 80), lat: Number(p?.lat), lon: Number(p?.lon) }))
-      .filter((p: RavKavPoint) => ID.test(p.id) && p.name && p.lat > 29 && p.lat < 34 && p.lon > 33 && p.lon < 36),
-    ravkavUi: (() => {
-      const u = (i.ravkavUi ?? {}) as Record<string, any>;
-      return {
-        button: u.button !== false,
-        points: u.points !== false,
-        hidden: (Array.isArray(u.hidden) ? u.hidden : []).map(String).filter((x: string) => /^[a-z0-9]{4,24}$/.test(x)).slice(0, 100),
-      };
-    })(),
-    announce: (() => {
-      const an = (i.announce ?? {}) as Record<string, any>;
-      const text = str(an.text, 220);
-      const link = safeUrl(an.link);
-      const kind = (["info", "warning", "urgent"] as const).find((k) => k === an.kind) ?? "info";
-      const scope = an.scope === "buses" ? "buses" : "all";
-      // Content-derived revision: a new text/link means visitors see it again.
-      let h = 0;
-      for (const ch of `${text}|${link}|${kind}`) h = (h * 31 + ch.charCodeAt(0)) | 0;
-      return { enabled: an.enabled === true && Boolean(text), text, link, kind, scope, rev: (h >>> 0).toString(36) } as SiteSettings["announce"];
-    })(),
   };
 }
 
@@ -383,6 +341,5 @@ export function settingsImageKeys(s: SiteSettings): string[] {
     s.logoKey,
     s.faviconKey,
     ...s.slides.map((x) => (x.type === "custom" ? x.imageKey : "")),
-    ...(s.busAds?.enabled ? s.busAds.items.map((x) => x.imageKey) : []),
   ].filter(Boolean);
 }
