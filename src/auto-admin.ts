@@ -1,0 +1,384 @@
+import { createServerFn } from "@tanstack/react-start";
+
+export type AutoKind = "news" | "israel";
+export type AutoItem = {
+  slug: string;
+  kind: AutoKind;
+  source: string;
+  /** Original title (Arabic feed title, or machine/Hebrew title for Israel news). */
+  title: string;
+  titleHe?: string;
+  category: string;
+  publishedAt: string;
+  link: string;
+  breaking: boolean;
+  ov: {
+    hidden: boolean;
+    pinned: boolean;
+    breaking: boolean | null;
+    category: string | null;
+    title: string | null;
+  } | null;
+};
+export type AutoSource = { kind: AutoKind; name: string; enabled: boolean };
+
+/** Owner + مشرف only: every auto-fetched item (before overrides) with its override. */
+export const adminListAutoNews = createServerFn({ method: "POST" }).handler(
+  async (): Promise<{ authed: boolean; ok: boolean; items: AutoItem[]; sources: AutoSource[] }> => {
+    const { isAdmin } = await import("@/lib/admin-auth");
+    if (!(await isAdmin())) return { authed: false, ok: true, items: [], sources: [] };
+    try {
+      const { loadNews, NEWS_SOURCE_NAMES } = await import("./feeds.server");
+      const { loadIsraelNews, ISRAEL_SOURCES } = await import("./israel.server");
+      const { clearOverridesCache, loadOverrides } = await import("./overrides.server");
+      clearOverridesCache();
+      const [news, israel, o] = await Promise.all([loadNews(), loadIsraelNews(), loadOverrides()]);
+      const ov = (slug: string) => {
+        const x = o.items.get(slug);
+        return x
+          ? {
+              hidden: x.hidden,
+              pinned: x.pinned,
+              breaking: x.breaking,
+              category: x.category,
+              title: x.title,
+            }
+          : null;
+      };
+      const items: AutoItem[] = [
+        ...news.items.map((i) => ({
+          slug: i.slug,
+          kind: "news" as const,
+          source: i.source,
+          title: i.title,
+          category: i.category,
+          publishedAt: i.publishedAt,
+          link: i.link,
+          breaking: i.breaking,
+          ov: ov(i.slug),
+        })),
+        ...israel.items.map((i) => ({
+          slug: i.slug,
+          kind: "israel" as const,
+          source: i.source,
+          title: i.titleAr ?? i.titleHe,
+          titleHe: i.titleHe,
+          category: i.category,
+          publishedAt: i.publishedAt,
+          link: i.link,
+          breaking: false,
+          ov: ov(i.slug),
+        })),
+      ].sort((a, b) => Date.parse(b.publishedAt) - Date.parse(a.publishedAt));
+      const sources: AutoSource[] = [
+        ...NEWS_SOURCE_NAMES.map((name) => ({
+          kind: "news" as const,
+          name,
+          enabled: !o.disabled.has(`news:${name}`),
+        })),
+        ...ISRAEL_SOURCES.map((s) => ({
+          kind: "israel" as const,
+          name: s.name,
+          enabled: !o.disabled.has(`israel:${s.name}`),
+        })),
+      ];
+      return { authed: true, ok: true, items, sources };
+    } catch (error) {
+      console.error("[auto-news] list failed", error);
+      return { authed: true, ok: false, items: [], sources: [] };
+    }
+  },
+);
+
+type SaveInput = {
+  slug: string;
+  kind: AutoKind;
+  hidden: boolean;
+  pinned: boolean;
+  breaking: boolean | null;
+  category: string | null;
+  title: string | null;
+};
+
+export const adminSaveAutoNews = createServerFn({ method: "POST" })
+  .inputValidator((input: SaveInput) => input)
+  .handler(async ({ data }): Promise<{ ok: boolean; message?: string }> => {
+    const { isAdmin } = await import("@/lib/admin-auth");
+    if (!(await isAdmin())) return { ok: false, message: "انتهت الجلسة." };
+    const slug = String(data?.slug ?? "");
+    if (!/^[\w-]{3,200}$/.test(slug)) return { ok: false };
+    const { clean } = await import("@/lib/submit-guard");
+    const title = data.title ? clean(data.title, 300) : "";
+    const category = data.category ? clean(data.category, 40) : "";
+    if (title && title.length < 3) return { ok: false, message: "العنوان قصير." };
+    if (category && category.length < 2) return { ok: false, message: "التصنيف قصير." };
+    try {
+      const { saveOverride } = await import("./overrides.server");
+      await saveOverride({
+        slug,
+        kind: data.kind === "israel" ? "israel" : "news",
+        hidden: Boolean(data.hidden),
+        pinned: Boolean(data.pinned),
+        breaking:
+          data.breaking === null || data.breaking === undefined ? null : Boolean(data.breaking),
+        category: category || null,
+        title: title || null,
+      });
+      return { ok: true };
+    } catch (error) {
+      console.error("[auto-news] save failed", error);
+      return { ok: false, message: "تعذّر الحفظ." };
+    }
+  });
+
+export const adminSetNewsSource = createServerFn({ method: "POST" })
+  .inputValidator((input: { kind: AutoKind; name: string; enabled: boolean }) => input)
+  .handler(async ({ data }): Promise<{ ok: boolean }> => {
+    const { isAdmin } = await import("@/lib/admin-auth");
+    if (!(await isAdmin())) return { ok: false };
+    const { NEWS_SOURCE_NAMES } = await import("./feeds.server");
+    const { ISRAEL_SOURCES } = await import("./israel.server");
+    const kind = data?.kind === "israel" ? "israel" : "news";
+    const known = kind === "news" ? NEWS_SOURCE_NAMES : ISRAEL_SOURCES.map((s) => s.name);
+    if (!known.includes(String(data?.name))) return { ok: false };
+    const { setSourceEnabled } = await import("./overrides.server");
+    await setSourceEnabled(kind, String(data.name), Boolean(data.enabled));
+    return { ok: true };
+  });
+
+/* ------------------------------------------------- «الأقسام التلقائية والمخصصة»: sections & feeds */
+
+export type AdminSection = {
+  id: string;
+  name: string;
+  enabled: boolean;
+  home: boolean;
+  position: number;
+  refreshMin: number;
+  maxItems: number;
+  maxAgeDays: number;
+  customFeeds: boolean;
+  isCustom?: boolean;
+  feeds: {
+    id: string;
+    source: string;
+    home: string;
+    url: string;
+    enabled: boolean;
+    stat: { lastFetch: string | null; lastOk: string | null; lastCount: number; lastError: string | null } | null;
+  }[];
+};
+
+export const adminListSections = createServerFn({ method: "POST" }).handler(
+  async (): Promise<{ authed: boolean; sections: AdminSection[] }> => {
+    const { isAdmin } = await import("@/lib/admin-auth");
+    if (!(await isAdmin())) return { authed: false, sections: [] };
+    const fc = await import("./feed-config.server");
+    fc.clearFeedConfigCache();
+    const [cfg, stats] = await Promise.all([fc.loadFeedConfig(), fc.loadFeedStats()]);
+    const statOf = new Map(stats.map((s) => [s.url, s]));
+    return {
+      authed: true,
+      sections: cfg.sections.map((s) => ({
+        ...s,
+        feeds: cfg.feeds
+          .filter((f) => f.section === s.id)
+          .map((f) => {
+            const st = statOf.get(f.url);
+            return {
+              id: f.id,
+              source: f.source,
+              home: f.home,
+              url: f.url,
+              enabled: f.enabled,
+              stat: st
+                ? {
+                    lastFetch: st.lastFetch ? new Date(st.lastFetch).toISOString() : null,
+                    lastOk: st.lastOk ? new Date(st.lastOk).toISOString() : null,
+                    lastCount: st.lastCount,
+                    lastError: st.lastError,
+                  }
+                : null,
+            };
+          }),
+      })),
+    };
+  },
+);
+
+const validSecId = (id: unknown): id is string =>
+  typeof id === "string" && /^[a-z0-9_-]{2,40}$/.test(id);
+
+async function expireAll() {
+  const [{ expireFeeds }, { expireIsrael }] = await Promise.all([import("./feeds.server"), import("./israel.server")]);
+  expireFeeds();
+  expireIsrael();
+}
+
+export const adminSaveSection = createServerFn({ method: "POST" })
+  .inputValidator((v: unknown) => v as { id: string; name: string; enabled: boolean; home: boolean; position: number; refreshMin: number; maxItems: number; maxAgeDays: number })
+  .handler(async ({ data }): Promise<{ ok: boolean; message?: string }> => {
+    const { isAdmin } = await import("@/lib/admin-auth");
+    if (!(await isAdmin())) return { ok: false, message: "انتهت الجلسة." };
+    if (!validSecId(data?.id)) return { ok: false, message: "معرّف القسم غير صالح." };
+    const name = String(data.name ?? "").trim().slice(0, 60);
+    if (name.length < 2) return { ok: false, message: "الاسم قصير." };
+    const { saveSection } = await import("./feed-config.server");
+    await saveSection({
+      id: data.id,
+      name,
+      enabled: Boolean(data.enabled),
+      home: Boolean(data.home),
+      position: Math.max(0, Math.min(99, Math.round(Number(data.position) || 0))),
+      refreshMin: Math.max(1, Math.min(1440, Math.round(Number(data.refreshMin) || 4))),
+      maxItems: Math.max(5, Math.min(300, Math.round(Number(data.maxItems) || 80))),
+      maxAgeDays: Math.max(0, Math.min(365, Math.round(Number(data.maxAgeDays) || 0))),
+    });
+    await expireAll();
+    return { ok: true };
+  });
+
+export const adminCreateSection = createServerFn({ method: "POST" })
+  .inputValidator((v: unknown) => v as { id?: string; name: string; home?: boolean; position?: number; refreshMin?: number })
+  .handler(async ({ data }): Promise<{ ok: boolean; id?: string; message?: string }> => {
+    const { isAdmin } = await import("@/lib/admin-auth");
+    if (!(await isAdmin())) return { ok: false, message: "انتهت الجلسة." };
+    const name = String(data?.name ?? "").trim().slice(0, 60);
+    if (name.length < 2) return { ok: false, message: "أدخل اسماً واضحاً للقسم (حرفين على الأقل)." };
+    try {
+      const { createCustomSection } = await import("./feed-config.server");
+      const id = await createCustomSection({
+        id: data?.id,
+        name,
+        home: data?.home !== false,
+        position: data?.position,
+        refreshMin: data?.refreshMin,
+      });
+      await expireAll();
+      return { ok: true, id };
+    } catch (error) {
+      console.error("[adminCreateSection] failed", error);
+      return { ok: false, message: "تعذّر إنشاء القسم." };
+    }
+  });
+
+export const adminDeleteSection = createServerFn({ method: "POST" })
+  .inputValidator((v: unknown) => v as { id: string })
+  .handler(async ({ data }): Promise<{ ok: boolean; message?: string }> => {
+    const { isAdmin } = await import("@/lib/admin-auth");
+    if (!(await isAdmin())) return { ok: false, message: "انتهت الجلسة." };
+    if (!validSecId(data?.id)) return { ok: false, message: "معرّف غير صالح." };
+    const { deleteCustomSection, isBuiltinSection } = await import("./feed-config.server");
+    if (isBuiltinSection(data.id)) {
+      return { ok: false, message: "الأقسام الأساسية لا تُحذف (يمكنك إيقاف تفعيلها فقط)." };
+    }
+    const ok = await deleteCustomSection(data.id);
+    await expireAll();
+    return { ok };
+  });
+
+const validUrl = (u: string) => /^https?:\/\/[^\s"'<>]{4,500}$/i.test(u);
+
+export const adminSaveFeed = createServerFn({ method: "POST" })
+  .inputValidator((v: unknown) => v as { section: string; id?: string; source: string; home: string; url: string; enabled: boolean })
+  .handler(async ({ data }): Promise<{ ok: boolean; message?: string }> => {
+    const { isAdmin } = await import("@/lib/admin-auth");
+    if (!(await isAdmin())) return { ok: false, message: "انتهت الجلسة." };
+    if (!validSecId(data?.section) || data.section === "weather") return { ok: false };
+    const url = String(data.url ?? "").trim();
+    const source = String(data.source ?? "").trim().slice(0, 60);
+    const home = String(data.home ?? "").trim();
+    if (!validUrl(url)) return { ok: false, message: "رابط غير صالح." };
+    if (source.length < 2) return { ok: false, message: "اسم المصدر قصير." };
+    if (home && !validUrl(home)) return { ok: false, message: "رابط الموقع غير صالح." };
+    const { saveFeed } = await import("./feed-config.server");
+    await saveFeed({
+      ...(data.id ? { id: String(data.id).slice(0, 80) } : {}),
+      section: data.section,
+      source,
+      home: home || new URL(url).origin,
+      url,
+      enabled: data.enabled !== false,
+    });
+    await expireAll();
+    return { ok: true };
+  });
+
+export const adminDeleteFeed = createServerFn({ method: "POST" })
+  .inputValidator((v: unknown) => v as { section: string; id: string })
+  .handler(async ({ data }): Promise<{ ok: boolean }> => {
+    const { isAdmin } = await import("@/lib/admin-auth");
+    if (!(await isAdmin()) || !validSecId(data?.section) || data.section === "weather") return { ok: false };
+    const { deleteFeed } = await import("./feed-config.server");
+    await deleteFeed(data.section, String(data.id).slice(0, 80));
+    await expireAll();
+    return { ok: true };
+  });
+
+export const adminResetFeeds = createServerFn({ method: "POST" })
+  .inputValidator((v: unknown) => v as { section: string })
+  .handler(async ({ data }): Promise<{ ok: boolean }> => {
+    const { isAdmin } = await import("@/lib/admin-auth");
+    if (!(await isAdmin()) || !validSecId(data?.section)) return { ok: false };
+    const { resetFeeds } = await import("./feed-config.server");
+    await resetFeeds(data.section);
+    await expireAll();
+    return { ok: true };
+  });
+
+export const adminTestFeed = createServerFn({ method: "POST" })
+  .inputValidator((v: unknown) => v as { section: string; url: string })
+  .handler(async ({ data }): Promise<{ ok: boolean; count: number; images: number; ms: number; latest?: string; error?: string }> => {
+    const { isAdmin } = await import("@/lib/admin-auth");
+    if (!(await isAdmin())) return { ok: false, count: 0, images: 0, ms: 0, error: "انتهت الجلسة." };
+    const url = String(data?.url ?? "").trim();
+    if (!validUrl(url)) return { ok: false, count: 0, images: 0, ms: 0, error: "رابط غير صالح." };
+    const { testFeedUrl } = await import("./feeds.server");
+    const r = await testFeedUrl(url);
+    if (validSecId(data.section) && data.section !== "weather") {
+      const { recordFeedStats } = await import("./feed-config.server");
+      recordFeedStats(data.section, [{ url, count: r.count, ...(r.error ? { error: r.error } : {}) }]);
+    }
+    return { ok: !r.error && r.count > 0, ...r };
+  });
+
+/** Force-refresh a single section (or all sections when section === "all") right now from /admin. */
+export const adminRefreshSectionNow = createServerFn({ method: "POST" })
+  .inputValidator((v: unknown) => v as { section?: string })
+  .handler(async ({ data }): Promise<{ ok: boolean; count: number; ms: number; failedSources: string[]; message?: string }> => {
+    const { isAdmin } = await import("@/lib/admin-auth");
+    if (!(await isAdmin())) return { ok: false, count: 0, ms: 0, failedSources: [], message: "انتهت الجلسة." };
+    const t0 = Date.now();
+    const target = String(data?.section ?? "all").trim();
+    const { clearFeedConfigCache, loadFeedConfig } = await import("./feed-config.server");
+    clearFeedConfigCache();
+    const [{ forceRefreshSection }, { forceRefreshIsrael }] = await Promise.all([
+      import("./feeds.server"),
+      import("./israel.server"),
+    ]);
+
+    if (target === "all") {
+      const cfg = await loadFeedConfig();
+      const activeIds = cfg.sections.filter((s) => s.enabled && s.id !== "weather").map((s) => s.id);
+      const results = await Promise.all(
+        activeIds.map(async (id) => {
+          if (id === "israel") return forceRefreshIsrael();
+          const r = await forceRefreshSection(id);
+          return { count: r.result.items.length, ms: r.ms, failedSources: r.result.failedSources };
+        }),
+      );
+      const totalCount = results.reduce((sum, r) => sum + r.count, 0);
+      const failed = results.flatMap((r) => r.failedSources);
+      return { ok: true, count: totalCount, ms: Date.now() - t0, failedSources: failed };
+    }
+
+    if (!validSecId(target) || target === "weather") {
+      return { ok: false, count: 0, ms: 0, failedSources: [], message: "قسم غير صالح للتحديث." };
+    }
+    if (target === "israel") {
+      const r = await forceRefreshIsrael();
+      return { ok: true, ...r };
+    }
+    const r = await forceRefreshSection(target);
+    return { ok: true, count: r.result.items.length, ms: r.ms, failedSources: r.result.failedSources };
+  });
