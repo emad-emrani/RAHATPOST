@@ -303,6 +303,18 @@ export function titleFromDocument(html) {
   return match ? unescapeHtml(match[1]).trim() : "";
 }
 
+/** Read an existing meta tag's content from SSR HTML before stripping. */
+function metaFromDocument(html, key) {
+  const re = new RegExp(
+    `<meta\\b[^>]*\\b(?:property|name)\\s*=\\s*["']${key.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\\\$&")}["'][^>]*>`,
+    "i",
+  );
+  const tag = String(html ?? "").match(re)?.[0];
+  if (!tag) return "";
+  const m = tag.match(/\bcontent\s*=\s*["']([^"']*)["']/i);
+  return m ? unescapeHtml(m[1]).trim() : "";
+}
+
 export function resolveOgTitle(
   site = {},
   appName = DEFAULT_APP_NAME,
@@ -344,6 +356,11 @@ export function grokOgHeadTags({
   appName = DEFAULT_APP_NAME,
   site = {},
   documentTitle = "",
+  documentDescription = "",
+  documentUrl = "",
+  documentSiteName = "",
+  documentType = "",
+  documentImage = "",
   cwd = process.cwd(),
 } = {}) {
   const title = resolveOgTitle(site, appName, host, documentTitle);
@@ -352,24 +369,42 @@ export function grokOgHeadTags({
     `<meta name="twitter:card" content="summary_large_image">`,
     `<meta property="og:title" content="${escapeHtml(title)}">`,
   ];
-  const description = String(site.description ?? "").trim();
+  const description = String(documentDescription || site.description || "").trim();
   if (description) {
     tags.push(`<meta property="og:description" content="${escapeHtml(description)}">`);
+    tags.push(`<meta name="twitter:description" content="${escapeHtml(description)}">`);
+  }
+  if (documentUrl) {
+    tags.push(`<meta property="og:url" content="${escapeHtml(documentUrl)}">`);
+  }
+  if (documentSiteName) {
+    tags.push(`<meta property="og:site_name" content="${escapeHtml(documentSiteName)}">`);
   }
   if (String(site.type ?? "").toLowerCase() === "x:game") {
     tags.push(`<meta property="og:type" content="x:game">`);
+  } else if (documentType) {
+    tags.push(`<meta property="og:type" content="${escapeHtml(documentType)}">`);
   }
   if (publicHost) {
     const asset = resolveOgCardAsset(site, cwd);
     const custom = Boolean(asset);
-    let image = custom
-      ? `https://${publicHost}${asset.startsWith("/") ? asset : `/${asset}`}`
-      : `${ogServiceUrl()}/v1/card.png?host=${encodeURIComponent(publicHost)}&title=${encodeURIComponent(title)}`;
-    const color = !custom ? placeholderCardColor(site) : "";
+    const hasSpecificDocImage =
+      documentImage &&
+      !documentImage.endsWith("/og.jpg") &&
+      !documentImage.endsWith("/og.png");
+    let image = hasSpecificDocImage
+      ? documentImage
+      : custom
+        ? `https://${publicHost}${asset.startsWith("/") ? asset : `/${asset}`}`
+        : `${ogServiceUrl()}/v1/card.png?host=${encodeURIComponent(publicHost)}&title=${encodeURIComponent(title)}`;
+    const color = !custom && !hasSpecificDocImage ? placeholderCardColor(site) : "";
     if (color) image += `&color=${encodeURIComponent(color)}`;
     tags.push(`<meta property="og:image" content="${escapeHtml(image)}">`);
     tags.push(`<meta property="og:image:width" content="1200">`);
     tags.push(`<meta property="og:image:height" content="630">`);
+    if (hasSpecificDocImage) {
+      tags.push(`<meta name="twitter:image" content="${escapeHtml(image)}">`);
+    }
     const banner = String(site.banner ?? "").trim();
     if (banner) {
       const bannerUrl = `https://${publicHost}${banner.startsWith("/") ? banner : `/${banner}`}`;
@@ -439,16 +474,19 @@ export function injectGrokPwaHead(html, ctx = {}) {
   if (typeof html !== "string") return html;
   const { site, projectId, creator, creatorId, host, cwd } = normalizeHeadContext(ctx);
   const documentTitle = titleFromDocument(html);
+  const documentDescription =
+    metaFromDocument(html, "og:description") || metaFromDocument(html, "description");
+  const documentUrl = metaFromDocument(html, "og:url");
+  const documentSiteName = metaFromDocument(html, "og:site_name");
+  const documentType = metaFromDocument(html, "og:type");
+  const documentImage = metaFromDocument(html, "og:image");
   const appName = resolveOgTitle(
     site,
     ctx.appName ?? DEFAULT_APP_NAME,
     host,
     documentTitle,
   );
-  // rahatpost: pages that emit their own share card (src/lib/seo.ts) keep it, so each article /
-  // listing previews with its own title, description and image on WhatsApp etc.
-  const ownsOg = /<meta\b[^>]*property=["']og:title["']/i.test(html);
-  let next = ownsOg ? html : stripShareMetaTags(html);
+  let next = stripShareMetaTags(html);
   if (!readGrokExtensionsEnabled()) next = stripGrokExtensionsScript(next);
 
   const missing = grokPwaHeadTags(appName)
@@ -461,7 +499,18 @@ export function injectGrokPwaHead(html, ctx = {}) {
 
   next = insertAfterHeadOpen(
     next,
-    ownsOg ? "" : grokOgHeadTags({ host, appName, site, documentTitle, cwd }).join(""),
+    grokOgHeadTags({
+      host,
+      appName,
+      site,
+      documentTitle,
+      documentDescription,
+      documentUrl,
+      documentSiteName,
+      documentType,
+      documentImage,
+      cwd,
+    }).join(""),
   );
 
   if (readGrokExtensionsEnabled() && !next.includes("/grok-app-builder/extensions.js")) {
