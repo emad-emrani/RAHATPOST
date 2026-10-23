@@ -29,6 +29,7 @@ export type RawItem = {
   description: string;
   categories: string[];
   image?: { src: string; thumb?: string };
+  videoUrl?: string; // أضفنا هذا الحقل لدعم استخراج الفيديوهات من الخلاصات
 };
 
 const SOURCES: FeedSource[] = [
@@ -43,9 +44,7 @@ const SOURCES: FeedSource[] = [
     name: "عرب 48",
     home: "https://www.arab48.com",
     urls: ["https://www.arab48.com/rss"],
-    // Arab48 also covers world/Gaza news; keep only its local (محليات) desk.
     keep: (item) => decodeURIComponentSafe(item.link).includes("/محليات/"),
-    // The feed emits links like "http://www.arab48.comمحليات/..." (missing slash).
     fixLink: (link) => {
       const path = link.replace(/^https?:\/\/(www\.)?arab48\.com\/?/i, "");
       return `https://www.arab48.com/${encodeURI(decodeURIComponentSafe(path))}`;
@@ -68,7 +67,6 @@ const SOURCES: FeedSource[] = [
   },
 ];
 
-/** «أخبار تقنية»: Arabic tech sites' own feeds (checked Oct 2026: fresh items, most with images). */
 const TECH_SOURCES: FeedSource[] = [
   { id: "aitnews", name: "البوابة العربية للأخبار التقنية", home: "https://aitnews.com", urls: ["https://aitnews.com/feed/"] },
   { id: "techwd", name: "عالم التقنية", home: "https://www.tech-wd.com", urls: ["https://www.tech-wd.com/wd/feed/"], ogImage: true },
@@ -76,12 +74,10 @@ const TECH_SOURCES: FeedSource[] = [
   { id: "arabhw", name: "عرب هاردوير", home: "https://www.arabhardware.net", urls: ["https://www.arabhardware.net/feed"] },
 ];
 
-/** «رياضة»: Arabic sports desks' own feeds (checked Oct 2026). Arab48 = its sports desk only. */
 const SPORTS_SOURCES: FeedSource[] = [
   { id: "rtsport", name: "RT عربي رياضة", home: "https://arabic.rt.com/sport/", urls: ["https://arabic.rt.com/rss/sport/"] },
   { id: "arab48sport", name: "عرب 48 رياضة", home: "https://www.arab48.com/رياضة", urls: ["https://www.arab48.com/rss"], keep: (item) => decodeURIComponentSafe(item.link).includes("رياضة/"), fixLink: (link) => SOURCES.find((s) => s.id === "arab48")!.fixLink!(link) },
   { id: "hihi2", name: "هاي هاي", home: "https://www.hihi2.com", urls: ["https://www.hihi2.com/feed"] },
-  // Local (Israeli) sports in Hebrew, translated to Arabic; merged into the same list.
   { id: "ynetsport", name: "واي نت رياضة", home: "https://www.ynet.co.il/sport", urls: ["https://www.ynet.co.il/Integration/StoryRss3.xml"], he: true },
   { id: "wallasport", name: "والا رياضة", home: "https://sports.walla.co.il", urls: ["https://rss.walla.co.il/feed/156"], he: true },
 ];
@@ -92,7 +88,6 @@ export type FeedSectionId = "news" | "tech" | "sports" | string;
 export const builtinSources = (section: string): FeedSource[] =>
   section === "tech" ? TECH_SOURCES : section === "sports" ? SPORTS_SOURCES : section === "news" ? SOURCES : [];
 
-/** Feeds are re-checked every 4 minutes; the last good list is always served instantly meanwhile. */
 const TTL_MS = 4 * 60_000;
 const FEED_TIMEOUT_MS = 4_500;
 const DEFAULT_MAX_AGE_MS = 21 * 24 * 60 * 60_000;
@@ -103,11 +98,9 @@ const caches = new Map<string, Entry>();
 const inflights = new Map<string, Promise<NewsFeedResult>>();
 const snapshotTried = new Set<string>();
 
-/** Per-URL HTTP conditional cache (ETag / Last-Modified + last good XML body for instant 304 and timeout resilience). */
 type HttpCacheEntry = { xml: string; etag?: string; lastModified?: string; at: number };
 const httpXmlCache = new Map<string, HttpCacheEntry>();
 
-/** Force the next request to refetch (after the admin edits feeds). */
 export function expireFeeds(section?: string) {
   if (section) {
     const e = caches.get(section);
@@ -117,7 +110,6 @@ export function expireFeeds(section?: string) {
   for (const e of caches.values()) e.at = 0;
 }
 
-/** Force an immediate live refresh of a section and return the fresh result + elapsed ms. */
 export async function forceRefreshSection(section: FeedSectionId): Promise<{ result: NewsFeedResult; ms: number }> {
   const t0 = Date.now();
   expireFeeds(section);
@@ -143,7 +135,6 @@ function startRefresh(section: FeedSectionId, bypassHttpCache = false): Promise<
 
 const empty = (): NewsFeedResult => ({ items: [], now: Date.now(), fetchedAt: null, failedSources: [] });
 
-/** Stale-while-revalidate: memory → Neon snapshot → (only on a brand-new, empty DB) wait for feeds. */
 export async function loadSection(section: FeedSectionId): Promise<NewsFeedResult> {
   const { sectionConfig } = await import("./feed-config.server");
   const cfg = await sectionConfig(section);
@@ -167,7 +158,6 @@ export const loadNews = () => loadSection("news");
 export const loadTechNews = () => loadSection("tech");
 export const loadSportsNews = () => loadSection("sports");
 
-/** Fetch one feed URL now (admin «اختبار») with response time measurement (ms). */
 export async function testFeedUrl(url: string): Promise<{ count: number; images: number; ms: number; latest?: string; error?: string }> {
   const t0 = Date.now();
   try {
@@ -255,7 +245,6 @@ async function refresh(section: FeedSectionId, bypassHttpCache = false): Promise
 
   const prev = caches.get(section);
   if (items.length === 0 && prev) {
-    // Every feed failed this round: keep serving the last good copy, retry in a minute.
     const stale = { ...prev.result, failedSources };
     caches.set(section, { result: stale, at: Date.now() - TTL_MS + 60_000 });
     return stale;
@@ -276,16 +265,12 @@ async function refresh(section: FeedSectionId, bypassHttpCache = false): Promise
   return result;
 }
 
-/* -------------------------------------------------------- og:image fallback */
-
 const OG_TIMEOUT_MS = 2_200;
 const OG_BUDGET_MS = 900;
 const OG_CONCURRENCY = 6;
 const OG_MAX_BYTES = 120_000;
-/** link → image URL ("" = page has none). Survives news refreshes. */
 const ogCache = new Map<string, string>();
 
-/** Fill missing images from article og:image, applying cached ones immediately and bounding wait to 900ms. */
 export async function fillOgImages(
   items: Pick<NewsItem, "image" | "source" | "link">[],
   sources: Set<string>,
@@ -298,7 +283,6 @@ export async function fillOgImages(
       if (src) item.image = src;
     }
   };
-  // Apply already-cached images immediately (0ms)
   apply();
   const pending = todo.filter((item) => !ogCache.has(item.link));
   if (pending.length > 0) {
@@ -312,7 +296,6 @@ export async function fillOgImages(
       }
     };
     const work = Promise.all(Array.from({ length: Math.min(OG_CONCURRENCY, pending.length) }, worker));
-    // Wait at most 900ms so user requests never lag; remaining workers finish in the background.
     await Promise.race([work, new Promise((resolve) => setTimeout(resolve, OG_BUDGET_MS))]);
     if (ogCache.size > 600)
       for (const key of [...ogCache.keys()].slice(0, ogCache.size - 450)) ogCache.delete(key);
@@ -329,7 +312,6 @@ async function fetchOgImage(url: string): Promise<string | undefined> {
       headers: { "user-agent": USER_AGENT, accept: "text/html,application/xhtml+xml" },
     });
     if (!res.ok || !res.body) return undefined;
-    // Only the <head> matters: read the first chunk and stop.
     const reader = res.body.getReader();
     const decoder = new TextDecoder();
     let html = "";
@@ -352,7 +334,6 @@ async function fetchOgImage(url: string): Promise<string | undefined> {
 
 export async function fetchText(url: string, opts?: { bypassCache?: boolean }): Promise<string> {
   const cached = !opts?.bypassCache ? httpXmlCache.get(url) : undefined;
-  // If fetched within the last 25 seconds, reuse immediately without network round-trip
   if (cached && Date.now() - cached.at < 25_000) return cached.xml;
 
   const controller = new AbortController();
@@ -391,7 +372,6 @@ export async function fetchText(url: string, opts?: { bypassCache?: boolean }): 
     }
     return text;
   } catch (err) {
-    // Graceful fallback: if a publisher server temporarily times out, serve last cached XML if younger than 30 min
     if (cached && Date.now() - cached.at < 30 * 60_000) {
       return cached.xml;
     }
@@ -400,8 +380,6 @@ export async function fetchText(url: string, opts?: { bypassCache?: boolean }): 
     clearTimeout(timer);
   }
 }
-
-/* ---------------------------------------------------------------- parsing */
 
 export function parseFeed(xml: string, opts: { smallImages?: boolean } = {}): RawItem[] {
   const blocks =
@@ -437,16 +415,45 @@ export function parseFeed(xml: string, opts: { smallImages?: boolean } = {}): Ra
         .map((m) => cleanText(m[1]))
         .filter(Boolean),
       image: findImage(block, opts.smallImages),
+      videoUrl: findVideoUrl(block), // استدعاء دالة البحث عن الفيديو هنا
     };
   });
 }
 
-/* ----------------------------------------------------------------- images */
+/** دالة جديدة لاستخراج رابط الفيديو من الوسوم القياسية أو يوتيوب */
+function findVideoUrl(block: string): string | undefined {
+  const attr = (el: string, name: string) =>
+    decodeEntities(el.match(new RegExp(`\\s${name}=["']([^"']+)["']`, "i"))?.[1] ?? "").trim();
 
-/**
- * The item's own image: media:content / media:thumbnail, an image enclosure, <image><url>, or the first real
- * <img> in content:encoded / description. Returns https URLs only (http is upgraded).
- */
+  // 1. البحث في وسوم enclosure التي تخص الفيديو
+  for (const el of block.match(/<enclosure\b[^>]*>/gi) ?? []) {
+    const type = attr(el, "type");
+    const url = attr(el, "url");
+    if ((type && type.startsWith("video/")) || /\.(mp4|webm|mov)(\?|$)/i.test(url)) {
+      const src = safeImageUrl(url);
+      if (src) return src;
+    }
+  }
+
+  // 2. البحث في وسوم media:content
+  for (const el of block.match(/<media:content\b[^>]*>/gi) ?? []) {
+    const type = attr(el, "type");
+    const url = attr(el, "url");
+    if ((type && type.startsWith("video/")) || /\.(mp4|webm|mov)(\?|$)/i.test(url)) {
+      const src = safeImageUrl(url);
+      if (src) return src;
+    }
+  }
+
+  // 3. البحث عن روابط يوتيوب داخل النص أو الوصف
+  const ytMatch = block.match(/(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([\w-]{11})/i);
+  if (ytMatch) {
+    return `https://www.youtube.com/watch?v=${ytMatch[1]}`;
+  }
+
+  return undefined;
+}
+
 function findImage(
   block: string,
   smallImages = false,
@@ -496,7 +503,6 @@ function findImage(
   return undefined;
 }
 
-/** Smallest srcset candidate that is still ≥ 280px wide (good for a 2× ~80px thumb). */
 function pickThumb(srcset: string): string | undefined {
   const candidates = srcset
     .split(",")
@@ -564,7 +570,7 @@ export function cleanText(value: string): string {
 
 export function excerpt(description: string): string {
   let html = unwrap(description);
-  if (!/<[a-z]/i.test(html)) html = decodeEntities(html); // escaped HTML without CDATA
+  if (!/<[a-z]/i.test(html)) html = decodeEntities(html);
   html = html
     .replace(/<p[^>]*rights[^>]*>[\s\S]*?<\/p>/gi, "")
     .replace(/<(script|style|figure|figcaption)[\s\S]*?<\/\1>/gi, "")
@@ -579,8 +585,6 @@ export function excerpt(description: string): string {
   }
   return text;
 }
-
-/* ----------------------------------------------------------- normalizing */
 
 const RAHAT = /رهط/;
 const NEGEV =
@@ -622,14 +626,24 @@ function normalize(
   if (summary.length < 25 || /^[0-9a-f-]{20,}$/i.test(summary)) summary = "";
   const text = `${raw.title} ${summary}`;
   if (section === "sports" && source.keep && !source.keep({ ...raw, link })) return null;
+  
+  const baseItem = {
+    slug: `${source.id}-${hash(link)}`,
+    title: raw.title,
+    source: source.name,
+    sourceUrl: source.home,
+    link,
+    publishedAt: new Date(Math.min(published, Date.now())).toISOString(),
+    summary,
+    breaking: false,
+    local: RAHAT.test(text) || NEGEV.test(text),
+    ...(raw.image ? { image: raw.image.src, ...(raw.image.thumb ? { thumb: raw.image.thumb } : {}) } : {}),
+    ...(raw.videoUrl ? { videoUrl: raw.videoUrl } : {}), // تمرير رابط الفيديو هنا ليظهر في الواجهة
+  };
+
   if (section === "tech" || section === "sports" || opts?.isCustomSec)
     return {
-      slug: `${source.id}-${hash(link)}`,
-      title: raw.title,
-      source: source.name,
-      sourceUrl: source.home,
-      link,
-      publishedAt: new Date(Math.min(published, Date.now())).toISOString(),
+      ...baseItem,
       category:
         section === "tech"
           ? "تقنية"
@@ -637,11 +651,8 @@ function normalize(
             ? "رياضة"
             : opts?.sectionName || categorize(text, raw.categories),
       ...(source.he ? { he: true, fromHe: true } : {}),
-      summary,
-      breaking: false,
-      local: RAHAT.test(text) || NEGEV.test(text),
-      ...(raw.image ? { image: raw.image.src, ...(raw.image.thumb ? { thumb: raw.image.thumb } : {}) } : {}),
     };
+
   const local =
     RAHAT.test(text) ||
     NEGEV.test(text) ||
@@ -649,23 +660,12 @@ function normalize(
   if (!local && source.keep && !source.keep({ ...raw, link })) return null;
 
   return {
-    slug: `${source.id}-${hash(link)}`,
-    title: raw.title,
-    source: source.name,
-    sourceUrl: source.home,
-    link,
-    publishedAt: new Date(Math.min(published, Date.now())).toISOString(),
+    ...baseItem,
     category: categorize(text, raw.categories),
-    summary,
-    breaking: false,
     local,
-    ...(raw.image
-      ? { image: raw.image.src, ...(raw.image.thumb ? { thumb: raw.image.thumb } : {}) }
-      : {}),
   };
 }
 
-/** RFC 822 / ISO dates, plus "dd/mm/yyyy - HH:MM" and "yyyy/mm/dd HH:MM:SS" in Israel time. */
 export function parseDate(value: string): number | null {
   if (!value) return null;
   let m = value.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s*-?\s*(\d{1,2}):(\d{2})(?::(\d{2}))?/);
