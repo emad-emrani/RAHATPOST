@@ -61,7 +61,7 @@ async function entries(): Promise<Entry[]> {
       (await import("@/lib/news/feeds.server")).loadTechNews().then((r) => r.items),
     ),
     safe("israel news", async () =>
-      (await import("@/lib/news/israel.server")).getIsraelNews().then((r) => r.items),
+      (await import("@/lib/news/israel.server")).loadIsraelNews().then((r) => r.items),
     ),
     safe("store", async () => (await import("@/lib/store/store.server")).listPublicProducts(500)),
     safe("store sections", async () =>

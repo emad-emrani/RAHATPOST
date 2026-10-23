@@ -37,7 +37,7 @@ async function items(): Promise<Item[]> {
     console.error("[news-sitemap] feeds", e);
   }
   try {
-    const israel = await (await import("@/lib/news/israel.server")).getIsraelNews();
+    const israel = await (await import("@/lib/news/israel.server")).loadIsraelNews();
     for (const n of israel.items) {
       if (n.titleAr) {
         out.push({ path: `/israel-news/${n.slug}`, title: n.titleAr, date: n.publishedAt });
