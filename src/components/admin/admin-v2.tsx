@@ -1,5 +1,5 @@
 import { Component, useEffect, useState, type ReactNode } from "react";
-import { Check, ExternalLink, Search, X, type LucideIcon } from "lucide-react";
+import { Check, ExternalLink, FolderPlus, LayoutGrid, PenSquare, Rss, Search, Settings, X, type LucideIcon } from "lucide-react";
 import { tr, trv, getLang } from "@/lib/i18n/core";
 import { adminDashboard, adminReviewQueue, adminSearch, type Dashboard, type ReviewItem, type SearchHit } from "@/lib/admin/dashboard";
 import { adminDecideListing, getAllHarajCategories } from "@/lib/market/api";
@@ -60,7 +60,7 @@ export function Card({ title, action, children, className = "" }: { title?: stri
 
 function Tile({ icon: Icon, label, value, onClick, hot }: { icon: LucideIcon; label: string; value: number; onClick?: () => void; hot?: boolean }) {
   return (
-    <button type="button" onClick={onClick} className="flex flex-col items-start gap-2 rounded-3xl bg-paper p-4 text-start shadow-[0_1px_3px_rgba(16,24,40,0.06)] active:scale-[0.98]">
+    <button type="button" onClick={onClick} className="flex flex-col items-start gap-2 rounded-3xl bg-paper p-4 text-start shadow-[0_1px_3px_rgba(16,24,40,0.06)] transition hover:shadow-md active:scale-[0.98]">
       <span className="flex items-center gap-2 text-xs font-semibold text-muted">
         <span className={`grid size-7 place-items-center rounded-xl ${hot && value > 0 ? "bg-brand text-ink" : "bg-primary-soft text-primary-ink"}`}>
           <Icon className="size-4" aria-hidden />
@@ -147,18 +147,75 @@ export function DashboardHome({ icons, go }: { icons: Record<string, LucideIcon>
     ["أعضاء جدد", d.today.members],
   ];
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-4">
+      {/* Quick Control Center */}
+      <CardBoundary>
+        <Card title={tr("إجراءات سريعة وتنظيم الموقع")}>
+          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
+            <button
+              type="button"
+              onClick={() => go("publish")}
+              className="flex items-center gap-2.5 rounded-2xl bg-[#16A34A] p-3 text-start text-sm font-bold text-white shadow-xs transition hover:bg-[#15803D]"
+            >
+              <PenSquare className="size-5 shrink-0" aria-hidden />
+              <span>{tr("نشر خبر جديد")}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => go("sec-news")}
+              className="flex items-center gap-2.5 rounded-2xl bg-brand p-3 text-start text-sm font-bold text-ink shadow-xs transition hover:opacity-90"
+            >
+              <FolderPlus className="size-5 shrink-0" aria-hidden />
+              <span>{tr("إضافة قسم جديد")}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => go("set-home")}
+              className="flex items-center gap-2.5 rounded-2xl bg-surface p-3 text-start text-sm font-bold text-ink transition hover:bg-primary-soft"
+            >
+              <LayoutGrid className="size-5 shrink-0 text-primary-ink" aria-hidden />
+              <span>{tr("ترتيب الصفحة الرئيسية")}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => go("auto")}
+              className="flex items-center gap-2.5 rounded-2xl bg-surface p-3 text-start text-sm font-bold text-ink transition hover:bg-primary-soft"
+            >
+              <Rss className="size-5 shrink-0 text-primary-ink" aria-hidden />
+              <span>{tr("الأخبار التلقائية")}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => go("haraj-cats")}
+              className="flex items-center gap-2.5 rounded-2xl bg-surface p-3 text-start text-sm font-bold text-ink transition hover:bg-primary-soft"
+            >
+              <icons.haraj className="size-5 shrink-0 text-primary-ink" aria-hidden />
+              <span>{tr("أقسام الحراج")}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => go("set-menus")}
+              className="flex items-center gap-2.5 rounded-2xl bg-surface p-3 text-start text-sm font-bold text-ink transition hover:bg-primary-soft"
+            >
+              <Settings className="size-5 shrink-0 text-primary-ink" aria-hidden />
+              <span>{tr("القوائم والأيقونات")}</span>
+            </button>
+          </div>
+        </Card>
+      </CardBoundary>
+
       <CardBoundary><Card title={tr("نشاط اليوم")}>
-        <div className="grid grid-cols-4 gap-2 text-center">
+        <div className="grid grid-cols-2 gap-2 text-center sm:grid-cols-4">
           {todayRows.filter((r) => r[1] !== null).map(([l, v]) => (
-            <div key={l} className="rounded-2xl bg-surface px-1 py-2">
+            <div key={l} className="rounded-2xl bg-surface px-2 py-2.5">
               <p className="text-xl font-extrabold tabular-nums">{v}</p>
               <p className="text-[11px] font-semibold text-muted">{tr(l)}</p>
             </div>
           ))}
         </div>
       </Card></CardBoundary>
-      <div className="grid grid-cols-2 gap-3">
+
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {tiles.filter((t) => t[2] !== null).map(([k, label, v, to]) => (
           <Tile key={k} icon={icons[k]} label={tr(label)} value={v ?? 0} hot onClick={() => go(to)} />
         ))}

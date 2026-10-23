@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { RefreshCw } from "lucide-react";
 import {
   adminListAutoNews,
+  adminRefreshSectionNow,
   adminSaveAutoNews,
   adminSetNewsSource,
   type AutoItem,
@@ -12,7 +14,7 @@ import { tr, trv } from "@/lib/i18n/core";
 const KIND = { news: "أخبار محلية", israel: "أخبار إسرائيل" } as const;
 const CATEGORIES = [...newsCategories, "إسرائيل"];
 
-/** «الأخبار التلقائية» (owner + مشرف): hide / pin / عاجل / category / title per item, sources on/off. */
+/** «الأخبار التلقائية» (owner + مشرف): hide / pin / عاجل / category / title per item, sources on/off, and instant RSS refresh. */
 export function AutoNewsAdmin() {
   const [items, setItems] = useState<AutoItem[] | null>(null);
   const [sources, setSources] = useState<AutoSource[]>([]);
@@ -36,6 +38,23 @@ export function AutoNewsAdmin() {
   useEffect(() => {
     void refresh();
   }, [refresh]);
+
+  const forceRefreshAll = async () => {
+    setBusy("force-all");
+    setMsg(tr("جاري جلب أحدث الأخبار من جميع مصادر RSS…"));
+    const r = await adminRefreshSectionNow({ data: { section: "all" } });
+    if (r.ok) {
+      await refresh();
+      setMsg(
+        r.failedSources.length
+          ? tr("✓ تم تحديث جميع المصادر في {0} مللي ثانية ({1} خبر) · تعذّر: {2}", r.ms, r.count, r.failedSources.join("، "))
+          : tr("✓ تم تحديث وجلب {0} خبر من جميع المصادر في {1} مللي ثانية", r.count, r.ms),
+      );
+    } else {
+      setMsg(trv(r.message ?? tr("تعذّر تحديث المصادر.")));
+    }
+    setBusy("");
+  };
 
   const effCat = (i: AutoItem) => i.ov?.category ?? i.category;
   const list = useMemo(() => {
@@ -83,11 +102,24 @@ export function AutoNewsAdmin() {
 
   return (
     <>
-      <div className="stamp mb-4 p-4">
-        <h2 className="text-lg font-bold">{tr("المصادر")}</h2>
-        <p className="text-sm font-semibold text-muted">
-          {tr("إيقاف مصدر يخفي كل أخباره من الموقع. التغييرات تظهر خلال دقيقة تقريباً.")}
-        </p>
+      <div className="rounded-3xl bg-paper mb-4 p-4 shadow-[0_1px_3px_rgba(16,24,40,0.06)]">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h2 className="text-lg font-extrabold">{tr("المصادر التلقائية والجلب الفوري")}</h2>
+            <p className="text-sm font-semibold text-muted">
+              {tr("إيقاف مصدر يخفي كل أخباره من الموقع. يمكنك الضغط على «تحديث جميع المصادر الآن» لجلب أحدث الأخبار فوراً.")}
+            </p>
+          </div>
+          <button
+            type="button"
+            disabled={busy === "force-all"}
+            onClick={forceRefreshAll}
+            className="btn flex items-center gap-2 px-4 py-2 text-sm"
+          >
+            <RefreshCw className={`size-4 ${busy === "force-all" ? "animate-spin" : ""}`} aria-hidden />
+            {busy === "force-all" ? tr("جاري الجلب…") : tr("تحديث جميع المصادر الآن")}
+          </button>
+        </div>
         {(["news", "israel"] as const).map((k) => (
           <div key={k} className="mt-3">
             <p className="font-bold">{trv(KIND[k])}</p>
@@ -111,7 +143,7 @@ export function AutoNewsAdmin() {
         ))}
       </div>
 
-      <div className="stamp mb-4 grid grid-cols-2 gap-2 p-4">
+      <div className="rounded-3xl bg-paper mb-4 grid grid-cols-2 gap-2 p-4 shadow-[0_1px_3px_rgba(16,24,40,0.06)]">
         <input
           className="field col-span-2"
           placeholder={tr("ابحث في العناوين")}
@@ -151,7 +183,7 @@ export function AutoNewsAdmin() {
         </select>
       </div>
 
-      {msg ? <p className="stamp mb-3 p-3 font-bold">{trv(msg)}</p> : null}
+      {msg ? <p className="rounded-3xl bg-paper mb-3 p-3.5 font-bold shadow-[0_1px_3px_rgba(16,24,40,0.06)]">{trv(msg)}</p> : null}
       {!items ? (
         <p className="stamp p-4 font-semibold">{tr("جاري التحميل…")}</p>
       ) : (
@@ -165,7 +197,7 @@ export function AutoNewsAdmin() {
               const breaking = ov?.breaking ?? i.breaking;
               const href = i.kind === "news" ? `/news/${i.slug}` : `/israel-news/${i.slug}`;
               return (
-                <li key={i.slug} className={`stamp p-4 ${ov?.hidden ? "opacity-60" : ""}`}>
+                <li key={i.slug} className={`rounded-3xl bg-paper p-4 shadow-[0_1px_3px_rgba(16,24,40,0.06)] ${ov?.hidden ? "opacity-60" : ""}`}>
                   <div className="flex flex-wrap gap-2">
                     <span className="chip">{trv(KIND[i.kind])}</span>
                     <span className="chip">{trv(i.source)}</span>

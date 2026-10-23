@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { compress } from "@/components/photo-picker";
 import { mediaUrl } from "@/lib/media/types";
 import { newsCategories } from "@/lib/news/types";
+import { adminListSections } from "@/lib/news/auto-admin";
 import { adminSaveStaffNews, adminListStaffNews, adminUpdateStaffNews } from "@/lib/staff-news/api";
 import type { StaffNews } from "@/lib/staff-news/types";
 import { tr, trv } from "@/lib/i18n/core";
@@ -9,6 +10,7 @@ import { tr, trv } from "@/lib/i18n/core";
 /** «نشر خبر»: the team publishes news directly (server functions behind the admin cookie). */
 export function PublishAdmin() {
   const [items, setItems] = useState<StaffNews[] | null>(null);
+  const [categories, setCategories] = useState<string[]>([...newsCategories, "أخبار محلية"]);
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState<string>(newsCategories[0]);
   const [body, setBody] = useState("");
@@ -21,8 +23,21 @@ export function PublishAdmin() {
   const [editId, setEditId] = useState("");
 
   const refresh = useCallback(async () => {
-    const res = await adminListStaffNews();
+    const [res, secs] = await Promise.all([
+      adminListStaffNews(),
+      adminListSections().catch(() => ({ authed: false, sections: [] })),
+    ]);
     setItems(res.items);
+    if (secs.authed && secs.sections.length) {
+      const merged = Array.from(
+        new Set([
+          ...newsCategories,
+          "أخبار محلية",
+          ...secs.sections.map((s) => s.name.trim()).filter(Boolean),
+        ]),
+      );
+      setCategories(merged);
+    }
     if (!res.authed) setMsg(tr("انتهت الجلسة. سجّل الدخول من جديد."));
     else if (!res.ok) setMsg(tr("تعذّر تحميل الأخبار المنشورة."));
   }, []);
@@ -84,7 +99,7 @@ export function PublishAdmin() {
   const startEdit = (n: StaffNews | null) => {
     setEditId(n?.id ?? "");
     setTitle(n?.title ?? "");
-    setCategory(n?.category ?? newsCategories[0]);
+    setCategory(n?.category ?? categories[0]);
     setBody(n?.body ?? "");
     setImageKey(n?.imageKey ?? "");
     setBreaking(n?.breaking ?? false);
@@ -106,8 +121,8 @@ export function PublishAdmin() {
 
   return (
     <>
-      <form className="stamp flex flex-col gap-3 p-4" onSubmit={publish}>
-        <h2 className="text-lg font-bold">{editId ? tr("تعديل الخبر") : tr("نشر خبر جديد أو عاجل")}</h2>
+      <form className="rounded-3xl bg-paper p-5 shadow-[0_1px_3px_rgba(16,24,40,0.06)] flex flex-col gap-3" onSubmit={publish}>
+        <h2 className="text-lg font-extrabold">{editId ? tr("تعديل الخبر") : tr("نشر خبر جديد أو عاجل")}</h2>
         <label className="block font-bold">
           {tr("العنوان")}
           <input
@@ -119,13 +134,13 @@ export function PublishAdmin() {
           />
         </label>
         <label className="block font-bold">
-          {tr("التصنيف")}
+          {tr("القسم / التصنيف")}
           <select
             className="field mt-1"
             value={category}
             onChange={(e) => setCategory(e.target.value)}
           >
-            {newsCategories.map((c) => (
+            {categories.map((c) => (
               <option key={c} value={c}>
                 {trv(c)}
               </option>
@@ -188,7 +203,7 @@ export function PublishAdmin() {
       ) : (
         <ul className="flex flex-col gap-3">
           {items.map((n) => (
-            <li key={n.id} className="stamp flex gap-3 p-4">
+            <li key={n.id} className="rounded-3xl bg-paper p-4 shadow-[0_1px_3px_rgba(16,24,40,0.06)] flex gap-3">
               {n.imageKey ? (
                 <img
                   src={mediaUrl(n.imageKey)}
