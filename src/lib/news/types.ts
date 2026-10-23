@@ -16,6 +16,8 @@ export type NewsItem = {
   image?: string;
   /** A smaller rendition of `image` for list thumbnails, when the feed offers one. */
   thumb?: string;
+  /** رابط الفيديو المستخرج من الـ RSS أو المضاف */
+  videoUrl?: string;
   /** Set for original posts by signed-in readers ("من القراء"), approved by the admin. */
   reader?: { name: string; neighborhood: string; sourceUrl?: string };
   /** Written by the رهط بوست team in /admin (full text in `body`). */
