@@ -7,5 +7,16 @@ Disallow: /api/
 Disallow: /_serverFn/
 Disallow: /__grok/
 
+User-agent: Googlebot
+Allow: /
+Disallow: /api/
+Disallow: /_serverFn/
+
+User-agent: Googlebot-News
+Allow: /
+
+User-agent: Googlebot-Image
+Allow: /
+
 Sitemap: https://rahatpost.com/sitemap.xml
 Sitemap: https://rahatpost.com/news-sitemap.xml
