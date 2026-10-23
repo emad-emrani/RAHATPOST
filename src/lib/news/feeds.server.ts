@@ -2,7 +2,11 @@ import type { NewsFeedResult, NewsItem } from "./types";
 
 /**
  * Real Arabic news from publishers' own RSS feeds (no aggregators).
- * Titles + the feed's short excerpt only; the article page links to the source.
+ * Optimized for sub-second responsiveness:
+ * - Conditional HTTP fetching (ETag / Last-Modified + per-URL XML cache fallback on timeout)
+ * - Fast 4.5s per-feed timeout so one slow publisher never blocks the others
+ * - Non-blocking background og:image enrichment (instant 0ms apply from ogCache + 900ms budget)
+ * - Full support for built-in and admin-created custom sections
  */
 type FeedSource = {
   id: string;
@@ -84,29 +88,47 @@ const SPORTS_SOURCES: FeedSource[] = [
 
 export const NEWS_SOURCE_NAMES = SOURCES.map((s) => s.name);
 export const TECH_SOURCE_NAMES = TECH_SOURCES.map((s) => s.name);
-export type FeedSectionId = "news" | "tech" | "sports";
-export const builtinSources = (section: string): FeedSource[] => (section === "tech" ? TECH_SOURCES : section === "sports" ? SPORTS_SOURCES : section === "news" ? SOURCES : []);
+export type FeedSectionId = "news" | "tech" | "sports" | string;
+export const builtinSources = (section: string): FeedSource[] =>
+  section === "tech" ? TECH_SOURCES : section === "sports" ? SPORTS_SOURCES : section === "news" ? SOURCES : [];
 
 /** Feeds are re-checked every 4 minutes; the last good list is always served instantly meanwhile. */
 const TTL_MS = 4 * 60_000;
-const FEED_TIMEOUT_MS = 8_000;
-const MAX_AGE_MS = 21 * 24 * 60 * 60_000;
-export const USER_AGENT = "Mozilla/5.0 (compatible; RahatPostBot/1.0; +https://rahatpost.com)";
+const FEED_TIMEOUT_MS = 4_500;
+const DEFAULT_MAX_AGE_MS = 21 * 24 * 60 * 60_000;
+export const USER_AGENT = "Mozilla/5.0 (compatible; RahatPostBot/2.0; +https://rahatpost.com)";
 
 type Entry = { result: NewsFeedResult; at: number };
-const caches = new Map<FeedSectionId, Entry>();
-const inflights = new Map<FeedSectionId, Promise<NewsFeedResult>>();
-const snapshotTried = new Set<FeedSectionId>();
+const caches = new Map<string, Entry>();
+const inflights = new Map<string, Promise<NewsFeedResult>>();
+const snapshotTried = new Set<string>();
+
+/** Per-URL HTTP conditional cache (ETag / Last-Modified + last good XML body for instant 304 and timeout resilience). */
+type HttpCacheEntry = { xml: string; etag?: string; lastModified?: string; at: number };
+const httpXmlCache = new Map<string, HttpCacheEntry>();
 
 /** Force the next request to refetch (after the admin edits feeds). */
-export function expireFeeds() {
+export function expireFeeds(section?: string) {
+  if (section) {
+    const e = caches.get(section);
+    if (e) e.at = 0;
+    return;
+  }
   for (const e of caches.values()) e.at = 0;
 }
 
-function startRefresh(section: FeedSectionId): Promise<NewsFeedResult> {
+/** Force an immediate live refresh of a section and return the fresh result + elapsed ms. */
+export async function forceRefreshSection(section: FeedSectionId): Promise<{ result: NewsFeedResult; ms: number }> {
+  const t0 = Date.now();
+  expireFeeds(section);
+  const result = await startRefresh(section, true);
+  return { result, ms: Date.now() - t0 };
+}
+
+function startRefresh(section: FeedSectionId, bypassHttpCache = false): Promise<NewsFeedResult> {
   let p = inflights.get(section);
   if (!p) {
-    p = refresh(section)
+    p = refresh(section, bypassHttpCache)
       .catch((error) => {
         console.error(`[${section}] refresh`, error);
         const c = caches.get(section);
@@ -145,27 +167,44 @@ export const loadNews = () => loadSection("news");
 export const loadTechNews = () => loadSection("tech");
 export const loadSportsNews = () => loadSection("sports");
 
-/** Fetch one feed URL now (admin «اختبار»). */
-export async function testFeedUrl(url: string): Promise<{ count: number; images: number; latest?: string; error?: string }> {
+/** Fetch one feed URL now (admin «اختبار») with response time measurement (ms). */
+export async function testFeedUrl(url: string): Promise<{ count: number; images: number; ms: number; latest?: string; error?: string }> {
+  const t0 = Date.now();
   try {
-    const items = parseFeed(await fetchText(url));
+    const xml = await fetchText(url, { bypassCache: true });
+    const items = parseFeed(xml);
     const latest = items.map((i) => parseDate(i.date)).filter((t): t is number => t !== null).sort((a, b) => b - a)[0];
-    return { count: items.length, images: items.filter((i) => i.image).length, ...(latest ? { latest: new Date(latest).toISOString() } : {}) };
+    return {
+      count: items.length,
+      images: items.filter((i) => i.image).length,
+      ms: Date.now() - t0,
+      ...(latest ? { latest: new Date(latest).toISOString() } : {}),
+    };
   } catch (error) {
-    return { count: 0, images: 0, error: error instanceof Error ? error.message.slice(0, 200) : "error" };
+    return {
+      count: 0,
+      images: 0,
+      ms: Date.now() - t0,
+      error: error instanceof Error ? error.message.slice(0, 200) : "error",
+    };
   }
 }
 
-async function refresh(section: FeedSectionId): Promise<NewsFeedResult> {
-  const { sectionConfig, recordFeedStats, applyLimits } = await import("./feed-config.server");
+async function refresh(section: FeedSectionId, bypassHttpCache = false): Promise<NewsFeedResult> {
+  const { sectionConfig, recordFeedStats, applyLimits, isBuiltinSection } = await import("./feed-config.server");
   const { feeds, section: secCfg } = await sectionConfig(section);
   const builtins = builtinSources(section);
+  const isCustomSec = !isBuiltinSection(section);
+  const maxAgeMs = secCfg.maxAgeDays > 0 ? secCfg.maxAgeDays * 86_400_000 : DEFAULT_MAX_AGE_MS;
+
   const groups = new Map<string, { source: FeedSource; urls: string[] }>();
   for (const f of feeds) {
     if (!f.enabled) continue;
     const base = builtins.find((b) => b.id === f.sourceId);
     const g = groups.get(f.sourceId) ?? {
-      source: base ? { ...base, name: f.source || base.name, home: f.home || base.home } : { id: f.sourceId, name: f.source, home: f.home, urls: [], ogImage: true },
+      source: base
+        ? { ...base, name: f.source || base.name, home: f.home || base.home }
+        : { id: f.sourceId, name: f.source, home: f.home, urls: [], ogImage: true },
       urls: [],
     };
     g.urls.push(f.url);
@@ -174,7 +213,7 @@ async function refresh(section: FeedSectionId): Promise<NewsFeedResult> {
   const stats: { url: string; count: number; error?: string }[] = [];
   const settled = await Promise.all(
     [...groups.values()].map(async ({ source, urls }) => {
-      const pages = await Promise.allSettled(urls.map((url) => fetchText(url)));
+      const pages = await Promise.allSettled(urls.map((url) => fetchText(url, { bypassCache: bypassHttpCache })));
       const items: NewsItem[] = [];
       pages.forEach((page, i) => {
         if (page.status !== "fulfilled") {
@@ -184,7 +223,11 @@ async function refresh(section: FeedSectionId): Promise<NewsFeedResult> {
         const raws = parseFeed(page.value);
         stats.push({ url: urls[i], count: raws.length });
         for (const raw of raws) {
-          const item = normalize(source, raw, section);
+          const item = normalize(source, raw, section, {
+            isCustomSec,
+            sectionName: secCfg.name,
+            maxAgeMs,
+          });
           if (item) items.push(item);
         }
       });
@@ -204,11 +247,11 @@ async function refresh(section: FeedSectionId): Promise<NewsFeedResult> {
       seen.add(item.slug);
       seen.add(key);
       return true;
-    })
-    ;
+    });
   items.splice(0, items.length, ...applyLimits(items, secCfg));
 
-  await fillOgImages(items, new Set([...groups.values()].filter((g) => g.source.ogImage).map((g) => g.source.name)));
+  const ogSources = new Set([...groups.values()].filter((g) => g.source.ogImage).map((g) => g.source.name));
+  await fillOgImages(items, ogSources);
 
   const prev = caches.get(section);
   if (items.length === 0 && prev) {
@@ -228,46 +271,51 @@ async function refresh(section: FeedSectionId): Promise<NewsFeedResult> {
   caches.set(section, entry);
   if (items.length > 0) {
     const { writeSnapshot } = await import("@/lib/snapshot.server");
-    await writeSnapshot(section, entry);
+    void writeSnapshot(section, entry);
   }
   return result;
 }
 
 /* -------------------------------------------------------- og:image fallback */
 
-const OG_TIMEOUT_MS = 3_000;
-const OG_BUDGET_MS = 4_000;
-const OG_CONCURRENCY = 4;
-const OG_MAX_BYTES = 150_000;
+const OG_TIMEOUT_MS = 2_200;
+const OG_BUDGET_MS = 900;
+const OG_CONCURRENCY = 6;
+const OG_MAX_BYTES = 120_000;
 /** link → image URL ("" = page has none). Survives news refreshes. */
 const ogCache = new Map<string, string>();
 
-/** Fill missing images from article og:image, for sources that allow it, within a small time budget. */
+/** Fill missing images from article og:image, applying cached ones immediately and bounding wait to 900ms. */
 export async function fillOgImages(
   items: Pick<NewsItem, "image" | "source" | "link">[],
   sources: Set<string>,
 ): Promise<void> {
   const todo = items.filter((item) => !item.image && sources.has(item.source));
+  if (!todo.length) return;
   const apply = () => {
     for (const item of todo) {
       const src = ogCache.get(item.link);
       if (src) item.image = src;
     }
   };
+  // Apply already-cached images immediately (0ms)
+  apply();
   const pending = todo.filter((item) => !ogCache.has(item.link));
   if (pending.length > 0) {
     let next = 0;
     const worker = async () => {
       while (next < pending.length) {
         const item = pending[next++];
-        ogCache.set(item.link, (await fetchOgImage(item.link).catch(() => undefined)) ?? "");
+        const img = (await fetchOgImage(item.link).catch(() => undefined)) ?? "";
+        ogCache.set(item.link, img);
+        if (img && !item.image) item.image = img;
       }
     };
-    const work = Promise.all(Array.from({ length: OG_CONCURRENCY }, worker));
-    // Whatever isn't done within the budget finishes in the background for the next refresh.
+    const work = Promise.all(Array.from({ length: Math.min(OG_CONCURRENCY, pending.length) }, worker));
+    // Wait at most 900ms so user requests never lag; remaining workers finish in the background.
     await Promise.race([work, new Promise((resolve) => setTimeout(resolve, OG_BUDGET_MS))]);
-    if (ogCache.size > 500)
-      for (const key of [...ogCache.keys()].slice(0, ogCache.size - 400)) ogCache.delete(key);
+    if (ogCache.size > 600)
+      for (const key of [...ogCache.keys()].slice(0, ogCache.size - 450)) ogCache.delete(key);
   }
   apply();
 }
@@ -278,7 +326,7 @@ async function fetchOgImage(url: string): Promise<string | undefined> {
   try {
     const res = await fetch(url, {
       signal: controller.signal,
-      headers: { "user-agent": USER_AGENT, accept: "text/html" },
+      headers: { "user-agent": USER_AGENT, accept: "text/html,application/xhtml+xml" },
     });
     if (!res.ok || !res.body) return undefined;
     // Only the <head> matters: read the first chunk and stop.
@@ -294,7 +342,7 @@ async function fetchOgImage(url: string): Promise<string | undefined> {
     reader.cancel().catch(() => {});
     const meta =
       html.match(/<meta[^>]+property=["']og:image(?::secure_url)?["'][^>]*>/i)?.[0] ??
-      html.match(/<meta[^>]+name=["']twitter:image["'][^>]*>/i)?.[0];
+      html.match(/<meta[^>]+name=["']twitter:image(?::src)?["'][^>]*>/i)?.[0];
     const content = meta?.match(/content=["']([^"']+)["']/i)?.[1];
     return content ? safeImageUrl(decodeEntities(content)) : undefined;
   } finally {
@@ -302,22 +350,52 @@ async function fetchOgImage(url: string): Promise<string | undefined> {
   }
 }
 
-export async function fetchText(url: string): Promise<string> {
+export async function fetchText(url: string, opts?: { bypassCache?: boolean }): Promise<string> {
+  const cached = !opts?.bypassCache ? httpXmlCache.get(url) : undefined;
+  // If fetched within the last 25 seconds, reuse immediately without network round-trip
+  if (cached && Date.now() - cached.at < 25_000) return cached.xml;
+
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), FEED_TIMEOUT_MS);
   try {
+    const headers: Record<string, string> = {
+      "user-agent": USER_AGENT,
+      accept:
+        "application/rss+xml, application/atom+xml, application/rdf+xml, application/xml, text/xml;q=0.9, */*;q=0.5",
+      "accept-language": "ar,he;q=0.9,en;q=0.8",
+    };
+    if (cached?.etag) headers["if-none-match"] = cached.etag;
+    if (cached?.lastModified) headers["if-modified-since"] = cached.lastModified;
+
     const res = await fetch(url, {
       signal: controller.signal,
-      headers: {
-        "user-agent": USER_AGENT,
-        accept:
-          "application/rss+xml, application/atom+xml, application/xml, text/xml;q=0.9, */*;q=0.5",
-      },
+      headers,
     });
+    if (res.status === 304 && cached) {
+      cached.at = Date.now();
+      return cached.xml;
+    }
     if (!res.ok) throw new Error(`${url} → HTTP ${res.status}`);
     const text = await res.text();
-    if (!/<(rss|feed|rdf:RDF)\b/i.test(text)) throw new Error(`${url} → not a feed`);
+    if (!/<(rss|feed|rdf:RDF|channel)\b/i.test(text)) throw new Error(`${url} → ليس ملف RSS صالحاً`);
+
+    httpXmlCache.set(url, {
+      xml: text,
+      etag: res.headers.get("etag") ?? undefined,
+      lastModified: res.headers.get("last-modified") ?? undefined,
+      at: Date.now(),
+    });
+    if (httpXmlCache.size > 150) {
+      const oldestKey = httpXmlCache.keys().next().value;
+      if (oldestKey) httpXmlCache.delete(oldestKey);
+    }
     return text;
+  } catch (err) {
+    // Graceful fallback: if a publisher server temporarily times out, serve last cached XML if younger than 30 min
+    if (cached && Date.now() - cached.at < 30 * 60_000) {
+      return cached.xml;
+    }
+    throw err;
   } finally {
     clearTimeout(timer);
   }
@@ -332,19 +410,32 @@ export function parseFeed(xml: string, opts: { smallImages?: boolean } = {}): Ra
     const atomLink =
       block.match(/<link\b[^>]*rel=["']alternate["'][^>]*href=["']([^"']+)["']/i)?.[1] ??
       block.match(/<link\b[^>]*href=["']([^"']+)["']/i)?.[1];
+    const rawLink =
+      decodeEntities(unwrap(tag(block, "link"))).trim() ||
+      atomLink ||
+      decodeEntities(unwrap(tag(block, "guid"))).trim() ||
+      "";
     return {
       title: cleanText(tag(block, "title")),
-      link: decodeEntities(unwrap(tag(block, "link"))).trim() || atomLink || "",
+      link: /^https?:\/\//i.test(rawLink) ? rawLink : atomLink || "",
       date: unwrap(
         tag(block, "pubDate") ||
           tag(block, "published") ||
           tag(block, "updated") ||
-          tag(block, "dc:date"),
+          tag(block, "dc:date") ||
+          tag(block, "date"),
       ).trim(),
-      description: tag(block, "description") || tag(block, "summary"),
-      categories: [...block.matchAll(/<category\b[^>]*>([\s\S]*?)<\/category>/gi)].map((m) =>
-        cleanText(m[1]),
-      ),
+      description:
+        tag(block, "description") ||
+        tag(block, "summary") ||
+        tag(block, "content:encoded") ||
+        tag(block, "content"),
+      categories: [
+        ...block.matchAll(/<category\b[^>]*>([\s\S]*?)<\/category>/gi),
+        ...block.matchAll(/<category\b[^>]*term=["']([^"']+)["'][^>]*\/?>/gi),
+      ]
+        .map((m) => cleanText(m[1]))
+        .filter(Boolean),
       image: findImage(block, opts.smallImages),
     };
   });
@@ -353,7 +444,7 @@ export function parseFeed(xml: string, opts: { smallImages?: boolean } = {}): Ra
 /* ----------------------------------------------------------------- images */
 
 /**
- * The item's own image: media:content / media:thumbnail, an image enclosure, or the first real
+ * The item's own image: media:content / media:thumbnail, an image enclosure, <image><url>, or the first real
  * <img> in content:encoded / description. Returns https URLs only (http is upgraded).
  */
 function findImage(
@@ -373,23 +464,30 @@ function findImage(
   }
 
   for (const el of block.match(/<enclosure\b[^>]*>/gi) ?? []) {
-    if (!/^image\//i.test(attr(el, "type"))) continue;
-    const src = safeImageUrl(attr(el, "url"));
+    const type = attr(el, "type");
+    const url = attr(el, "url");
+    if (type && !/^image\//i.test(type) && !/\.(jpe?g|png|webp|avif)(\?|$)/i.test(url)) continue;
+    const src = safeImageUrl(url);
     if (src) return { src };
   }
 
-  for (const name of ["content:encoded", "description"]) {
+  const directImgTag = unwrap(tag(block, "image") || tag(block, "featured_image") || tag(block, "post-thumbnail"));
+  if (directImgTag) {
+    const innerUrl = safeImageUrl(unwrap(tag(directImgTag, "url")).trim() || directImgTag.trim());
+    if (innerUrl) return { src: innerUrl };
+  }
+
+  for (const name of ["content:encoded", "content", "description"]) {
     let html = unwrap(tag(block, name));
     if (!/<img/i.test(html) && /&lt;img/i.test(html)) html = decodeEntities(html);
     for (const el of html.match(/<img\b[^>]*>/gi) ?? []) {
       const width = Number(attr(el, "width")) || 0;
       const height = Number(attr(el, "height")) || 0;
-      // Icons, pixels, emoji. Some feeds (ynet, Maariv) declare a tiny display size for a large image.
       if (!smallImages && ((width && width < 120) || (height && height < 80))) continue;
-      const src = safeImageUrl(attr(el, "data-src") || attr(el, "src"));
+      const src = safeImageUrl(attr(el, "data-src") || attr(el, "data-lazy-src") || attr(el, "src"));
       if (
         !src ||
-        /s\.w\.org\/images\/core\/emoji|gravatar\.com|feeds\.feedburner|\/pixel/i.test(src)
+        /s\.w\.org\/images\/core\/emoji|gravatar\.com|feeds\.feedburner|\/pixel|1x1/i.test(src)
       )
         continue;
       return { src, thumb: pickThumb(attr(el, "srcset")) };
@@ -504,12 +602,18 @@ function categorize(text: string, categories: string[]): string {
   return "مجتمع";
 }
 
-function normalize(source: FeedSource, raw: RawItem, section: FeedSectionId = "news"): NewsItem | null {
+function normalize(
+  source: FeedSource,
+  raw: RawItem,
+  section: FeedSectionId = "news",
+  opts?: { isCustomSec?: boolean; sectionName?: string; maxAgeMs?: number },
+): NewsItem | null {
   if (!raw.title || !raw.link) return null;
   const link = source.fixLink ? source.fixLink(raw.link) : raw.link;
   if (!/^https?:\/\//i.test(link)) return null;
-  const published = parseDate(raw.date);
-  if (published === null || Date.now() - published > MAX_AGE_MS) return null;
+  const published = parseDate(raw.date) ?? Date.now();
+  const maxAge = opts?.maxAgeMs ?? DEFAULT_MAX_AGE_MS;
+  if (Date.now() - published > maxAge) return null;
 
   if (/^(?:إعلان|اعلان)\s|إعلان ممول|اعلان ممول|مقال ممول/.test(raw.title)) return null;
   let summary = excerpt(raw.description);
@@ -518,7 +622,7 @@ function normalize(source: FeedSource, raw: RawItem, section: FeedSectionId = "n
   if (summary.length < 25 || /^[0-9a-f-]{20,}$/i.test(summary)) summary = "";
   const text = `${raw.title} ${summary}`;
   if (section === "sports" && source.keep && !source.keep({ ...raw, link })) return null;
-  if (section === "tech" || section === "sports")
+  if (section === "tech" || section === "sports" || opts?.isCustomSec)
     return {
       slug: `${source.id}-${hash(link)}`,
       title: raw.title,
@@ -526,11 +630,16 @@ function normalize(source: FeedSource, raw: RawItem, section: FeedSectionId = "n
       sourceUrl: source.home,
       link,
       publishedAt: new Date(Math.min(published, Date.now())).toISOString(),
-      category: section === "tech" ? "تقنية" : "رياضة",
+      category:
+        section === "tech"
+          ? "تقنية"
+          : section === "sports"
+            ? "رياضة"
+            : opts?.sectionName || categorize(text, raw.categories),
       ...(source.he ? { he: true, fromHe: true } : {}),
       summary,
       breaking: false,
-      local: false,
+      local: RAHAT.test(text) || NEGEV.test(text),
       ...(raw.image ? { image: raw.image.src, ...(raw.image.thumb ? { thumb: raw.image.thumb } : {}) } : {}),
     };
   const local =

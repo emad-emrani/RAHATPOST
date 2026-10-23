@@ -61,9 +61,9 @@ const MAX_AGE_MS = 3 * 24 * 60 * 60_000;
 const PER_SOURCE = 15;
 /** Titles translated eagerly (what /today and the list show first); the rest on demand. */
 const TRANSLATE_FIRST = 24;
-const TRANSLATE_BUDGET_MS = 4_000;
+const TRANSLATE_BUDGET_MS = 3_000;
 /** List views wait only briefly for new translations; the rest finish in the background. */
-const LIST_TRANSLATE_BUDGET_MS = 1_200;
+const LIST_TRANSLATE_BUDGET_MS = 800;
 
 type Base = Omit<IsraelNewsItem, "titleAr" | "summaryAr">;
 
@@ -74,13 +74,23 @@ let inflight: Promise<Feed> | null = null;
 
 export async function loadIsraelNews(): Promise<IsraelNewsResult> {
   const feed = await loadFeed();
-  // Titles of the newest items (excerpts are translated when a reader opens the item, which
-  // keeps us well inside the free daily quota). Quick on a warm cache, bounded on a cold one.
   await translateMissing(
     feed.items.slice(0, TRANSLATE_FIRST).map((item) => ({ id: item.slug, title: item.titleHe })),
     LIST_TRANSLATE_BUDGET_MS,
   );
   return withTranslations(feed);
+}
+
+/** Force an immediate live refresh of Israel news feeds and return item count + elapsed ms. */
+export async function forceRefreshIsrael(): Promise<{ count: number; ms: number; failedSources: string[] }> {
+  const t0 = Date.now();
+  expireIsrael();
+  const feed = await startRefresh(true);
+  await translateMissing(
+    feed.items.slice(0, TRANSLATE_FIRST).map((item) => ({ id: item.slug, title: item.titleHe })),
+    LIST_TRANSLATE_BUDGET_MS,
+  ).catch(() => {});
+  return { count: feed.items.length, ms: Date.now() - t0, failedSources: feed.failedSources };
 }
 
 /** One item, translating it now if needed (the detail page). */
@@ -144,9 +154,9 @@ async function writeSnapshot(feed: Feed): Promise<void> {
   }
 }
 
-function startRefresh(): Promise<Feed> {
+function startRefresh(bypassHttpCache = false): Promise<Feed> {
   if (!inflight) {
-    inflight = refresh()
+    inflight = refresh(bypassHttpCache)
       .catch((error) => {
         console.error("[israel] refresh", error);
         if (cache) return cache;
@@ -159,11 +169,6 @@ function startRefresh(): Promise<Feed> {
   return inflight;
 }
 
-/**
- * Stale-while-revalidate: always answer from the last good list (memory, else the Neon snapshot)
- * when we have one, and refresh the feeds in the background. Only a brand-new deploy with an
- * empty snapshot waits for the feeds.
- */
 /** Force the next request to refetch (after the admin edits feeds). */
 export function expireIsrael() {
   if (cache) cache.at = 0;
@@ -185,16 +190,18 @@ async function loadFeed(): Promise<Feed> {
   return startRefresh();
 }
 
-async function refresh(): Promise<Feed> {
+async function refresh(bypassHttpCache = false): Promise<Feed> {
   const { sectionConfig, recordFeedStats, applyLimits } = await import("./feed-config.server");
   const { feeds, section: secCfg } = await sectionConfig("israel");
   const groups = new Map<string, Source>();
   for (const f of feeds) {
     if (!f.enabled) continue;
     const base = SOURCES.find((b) => b.id === f.sourceId);
-    const g = groups.get(f.sourceId) ?? (base
-      ? { ...base, name: f.source || base.name, home: f.home || base.home, urls: [] }
-      : { id: f.sourceId, name: f.source, nameHe: f.source, home: f.home, urls: [], ogImage: true });
+    const g =
+      groups.get(f.sourceId) ??
+      (base
+        ? { ...base, name: f.source || base.name, home: f.home || base.home, urls: [] }
+        : { id: f.sourceId, name: f.source, nameHe: f.source, home: f.home, urls: [], ogImage: true });
     g.urls.push(f.url);
     groups.set(f.sourceId, g);
   }
@@ -202,7 +209,9 @@ async function refresh(): Promise<Feed> {
   const stats: { url: string; count: number; error?: string }[] = [];
   const settled = await Promise.all(
     active.map(async (source) => {
-      const pages = await Promise.allSettled(source.urls.map((url) => fetchText(url)));
+      const pages = await Promise.allSettled(
+        source.urls.map((url) => fetchText(url, { bypassCache: bypassHttpCache })),
+      );
       const items: Base[] = [];
       for (const [i, page] of pages.entries()) {
         if (page.status !== "fulfilled") {
@@ -216,7 +225,6 @@ async function refresh(): Promise<Feed> {
           if (item) items.push(item);
         }
       }
-      // Newest few per outlet, so one busy feed doesn't crowd out the others.
       items.sort((a, b) => Date.parse(b.publishedAt) - Date.parse(a.publishedAt));
       return { source, items: items.slice(0, PER_SOURCE), failed: items.length === 0 };
     }),
@@ -234,8 +242,7 @@ async function refresh(): Promise<Feed> {
       seen.add(item.slug);
       seen.add(key);
       return true;
-    })
-    ;
+    });
   items.splice(0, items.length, ...applyLimits(items, secCfg));
 
   await fillOgImages(items, new Set(active.filter((s) => s.ogImage).map((s) => s.name)));
@@ -250,14 +257,14 @@ async function refresh(): Promise<Feed> {
     fetchedAt: items.length ? Date.now() : null,
     at: items.length ? Date.now() : Date.now() - TTL_MS + 30_000,
   };
-  if (items.length > 0) await writeSnapshot(cache);
+  if (items.length > 0) void writeSnapshot(cache);
   return cache;
 }
 
 function normalize(source: Source, raw: ReturnType<typeof parseFeed>[number]): Base | null {
   if (!raw.title || !/^https?:\/\//i.test(raw.link)) return null;
-  const published = parseDate(raw.date);
-  if (published === null || Date.now() - published > MAX_AGE_MS) return null;
+  const published = parseDate(raw.date) ?? Date.now();
+  if (Date.now() - published > MAX_AGE_MS) return null;
   if (/^(?:תוכן שיווקי|תוכן ממומן|בשיתוף )|כתבה שיווקית/.test(raw.title)) return null;
   let summary = excerpt(raw.description)
     .replace(/\s*(?:לכתבה המלאה|קראו עוד|לחצו כאן).*$/u, "")

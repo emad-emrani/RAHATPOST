@@ -146,10 +146,10 @@ export const adminSetNewsSource = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-/* ------------------------------------------------- «الأقسام التلقائية»: sections & feeds */
+/* ------------------------------------------------- «الأقسام التلقائية والمخصصة»: sections & feeds */
 
 export type AdminSection = {
-  id: "news" | "israel" | "tech" | "weather" | "sports";
+  id: string;
   name: string;
   enabled: boolean;
   home: boolean;
@@ -158,6 +158,7 @@ export type AdminSection = {
   maxItems: number;
   maxAgeDays: number;
   customFeeds: boolean;
+  isCustom?: boolean;
   feeds: {
     id: string;
     source: string;
@@ -205,8 +206,8 @@ export const adminListSections = createServerFn({ method: "POST" }).handler(
   },
 );
 
-const SECTION_SET = new Set(["news", "israel", "tech", "weather", "sports"]);
-const FEED_SECTIONS = new Set(["news", "israel", "tech", "sports"]);
+const validSecId = (id: unknown): id is string =>
+  typeof id === "string" && /^[a-z0-9_-]{2,40}$/.test(id);
 
 async function expireAll() {
   const [{ expireFeeds }, { expireIsrael }] = await Promise.all([import("./feeds.server"), import("./israel.server")]);
@@ -219,12 +220,12 @@ export const adminSaveSection = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<{ ok: boolean; message?: string }> => {
     const { isAdmin } = await import("@/lib/admin-auth");
     if (!(await isAdmin())) return { ok: false, message: "انتهت الجلسة." };
-    if (!SECTION_SET.has(data?.id)) return { ok: false };
+    if (!validSecId(data?.id)) return { ok: false, message: "معرّف القسم غير صالح." };
     const name = String(data.name ?? "").trim().slice(0, 60);
     if (name.length < 2) return { ok: false, message: "الاسم قصير." };
     const { saveSection } = await import("./feed-config.server");
     await saveSection({
-      id: data.id as AdminSection["id"],
+      id: data.id,
       name,
       enabled: Boolean(data.enabled),
       home: Boolean(data.home),
@@ -237,6 +238,45 @@ export const adminSaveSection = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+export const adminCreateSection = createServerFn({ method: "POST" })
+  .inputValidator((v: unknown) => v as { id?: string; name: string; home?: boolean; position?: number; refreshMin?: number })
+  .handler(async ({ data }): Promise<{ ok: boolean; id?: string; message?: string }> => {
+    const { isAdmin } = await import("@/lib/admin-auth");
+    if (!(await isAdmin())) return { ok: false, message: "انتهت الجلسة." };
+    const name = String(data?.name ?? "").trim().slice(0, 60);
+    if (name.length < 2) return { ok: false, message: "أدخل اسماً واضحاً للقسم (حرفين على الأقل)." };
+    try {
+      const { createCustomSection } = await import("./feed-config.server");
+      const id = await createCustomSection({
+        id: data?.id,
+        name,
+        home: data?.home !== false,
+        position: data?.position,
+        refreshMin: data?.refreshMin,
+      });
+      await expireAll();
+      return { ok: true, id };
+    } catch (error) {
+      console.error("[adminCreateSection] failed", error);
+      return { ok: false, message: "تعذّر إنشاء القسم." };
+    }
+  });
+
+export const adminDeleteSection = createServerFn({ method: "POST" })
+  .inputValidator((v: unknown) => v as { id: string })
+  .handler(async ({ data }): Promise<{ ok: boolean; message?: string }> => {
+    const { isAdmin } = await import("@/lib/admin-auth");
+    if (!(await isAdmin())) return { ok: false, message: "انتهت الجلسة." };
+    if (!validSecId(data?.id)) return { ok: false, message: "معرّف غير صالح." };
+    const { deleteCustomSection, isBuiltinSection } = await import("./feed-config.server");
+    if (isBuiltinSection(data.id)) {
+      return { ok: false, message: "الأقسام الأساسية لا تُحذف (يمكنك إيقاف تفعيلها فقط)." };
+    }
+    const ok = await deleteCustomSection(data.id);
+    await expireAll();
+    return { ok };
+  });
+
 const validUrl = (u: string) => /^https?:\/\/[^\s"'<>]{4,500}$/i.test(u);
 
 export const adminSaveFeed = createServerFn({ method: "POST" })
@@ -244,7 +284,7 @@ export const adminSaveFeed = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<{ ok: boolean; message?: string }> => {
     const { isAdmin } = await import("@/lib/admin-auth");
     if (!(await isAdmin())) return { ok: false, message: "انتهت الجلسة." };
-    if (!FEED_SECTIONS.has(data?.section)) return { ok: false };
+    if (!validSecId(data?.section) || data.section === "weather") return { ok: false };
     const url = String(data.url ?? "").trim();
     const source = String(data.source ?? "").trim().slice(0, 60);
     const home = String(data.home ?? "").trim();
@@ -254,7 +294,7 @@ export const adminSaveFeed = createServerFn({ method: "POST" })
     const { saveFeed } = await import("./feed-config.server");
     await saveFeed({
       ...(data.id ? { id: String(data.id).slice(0, 80) } : {}),
-      section: data.section as "news",
+      section: data.section,
       source,
       home: home || new URL(url).origin,
       url,
@@ -268,9 +308,9 @@ export const adminDeleteFeed = createServerFn({ method: "POST" })
   .inputValidator((v: unknown) => v as { section: string; id: string })
   .handler(async ({ data }): Promise<{ ok: boolean }> => {
     const { isAdmin } = await import("@/lib/admin-auth");
-    if (!(await isAdmin()) || !FEED_SECTIONS.has(data?.section)) return { ok: false };
+    if (!(await isAdmin()) || !validSecId(data?.section) || data.section === "weather") return { ok: false };
     const { deleteFeed } = await import("./feed-config.server");
-    await deleteFeed(data.section as "news", String(data.id).slice(0, 80));
+    await deleteFeed(data.section, String(data.id).slice(0, 80));
     await expireAll();
     return { ok: true };
   });
@@ -279,25 +319,66 @@ export const adminResetFeeds = createServerFn({ method: "POST" })
   .inputValidator((v: unknown) => v as { section: string })
   .handler(async ({ data }): Promise<{ ok: boolean }> => {
     const { isAdmin } = await import("@/lib/admin-auth");
-    if (!(await isAdmin()) || !FEED_SECTIONS.has(data?.section)) return { ok: false };
+    if (!(await isAdmin()) || !validSecId(data?.section)) return { ok: false };
     const { resetFeeds } = await import("./feed-config.server");
-    await resetFeeds(data.section as "news");
+    await resetFeeds(data.section);
     await expireAll();
     return { ok: true };
   });
 
 export const adminTestFeed = createServerFn({ method: "POST" })
   .inputValidator((v: unknown) => v as { section: string; url: string })
-  .handler(async ({ data }): Promise<{ ok: boolean; count: number; images: number; latest?: string; error?: string }> => {
+  .handler(async ({ data }): Promise<{ ok: boolean; count: number; images: number; ms: number; latest?: string; error?: string }> => {
     const { isAdmin } = await import("@/lib/admin-auth");
-    if (!(await isAdmin())) return { ok: false, count: 0, images: 0, error: "انتهت الجلسة." };
+    if (!(await isAdmin())) return { ok: false, count: 0, images: 0, ms: 0, error: "انتهت الجلسة." };
     const url = String(data?.url ?? "").trim();
-    if (!validUrl(url)) return { ok: false, count: 0, images: 0, error: "رابط غير صالح." };
+    if (!validUrl(url)) return { ok: false, count: 0, images: 0, ms: 0, error: "رابط غير صالح." };
     const { testFeedUrl } = await import("./feeds.server");
     const r = await testFeedUrl(url);
-    if (FEED_SECTIONS.has(data.section)) {
+    if (validSecId(data.section) && data.section !== "weather") {
       const { recordFeedStats } = await import("./feed-config.server");
-      recordFeedStats(data.section as "news", [{ url, count: r.count, ...(r.error ? { error: r.error } : {}) }]);
+      recordFeedStats(data.section, [{ url, count: r.count, ...(r.error ? { error: r.error } : {}) }]);
     }
-    return { ok: !r.error, ...r };
+    return { ok: !r.error && r.count > 0, ...r };
+  });
+
+/** Force-refresh a single section (or all sections when section === "all") right now from /admin. */
+export const adminRefreshSectionNow = createServerFn({ method: "POST" })
+  .inputValidator((v: unknown) => v as { section?: string })
+  .handler(async ({ data }): Promise<{ ok: boolean; count: number; ms: number; failedSources: string[]; message?: string }> => {
+    const { isAdmin } = await import("@/lib/admin-auth");
+    if (!(await isAdmin())) return { ok: false, count: 0, ms: 0, failedSources: [], message: "انتهت الجلسة." };
+    const t0 = Date.now();
+    const target = String(data?.section ?? "all").trim();
+    const { clearFeedConfigCache, loadFeedConfig } = await import("./feed-config.server");
+    clearFeedConfigCache();
+    const [{ forceRefreshSection }, { forceRefreshIsrael }] = await Promise.all([
+      import("./feeds.server"),
+      import("./israel.server"),
+    ]);
+
+    if (target === "all") {
+      const cfg = await loadFeedConfig();
+      const activeIds = cfg.sections.filter((s) => s.enabled && s.id !== "weather").map((s) => s.id);
+      const results = await Promise.all(
+        activeIds.map(async (id) => {
+          if (id === "israel") return forceRefreshIsrael();
+          const r = await forceRefreshSection(id);
+          return { count: r.result.items.length, ms: r.ms, failedSources: r.result.failedSources };
+        }),
+      );
+      const totalCount = results.reduce((sum, r) => sum + r.count, 0);
+      const failed = results.flatMap((r) => r.failedSources);
+      return { ok: true, count: totalCount, ms: Date.now() - t0, failedSources: failed };
+    }
+
+    if (!validSecId(target) || target === "weather") {
+      return { ok: false, count: 0, ms: 0, failedSources: [], message: "قسم غير صالح للتحديث." };
+    }
+    if (target === "israel") {
+      const r = await forceRefreshIsrael();
+      return { ok: true, ...r };
+    }
+    const r = await forceRefreshSection(target);
+    return { ok: true, count: r.result.items.length, ms: r.ms, failedSources: r.result.failedSources };
   });

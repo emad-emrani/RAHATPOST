@@ -1,12 +1,28 @@
 /**
- * Auto-news sections and their feeds: Neon (migration 0020) over built-in defaults.
- * A section uses its built-in feed list until the admin edits it (custom_feeds = true).
+ * Auto-news sections and their feeds: Neon (migration 0020 + 0031) over built-in defaults.
+ * Supports both built-in sections (news, israel, sports, tech, weather) and admin-created custom sections!
  */
 import { getSql } from "@/lib/db";
 
-export type SectionId = "news" | "israel" | "tech" | "weather" | "sports";
-export const SECTION_IDS: SectionId[] = ["news", "israel", "sports", "tech", "weather"];
-export type SectionCfg = { id: SectionId; name: string; enabled: boolean; home: boolean; position: number; customFeeds: boolean; refreshMin: number; maxItems: number; maxAgeDays: number };
+export type BuiltinSectionId = "news" | "israel" | "tech" | "weather" | "sports";
+export type SectionId = string;
+export const SECTION_IDS: BuiltinSectionId[] = ["news", "israel", "sports", "tech", "weather"];
+export const isBuiltinSection = (id: string): id is BuiltinSectionId =>
+  (SECTION_IDS as readonly string[]).includes(id);
+
+export type SectionCfg = {
+  id: SectionId;
+  name: string;
+  enabled: boolean;
+  home: boolean;
+  position: number;
+  customFeeds: boolean;
+  refreshMin: number;
+  maxItems: number;
+  maxAgeDays: number;
+  isCustom?: boolean;
+};
+
 export type FeedCfg = {
   id: string;
   section: SectionId;
@@ -20,15 +36,15 @@ export type FeedCfg = {
 export type FeedConfig = { sections: SectionCfg[]; feeds: FeedCfg[] };
 
 export const DEFAULT_SECTIONS: SectionCfg[] = [
-  { id: "news", name: "آخر الأخبار", enabled: true, home: true, position: 0, customFeeds: false, refreshMin: 4, maxItems: 80, maxAgeDays: 0 },
-  { id: "israel", name: "أخبار إسرائيل", enabled: true, home: true, position: 1, customFeeds: false, refreshMin: 4, maxItems: 60, maxAgeDays: 0 },
-  { id: "sports", name: "رياضة", enabled: true, home: true, position: 2, customFeeds: false, refreshMin: 4, maxItems: 80, maxAgeDays: 0 },
-  { id: "tech", name: "أخبار تقنية", enabled: true, home: true, position: 2, customFeeds: false, refreshMin: 4, maxItems: 80, maxAgeDays: 0 },
-  { id: "weather", name: "الطقس", enabled: true, home: true, position: 3, customFeeds: false, refreshMin: 4, maxItems: 80, maxAgeDays: 0 },
+  { id: "news", name: "الأخبار المحلية", enabled: true, home: true, position: 0, customFeeds: false, refreshMin: 4, maxItems: 80, maxAgeDays: 0, isCustom: false },
+  { id: "israel", name: "أخبار إسرائيل", enabled: true, home: true, position: 1, customFeeds: false, refreshMin: 4, maxItems: 60, maxAgeDays: 0, isCustom: false },
+  { id: "sports", name: "رياضة", enabled: true, home: true, position: 2, customFeeds: false, refreshMin: 4, maxItems: 80, maxAgeDays: 0, isCustom: false },
+  { id: "tech", name: "أخبار تقنية", enabled: true, home: true, position: 3, customFeeds: false, refreshMin: 4, maxItems: 80, maxAgeDays: 0, isCustom: false },
+  { id: "weather", name: "الطقس", enabled: true, home: true, position: 4, customFeeds: false, refreshMin: 4, maxItems: 80, maxAgeDays: 0, isCustom: false },
 ];
 
 export async function defaultFeeds(section: SectionId): Promise<FeedCfg[]> {
-  if (section === "weather") return [];
+  if (section === "weather" || !isBuiltinSection(section)) return [];
   const list =
     section === "israel"
       ? (await import("./israel.server")).ISRAEL_BUILTIN
@@ -41,7 +57,7 @@ export async function defaultFeeds(section: SectionId): Promise<FeedCfg[]> {
   return out;
 }
 
-const TTL_MS = 20_000;
+const TTL_MS = 60_000;
 let cache: { at: number; value: FeedConfig } | null = null;
 export function clearFeedConfigCache() {
   cache = null;
@@ -63,13 +79,30 @@ export async function loadFeedConfig(): Promise<FeedConfig> {
     console.error("[feeds] config unavailable", error);
     if (cache) return cache.value;
   }
-  const sections = DEFAULT_SECTIONS.map((d) => {
+  const builtin = DEFAULT_SECTIONS.map((d) => {
     const r = srows.find((x) => x.id === d.id);
-    return r ? { ...r, maxItems: r.maxItems || d.maxItems, maxAgeDays: Number(r.maxAgeDays) || 0 } : d;
-  }).sort((a, b) => a.position - b.position);
+    return r
+      ? {
+          ...r,
+          maxItems: r.maxItems || d.maxItems,
+          maxAgeDays: Number(r.maxAgeDays) || 0,
+          isCustom: false,
+        }
+      : d;
+  });
+  const custom = srows
+    .filter((r) => !isBuiltinSection(r.id))
+    .map((r) => ({
+      ...r,
+      customFeeds: true,
+      maxItems: r.maxItems || 80,
+      maxAgeDays: Number(r.maxAgeDays) || 0,
+      isCustom: true,
+    }));
+  const sections = [...builtin, ...custom].sort((a, b) => a.position - b.position);
   const feeds: FeedCfg[] = [];
   for (const s of sections)
-    feeds.push(...(s.customFeeds ? frows.filter((f) => f.section === s.id) : await defaultFeeds(s.id)));
+    feeds.push(...(s.customFeeds || s.isCustom ? frows.filter((f) => f.section === s.id) : await defaultFeeds(s.id)));
   const value = { sections, feeds };
   if (ok) cache = { at: Date.now(), value };
   return value;
@@ -77,7 +110,20 @@ export async function loadFeedConfig(): Promise<FeedConfig> {
 
 export async function sectionConfig(id: SectionId): Promise<{ section: SectionCfg; feeds: FeedCfg[] }> {
   const c = await loadFeedConfig();
-  return { section: c.sections.find((s) => s.id === id)!, feeds: c.feeds.filter((f) => f.section === id) };
+  const found = c.sections.find((s) => s.id === id);
+  const fallback: SectionCfg = {
+    id,
+    name: id,
+    enabled: false,
+    home: false,
+    position: 99,
+    customFeeds: true,
+    refreshMin: 4,
+    maxItems: 80,
+    maxAgeDays: 0,
+    isCustom: !isBuiltinSection(id),
+  };
+  return { section: found ?? fallback, feeds: c.feeds.filter((f) => f.section === id) };
 }
 
 /* ------------------------------------------------------------------ stats */
@@ -89,12 +135,16 @@ export function recordFeedStats(section: SectionId, stats: { url: string; count:
   void (async () => {
     try {
       const sql = await getSql();
-      for (const s of stats)
-        await sql`insert into news_feed_stats (url, section, last_fetch, last_ok, last_count, last_error)
-          values (${s.url}, ${section}, now(), ${s.error ? null : new Date().toISOString()}, ${s.count}, ${s.error ?? null})
-          on conflict (url) do update set section = excluded.section, last_fetch = now(),
-            last_ok = coalesce(excluded.last_ok, news_feed_stats.last_ok), last_count = excluded.last_count,
-            last_error = excluded.last_error`;
+      await Promise.all(
+        stats.map(
+          (s) =>
+            sql`insert into news_feed_stats (url, section, last_fetch, last_ok, last_count, last_error)
+              values (${s.url}, ${section}, now(), ${s.error ? null : new Date().toISOString()}, ${s.count}, ${s.error ?? null})
+              on conflict (url) do update set section = excluded.section, last_fetch = now(),
+                last_ok = coalesce(excluded.last_ok, news_feed_stats.last_ok), last_count = excluded.last_count,
+                last_error = excluded.last_error`,
+        ),
+      );
     } catch (error) {
       console.error("[feeds] stats", error);
     }
@@ -112,25 +162,76 @@ export async function loadFeedStats(): Promise<FeedStat[]> {
 
 /* ------------------------------------------------------------------ admin writes */
 
+async function ensureCustomSectionSchema() {
+  try {
+    const sql = await getSql();
+    await sql`alter table news_sections drop constraint if exists news_sections_id_check`;
+    await sql`alter table news_feeds drop constraint if exists news_feeds_section_check`;
+  } catch {
+    // ignore if already dropped or unsupported
+  }
+}
+
 export async function saveSection(s: Pick<SectionCfg, "id" | "name" | "enabled" | "home" | "position" | "refreshMin" | "maxItems" | "maxAgeDays">) {
   const sql = await getSql();
+  if (!isBuiltinSection(s.id)) await ensureCustomSectionSchema();
   const r = Math.min(1440, Math.max(1, Math.round(s.refreshMin) || 4));
   const mi = Math.min(300, Math.max(5, Math.round(s.maxItems) || 80));
   const ma = Math.min(365, Math.max(0, Math.round(s.maxAgeDays) || 0));
-  await sql`insert into news_sections (id, name, enabled, home, position, refresh_min, max_items, max_age_days)
-    values (${s.id}, ${s.name}, ${s.enabled}, ${s.home}, ${s.position}, ${r}, ${mi}, ${ma})
+  const customFeeds = !isBuiltinSection(s.id);
+  await sql`insert into news_sections (id, name, enabled, home, position, refresh_min, max_items, max_age_days, custom_feeds)
+    values (${s.id}, ${s.name}, ${s.enabled}, ${s.home}, ${s.position}, ${r}, ${mi}, ${ma}, ${customFeeds})
     on conflict (id) do update set name = excluded.name, enabled = excluded.enabled, home = excluded.home,
       position = excluded.position, refresh_min = excluded.refresh_min, max_items = excluded.max_items,
       max_age_days = excluded.max_age_days, updated_at = now()`;
   clearFeedConfigCache();
 }
 
+export async function createCustomSection(input: {
+  id?: string;
+  name: string;
+  home?: boolean;
+  position?: number;
+  refreshMin?: number;
+  maxItems?: number;
+}): Promise<string> {
+  await ensureCustomSectionSchema();
+  const sql = await getSql();
+  const cfg = await loadFeedConfig();
+  const cleanSlug = input.id
+    ? input.id.toLowerCase().replace(/[^a-z0-9_-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 32)
+    : "";
+  const id =
+    cleanSlug.length >= 2 && !cfg.sections.some((s) => s.id === cleanSlug)
+      ? cleanSlug
+      : `custom-${Date.now().toString(36)}`;
+  const pos =
+    input.position !== undefined
+      ? Math.max(0, Math.min(99, Math.round(input.position)))
+      : Math.min(99, cfg.sections.length);
+  const r = Math.min(1440, Math.max(1, Math.round(input.refreshMin ?? 4) || 4));
+  const mi = Math.min(300, Math.max(5, Math.round(input.maxItems ?? 80) || 80));
+  await sql`insert into news_sections (id, name, enabled, home, position, refresh_min, max_items, max_age_days, custom_feeds)
+    values (${id}, ${input.name}, true, ${input.home !== false}, ${pos}, ${r}, ${mi}, 0, true)`;
+  clearFeedConfigCache();
+  return id;
+}
+
+export async function deleteCustomSection(id: string): Promise<boolean> {
+  if (isBuiltinSection(id)) return false;
+  const sql = await getSql();
+  await sql`delete from news_feeds where section = ${id}`;
+  await sql`delete from news_sections where id = ${id}`;
+  clearFeedConfigCache();
+  return true;
+}
+
 /** Copy the built-in feeds into news_feeds the first time a section's feeds are edited. */
 async function materialize(section: SectionId) {
   const sql = await getSql();
   const cfg = await loadFeedConfig();
-  const s = cfg.sections.find((x) => x.id === section)!;
-  if (s.customFeeds) return;
+  const s = cfg.sections.find((x) => x.id === section);
+  if (!s || s.customFeeds || !isBuiltinSection(section)) return;
   for (const f of await defaultFeeds(section))
     await sql`insert into news_feeds (id, section, source_id, source, home, url, enabled, position)
       values (${f.id}, ${section}, ${f.sourceId}, ${f.source}, ${f.home}, ${f.url}, true, ${f.position})
@@ -142,6 +243,7 @@ async function materialize(section: SectionId) {
 }
 
 export async function saveFeed(f: Omit<FeedCfg, "id" | "sourceId" | "position"> & { id?: string }) {
+  if (!isBuiltinSection(f.section)) await ensureCustomSectionSchema();
   await materialize(f.section);
   const sql = await getSql();
   if (f.id) {
@@ -152,7 +254,6 @@ export async function saveFeed(f: Omit<FeedCfg, "id" | "sourceId" | "position"> 
     const slugBase = f.source.normalize("NFKD").replace(/[^a-z0-9]+/gi, "").toLowerCase().slice(0, 16);
     const sourceId = slugBase.length >= 2 ? `c-${slugBase}` : `c${Date.now().toString(36)}`;
     const pos = (await sql<{ n: number }>`select coalesce(max(position), 0) + 1 as n from news_feeds where section = ${f.section}`)[0]?.n ?? 0;
-    // Reuse the source id of an existing feed with the same outlet name (so slugs stay stable).
     const same = (await sql<{ source_id: string }>`select source_id from news_feeds where section = ${f.section} and source = ${f.source} limit 1`)[0];
     await sql`insert into news_feeds (id, section, source_id, source, home, url, enabled, position)
       values (${id}, ${f.section}, ${same?.source_id ?? sourceId}, ${f.source}, ${f.home}, ${f.url}, ${f.enabled}, ${pos})`;
@@ -169,6 +270,7 @@ export async function deleteFeed(section: SectionId, id: string) {
 
 /** Back to the built-in feed list for a section. */
 export async function resetFeeds(section: SectionId) {
+  if (!isBuiltinSection(section)) return;
   const sql = await getSql();
   await sql`delete from news_feeds where section = ${section}`;
   await sql`update news_sections set custom_feeds = false where id = ${section}`;

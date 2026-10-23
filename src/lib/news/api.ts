@@ -36,7 +36,7 @@ async function staffNewsItems(): Promise<NewsItem[]> {
     const { listStaffNews } = await import("@/lib/staff-news/store.server");
     const { STAFF_SLUG_PREFIX, STAFF_SOURCE } = await import("@/lib/staff-news/types");
     const { mediaUrl } = await import("@/lib/media/types");
-    return (await listStaffNews(30)).map((n) => ({
+    return (await listStaffNews(50)).map((n) => ({
       slug: `${STAFF_SLUG_PREFIX}${n.id}`,
       title: n.title,
       source: STAFF_SOURCE,
@@ -75,7 +75,7 @@ export const getNews = createServerFn({ method: "GET" }).handler(
     const readers = [...staff, ...readerOnly];
     const merged: NewsFeedResult = readers.length
       ? {
-          ...feed,
+           ...feed,
           items: [...readers, ...feed.items].sort(
             (a, b) =>
               Number(!!b.pinned) - Number(!!a.pinned) ||
@@ -102,11 +102,11 @@ export const getNews = createServerFn({ method: "GET" }).handler(
   },
 );
 
-async function sectionNews(section: "tech" | "sports"): Promise<NewsFeedResult & { home: boolean; name: string }> {
+async function sectionNews(section: string): Promise<NewsFeedResult & { home: boolean; name: string }> {
   const { loadSection } = await import("./feeds.server");
   const { sectionConfig } = await import("./feed-config.server");
   const { withCommentCounts } = await import("@/lib/comments/counts.server");
-  const [feed, cfg] = await Promise.all([loadSection(section), sectionConfig(section)]);
+  const [feed, cfg] = await Promise.all([loadSection(section as "news"), sectionConfig(section)]);
   const { applyAiImages } = await import("./ai-images.server");
   let items = await applyAiImages(await withCommentCounts(feed.items, "news"));
   if (items.some((i) => i.fromHe)) {
@@ -133,6 +133,55 @@ async function sectionNews(section: "tech" | "sports"): Promise<NewsFeedResult &
 export const getTechNews = createServerFn({ method: "GET" }).handler(() => sectionNews("tech"));
 /** «رياضة»: Arabic sports desks' feeds. */
 export const getSportsNews = createServerFn({ method: "GET" }).handler(() => sectionNews("sports"));
+
+export type CustomSectionResult = {
+  id: string;
+  name: string;
+  home: boolean;
+  position: number;
+  items: NewsItem[];
+};
+
+/** Load all admin-created custom news sections (e.g. «أخبار محلية») with their RSS feeds and matching staff/reader posts. */
+export const getCustomSectionsNews = createServerFn({ method: "GET" }).handler(
+  async (): Promise<CustomSectionResult[]> => {
+    try {
+      const { loadFeedConfig, isBuiltinSection } = await import("./feed-config.server");
+      const { loadSection } = await import("./feeds.server");
+      const cfg = await loadFeedConfig();
+      const customSecs = cfg.sections.filter((s) => !isBuiltinSection(s.id) && s.enabled);
+      if (!customSecs.length) return [];
+      const [staff, reader] = await Promise.all([staffNewsItems(), readerNewsItems()]);
+      const allLocal = [...staff, ...reader];
+      return await Promise.all(
+        customSecs.map(async (s) => {
+          const feedRes = await loadSection(s.id as "news").catch(() => ({ items: [] as NewsItem[] }));
+          const matchingStaff = allLocal.filter(
+            (item) =>
+              item.category === s.name ||
+              (/محلي|رهط/.test(s.name) && (item.category === "رهط" || item.category === "النقب" || item.local)),
+          );
+          const seen = new Set<string>();
+          const merged = [...matchingStaff, ...feedRes.items].filter((i) => {
+            if (seen.has(i.slug)) return false;
+            seen.add(i.slug);
+            return true;
+          });
+          return {
+            id: s.id,
+            name: s.name,
+            home: s.home,
+            position: s.position,
+            items: merged.slice(0, s.maxItems || 20),
+          };
+        }),
+      );
+    } catch (error) {
+      console.error("[custom-sections] load failed", error);
+      return [];
+    }
+  },
+);
 
 /** Whether each auto section shows on the home page (admin «الأقسام التلقائية»). */
 export const getAutoSectionFlags = createServerFn({ method: "GET" }).handler(async () => {
