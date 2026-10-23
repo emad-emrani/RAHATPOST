@@ -1,4 +1,4 @@
-import type { ErrorComponentProps } from "@tanstack/react-router";
+import { Link, type ErrorComponentProps } from "@tanstack/react-router";
 import { TriangleAlert } from "lucide-react";
 
 const FALLBACK_MESSAGE = "An unexpected error occurred. Try reloading the page.";
@@ -24,6 +24,41 @@ export function AppErrorComponent({ error }: ErrorComponentProps) {
       <p className="max-w-md text-sm break-words text-zinc-500 dark:text-zinc-400">
         {errorMessage(error)}
       </p>
+    </main>
+  );
+}
+
+export function AppNotFoundComponent() {
+  return (
+    <main
+      dir="rtl"
+      lang="ar"
+      className="mx-auto flex min-h-[70vh] max-w-xl flex-col items-center justify-center gap-4 px-4 py-12 text-center"
+    >
+      <h1 className="text-2xl font-bold">الصفحة غير موجودة (404)</h1>
+      <p className="font-semibold text-muted">
+        الرابط الذي تبحث عنه غير متوفر أو تم نقله. يمكنك تصفح أقسام موقع رهط بوست الرئيسية:
+      </p>
+      <nav className="mt-2 flex flex-wrap justify-center gap-2" aria-label="أقسام الموقع">
+        <Link to="/" className="btn px-4">
+          الرئيسية
+        </Link>
+        <Link to="/news" className="btn btn-ghost px-4">
+          أخبار رهط والنقب
+        </Link>
+        <Link to="/buses" className="btn btn-ghost px-4">
+          باصات رهط
+        </Link>
+        <Link to="/directory" className="btn btn-ghost px-4">
+          دليل رهط
+        </Link>
+        <Link to="/haraj" className="btn btn-ghost px-4">
+          حراج رهط
+        </Link>
+        <Link to="/today" className="btn btn-ghost px-4">
+          لوحة اليوم
+        </Link>
+      </nav>
     </main>
   );
 }

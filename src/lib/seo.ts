@@ -1,15 +1,8 @@
 import { getI18nState } from "@/lib/i18n/core";
 /**
  * Per-route SEO head: Arabic title + description, canonical URL on the apex domain, robots,
- * Open Graph / Twitter tags and JSON-LD. Used from each route's `head()` so everything is in the
- * server-rendered HTML.
- *
- * Note: on the deployed site the platform head injector (server/middleware/grok-pwa.ts) rewrites
- * the share-card tags (og:title/description/image/url/type/site_name, twitter:*) with site-wide
- * values: og:title becomes the page <title> (src/lib/og/site.json has no fixed title) and
- * og:image the site card /og.jpg. We still emit our values so they apply wherever that injector
- * is not in front (and if it later stops overriding them). og:locale and og:image:alt are not
- * rewritten.
+ * hreflang alternates, Open Graph / Twitter tags and JSON-LD. Used from each route's `head()`
+ * so everything is in the server-rendered HTML.
  */
 
 export const SITE_URL = "https://rahatpost.com";
@@ -17,7 +10,25 @@ export const SITE_NAME = "رهط بوست";
 export const OG_IMAGE = `${SITE_URL}/og.jpg`;
 export const LOGO_URL = `${SITE_URL}/icons/icon-512.png`;
 
+export const DEFAULT_KEYWORDS = [
+  "رهط بوست",
+  "Rahat Post",
+  "أخبار رهط",
+  "أخبار النقب",
+  "مدينة رهط",
+  "باصات رهط",
+  "باصات غاليم رهط",
+  "دليل رهط",
+  "محلات رهط",
+  "حراج رهط",
+  "إعلانات رهط",
+  "صيدلية المناوبة رهط",
+  "طقس رهط",
+  "أوقات الصلاة رهط",
+];
+
 type Meta = Record<string, unknown>;
+type LinkTag = { rel: string; href: string; hrefLang?: string };
 
 export type SeoInput = {
   title: string;
@@ -32,6 +43,9 @@ export type SeoInput = {
   /** JSON-LD objects (each becomes its own <script type="application/ld+json">). */
   jsonLd?: object[];
   publishedTime?: string;
+  modifiedTime?: string;
+  section?: string;
+  keywords?: string[];
 };
 
 /** Trim to a search-snippet friendly length on a word boundary. */
@@ -56,12 +70,13 @@ function safeImage(src: string | undefined): string | undefined {
   return /^https:\/\//.test(src) ? src : undefined;
 }
 
-export function seo(input: SeoInput): { meta: Meta[]; links: { rel: string; href: string }[] } {
+export function seo(input: SeoInput): { meta: Meta[]; links: LinkTag[] } {
   const url = absoluteUrl(input.path);
   const image = safeImage(input.image) ?? OG_IMAGE;
   // Translated views (?lang=…) are for visitors; only the default-language pages get indexed.
   const st = getI18nState();
   const translated = st.lang !== (st.langs.find((l) => l.isDefault)?.code ?? "ar");
+  const isIndexable = input.robots !== "private" && input.robots !== "noindex" && !translated;
   const robots =
     input.robots === "private"
       ? "noindex, nofollow"
@@ -69,14 +84,24 @@ export function seo(input: SeoInput): { meta: Meta[]; links: { rel: string; href
         ? "noindex, follow"
         : input.robots === "noindex"
           ? "noindex, follow"
-          : "index, follow, max-image-preview:large";
+          : "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1";
+  const kw = Array.from(new Set([...(input.keywords ?? []), ...DEFAULT_KEYWORDS])).join("، ");
   const meta: Meta[] = [
     { title: input.title },
     { name: "description", content: input.description },
+    { name: "keywords", content: kw },
     { name: "robots", content: robots },
+    { name: "googlebot", content: robots },
+    { name: "author", content: SITE_NAME },
+    { name: "geo.region", content: "IL-D" },
+    { name: "geo.placename", content: "Rahat, Negev" },
+    { name: "geo.position", content: "31.3925;34.7544" },
+    { name: "ICBM", content: "31.3925, 34.7544" },
     { property: "og:type", content: input.type ?? "website" },
     { property: "og:site_name", content: SITE_NAME },
     { property: "og:locale", content: "ar_AR" },
+    { property: "og:locale:alternate", content: "he_IL" },
+    { property: "og:locale:alternate", content: "en_US" },
     { property: "og:title", content: input.title },
     { property: "og:description", content: input.description },
     { property: "og:url", content: url },
@@ -90,9 +115,25 @@ export function seo(input: SeoInput): { meta: Meta[]; links: { rel: string; href
   if (input.publishedTime) {
     meta.push({ property: "article:published_time", content: input.publishedTime });
   }
+  if (input.modifiedTime || input.publishedTime) {
+    meta.push({
+      property: "article:modified_time",
+      content: input.modifiedTime ?? input.publishedTime,
+    });
+  }
+  if (input.section) {
+    meta.push({ property: "article:section", content: input.section });
+  }
   for (const data of input.jsonLd ?? []) meta.push({ "script:ld+json": data });
-  // Private / noindex pages still get a canonical, which only consolidates duplicates.
-  return { meta, links: [{ rel: "canonical", href: url }] };
+
+  const links: LinkTag[] = [{ rel: "canonical", href: url }];
+  if (isIndexable) {
+    links.push(
+      { rel: "alternate", hrefLang: "ar", href: url },
+      { rel: "alternate", hrefLang: "x-default", href: url },
+    );
+  }
+  return { meta, links };
 }
 
 /* ------------------------------------------------------------ JSON-LD builders */
@@ -102,10 +143,22 @@ export const organizationLd = {
   "@type": "NewsMediaOrganization",
   "@id": `${SITE_URL}/#organization`,
   name: SITE_NAME,
-  alternateName: "Rahat Post",
+  alternateName: ["Rahat Post", "رهط بوست - أخبار رهط والنقب", "רהט פוסט"],
+  description:
+    "بوابة مدينة رهط والنقب الإخبارية والخدمية: آخر أخبار رهط والنقب، مواعيد باصات غاليم، دليل المحلات والخدمات، حراج رهط، صيدلية المناوبة وأرقام الطوارئ.",
   url: SITE_URL,
   logo: { "@type": "ImageObject", url: LOGO_URL, width: 512, height: 512 },
-  areaServed: { "@type": "City", name: "رهط", alternateName: "Rahat" },
+  image: OG_IMAGE,
+  inLanguage: ["ar", "he", "en"],
+  areaServed: [
+    {
+      "@type": "City",
+      name: "رهط",
+      alternateName: ["Rahat", "רהט"],
+      geo: { "@type": "GeoCoordinates", latitude: 31.3925, longitude: 34.7544 },
+    },
+    { "@type": "AdministrativeArea", name: "النقب", alternateName: ["Negev", "הנגב"] },
+  ],
 };
 
 export const websiteLd = {
@@ -113,7 +166,9 @@ export const websiteLd = {
   "@type": "WebSite",
   "@id": `${SITE_URL}/#website`,
   name: SITE_NAME,
-  alternateName: "Rahat Post",
+  alternateName: ["Rahat Post", "موقع رهط بوست"],
+  description:
+    "أخبار رهط والنقب اليوم، مواعيد باصات رهط، دليل محلات وخدمات رهط، حراج رهط للإعلانات المبوبة، صيدلية الحراسة وأرقام الطوارئ.",
   url: SITE_URL,
   inLanguage: "ar",
   publisher: { "@id": `${SITE_URL}/#organization` },
@@ -137,14 +192,17 @@ export function breadcrumbLd(items: { name: string; path: string }[]) {
   };
 }
 
-/** Article for original reader posts (the only news we host in full). */
+/** Article structured data for news items hosted or curated on Rahat Post. */
 export function newsArticleLd(a: {
   path: string;
   headline: string;
   description: string;
   datePublished: string;
+  dateModified?: string;
   authorName?: string;
+  publisherName?: string;
   image?: string;
+  section?: string;
   /** Approved comments (reader posts), omitted when 0. */
   commentCount?: number;
 }) {
@@ -152,22 +210,29 @@ export function newsArticleLd(a: {
   return {
     "@context": "https://schema.org",
     "@type": "NewsArticle",
-    mainEntityOfPage: absoluteUrl(a.path),
+    mainEntityOfPage: {
+      "@type": "WebPage",
+      "@id": absoluteUrl(a.path),
+    },
     headline: snippet(a.headline, 110),
     description: a.description,
     inLanguage: "ar",
     datePublished: a.datePublished,
-    dateModified: a.datePublished,
+    dateModified: a.dateModified ?? a.datePublished,
     image: [image ?? OG_IMAGE],
+    ...(a.section ? { articleSection: a.section } : {}),
     author: a.authorName
       ? { "@type": "Person", name: a.authorName }
-      : { "@id": `${SITE_URL}/#organization` },
+      : a.publisherName
+        ? { "@type": "Organization", name: a.publisherName }
+        : { "@id": `${SITE_URL}/#organization` },
     publisher: {
       "@type": "NewsMediaOrganization",
+      "@id": `${SITE_URL}/#organization`,
       name: SITE_NAME,
-      logo: { "@type": "ImageObject", url: LOGO_URL },
+      logo: { "@type": "ImageObject", url: LOGO_URL, width: 512, height: 512 },
     },
-    contentLocation: { "@type": "City", name: "رهط" },
+    contentLocation: { "@type": "City", name: "رهط", alternateName: "Rahat" },
     ...(a.commentCount ? { commentCount: a.commentCount } : {}),
   };
 }
