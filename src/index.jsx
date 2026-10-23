@@ -33,7 +33,8 @@ import type { ListAd } from "@/lib/ads/display";
 import { organizationLd, seo, websiteLd } from "@/lib/seo";
 import { tr, trv } from "@/lib/i18n/core";
 import { localized, localizedIsrael } from "@/lib/i18n/localize";
-
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9063892572843254"
+     crossorigin="anonymous"></script>
 // حقن Google Tag Manager برمجياً عند بدء التشغيل
 if (typeof window !== "undefined") {
   (function(w, d, s, l, i) {
