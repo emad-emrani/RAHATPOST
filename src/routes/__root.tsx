@@ -30,6 +30,7 @@ export const Route = createRootRoute({
     const st = loaderData?.settings ?? DEFAULT_SETTINGS;
     const base = baseHead();
     const gsc = st.google.gscCode;
+    const adsensePub = st.google.adsensePub;
     const i18n = loaderData?.i18n ?? ARABIC_STATE;
     const nonDefault = i18n.langs.find((l) => l.isDefault)?.code !== i18n.lang;
     return {
@@ -42,6 +43,7 @@ export const Route = createRootRoute({
         ...(gsc && gsc !== __SITE_VERIFICATION__.google
           ? [{ name: "google-site-verification", content: gsc }]
           : []),
+        ...(adsensePub ? [{ name: "google-adsense-account", content: adsensePub }] : []),
       ],
       links: st.faviconKey
         ? [
@@ -119,15 +121,11 @@ function baseHead() {
       { name: "format-detection", content: "telephone=no" },
     ],
     links: [
-      // The رهط بوست logo plate on yellow: .ico (16/32/48) for legacy and default /favicon.ico
-      // requests, SVG for modern browsers, PNG fallbacks.
       { rel: "icon", href: "/favicon.ico", sizes: "32x32" },
       { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
       { rel: "icon", type: "image/png", sizes: "32x32", href: "/icons/favicon-32.png" },
       { rel: "icon", type: "image/png", sizes: "16x16", href: "/icons/favicon-16.png" },
       { rel: "stylesheet", href: appCss },
-      // Our own manifest and icons (the platform's /__grok/ defaults are generic on a
-      // self-hosted domain; see nitro routeRules in vite.config.ts).
       { rel: "manifest", href: "/manifest.webmanifest" },
       { rel: "apple-touch-icon", sizes: "180x180", href: "/apple-touch-icon.png" },
       {
