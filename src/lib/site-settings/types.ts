@@ -131,7 +131,7 @@ export const DEFAULT_SETTINGS: SiteSettings = {
   google: {
     adsensePub: "",
     adsenseEnabled: false,
-    autoAds: false,
+    autoAds: true,
     slots: [],
     gaId: "G-2B1R786GM0",
     gaEnabled: true,
@@ -182,6 +182,13 @@ const safeEmail = (v: unknown) => {
   const s = str(v, 120);
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s) ? s : "";
 };
+
+/** Extract and normalize an AdSense publisher ID from any format (ca-pub-XXX, pub-XXX, raw digits, or a full ads.txt line). */
+export function normalizeAdsensePub(v: unknown): string {
+  if (typeof v !== "string") return "";
+  const m = v.match(/(?:ca-)?pub-(\d{10,20})/i) ?? v.trim().match(/^(\d{10,20})$/);
+  return m ? `ca-pub-${m[1]}` : "";
+}
 
 /** Keep known ids once each, in the given order; append missing ones (visible). */
 function toggles<T extends string>(input: unknown, all: readonly T[]): Toggle<T>[] {
@@ -261,11 +268,12 @@ export function sanitizeSettings(input: unknown): SiteSettings {
     !rawTagline || rawTagline === "جمع الاخبار في مكان واحد"
       ? d.texts.tagline
       : rawTagline;
+  const adsensePub = normalizeAdsensePub(g.adsensePub);
   return {
     google: {
-      adsensePub: pick(g.adsensePub, /^ca-pub-\d{10,20}$/),
+      adsensePub,
       adsenseEnabled: g.adsenseEnabled === true,
-      autoAds: g.autoAds === true,
+      autoAds: g.autoAds !== undefined ? g.autoAds === true : true,
       slots: slotsOut,
       gaId: pick(g.gaId, /^G-[A-Z0-9]{4,16}$/) || d.google.gaId,
       gaEnabled: g.gaEnabled !== undefined ? g.gaEnabled === true : d.google.gaEnabled,
