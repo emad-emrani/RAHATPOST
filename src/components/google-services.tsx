@@ -20,7 +20,8 @@ export function GoogleServices() {
   const { google: g } = useSiteSettings();
   const isPublic = usePublicPage();
   if (!isPublic) return null;
-  const adsense = g.adsenseEnabled && g.adsensePub && (g.autoAds || g.slots.length > 0);
+  // Load adsbygoogle.js whenever AdSense publisher ID is set and enabled (supports Auto Ads & site verification)
+  const adsense = Boolean(g.adsensePub && (g.adsenseEnabled || g.autoAds));
   return (
     <>
       {g.gaEnabled && g.gaId ? (
