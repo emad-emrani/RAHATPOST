@@ -139,7 +139,7 @@ export function HomeMatchesWidget({ initial }: { initial: MatchesBoardData | nul
   const [refreshing, setRefreshing] = useState(false);
 
   const initialLeague = useMemo(() => {
-    if (!board) return "esp.1";
+    if (!board) return "all";
     if (board.defaultLeague === "all") return "all";
     if (board.leagues.some((l) => l.id === board.defaultLeague)) return board.defaultLeague;
     return board.leagues[0]?.id ?? "all";
@@ -188,7 +188,6 @@ export function HomeMatchesWidget({ initial }: { initial: MatchesBoardData | nul
     if (dayTab === "live") return leagueMatches.filter((m) => m.status === "in");
     const byDay = leagueMatches.filter((m) => m.dayKey === dayTab);
     if (byDay.length > 0) return byDay;
-    // Smart fallback: if the chosen day has no matches for this league, show the closest matches in this league
     return leagueMatches.slice(0, 8);
   }, [leagueMatches, dayTab]);
 
@@ -230,7 +229,7 @@ export function HomeMatchesWidget({ initial }: { initial: MatchesBoardData | nul
               ) : null}
             </div>
             <p className="text-xs font-semibold text-muted">
-              {tr("اختر الليغا لمتابعة نتائج ومواعيد المباريات لحظة بلحظة")}
+              {tr("الدوري الإسرائيلي، لا ليغا، أبطال أوروبا والدوريات العالمية لحظة بلحظة")}
             </p>
           </div>
         </div>
@@ -282,7 +281,7 @@ export function HomeMatchesWidget({ initial }: { initial: MatchesBoardData | nul
             { key: "today", label: "اليوم" },
             { key: "yesterday", label: "أمس" },
             { key: "tomorrow", label: "غداً" },
-            { key: "upcoming", label: "الجولة القادمة" },
+            { key: "upcoming", label: "الجولة القادمة والنتائج" },
           ] as { key: DayTab; label: string }[]
         ).map((t) => (
           <button
@@ -313,7 +312,7 @@ export function HomeMatchesWidget({ initial }: { initial: MatchesBoardData | nul
 
       {showingFallbackDay ? (
         <p className="mb-2 text-xs font-bold text-muted">
-          {tr("لا توجد مباريات في هذا اليوم لهذا الدوري — إليك أقرب مباريات الجدول:")}
+          {tr("لا توجد مباريات في هذا اليوم لهذا الدوري — إليك أحدث نتائج ومباريات الجولة:")}
         </p>
       ) : null}
 
@@ -380,7 +379,7 @@ export function FullMatchesBoard({ initial }: { initial: MatchesBoardData | null
           <div>
             <h2 className="text-xl font-extrabold">{tr("جدول ونتائج المباريات المباشرة")}</h2>
             <p className="text-xs font-semibold text-muted">
-              {tr("نتائج حية ومواعيد المباريات بتوقيت رهط والقدس")}
+              {tr("الدوري الإسرائيلي (ليغات هعَل)، لا ليغا، أبطال أوروبا والدوريات العالمية بتوقيت رهط والقدس")}
             </p>
           </div>
         </div>
@@ -428,7 +427,7 @@ export function FullMatchesBoard({ initial }: { initial: MatchesBoardData | null
             { key: "today", label: "مباريات اليوم" },
             { key: "yesterday", label: "نتائج أمس" },
             { key: "tomorrow", label: "مباريات غداً" },
-            { key: "upcoming", label: "الجولات القادمة" },
+            { key: "upcoming", label: "جميع مباريات الجولة" },
           ] as { key: DayTab; label: string }[]
         ).map((t) => (
           <button
@@ -472,7 +471,7 @@ export function FullMatchesBoard({ initial }: { initial: MatchesBoardData | null
   );
 }
 
-/** Admin Control Panel for choosing leagues, setting the default league (LaLiga, etc.), and adding custom matches. */
+/** Admin Control Panel for choosing leagues (including Israeli Ligat Ha'Al & LaLiga), setting the default league, and adding custom matches. */
 export function MatchesAdmin() {
   const [s, setS] = useState<MatchesSettings | null>(null);
   const [saving, setSaving] = useState(false);
@@ -490,7 +489,7 @@ export function MatchesAdmin() {
   const [awayTeam, setAwayTeam] = useState("");
   const [homeScore, setHomeScore] = useState(0);
   const [awayScore, setAwayScore] = useState(0);
-  const [matchLeagueId, setMatchLeagueId] = useState("local.rahat");
+  const [matchLeagueId, setMatchLeagueId] = useState("isr.1");
   const [kickoff, setKickoff] = useState("20:00");
   const [matchStatus, setMatchStatus] = useState<CustomMatchStatus>("pre");
   const [matchMinute, setMatchMinute] = useState("");
@@ -555,18 +554,22 @@ export function MatchesAdmin() {
     void save(next);
   };
 
-  const applyPreset = (mode: "laliga" | "top5" | "all") => {
-    const top5 = new Set(["esp.1", "uefa.champions", "eng.1", "ita.1", "ger.1", "fra.1"]);
+  const applyPreset = (mode: "israeli" | "laliga" | "top5" | "all") => {
+    const topSet = new Set(["isr.1", "isr.2", "esp.1", "uefa.champions", "eng.1", "ita.1", "ger.1", "fra.1"]);
+    const isrSet = new Set(["isr.1", "isr.2", "isr.cup", "local.rahat", "esp.1", "uefa.champions"]);
     const leagues = s.leagues.map((l) => ({
       ...l,
       enabled:
         mode === "all"
           ? true
-          : mode === "laliga"
-            ? l.id === "esp.1" || l.id === "uefa.champions"
-            : top5.has(l.id),
+          : mode === "israeli"
+            ? isrSet.has(l.id)
+            : mode === "laliga"
+              ? l.id === "esp.1" || l.id === "isr.1" || l.id === "uefa.champions"
+              : topSet.has(l.id),
     }));
-    const defaultLeague = mode === "laliga" ? "esp.1" : s.defaultLeague;
+    const defaultLeague =
+      mode === "israeli" ? "isr.1" : mode === "laliga" ? "esp.1" : s.defaultLeague;
     update({ leagues, defaultLeague });
   };
 
@@ -604,7 +607,7 @@ export function MatchesAdmin() {
     const m: CustomMatch = {
       id: Math.random().toString(36).slice(2, 10),
       leagueId: matchLeagueId,
-      leagueNameAr: lg?.shortAr ?? "مباريات رهط والنقب",
+      leagueNameAr: lg?.shortAr ?? "الدوري الإسرائيلي",
       homeTeam: homeTeam.trim(),
       awayTeam: awayTeam.trim(),
       homeScore: Number(homeScore) || 0,
@@ -633,7 +636,7 @@ export function MatchesAdmin() {
         <div>
           <h2 className="text-xl font-extrabold">{tr("إدارة نتائج المباريات المباشرة واختيار الليغا")}</h2>
           <p className="text-sm font-semibold text-muted">
-            {tr("اختر الدوريات (الليغا) التي تريد عرضها في الموقع وحدد الليغا الافتراضية التي تفتح للزوار.")}
+            {tr("يتضمن الدوري الإسرائيلي الممتاز (ليغات هعَل) والدرجة الوطنية (ليئوميت) ولا ليغا وأبطال أوروبا — اختر ما يعرضه الموقع وحدد الليغا الافتراضية.")}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -710,6 +713,13 @@ export function MatchesAdmin() {
           <div className="flex flex-wrap gap-1.5">
             <button
               type="button"
+              onClick={() => setAsDefaultLeague("isr.1")}
+              className={s.defaultLeague === "isr.1" ? "chip chip-ink text-xs" : "chip text-xs"}
+            >
+              ⚽ {tr("تثبيت الدوري الإسرائيلي (ليغات هعَل) كافتراضي")}
+            </button>
+            <button
+              type="button"
               onClick={() => setAsDefaultLeague("esp.1")}
               className={s.defaultLeague === "esp.1" ? "chip chip-ink text-xs" : "chip text-xs"}
             >
@@ -723,13 +733,6 @@ export function MatchesAdmin() {
               }
             >
               🏆 {tr("تثبيت أبطال أوروبا كافتراضي")}
-            </button>
-            <button
-              type="button"
-              onClick={() => setAsDefaultLeague("eng.1")}
-              className={s.defaultLeague === "eng.1" ? "chip chip-ink text-xs" : "chip text-xs"}
-            >
-              🏴󠁧󠁢󠁥󠁮󠁧󠁿 {tr("تثبيت الدوري الإنجليزي كافتراضي")}
             </button>
           </div>
         </div>
@@ -749,17 +752,17 @@ export function MatchesAdmin() {
           <div className="flex flex-wrap gap-1.5">
             <button
               type="button"
-              onClick={() => applyPreset("laliga")}
+              onClick={() => applyPreset("israeli")}
               className="chip text-xs"
             >
-              🇪🇸 {tr("لا ليغا وأبطال أوروبا فقط")}
+              ⚽ {tr("الدوري الإسرائيلي + لا ليغا + أبطال أوروبا")}
             </button>
             <button
               type="button"
               onClick={() => applyPreset("top5")}
               className="chip text-xs"
             >
-              🔥 {tr("الدوريات الـ 5 الكبرى")}
+              🔥 {tr("الدوري الإسرائيلي + الدوريات الـ 5 الكبرى")}
             </button>
             <button
               type="button"
@@ -883,14 +886,14 @@ export function MatchesAdmin() {
         </div>
       </section>
 
-      {/* 3. Custom / Local Matches Manager (e.g. Hapoel Rahat / Negev) */}
+      {/* 3. Custom / Local Matches Manager (e.g. Hapoel Rahat / Negev / Ligat Ha'Al) */}
       <section className="stamp flex flex-col gap-3 p-4">
         <div>
           <h3 className="text-base font-extrabold">
-            {tr("4. إضافة مباراة محلية أو خاصة يدوياً (مثل مباريات فرق رهط والنقب)")}
+            {tr("4. إضافة مباراة محلية أو خاصة يدوياً (مثل مباريات الدوري الإسرائيلي أو فرق رهط والنقب)")}
           </h3>
           <p className="text-xs font-semibold text-muted">
-            {tr("يمكنك إضافة أي مباراة محلية وتحديث نتيجتها المباشرة لتظهر للزوار في أعلى الجدول.")}
+            {tr("يمكنك إضافة أي مباراة وتحديث نتيجتها المباشرة لتظهر للزوار في أعلى الجدول.")}
           </p>
         </div>
 
@@ -899,13 +902,13 @@ export function MatchesAdmin() {
             className="field"
             value={homeTeam}
             onChange={(e) => setHomeTeam(e.target.value)}
-            placeholder={tr("الفريق الأول (مثال: هبوعيل رهط)")}
+            placeholder={tr("الفريق الأول (مثال: هبوعيل بئر السبع / هبوعيل رهط)")}
           />
           <input
             className="field"
             value={awayTeam}
             onChange={(e) => setAwayTeam(e.target.value)}
-            placeholder={tr("الفريق الثاني (مثال: شباب كسيفة)")}
+            placeholder={tr("الفريق الثاني (مثال: مكابي حيفا / أبناء سخنين)")}
           />
           <select
             className="field"
@@ -978,7 +981,7 @@ export function MatchesAdmin() {
                 className="field mt-1"
                 value={matchNote}
                 onChange={(e) => setMatchNote(e.target.value)}
-                placeholder={tr("الملعب البلدي رهط")}
+                placeholder={tr("استاد تيرنر بئر السبع")}
               />
             </label>
             <button type="button" onClick={addCustomMatch} className="btn h-11 shrink-0 text-xs">
