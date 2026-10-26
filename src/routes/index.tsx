@@ -6,6 +6,7 @@ import type { HomeSectionId } from "@/lib/site-settings/types";
 import { AdSlots } from "@/components/google-services";
 import { NewsImage } from "@/components/news-image";
 import { HomeGuidesGrid } from "@/components/guide";
+import { HomeMatchesWidget } from "@/components/matches";
 import { CommentCount } from "@/components/comment-count";
 import { HomeCarousel, HomeTiles, QuickLinks, type SectionSlide } from "@/components/home-parts";
 import { SectionTitle, Shell } from "@/components/shell";
@@ -20,6 +21,7 @@ import { NewsLead, NewsUnavailable, newestFirst } from "@/components/news";
 import { getApprovedEntries } from "@/lib/directory/api";
 import { osmEntries, type DirectoryEntry } from "@/lib/directory/types";
 import { getAutoSectionFlags, getCustomSectionsNews, getNews, getSportsNews, getTechNews } from "@/lib/news/api";
+import { getMatchesBoard, type MatchesBoardData } from "@/lib/news/matches";
 import { newsByline, relativeTimeAr, useNow } from "@/lib/news/format";
 import type { IsraelNewsItem, IsraelNewsResult, NewsItem } from "@/lib/news/types";
 import { getIsraelNews } from "@/lib/news/israel-api";
@@ -48,7 +50,7 @@ export const Route = createFileRoute("/")({
       jsonLd: [organizationLd, websiteLd],
     }),
   loader: async () => {
-    const [news, approved, ads, israel, weather, board, store, tech, flags, sports, customSections] = await Promise.all([
+    const [news, approved, ads, israel, weather, board, store, tech, flags, sports, customSections, matches] = await Promise.all([
       getNews(),
       getApprovedEntries(),
       getListings(),
@@ -60,6 +62,7 @@ export const Route = createFileRoute("/")({
       getAutoSectionFlags().catch(() => ({}) as Record<string, boolean>),
       getSportsNews().catch(() => null),
       getCustomSectionsNews().catch(() => []),
+      matchesForHome(),
     ]);
     const [lNews, lIsrael, lStore, lTech, lSports] = await Promise.all([
       localized(news, (d) => [{ items: d.items, fields: ["title", "summary", "body"] }], "auto"),
@@ -68,7 +71,7 @@ export const Route = createFileRoute("/")({
       tech ? localized(tech, (d) => [{ items: d.items.slice(0, 5), fields: ["title", "summary"] }], "auto") : null,
       sports ? localized(sports, (d) => [{ items: d.items.slice(0, 5), fields: ["title", "summary"] }], "auto") : null,
     ]);
-    return { news: lNews, approved: approved.entries, ads, israel: lIsrael, weather, board, store: lStore, tech: lTech, sports: lSports, flags, customSections };
+    return { news: lNews, approved: approved.entries, ads, israel: lIsrael, weather, board, store: lStore, tech: lTech, sports: lSports, flags, customSections, matches };
   },
   // New items must show up within a minute or two: short CDN cache, revalidated in the background.
   headers: () => ({ "Cache-Control": HOME_CACHE }),
@@ -78,11 +81,6 @@ export const Route = createFileRoute("/")({
 
 const HOME_CACHE = "public, max-age=0, s-maxage=60, stale-while-revalidate=180";
 
-/**
- * Israel news is a secondary section: never let a slow or failing Hebrew feed hold up the home
- * page. On a cold cache we give up after a short wait (the server keeps warming its cache for the
- * next visit) and simply hide the section.
- */
 const ISRAEL_HOME_WAIT_MS = 3_500;
 async function israelNewsForHome(): Promise<IsraelNewsResult | null> {
   try {
@@ -95,15 +93,25 @@ async function israelNewsForHome(): Promise<IsraelNewsResult | null> {
   }
 }
 
+async function matchesForHome(): Promise<MatchesBoardData | null> {
+  try {
+    return await Promise.race([
+      getMatchesBoard(),
+      new Promise<null>((resolve) => setTimeout(() => resolve(null), 3_500)),
+    ]);
+  } catch {
+    return null;
+  }
+}
+
 function Home() {
-  const { news, approved, ads: adsData, israel, weather, board, store, tech, sports, flags, customSections } = Route.useLoaderData();
+  const { news, approved, ads: adsData, israel, weather, board, store, tech, sports, flags, customSections, matches } = Route.useLoaderData();
   const showSec = (id: string) => flags[id] !== false;
   const techTop = tech?.home ? tech.items.slice(0, 5) : [];
   const sportsTop = sports?.home ? sports.items.slice(0, 5) : [];
   const visibleCustomSections = (customSections ?? []).filter((s) => s.home && s.items.length > 0);
   const settings = useSiteSettings();
   const israelItems = useMemo(() => israel?.items ?? [], [israel]);
-  // Translated headlines first (each group stays newest first), then Hebrew-only ones.
   const israelTop = [
     ...israelItems.filter((item) => item.pinned),
     ...israelItems.filter((item) => item.titleAr && !item.pinned),
@@ -297,6 +305,7 @@ function Home() {
         <AdSlots placement="home" />
       </>
     ),
+    matches: <HomeMatchesWidget initial={matches} />,
     sports:
       sportsTop.length > 0 ? (
         <section>
@@ -527,6 +536,7 @@ function Home() {
             {order.map((id) => (
               <Fragment key={id}>{trv(blocks[id])}</Fragment>
             ))}
+            {!order.includes("matches") ? blocks.matches : null}
             {!order.includes("directory") ? directoryPreview : null}
           </>
         )}
@@ -562,8 +572,9 @@ function SearchResults({
           params={{ slug: item.slug }}
           className="stamp press block p-4"
         >
-          <span className="chip">{trv(item.category)}</span>
-          <span className="mt-1 block font-bold">{trv(item.title)}</span>
+          <span className="chip chip-deep">{trv(item.category)}</span>
+          <span className="mt-2 block font-bold">{trv(item.title)}</span>
+          <span className="text-sm font-semibold text-muted">{trv(item.source)}</span>
         </Link>
       ))}
       {results.israel.map((item) => (
@@ -574,7 +585,10 @@ function SearchResults({
           className="stamp press block p-4"
         >
           <span className="chip">{tr("أخبار إسرائيل")}</span>
-          <IsraelTitle item={item} className="mt-1 block font-bold" />
+          <span className="mt-2 block font-bold">
+            <IsraelTitle item={item} />
+          </span>
+          <span className="text-sm font-semibold text-muted">{trv(item.source)}</span>
         </Link>
       ))}
       {results.places.map((item) => (
@@ -585,7 +599,8 @@ function SearchResults({
           className="stamp press block p-4"
         >
           <span className="chip">{trv(item.category)}</span>
-          <span className="mt-1 block font-bold">{trv(item.name)}</span>
+          <span className="mt-2 block font-bold">{trv(item.name)}</span>
+          <span className="text-sm font-semibold text-muted">{trv(item.address ?? item.area ?? "")}</span>
         </Link>
       ))}
       {results.ads.map((item) => (
@@ -596,8 +611,11 @@ function SearchResults({
           className="stamp press block p-4"
         >
           <span className="chip">{trv(item.type)}</span>
-          {item.sample ? <span className="chip ms-1">{tr("نموذج")}</span> : null}
-          <span className="mt-1 block font-bold">{trv(item.title)}</span>
+          <span className="mt-2 block font-bold">{trv(item.title)}</span>
+          <span className="text-sm font-semibold text-muted">
+            {trv(item.neighborhood)}
+            {item.price ? ` · ${trv(item.price)}` : ""}
+          </span>
         </Link>
       ))}
     </div>

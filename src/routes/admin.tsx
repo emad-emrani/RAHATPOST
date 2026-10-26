@@ -1,85 +1,101 @@
 import {
+  ArrowRight,
+  BadgeCheck,
   BarChart3,
   Bell,
+  ChevronDown,
+  ChevronLeft,
+  ClipboardCheck,
+  CloudSun,
+  Cpu,
   Flag,
+  FolderPlus,
+  GalleryHorizontal,
   Globe,
-  Sparkles,
+  House,
+  KeyRound,
+  LayoutGrid,
+  Link2,
   LogOut,
+  Mail,
   Megaphone,
   Menu,
   MessageSquare,
+  MonitorUp,
   Newspaper,
+  Palette,
   PenSquare,
   Pill,
   Rss,
   Settings,
+  ShieldX,
   ShoppingBag,
   Siren,
+  Sparkles,
   Store,
+  Trophy,
+  Type,
+  UserPlus,
   Users,
   X,
   type LucideIcon,
-  Cpu,
-  Trophy,
-  CloudSun,
-  House,
-  ClipboardCheck,
-  LayoutGrid,
-  BadgeCheck,
-  ArrowRight,
-  UserPlus,
-  KeyRound,
-  Palette,
-  Type,
-  GalleryHorizontal,
-  Link2,
-  Mail,
-  ChevronLeft,
-  ChevronDown,
-  FolderPlus,
-  MonitorUp,
-  ShieldX,
 } from "lucide-react";
-import { createFileRoute } from "@tanstack/react-router";
-import { createMiddleware } from "@tanstack/react-start";
+import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { createMiddleware, createServerFn } from "@tanstack/react-start";
 import { PhotoStrip } from "@/components/photo-picker";
 import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import { Shell } from "@/components/shell";
 import { AuthLayout } from "@/components/auth-layout";
-import { adminDecideListing, adminListListings, adminSamples } from "@/lib/market/api";
 import { priceLabel, STATUS_LABEL, type ListingStatus, type OwnListing } from "@/lib/market/types";
 import { adminDecide, adminList, adminLogin, adminLogout } from "@/lib/directory/api";
 import type { BusinessSubmission } from "@/lib/directory/types";
-import { adminGate, adminWhoami } from "@/lib/team/api";
+import { adminWhoami } from "@/lib/team/api";
 import type { AdminLevel } from "@/lib/admin-auth";
-import { adminDecideNews, adminListNews } from "@/lib/reader-news/api";
-import type { OwnReaderNews } from "@/lib/reader-news/types";
+import { type OwnReaderNews, type ReaderNewsStatus } from "@/lib/reader-news/types";
 import { tr, trv } from "@/lib/i18n/core";
 import { AdminSearch, CardBoundary, DashboardHome, ReviewQueue, Skeleton } from "@/components/admin/admin-v2";
 import type { SiteSettingsPart } from "@/components/admin/site-settings-admin";
-const CommentsAdmin = lazy(() => import("@/components/admin/comments-admin").then((m) => ({ default: m.CommentsAdmin })));
-const AlertsAdmin = lazy(() => import("@/components/admin/content-admin").then((m) => ({ default: m.AlertsAdmin })));
-const DutyAdmin = lazy(() => import("@/components/admin/content-admin").then((m) => ({ default: m.DutyAdmin })));
-const PushAdmin = lazy(() => import("@/components/admin/content-admin").then((m) => ({ default: m.PushAdmin })));
-const ReportsAdmin = lazy(() => import("@/components/admin/content-admin").then((m) => ({ default: m.ReportsAdmin })));
-const HarajCategoriesAdmin = lazy(() => import("@/components/admin/haraj-categories-admin").then((m) => ({ default: m.HarajCategoriesAdmin })));
+import { LangSwitcher } from "@/components/lang-switcher";
+
+const SiteSettingsAdmin = lazy(() => import("@/components/admin/site-settings-admin").then((m) => ({ default: m.SiteSettingsAdmin })));
 const AutoNewsAdmin = lazy(() => import("@/components/admin/auto-news-admin").then((m) => ({ default: m.AutoNewsAdmin })));
 const SectionAdmin = lazy(() => import("@/components/admin/section-admin").then((m) => ({ default: m.SectionAdmin })));
-const SiteSettingsAdmin = lazy(() => import("@/components/admin/site-settings-admin").then((m) => ({ default: m.SiteSettingsAdmin })));
-const MembersAdmin = lazy(() => import("@/components/admin/members-admin").then((m) => ({ default: m.MembersAdmin })));
-const PopupsAdmin = lazy(() => import("@/components/admin/popups-admin").then((m) => ({ default: m.PopupsAdmin })));
-const EmailAdmin = lazy(() => import("@/components/admin/email-admin").then((m) => ({ default: m.EmailAdmin })));
 const PublishAdmin = lazy(() => import("@/components/admin/publish-admin").then((m) => ({ default: m.PublishAdmin })));
-const StoreAdmin = lazy(() => import("@/components/admin/store-admin").then((m) => ({ default: m.StoreAdmin })));
-const StatsAdmin = lazy(() => import("@/components/admin/stats-admin").then((m) => ({ default: m.StatsAdmin })));
+const MatchesAdmin = lazy(() => import("@/components/matches").then((m) => ({ default: m.MatchesAdmin })));
+const MembersAdmin = lazy(() => import("@/components/admin/members-admin").then((m) => ({ default: m.MembersAdmin })));
+const EmailAdmin = lazy(() => import("@/components/admin/email-admin").then((m) => ({ default: m.EmailAdmin })));
+const PopupsAdmin = lazy(() => import("@/components/admin/popups-admin").then((m) => ({ default: m.PopupsAdmin })));
 const LanguagesAdmin = lazy(() => import("@/components/admin/languages-admin").then((m) => ({ default: m.LanguagesAdmin })));
 const GeminiAdmin = lazy(() => import("@/components/admin/gemini-admin").then((m) => ({ default: m.GeminiAdmin })));
-import { LangSwitcher } from "@/components/lang-switcher";
-import { Link } from "@tanstack/react-router";
+const StatsAdmin = lazy(() => import("@/components/admin/stats-admin").then((m) => ({ default: m.StatsAdmin })));
+const StoreAdmin = lazy(() => import("@/components/admin/store-admin").then((m) => ({ default: m.StoreAdmin })));
+const CommentsAdmin = lazy(() => import("@/components/admin/moderation-tabs").then((m) => ({ default: m.CommentsAdmin })));
+const ReportsAdmin = lazy(() => import("@/components/admin/moderation-tabs").then((m) => ({ default: m.ReportsAdmin })));
+const DutyAdmin = lazy(() => import("@/components/admin/moderation-tabs").then((m) => ({ default: m.DutyAdmin })));
+const AlertsAdmin = lazy(() => import("@/components/admin/moderation-tabs").then((m) => ({ default: m.AlertsAdmin })));
+const PushAdmin = lazy(() => import("@/components/admin/moderation-tabs").then((m) => ({ default: m.PushAdmin })));
+const HarajCategoriesAdmin = lazy(() => import("@/components/admin/moderation-tabs").then((m) => ({ default: m.HarajCategoriesAdmin })));
+const AdsAdmin = lazy(() => import("@/components/admin/moderation-tabs").then((m) => ({ default: m.AdsAdmin })));
+const NewsAdmin = lazy(() => import("@/components/admin/moderation-tabs").then((m) => ({ default: m.NewsAdmin })));
+
+const adminGate = createServerFn({ method: "GET" }).handler(async (): Promise<{ denied: boolean }> => {
+  try {
+    const { getAdminAccess } = await import("@/lib/admin-auth");
+    if (await getAdminAccess()) return { denied: false };
+    const { getSessionUser } = await import("@/lib/auth/verify.server");
+    const u = await getSessionUser();
+    return { denied: Boolean(u) };
+  } catch {
+    return { denied: false };
+  }
+});
 
 export const Route = createFileRoute("/admin")({
   head: () => ({
-    meta: [{ title: tr("إدارة · رهط بوست") }, { name: "robots", content: "noindex, nofollow" }],
+    meta: [
+      { title: tr("لوحة التحكم · رهط بوست") },
+      { name: "robots", content: "noindex, nofollow" },
+    ],
   }),
   loader: () => adminGate(),
   server: {
@@ -91,12 +107,13 @@ export const Route = createFileRoute("/admin")({
           if (!(await getAdminAccess())) {
             const { getSessionUser } = await import("@/lib/auth/verify.server");
             if (await getSessionUser()) {
-              const r = (result as { response?: Response }).response;
-              if (r) return { ...result, response: new Response(r.body, { status: 403, headers: r.headers }) } as typeof result;
+              const h = new Headers(result.response.headers);
+              h.set("cache-control", "private, no-store");
+              return { ...result, response: new Response(result.response.body, { status: 403, headers: h }) };
             }
           }
         } catch {
-          /* auth not configured */
+          // ignore
         }
         return result;
       }),
@@ -126,6 +143,7 @@ type Section =
   | `grp-${string}`
   | "auto"
   | "publish"
+  | "matches"
   | "members-list"
   | "members-roles"
   | "members-invite"
@@ -154,12 +172,13 @@ const ALL_TABS: { key: Section; label: string; icon: LucideIcon }[] = [
   { key: "review", label: "طابور المراجعة", icon: ClipboardCheck },
   { key: "stats", label: "الإحصائيات والزوار", icon: BarChart3 },
   { key: "publish", label: "نشر خبر جديد", icon: PenSquare },
+  { key: "matches", label: "نتائج المباريات والليغا", icon: Trophy },
   { key: "sec-news", label: "إدارة الأقسام (+ إضافة قسم)", icon: FolderPlus },
   { key: "auto", label: "الأخبار التلقائية", icon: Rss },
   { key: "news", label: "أخبار القراء", icon: Newspaper },
   { key: "comments", label: "التعليقات", icon: MessageSquare },
   { key: "sec-israel", label: "أخبار إسرائيل", icon: Rss },
-  { key: "sec-sports", label: "رياضة", icon: Trophy },
+  { key: "sec-sports", label: "أخبار الرياضة (RSS)", icon: Trophy },
   { key: "sec-tech", label: "أخبار تقنية", icon: Cpu },
   { key: "sec-weather", label: "الطقس", icon: CloudSun },
   { key: "ads", label: "إعلانات الحراج", icon: Megaphone },
@@ -191,9 +210,9 @@ const GROUPS: { id: string; label: string; icon: LucideIcon; keys: Section[] }[]
   { id: "main", label: "لوحة المتابعة", icon: House, keys: ["home", "review", "stats"] },
   {
     id: "content",
-    label: "الأخبار والأقسام",
+    label: "الأخبار والأقسام والمباريات",
     icon: Newspaper,
-    keys: ["publish", "sec-news", "auto", "news", "comments", "sec-israel", "sec-sports", "sec-tech", "sec-weather"],
+    keys: ["publish", "matches", "sec-news", "auto", "news", "comments", "sec-israel", "sec-sports", "sec-tech", "sec-weather"],
   },
   { id: "haraj", label: "الحراج والخدمات", icon: Megaphone, keys: ["ads", "haraj-cats", "directory", "duty", "reports", "store"] },
   {
@@ -260,6 +279,19 @@ function AdminMenu({
           >
             <PenSquare className="size-4 shrink-0" aria-hidden />
             {tr("نشر خبر جديد")}
+          </button>
+        ) : null}
+        {tabs.some((t) => t.key === "matches") ? (
+          <button
+            type="button"
+            aria-current={section === "matches" ? "page" : undefined}
+            className={`flex w-full items-center justify-center gap-2 rounded-2xl bg-ink px-4 py-2.5 text-sm font-bold text-paper shadow-xs transition hover:opacity-90 ${
+              section === "matches" ? "ring-2 ring-ink/30 ring-offset-2" : ""
+            }`}
+            onClick={() => onSelect("matches")}
+          >
+            <Trophy className="size-4 shrink-0" aria-hidden />
+            {tr("نتائج المباريات والليغا")}
           </button>
         ) : null}
         {tabs.some((t) => t.key === "sec-news") ? (
@@ -578,14 +610,24 @@ function AdminPage() {
             </div>
             <div className="flex items-center gap-2">
               {level === "owner" ? (
-                <button
-                  type="button"
-                  onClick={() => go("sec-news")}
-                  className="hidden sm:flex items-center gap-1.5 rounded-2xl bg-brand px-3.5 py-2 text-xs font-extrabold text-ink shadow-2xs transition hover:opacity-90"
-                >
-                  <FolderPlus className="size-4" aria-hidden />
-                  {tr("إضافة قسم جديد")}
-                </button>
+                <>
+                  <button
+                    type="button"
+                    onClick={() => go("matches")}
+                    className="hidden sm:flex items-center gap-1.5 rounded-2xl bg-ink px-3.5 py-2 text-xs font-extrabold text-paper shadow-2xs transition hover:opacity-90"
+                  >
+                    <Trophy className="size-4" aria-hidden />
+                    {tr("نتائج المباريات والليغا")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => go("sec-news")}
+                    className="hidden sm:flex items-center gap-1.5 rounded-2xl bg-brand px-3.5 py-2 text-xs font-extrabold text-ink shadow-2xs transition hover:opacity-90"
+                  >
+                    <FolderPlus className="size-4" aria-hidden />
+                    {tr("إضافة قسم جديد")}
+                  </button>
+                </>
               ) : null}
               <LangSwitcher />
               <span
@@ -633,6 +675,8 @@ function AdminPage() {
             <ReviewQueue onCount={setReviewCount} />
           ) : current === "publish" ? (
             <PublishAdmin />
+          ) : current === "matches" ? (
+            <MatchesAdmin />
           ) : current === "languages" ? (
             <LanguagesAdmin />
           ) : current === "gemini" ? (
@@ -759,230 +803,24 @@ function AdminPage() {
           role="dialog"
           aria-modal="true"
           aria-label={tr("قائمة الإدارة")}
-          className={`absolute inset-y-0 start-0 flex w-72 max-w-[85vw] flex-col gap-3 overflow-y-auto bg-paper p-4 shadow-xl transition-transform duration-200 ${
+          className={`absolute inset-y-0 start-0 flex w-72 max-w-[85vw] flex-col gap-3 overflow-y-auto bg-paper p-4 shadow-2xl transition-transform duration-200 ${
             menuOpen ? "translate-x-0" : "ltr:-translate-x-full rtl:translate-x-full"
           }`}
         >
           <div className="flex items-center justify-between">
-            <p className="text-lg font-extrabold">{tr("لوحة الإدارة")}</p>
-            <button type="button" className="grid size-9 place-items-center rounded-full bg-surface" aria-label={tr("إغلاق")} onClick={() => setMenuOpen(false)}>
+            <Link to="/" className="flex items-center gap-2 text-sm font-bold text-muted">
+              <ArrowRight className="size-4 rtl:rotate-0 ltr:rotate-180" aria-hidden />
+              {tr("العودة للموقع")}
+            </Link>
+            <button type="button" className="grid size-9 place-items-center rounded-xl bg-surface" aria-label={tr("إغلاق")} onClick={() => setMenuOpen(false)}>
               <X className="size-5" aria-hidden />
             </button>
           </div>
-          {menuOpen ? <AdminMenu tabs={tabs} section={current} reviewCount={reviewCount} onSelect={go} onLogout={logout} /> : null}
-          <Link to="/" className="mt-auto flex items-center gap-2 px-3 pt-2 text-sm font-bold text-muted">
-            <ArrowRight className="size-4 ltr:rotate-180" aria-hidden />
-            {tr("العودة للموقع")}
-          </Link>
+          <AdminMenu tabs={tabs} section={current} reviewCount={reviewCount} onSelect={go} onLogout={logout} />
         </div>
       </div>
     </div>
   );
 }
-
-function AdsAdmin() {
-  const [items, setItems] = useState<OwnListing[] | null>(null);
-  const [tab, setTab] = useState<ListingStatus>("pending");
-  const [error, setError] = useState("");
-  const [busyId, setBusyId] = useState("");
-
-  const refresh = useCallback(async () => {
-    const res = await adminListListings();
-    setItems(res.items);
-    setError(!res.authed ? tr("انتهت الجلسة. سجّل الدخول من جديد.") : res.ok ? "" : tr("تعذّر تحميل الإعلانات."));
-  }, []);
-  useEffect(() => {
-    void refresh();
-  }, [refresh]);
-
-  const act = async (id: string, action: ListingStatus | "delete") => {
-    if (action === "delete" && !confirm(tr("حذف الإعلان نهائياً؟"))) return;
-    setBusyId(id);
-    try {
-      await adminDecideListing({ data: { id, action } });
-      await refresh();
-    } catch {
-      setError(tr("تعذّر تنفيذ العملية."));
-    } finally {
-      setBusyId("");
-    }
-  };
-
-  if (!items) return <p className="stamp p-4 font-semibold">{tr("جاري التحميل…")}</p>;
-  const list = items.filter((i) => i.status === tab);
-  const btn = (l: OwnListing, action: ListingStatus | "delete", label: string, ghost = true) => (
-    <button type="button" className={ghost ? "btn btn-ghost" : "btn"} disabled={busyId === l.id} onClick={() => act(l.id, action)}>
-      {label}
-    </button>
-  );
-
-  return (
-    <>
-      <div className="stamp mb-3 flex flex-wrap items-center gap-2 p-3">
-        <p className="min-w-0 flex-1 text-sm font-semibold">
-          {tr("إعلانات المثال: {0} (تظهر بشارة «مثال» ولا تُفهرس).", items.filter((i) => i.sample).length)}
-        </p>
-        <button type="button" className="btn btn-ghost" disabled={busyId === "samples"} onClick={async () => {
-          if (!confirm(tr("حذف كل إعلانات المثال وصورها؟"))) return;
-          setBusyId("samples"); try { await adminSamples({ data: { action: "remove" } }); await refresh(); } finally { setBusyId(""); }
-        }}>{tr("حذف كل الأمثلة")}</button>
-        <button type="button" className="btn btn-ghost" disabled={busyId === "samples"} onClick={async () => {
-          setBusyId("samples"); try { await adminSamples({ data: { action: "add" } }); await refresh(); } finally { setBusyId(""); }
-        }}>{tr("إضافة الأمثلة")}</button>
-      </div>
-      <p className="mb-3 font-semibold text-muted">{tr("كل إعلان جديد أو معدّل ينتظر الموافقة قبل ظهوره في الحراج. البلاغات المتكررة تعيد الإعلان للمراجعة.")}</p>
-      <div className="scroll-row mb-4">
-        {(Object.keys(STATUS_LABEL) as ListingStatus[]).map((s) => (
-          <button key={s} type="button" className={tab === s ? "chip chip-ink shrink-0" : "chip shrink-0"} onClick={() => setTab(s)}>
-            {trv(STATUS_LABEL[s])} ({trv(items.filter((i) => i.status === s).length)})
-          </button>
-        ))}
-      </div>
-      {error ? <p className="stamp mb-3 p-3 font-bold">{trv(error)}</p> : null}
-      {list.length === 0 ? (
-        <p className="stamp p-4 font-semibold">{tr("لا إعلانات هنا.")}</p>
-      ) : (
-        <ul className="flex flex-col gap-3">
-          {list.map((l) => (
-            <li key={l.id} className="stamp p-4">
-              <div className="flex flex-wrap gap-1">
-                <span className="chip">{trv(l.category)}</span>
-                <span className="chip">{trv(l.condition)}</span>
-                {l.sold ? <span className="chip chip-ink">{tr("انباع")}</span> : null}
-                {l.sample ? <span className="chip">{tr("مثال")}</span> : null}
-                {l.expired ? <span className="chip">{tr("منتهي")}</span> : null}
-              </div>
-              <h2 className="mt-2 text-xl font-bold">{trv(l.title)}</h2>
-              <p className="font-semibold">{trv(priceLabel(l))} · {trv(l.area)}</p>
-              <p className="mt-1 whitespace-pre-line">{trv(l.description)}</p>
-              <PhotoStrip keys={l.photos} />
-              <p className="mt-1 font-bold" dir="ltr">{l.phone}{l.hidePhone ? " (hidden)" : ""}</p>
-              <p className="text-sm font-semibold text-muted">
-                {l.seller.name} · {new Date(l.updatedAt).toLocaleString("ar-u-nu-latn", { timeZone: "Asia/Jerusalem" })}
-              </p>
-              <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-                {l.status !== "approved" ? btn(l, "approved", tr("موافقة"), false) : null}
-                {l.status !== "hidden" ? btn(l, "hidden", tr("إخفاء")) : null}
-                {l.status !== "rejected" ? btn(l, "rejected", tr("رفض")) : null}
-                {btn(l, "delete", tr("حذف"))}
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
-    </>
-  );
-}
-
-function NewsAdmin() {
-  const [items, setItems] = useState<OwnReaderNews[] | null>(null);
-  const [tab, setTab] = useState<OwnReaderNews["status"]>("pending");
-  const [error, setError] = useState("");
-  const [busyId, setBusyId] = useState("");
-
-  const refresh = useCallback(async () => {
-    const res = await adminListNews();
-    setItems(res.items);
-    setError(
-      !res.authed ? tr("انتهت الجلسة. سجّل الدخول من جديد.") : res.ok ? "" : tr("تعذّر تحميل الأخبار."),
-    );
-  }, []);
-
-  useEffect(() => {
-    void refresh();
-  }, [refresh]);
-
-  const act = async (id: string, action: "approved" | "rejected" | "delete") => {
-    if (action === "delete" && !confirm(tr("حذف الخبر نهائياً؟"))) return;
-    setBusyId(id);
-    try {
-      await adminDecideNews({ data: { id, action } });
-      await refresh();
-    } catch {
-      setError(tr("تعذّر تنفيذ العملية."));
-    } finally {
-      setBusyId("");
-    }
-  };
-
-  if (!items) return <p className="stamp p-4 font-semibold">{tr("جاري التحميل…")}</p>;
-  const list = items.filter((i) => i.status === tab);
-
-  return (
-    <>
-      <div className="scroll-row mb-4">
-        {(Object.keys(STATUS) as OwnReaderNews["status"][]).map((s) => (
-          <button
-            key={s}
-            type="button"
-            className={tab === s ? "chip chip-ink shrink-0" : "chip shrink-0"}
-            onClick={() => setTab(s)}
-          >
-            {trv(STATUS[s])} ({trv(items.filter((i) => i.status === s).length)})
-          </button>
-        ))}
-      </div>
-      {error ? <p className="stamp mb-3 p-3 font-bold">{trv(error)}</p> : null}
-      {list.length === 0 ? (
-        <p className="stamp p-4 font-semibold">{tr("لا أخبار هنا.")}</p>
-      ) : (
-        <ul className="flex flex-col gap-3">
-          {list.map((item) => (
-            <li key={item.id} className="stamp p-4">
-              <span className="chip">{trv(item.neighborhood)}</span>
-              <h2 className="mt-2 text-xl font-bold">{trv(item.title)}</h2>
-              <p className="mt-1 whitespace-pre-line">{trv(item.body)}</p>
-              {item.sourceUrl ? (
-                <a
-                  href={item.sourceUrl}
-                  target="_blank"
-                  rel="noopener noreferrer nofollow"
-                  className="mt-1 block break-all text-sm font-bold underline"
-                  dir="ltr"
-                >
-                  {trv(item.sourceUrl)}
-                </a>
-              ) : null}
-              <p className="mt-1 text-sm font-semibold text-muted">
-                {trv(item.posterName)} ·{" "}
-                {new Date(item.updatedAt).toLocaleString("ar-u-nu-latn", {
-                  timeZone: "Asia/Jerusalem",
-                })}
-              </p>
-              <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
-                {item.status !== "approved" ? (
-                  <button
-                    type="button"
-                    className="btn"
-                    disabled={busyId === item.id}
-                    onClick={() => act(item.id, "approved")}
-                  >
-                    {tr("موافقة")}
-                  </button>
-                ) : null}
-                {item.status !== "rejected" ? (
-                  <button
-                    type="button"
-                    className="btn btn-ghost"
-                    disabled={busyId === item.id}
-                    onClick={() => act(item.id, "rejected")}
-                  >
-                    {tr("رفض")}
-                  </button>
-                ) : null}
-                <button
-                  type="button"
-                  className="btn btn-ghost"
-                  disabled={busyId === item.id}
-                  onClick={() => act(item.id, "delete")}
-                >
-                  {tr("حذف")}
-                </button>
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
-    </>
-  );
-}
+export const __unused = { notFound, priceLabel, STATUS_LABEL };
+export type { ListingStatus, OwnListing, OwnReaderNews, ReaderNewsStatus };
