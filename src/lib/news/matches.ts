@@ -379,7 +379,7 @@ export function FullMatchesBoard({ initial }: { initial: MatchesBoardData | null
           <div>
             <h2 className="text-xl font-extrabold">{tr("جدول ونتائج المباريات المباشرة")}</h2>
             <p className="text-xs font-semibold text-muted">
-              {tr("الدوري الإسرائيلي (ليغات هعَل), لا ليغا, أبطال أوروبا والدوريات العالمية بتوقيت رهط والقدس")}
+              {tr("الدوري الإسرائيلي (ليغات هعَل)، لا ليغا، أبطال أوروبا والدوريات العالمية بتوقيت رهط والقدس")}
             </p>
           </div>
         </div>
