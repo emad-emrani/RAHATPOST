@@ -10,6 +10,7 @@ export const HOME_SECTIONS = {
   tiles: "أيقونات الأقسام",
   quicklinks: "روابط سريعة",
   news: "آخر الأخبار",
+  matches: "نتائج المباريات المباشرة",
   post: "أدلة خدمات رهط",
   buses: "الباصات",
   duty: "صيدلية المناوبة",
@@ -127,10 +128,12 @@ export const THEME_PRESETS: { name: string; theme: SiteSettings["theme"] }[] = [
   },
 ];
 
+export const DEFAULT_ADSENSE_PUB = "ca-pub-9063892572843254";
+
 export const DEFAULT_SETTINGS: SiteSettings = {
   google: {
-    adsensePub: "",
-    adsenseEnabled: false,
+    adsensePub: DEFAULT_ADSENSE_PUB,
+    adsenseEnabled: true,
     autoAds: true,
     slots: [],
     gaId: "G-2B1R786GM0",
@@ -183,7 +186,7 @@ const safeEmail = (v: unknown) => {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s) ? s : "";
 };
 
-/** Extract and normalize an AdSense publisher ID from any format (ca-pub-XXX, pub-XXX, raw digits, or a full ads.txt line). */
+/** Extract and normalize an AdSense publisher ID from any format (ca-pub-XXX, pub-XXX, raw digits, <script>, or a full ads.txt line). */
 export function normalizeAdsensePub(v: unknown): string {
   if (typeof v !== "string") return "";
   const m = v.match(/(?:ca-)?pub-(\d{10,20})/i) ?? v.trim().match(/^(\d{10,20})$/);
@@ -268,11 +271,11 @@ export function sanitizeSettings(input: unknown): SiteSettings {
     !rawTagline || rawTagline === "جمع الاخبار في مكان واحد"
       ? d.texts.tagline
       : rawTagline;
-  const adsensePub = normalizeAdsensePub(g.adsensePub);
+  const adsensePub = normalizeAdsensePub(g.adsensePub) || d.google.adsensePub;
   return {
     google: {
       adsensePub,
-      adsenseEnabled: g.adsenseEnabled === true,
+      adsenseEnabled: g.adsenseEnabled !== undefined ? g.adsenseEnabled === true : d.google.adsenseEnabled,
       autoAds: g.autoAds !== undefined ? g.autoAds === true : true,
       slots: slotsOut,
       gaId: pick(g.gaId, /^G-[A-Z0-9]{4,16}$/) || d.google.gaId,
