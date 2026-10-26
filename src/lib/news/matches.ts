@@ -30,7 +30,7 @@ export type CustomMatch = {
 export type MatchesSettings = {
   enabled: boolean;
   showOnHome: boolean;
-  /** "all" or a specific league id like "esp.1" */
+  /** "all" or a specific league id like "isr.1" or "esp.1" */
   defaultLeague: string;
   leagues: LeagueConfig[];
   customMatches: CustomMatch[];
@@ -67,6 +67,15 @@ export type MatchesBoardData = {
 };
 
 export const BUILTIN_LEAGUES: LeagueConfig[] = [
+  {
+    id: "isr.1",
+    nameAr: "الدوري الإسرائيلي الممتاز (ليغات هعَل)",
+    shortAr: "الدوري الإسرائيلي",
+    countryAr: "البلاد",
+    badge: "⚽",
+    enabled: true,
+    builtin: true,
+  },
   {
     id: "esp.1",
     nameAr: "الدوري الإسباني (لا ليغا)",
@@ -131,12 +140,21 @@ export const BUILTIN_LEAGUES: LeagueConfig[] = [
     builtin: true,
   },
   {
-    id: "isr.1",
-    nameAr: "الدوري المحلي (ليغات هعَل)",
-    shortAr: "ليغات هعَل",
-    countryAr: "محلي",
-    badge: "⚽",
+    id: "isr.2",
+    nameAr: "الدرجة الوطنية الإسرائيلية (ليئوميت)",
+    shortAr: "الدرجة الوطنية",
+    countryAr: "البلاد",
+    badge: "🥅",
     enabled: true,
+    builtin: true,
+  },
+  {
+    id: "isr.cup",
+    nameAr: "كأس الدولة الإسرائيلي",
+    shortAr: "كأس الدولة",
+    countryAr: "البلاد",
+    badge: "🏅",
+    enabled: false,
     builtin: true,
   },
   {
@@ -225,13 +243,81 @@ export const BUILTIN_LEAGUES: LeagueConfig[] = [
 export const DEFAULT_MATCHES_SETTINGS: MatchesSettings = {
   enabled: true,
   showOnHome: true,
-  defaultLeague: "esp.1",
+  defaultLeague: "all",
   leagues: BUILTIN_LEAGUES,
   customMatches: [],
 };
 
-/** Arabic translations for common clubs across LaLiga, Premier League, UCL, Serie A, Bundesliga, Ligue 1, Saudi, and local leagues. */
+/** Arabic translations for clubs in Israeli Premier League (Ligat Ha'Al), Liga Leumit, LaLiga, Premier League, UCL, Serie A, Bundesliga, Ligue 1, and Arab leagues. */
 const TEAM_AR: Record<string, string> = {
+  // Israeli Premier League (Ligat Ha'Al) & Liga Leumit (English + Hebrew variants)
+  "hapoel be'er sheva": "هبوعيل بئر السبع",
+  "hapoel beer sheva": "هبوعيل بئر السبع",
+  "hapoel beer-sheva": "هبوعيل بئر السبع",
+  "הפועל באר שבע": "هبوعيل بئر السبع",
+  "maccabi haifa": "مكابي حيفا",
+  "מכבי חיפה": "مكابي حيفا",
+  "maccabi tel aviv": "مكابي تل أبيب",
+  "maccabi tel-aviv": "مكابي تل أبيب",
+  "מכבי תל אביב": "مكابي تل أبيب",
+  "hapoel tel aviv": "هبوعيل تل أبيب",
+  "hapoel tel-aviv": "هبوعيل تل أبيب",
+  "הפועל תל אביב": "هبوعيل تل أبيب",
+  "beitar jerusalem": "بيتار القدس",
+  "בית\"ר ירושלים": "بيتار القدس",
+  "hapoel jerusalem": "هبوعيل القدس",
+  "הפועל ירושלים": "هبوعيل القدس",
+  "bnei sakhnin": "أبناء سخنين",
+  "ihud bnei sakhnin": "اتحاد أبناء سخنين",
+  "בני סכנין": "أبناء سخنين",
+  "maccabi bnei reineh": "مكابي أبناء الرينة",
+  "maccabi bnei raina": "مكابي أبناء الرينة",
+  "bnei reineh": "أبناء الرينة",
+  "מכבי בני ריינה": "مكابي أبناء الرينة",
+  "maccabi netanya": "مكابي نتانيا",
+  "מכבי נתניה": "مكابي نتانيا",
+  "hapoel haifa": "هبوعيل حيفا",
+  "הפועל חיפה": "هبوعيل حيفا",
+  "maccabi petah tikva": "مكابي بيتح تكفا",
+  "maccabi petah-tikva": "مكابي بيتح تكفا",
+  "מכבי פתח תקווה": "مكابي بيتح تكفا",
+  "hapoel petah tikva": "هبوعيل بيتح تكفا",
+  "hapoel petah-tikva": "هبوعيل بيتح تكفا",
+  "הפועל פתח תקווה": "هبوعيل بيتح تكفا",
+  "ashdod": "م.س أشدود",
+  "fc ashdod": "م.س أشدود",
+  "f.c. ashdod": "م.س أشدود",
+  "ms ashdod": "م.س أشدود",
+  "sc ashdod": "م.س أشدود",
+  "מ.ס. אשדוד": "م.س أشدود",
+  "ironi kiryat shmona": "عيروني كريات شمونة",
+  "hapoel ironi kiryat shmona": "هبوعيل كريات شمونة",
+  "kiryat shmona": "كريات شمونة",
+  "עירוני קריית שמונה": "عيروني كريات شمونة",
+  "ironi tiberias": "عيروني طبريا",
+  "עירוני טבריה": "عيروني طبريا",
+  "hapoel hadera": "هبوعيل الخضيرة",
+  "הפועל חדרה": "هبوعيل الخضيرة",
+  "hapoel ramat gan": "هبوعيل رمات غان",
+  "hapoel ramat-gan": "هبوعيل رمات غان",
+  "bnei yehuda": "بني يهودا تل أبيب",
+  "bnei yehuda tel aviv": "بني يهودا تل أبيب",
+  "hapoel kfar saba": "هبوعيل كفار سابا",
+  "hapoel umm al-fahm": "هبوعيل أم الفحم",
+  "maccabi ahi nazareth": "مكابي إخاء الناصرة",
+  "ms kafr qasim": "م.س كفر قاسم",
+  "sc kafr qasim": "م.س كفر قاسم",
+  "hapoel acre": "هبوعيل عكا",
+  "hapoel akko": "هبوعيل عكا",
+  "hapoel rishon lezion": "هبوعيل ريشون لتسيون",
+  "maccabi herzliya": "مكابي هرتسليا",
+  "hapoel afula": "هبوعيل العفولة",
+  "hapoel nof hagalil": "هبوعيل نوف هجليل",
+  "maccabi jaffa": "مكابي يافا",
+  "maccabi kabilio jaffa": "مكابي كابيليو يافا",
+  "hapoel kfar shalem": "هبوعيل كفار شاليم",
+  "hapoel raanana": "هبوعيل رعنانا",
+  "hapoel rahat": "هبوعيل رهط",
   // LaLiga (Spain)
   "real madrid": "ريال مدريد",
   "barcelona": "برشلونة",
@@ -283,7 +369,7 @@ const TEAM_AR: Record<string, string> = {
   "everton": "إيفرتون",
   "wolverhampton wanderers": "وولفرهامبتون",
   "wolves": "وولفرهامبتون",
-  "AFC bournemouth": "بورنموث",
+  "afc bournemouth": "بورنموث",
   "bournemouth": "بورنموث",
   "nottingham forest": "نوتنغهام فورست",
   "leicester city": "ليستر سيتي",
@@ -399,24 +485,6 @@ const TEAM_AR: Record<string, string> = {
   "raja": "الرجاء الرياضي",
   "al ain": "العين الإماراتي",
   "al sadd": "السد القطري",
-  // Local / Israeli Premier League (Ligat Ha'Al)
-  "hapoel be'er sheva": "هبوعيل بئر السبع",
-  "hapoel beer sheva": "هبوعيل بئر السبع",
-  "maccabi haifa": "مكابي حيفا",
-  "maccabi tel aviv": "مكابي تل أبيب",
-  "hapoel tel aviv": "هبوعيل تل أبيب",
-  "beitar jerusalem": "بيتار القدس",
-  "hapoel jerusalem": "هبوعيل القدس",
-  "bnei sakhnin": "أبناء سخنين",
-  "maccabi bnei reineh": "مكابي أبناء الرينة",
-  "maccabi netanya": "مكابي نتانيا",
-  "hapoel haifa": "هبوعيل حيفا",
-  "maccabi petah tikva": "مكابي بيتح تكفا",
-  "ashdod": "م.س أشدود",
-  "fc ashdod": "م.س أشدود",
-  "ironi kiryat shmona": "كريات شمونة",
-  "ironi tiberias": "عيروني طبريا",
-  "hapoel hadera": "هبوعيل الخضيرة",
 };
 
 export function translateTeamName(raw: string): string {
@@ -424,7 +492,9 @@ export function translateTeamName(raw: string): string {
   const key = clean.toLowerCase();
   if (TEAM_AR[key]) return TEAM_AR[key];
   for (const [k, v] of Object.entries(TEAM_AR)) {
-    if (key === k || key.startsWith(k + " ") || key.endsWith(" " + k)) return v;
+    if (key === k || key.startsWith(k + " ") || key.endsWith(" " + k) || key.includes(k)) {
+      return v;
+    }
   }
   return clean;
 }
@@ -476,15 +546,15 @@ export function sanitizeMatchesSettings(raw: unknown): MatchesSettings {
   }
   const leagues = [...byId.values()];
   if (!leagues.some((l) => l.enabled)) {
-    const esp = leagues.find((l) => l.id === "esp.1");
-    if (esp) esp.enabled = true;
+    const isr = leagues.find((l) => l.id === "isr.1");
+    if (isr) isr.enabled = true;
   }
 
   const rawDef = String(obj.defaultLeague ?? d.defaultLeague).trim();
   const defaultLeague =
     rawDef === "all" || leagues.some((l) => l.id === rawDef && l.enabled)
       ? rawDef
-      : (leagues.find((l) => l.enabled)?.id ?? "esp.1");
+      : (leagues.find((l) => l.enabled)?.id ?? "all");
 
   const customMatches: CustomMatch[] = [];
   if (Array.isArray(obj.customMatches)) {
@@ -600,81 +670,91 @@ function formatShortDateAr(iso: string): string {
   }
 }
 
-async function fetchLeagueEvents(league: LeagueConfig, dateRangeParam: string): Promise<MatchItem[]> {
-  if (league.id === "local.rahat") return [];
-  const url = `https://site.api.espn.com/apis/site/v2/sports/soccer/${encodeURIComponent(league.id)}/scoreboard?dates=${dateRangeParam}`;
+function classifyDayKey(kickoffIso: string): MatchItem["dayKey"] {
+  const now = new Date();
+  const todayKey = israelDateKey(now.toISOString());
+  const yestKey = israelDateKey(new Date(now.getTime() - 86_400_000).toISOString());
+  const tomKey = israelDateKey(new Date(now.getTime() + 86_400_000).toISOString());
+  const dKey = israelDateKey(kickoffIso);
+  if (dKey === todayKey) return "today";
+  if (dKey === yestKey) return "yesterday";
+  if (dKey === tomKey) return "tomorrow";
+  return "upcoming";
+}
+
+/** Map league IDs to TheSportsDB league IDs for supplementary/fallback rounds (especially Israeli Ligat Ha'Al 4644). */
+const SPORTSDB_LEAGUE_IDS: Record<string, string> = {
+  "isr.1": "4644", // Israeli Premier League (Ligat Ha'Al)
+  "esp.1": "4335", // Spanish La Liga
+  "eng.1": "4328", // English Premier League
+  "ita.1": "4332", // Italian Serie A
+  "ger.1": "4331", // German Bundesliga
+  "fra.1": "4334", // French Ligue 1
+  "uefa.champions": "4480", // UEFA Champions League
+  "sau.1": "4668", // Saudi Pro League
+};
+
+async function fetchSportsDbEvents(league: LeagueConfig): Promise<MatchItem[]> {
+  const sdbId = SPORTSDB_LEAGUE_IDS[league.id];
+  if (!sdbId) return [];
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 3_800);
   try {
-    const res = await fetch(url, {
-      signal: ctrl.signal,
-      headers: {
-        "user-agent": "Mozilla/5.0 (compatible; RahatPostBot/1.0; +https://rahatpost.com)",
-        accept: "application/json",
-      },
-    });
-    if (!res.ok) return [];
-    const json = (await res.json()) as { events?: any[] };
-    const events = Array.isArray(json?.events) ? json.events : [];
+    const [nextRes, pastRes] = await Promise.allSettled([
+      fetch(`https://www.thesportsdb.com/api/v1/json/3/eventsnextleague.php?id=${sdbId}`, {
+        signal: ctrl.signal,
+        headers: { accept: "application/json" },
+      }),
+      fetch(`https://www.thesportsdb.com/api/v1/json/3/eventspastleague.php?id=${sdbId}`, {
+        signal: ctrl.signal,
+        headers: { accept: "application/json" },
+      }),
+    ]);
 
-    const now = new Date();
-    const todayKey = israelDateKey(now.toISOString());
-    const yestKey = israelDateKey(new Date(now.getTime() - 86_400_000).toISOString());
-    const tomKey = israelDateKey(new Date(now.getTime() + 86_400_000).toISOString());
+    const rawEvents: any[] = [];
+    for (const r of [nextRes, pastRes]) {
+      if (r.status === "fulfilled" && r.value.ok) {
+        const j = (await r.value.json().catch(() => ({}))) as { events?: any[] };
+        if (Array.isArray(j?.events)) rawEvents.push(...j.events);
+      }
+    }
 
     const out: MatchItem[] = [];
-    for (const ev of events.slice(0, 24)) {
-      const comp = ev?.competitions?.[0];
-      const competitors: any[] = Array.isArray(comp?.competitors) ? comp.competitors : [];
-      const home = competitors.find((c) => c.homeAway === "home") ?? competitors[0];
-      const away = competitors.find((c) => c.homeAway === "away") ?? competitors[1];
-      if (!home?.team || !away?.team) continue;
-
-      const rawState = String(ev?.status?.type?.state ?? comp?.status?.type?.state ?? "pre");
-      const status: "pre" | "in" | "post" =
-        rawState === "in" ? "in" : rawState === "post" ? "post" : "pre";
-      const clock = String(ev?.status?.displayClock ?? comp?.status?.displayClock ?? "").trim();
-      const detail = String(ev?.status?.type?.shortDetail ?? "").trim();
-      const kickoffIso = String(ev?.date ?? comp?.date ?? now.toISOString());
-      const dKey = israelDateKey(kickoffIso);
-
-      const dayKey: MatchItem["dayKey"] =
-        dKey === todayKey
-          ? "today"
-          : dKey === yestKey
-            ? "yesterday"
-            : dKey === tomKey
-              ? "tomorrow"
-              : "upcoming";
-
-      let statusTextAr = formatTimeJerusalem(kickoffIso);
-      if (status === "in") {
-        statusTextAr = detail === "HT" ? "استراحة الشوطين" : clock ? `مباشر ${clock}` : "مباشر الآن";
-      } else if (status === "post") {
-        statusTextAr = "انتهت";
-      }
-
-      const homeScore = status === "pre" ? null : Number(home?.score ?? 0);
-      const awayScore = status === "pre" ? null : Number(away?.score ?? 0);
+    for (const ev of rawEvents.slice(0, 20)) {
+      if (!ev?.strHomeTeam || !ev?.strAwayTeam) continue;
+      const dateStr = String(ev.dateEvent ?? "");
+      const timeStr = String(ev.strTime ?? "18:00:00").slice(0, 8);
+      if (!dateStr) continue;
+      const kickoffIso = `${dateStr}T${timeStr.includes(":") ? timeStr : "18:00:00"}Z`;
+      const hasScore = ev.intHomeScore !== null && ev.intHomeScore !== undefined && ev.intHomeScore !== "";
+      const rawStatus = String(ev.strStatus ?? "").toUpperCase();
+      const isLive = rawStatus === "LIVE" || rawStatus === "1H" || rawStatus === "2H" || rawStatus === "HT";
+      const status: "pre" | "in" | "post" = isLive ? "in" : hasScore ? "post" : "pre";
+      const dayKey = classifyDayKey(kickoffIso);
 
       out.push({
-        id: String(ev?.id ?? `${league.id}-${kickoffIso}-${home.team.displayName}`),
+        id: `sdb-${ev.idEvent ?? `${league.id}-${dateStr}-${ev.strHomeTeam}`}`,
         leagueId: league.id,
         leagueNameAr: league.shortAr,
         leagueBadge: league.badge,
-        homeTeam: translateTeamName(String(home.team.shortDisplayName || home.team.displayName || home.team.name || "")),
-        awayTeam: translateTeamName(String(away.team.shortDisplayName || away.team.displayName || away.team.name || "")),
-        homeLogo: typeof home.team.logo === "string" ? home.team.logo : undefined,
-        awayLogo: typeof away.team.logo === "string" ? away.team.logo : undefined,
-        homeScore: Number.isFinite(homeScore) ? homeScore : null,
-        awayScore: Number.isFinite(awayScore) ? awayScore : null,
+        homeTeam: translateTeamName(String(ev.strHomeTeam)),
+        awayTeam: translateTeamName(String(ev.strAwayTeam)),
+        homeLogo: typeof ev.strHomeTeamBadge === "string" ? ev.strHomeTeamBadge : undefined,
+        awayLogo: typeof ev.strAwayTeamBadge === "string" ? ev.strAwayTeamBadge : undefined,
+        homeScore: hasScore ? Number(ev.intHomeScore) : null,
+        awayScore: hasScore ? Number(ev.intAwayScore) : null,
         status,
-        statusTextAr,
+        statusTextAr:
+          status === "in"
+            ? "مباشر الآن"
+            : status === "post"
+              ? "انتهت"
+              : formatTimeJerusalem(kickoffIso),
         kickoffIso,
         kickoffTimeAr: formatTimeJerusalem(kickoffIso),
         dayKey,
         dateLabelAr: formatShortDateAr(kickoffIso),
-        venue: comp?.venue?.fullName ? String(comp.venue.fullName) : undefined,
+        venue: ev.strVenue ? String(ev.strVenue) : undefined,
       });
     }
     return out;
@@ -683,6 +763,99 @@ async function fetchLeagueEvents(league: LeagueConfig, dateRangeParam: string): 
   } finally {
     clearTimeout(timer);
   }
+}
+
+async function fetchLeagueEvents(league: LeagueConfig, dateRangeParam: string): Promise<MatchItem[]> {
+  if (league.id === "local.rahat") return [];
+  const url = `https://site.api.espn.com/apis/site/v2/sports/soccer/${encodeURIComponent(league.id)}/scoreboard?dates=${dateRangeParam}`;
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 3_800);
+  let espnItems: MatchItem[] = [];
+  try {
+    const res = await fetch(url, {
+      signal: ctrl.signal,
+      headers: {
+        "user-agent": "Mozilla/5.0 (compatible; RahatPostBot/1.0; +https://rahatpost.com)",
+        accept: "application/json",
+      },
+    });
+    if (res.ok) {
+      const json = (await res.json()) as { events?: any[] };
+      const events = Array.isArray(json?.events) ? json.events : [];
+      const now = new Date();
+
+      for (const ev of events.slice(0, 24)) {
+        const comp = ev?.competitions?.[0];
+        const competitors: any[] = Array.isArray(comp?.competitors) ? comp.competitors : [];
+        const home = competitors.find((c) => c.homeAway === "home") ?? competitors[0];
+        const away = competitors.find((c) => c.homeAway === "away") ?? competitors[1];
+        if (!home?.team || !away?.team) continue;
+
+        const rawState = String(ev?.status?.type?.state ?? comp?.status?.type?.state ?? "pre");
+        const status: "pre" | "in" | "post" =
+          rawState === "in" ? "in" : rawState === "post" ? "post" : "pre";
+        const clock = String(ev?.status?.displayClock ?? comp?.status?.displayClock ?? "").trim();
+        const detail = String(ev?.status?.type?.shortDetail ?? "").trim();
+        const kickoffIso = String(ev?.date ?? comp?.date ?? now.toISOString());
+        const dayKey = classifyDayKey(kickoffIso);
+
+        let statusTextAr = formatTimeJerusalem(kickoffIso);
+        if (status === "in") {
+          statusTextAr = detail === "HT" ? "استراحة الشوطين" : clock ? `مباشر ${clock}` : "مباشر الآن";
+        } else if (status === "post") {
+          statusTextAr = "انتهت";
+        }
+
+        const homeScore = status === "pre" ? null : Number(home?.score ?? 0);
+        const awayScore = status === "pre" ? null : Number(away?.score ?? 0);
+
+        espnItems.push({
+          id: String(ev?.id ?? `${league.id}-${kickoffIso}-${home.team.displayName}`),
+          leagueId: league.id,
+          leagueNameAr: league.shortAr,
+          leagueBadge: league.badge,
+          homeTeam: translateTeamName(
+            String(home.team.shortDisplayName || home.team.displayName || home.team.name || ""),
+          ),
+          awayTeam: translateTeamName(
+            String(away.team.shortDisplayName || away.team.displayName || away.team.name || ""),
+          ),
+          homeLogo: typeof home.team.logo === "string" ? home.team.logo : undefined,
+          awayLogo: typeof away.team.logo === "string" ? away.team.logo : undefined,
+          homeScore: Number.isFinite(homeScore) ? homeScore : null,
+          awayScore: Number.isFinite(awayScore) ? awayScore : null,
+          status,
+          statusTextAr,
+          kickoffIso,
+          kickoffTimeAr: formatTimeJerusalem(kickoffIso),
+          dayKey,
+          dateLabelAr: formatShortDateAr(kickoffIso),
+          venue: comp?.venue?.fullName ? String(comp.venue.fullName) : undefined,
+        });
+      }
+    }
+  } catch {
+    // fallback below
+  } finally {
+    clearTimeout(timer);
+  }
+
+  // Always enrich Israeli Premier League (isr.1) or any league where ESPN returned < 2 matches using TheSportsDB
+  if (league.id === "isr.1" || espnItems.length < 2) {
+    const sdbItems = await fetchSportsDbEvents(league);
+    const seen = new Set(
+      espnItems.map((m) => `${m.homeTeam}-${m.awayTeam}-${m.kickoffIso.slice(0, 10)}`),
+    );
+    for (const item of sdbItems) {
+      const key = `${item.homeTeam}-${item.awayTeam}-${item.kickoffIso.slice(0, 10)}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        espnItems.push(item);
+      }
+    }
+  }
+
+  return espnItems;
 }
 
 let boardCache: { data: MatchesBoardData; at: number } | null = null;
@@ -715,8 +888,8 @@ export async function loadMatchesBoard(forceFresh = false): Promise<MatchesBoard
   boardInflight = (async () => {
     const enabledLeagues = settings.leagues.filter((l) => l.enabled);
     const now = new Date();
-    // Fetch a 7-day window (-2 days to +5 days) so even mid-week leagues show their active matchday
-    const start = new Date(now.getTime() - 2 * 86_400_000);
+    // Fetch an 8-day window (-3 days to +5 days) so all weekend & mid-week rounds appear
+    const start = new Date(now.getTime() - 3 * 86_400_000);
     const end = new Date(now.getTime() + 5 * 86_400_000);
     const rangeParam = `${formatYmd(start)}-${formatYmd(end)}`;
 
@@ -788,7 +961,7 @@ export const getMatchesBoard = createServerFn({ method: "GET" }).handler(
       return {
         enabled: true,
         showOnHome: true,
-        defaultLeague: "esp.1",
+        defaultLeague: "all",
         leagues: BUILTIN_LEAGUES.filter((l) => l.enabled),
         matches: [],
         fetchedAt: Date.now(),
