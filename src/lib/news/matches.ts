@@ -1,1007 +1,1070 @@
-import { createServerFn } from "@tanstack/react-start";
+import { Link } from "@tanstack/react-router";
+import {
+  ArrowDown,
+  ArrowUp,
+  Check,
+  ChevronLeft,
+  Eye,
+  EyeOff,
+  Plus,
+  RefreshCw,
+  Star,
+  Trash2,
+  Trophy,
+} from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import {
+  adminGetMatchesSettings,
+  adminRefreshMatchesNow,
+  adminSaveMatchesSettings,
+  getMatchesBoard,
+  type CustomMatch,
+  type CustomMatchStatus,
+  type LeagueConfig,
+  type MatchesBoardData,
+  type MatchesSettings,
+  type MatchItem,
+} from "@/lib/news/matches";
+import { tr, trv } from "@/lib/i18n/core";
 
-export type LeagueConfig = {
-  id: string;
-  nameAr: string;
-  shortAr: string;
-  countryAr: string;
-  badge: string;
-  enabled: boolean;
-  builtin?: boolean;
-};
+type DayTab = "today" | "yesterday" | "tomorrow" | "upcoming" | "live";
 
-export type CustomMatchStatus = "pre" | "in" | "post";
-
-export type CustomMatch = {
-  id: string;
-  leagueId: string;
-  leagueNameAr: string;
-  homeTeam: string;
-  awayTeam: string;
-  homeScore: number;
-  awayScore: number;
-  kickoff: string; // HH:mm or label
-  dateOffset: -1 | 0 | 1; // -1 yesterday, 0 today, 1 tomorrow
-  status: CustomMatchStatus;
-  minute?: string;
-  note?: string;
-};
-
-export type MatchesSettings = {
-  enabled: boolean;
-  showOnHome: boolean;
-  /** "all" or a specific league id like "isr.1" or "esp.1" */
-  defaultLeague: string;
-  leagues: LeagueConfig[];
-  customMatches: CustomMatch[];
-};
-
-export type MatchItem = {
-  id: string;
-  leagueId: string;
-  leagueNameAr: string;
-  leagueBadge: string;
-  homeTeam: string;
-  awayTeam: string;
-  homeLogo?: string;
-  awayLogo?: string;
-  homeScore: number | null;
-  awayScore: number | null;
-  status: "pre" | "in" | "post";
-  statusTextAr: string;
-  kickoffIso: string;
-  kickoffTimeAr: string;
-  dayKey: "yesterday" | "today" | "tomorrow" | "upcoming";
-  dateLabelAr: string;
-  venue?: string;
-  note?: string;
-};
-
-export type MatchesBoardData = {
-  enabled: boolean;
-  showOnHome: boolean;
-  defaultLeague: string;
-  leagues: LeagueConfig[];
-  matches: MatchItem[];
-  fetchedAt: number;
-};
-
-export const BUILTIN_LEAGUES: LeagueConfig[] = [
-  {
-    id: "isr.1",
-    nameAr: "الدوري الإسرائيلي الممتاز (ليغات هعَل)",
-    shortAr: "الدوري الإسرائيلي",
-    countryAr: "البلاد",
-    badge: "⚽",
-    enabled: true,
-    builtin: true,
-  },
-  {
-    id: "esp.1",
-    nameAr: "الدوري الإسباني (لا ليغا)",
-    shortAr: "لا ليغا",
-    countryAr: "إسبانيا",
-    badge: "🇪🇸",
-    enabled: true,
-    builtin: true,
-  },
-  {
-    id: "uefa.champions",
-    nameAr: "دوري أبطال أوروبا",
-    shortAr: "أبطال أوروبا",
-    countryAr: "أوروبا",
-    badge: "🏆",
-    enabled: true,
-    builtin: true,
-  },
-  {
-    id: "eng.1",
-    nameAr: "الدوري الإنجليزي الممتاز",
-    shortAr: "البريميرليغ",
-    countryAr: "إنجلترا",
-    badge: "🏴󠁧󠁢󠁥󠁮󠁧󠁿",
-    enabled: true,
-    builtin: true,
-  },
-  {
-    id: "ita.1",
-    nameAr: "الدوري الإيطالي (سيريا آ)",
-    shortAr: "الدوري الإيطالي",
-    countryAr: "إيطاليا",
-    badge: "🇮🇹",
-    enabled: true,
-    builtin: true,
-  },
-  {
-    id: "ger.1",
-    nameAr: "الدوري الألماني (بوندسليغا)",
-    shortAr: "بوندسليغا",
-    countryAr: "ألمانيا",
-    badge: "🇩🇪",
-    enabled: true,
-    builtin: true,
-  },
-  {
-    id: "fra.1",
-    nameAr: "الدوري الفرنسي (ليغ 1)",
-    shortAr: "الدوري الفرنسي",
-    countryAr: "فرنسا",
-    badge: "🇫🇷",
-    enabled: true,
-    builtin: true,
-  },
-  {
-    id: "sau.1",
-    nameAr: "الدوري السعودي روشن",
-    shortAr: "دوري روشن",
-    countryAr: "السعودية",
-    badge: "🇸🇦",
-    enabled: true,
-    builtin: true,
-  },
-  {
-    id: "isr.2",
-    nameAr: "الدرجة الوطنية الإسرائيلية (ليئوميت)",
-    shortAr: "الدرجة الوطنية",
-    countryAr: "البلاد",
-    badge: "🥅",
-    enabled: true,
-    builtin: true,
-  },
-  {
-    id: "isr.cup",
-    nameAr: "كأس الدولة الإسرائيلي",
-    shortAr: "كأس الدولة",
-    countryAr: "البلاد",
-    badge: "🏅",
-    enabled: false,
-    builtin: true,
-  },
-  {
-    id: "uefa.europa",
-    nameAr: "الدوري الأوروبي",
-    shortAr: "الدوري الأوروبي",
-    countryAr: "أوروبا",
-    badge: "🟠",
-    enabled: false,
-    builtin: true,
-  },
-  {
-    id: "uefa.europa.conf",
-    nameAr: "دوري المؤتمر الأوروبي",
-    shortAr: "المؤتمر الأوروبي",
-    countryAr: "أوروبا",
-    badge: "🟢",
-    enabled: false,
-    builtin: true,
-  },
-  {
-    id: "esp.copa_del_rey",
-    nameAr: "كأس ملك إسبانيا",
-    shortAr: "كأس الملك",
-    countryAr: "إسبانيا",
-    badge: "👑",
-    enabled: false,
-    builtin: true,
-  },
-  {
-    id: "eng.fa",
-    nameAr: "كأس الاتحاد الإنجليزي",
-    shortAr: "كأس إنجلترا",
-    countryAr: "إنجلترا",
-    badge: "🏅",
-    enabled: false,
-    builtin: true,
-  },
-  {
-    id: "egy.1",
-    nameAr: "الدوري المصري الممتاز",
-    shortAr: "الدوري المصري",
-    countryAr: "مصر",
-    badge: "🇪🇬",
-    enabled: false,
-    builtin: true,
-  },
-  {
-    id: "afc.champions",
-    nameAr: "دوري أبطال آسيا للنخبة",
-    shortAr: "أبطال آسيا",
-    countryAr: "آسيا",
-    badge: "🌏",
-    enabled: false,
-    builtin: true,
-  },
-  {
-    id: "caf.champions",
-    nameAr: "دوري أبطال أفريقيا",
-    shortAr: "أبطال أفريقيا",
-    countryAr: "أفريقيا",
-    badge: "🌍",
-    enabled: false,
-    builtin: true,
-  },
-  {
-    id: "fifa.world",
-    nameAr: "كأس العالم والمنتخبات",
-    shortAr: "كأس العالم",
-    countryAr: "دولي",
-    badge: "🌐",
-    enabled: false,
-    builtin: true,
-  },
-  {
-    id: "local.rahat",
-    nameAr: "مباريات رهط والنقب",
-    shortAr: "رهط والنقب",
-    countryAr: "رهط والنقب",
-    badge: "🏟️",
-    enabled: true,
-    builtin: true,
-  },
-];
-
-export const DEFAULT_MATCHES_SETTINGS: MatchesSettings = {
-  enabled: true,
-  showOnHome: true,
-  defaultLeague: "all",
-  leagues: BUILTIN_LEAGUES,
-  customMatches: [],
-};
-
-/** Arabic translations for clubs in Israeli Premier League (Ligat Ha'Al), Liga Leumit, LaLiga, Premier League, UCL, Serie A, Bundesliga, Ligue 1, and Arab leagues. */
-const TEAM_AR: Record<string, string> = {
-  // Israeli Premier League (Ligat Ha'Al) & Liga Leumit (English + Hebrew variants)
-  "hapoel be'er sheva": "هبوعيل بئر السبع",
-  "hapoel beer sheva": "هبوعيل بئر السبع",
-  "hapoel beer-sheva": "هبوعيل بئر السبع",
-  "הפועל באר שבע": "هبوعيل بئر السبع",
-  "maccabi haifa": "مكابي حيفا",
-  "מכבי חיפה": "مكابي حيفا",
-  "maccabi tel aviv": "مكابي تل أبيب",
-  "maccabi tel-aviv": "مكابي تل أبيب",
-  "מכבי תל אביב": "مكابي تل أبيب",
-  "hapoel tel aviv": "هبوعيل تل أبيب",
-  "hapoel tel-aviv": "هبوعيل تل أبيب",
-  "הפועל תל אביב": "هبوعيل تل أبيب",
-  "beitar jerusalem": "بيتار القدس",
-  "בית\"ר ירושלים": "بيتار القدس",
-  "hapoel jerusalem": "هبوعيل القدس",
-  "הפועל ירושלים": "هبوعيل القدس",
-  "bnei sakhnin": "أبناء سخنين",
-  "ihud bnei sakhnin": "اتحاد أبناء سخنين",
-  "בני סכנין": "أبناء سخنين",
-  "maccabi bnei reineh": "مكابي أبناء الرينة",
-  "maccabi bnei raina": "مكابي أبناء الرينة",
-  "bnei reineh": "أبناء الرينة",
-  "מכבי בני ריינה": "مكابي أبناء الرينة",
-  "maccabi netanya": "مكابي نتانيا",
-  "מכבי נתניה": "مكابي نتانيا",
-  "hapoel haifa": "هبوعيل حيفا",
-  "הפועל חיפה": "هبوعيل حيفا",
-  "maccabi petah tikva": "مكابي بيتح تكفا",
-  "maccabi petah-tikva": "مكابي بيتح تكفا",
-  "מכבי פתח תקווה": "مكابي بيتح تكفا",
-  "hapoel petah tikva": "هبوعيل بيتح تكفا",
-  "hapoel petah-tikva": "هبوعيل بيتح تكفا",
-  "הפועל פתח תקווה": "هبوعيل بيتح تكفا",
-  "ashdod": "م.س أشدود",
-  "fc ashdod": "م.س أشدود",
-  "f.c. ashdod": "م.س أشدود",
-  "ms ashdod": "م.س أشدود",
-  "sc ashdod": "م.س أشدود",
-  "מ.ס. אשדוד": "م.س أشدود",
-  "ironi kiryat shmona": "عيروني كريات شمونة",
-  "hapoel ironi kiryat shmona": "هبوعيل كريات شمونة",
-  "kiryat shmona": "كريات شمونة",
-  "עירוני קריית שמונה": "عيروني كريات شمونة",
-  "ironi tiberias": "عيروني طبريا",
-  "עירוני טבריה": "عيروني طبريا",
-  "hapoel hadera": "هبوعيل الخضيرة",
-  "הפועל חדרה": "هبوعيل الخضيرة",
-  "hapoel ramat gan": "هبوعيل رمات غان",
-  "hapoel ramat-gan": "هبوعيل رمات غان",
-  "bnei yehuda": "بني يهودا تل أبيب",
-  "bnei yehuda tel aviv": "بني يهودا تل أبيب",
-  "hapoel kfar saba": "هبوعيل كفار سابا",
-  "hapoel umm al-fahm": "هبوعيل أم الفحم",
-  "maccabi ahi nazareth": "مكابي إخاء الناصرة",
-  "ms kafr qasim": "م.س كفر قاسم",
-  "sc kafr qasim": "م.س كفر قاسم",
-  "hapoel acre": "هبوعيل عكا",
-  "hapoel akko": "هبوعيل عكا",
-  "hapoel rishon lezion": "هبوعيل ريشون لتسيون",
-  "maccabi herzliya": "مكابي هرتسليا",
-  "hapoel afula": "هبوعيل العفولة",
-  "hapoel nof hagalil": "هبوعيل نوف هجليل",
-  "maccabi jaffa": "مكابي يافا",
-  "maccabi kabilio jaffa": "مكابي كابيليو يافا",
-  "hapoel kfar shalem": "هبوعيل كفار شاليم",
-  "hapoel raanana": "هبوعيل رعنانا",
-  "hapoel rahat": "هبوعيل رهط",
-  // LaLiga (Spain)
-  "real madrid": "ريال مدريد",
-  "barcelona": "برشلونة",
-  "fc barcelona": "برشلونة",
-  "atletico madrid": "أتلتيكو مدريد",
-  "atlético madrid": "أتلتيكو مدريد",
-  "atlético de madrid": "أتلتيكو مدريد",
-  "girona": "جيرونا",
-  "athletic club": "أتلتيك بيلباو",
-  "athletic bilbao": "أتلتيك بيلباو",
-  "real sociedad": "ريال سوسيداد",
-  "real betis": "ريال بيتيس",
-  "villarreal": "فياريال",
-  "valencia": "فالنسيا",
-  "sevilla": "إشبيلية",
-  "celta vigo": "سيلتا فيغو",
-  "rc celta": "سيلتا فيغو",
-  "osasuna": "أوساسونا",
-  "ca osasuna": "أوساسونا",
-  "getafe": "خيتافي",
-  "rayo vallecano": "رايو فايكانو",
-  "mallorca": "ريال مايوركا",
-  "rcd mallorca": "ريال مايوركا",
-  "las palmas": "لاس بالماس",
-  "ud las palmas": "لاس بالماس",
-  "alaves": "ديبورتيفو ألافيس",
-  "deportivo alavés": "ديبورتيفو ألافيس",
-  "leganes": "ليغانيس",
-  "cd leganés": "ليغانيس",
-  "espanyol": "إسبانيول",
-  "rcd espanyol": "إسبانيول",
-  "real valladolid": "بلد الوليد",
-  // Premier League (England)
-  "manchester city": "مانشستر سيتي",
-  "arsenal": "أرسنال",
-  "liverpool": "ليفربول",
-  "chelsea": "تشيلسي",
-  "manchester united": "مانشستر يونايتد",
-  "tottenham hotspur": "توتنهام هوتسبير",
-  "tottenham": "توتنهام",
-  "newcastle united": "نيوكاسل يونايتد",
-  "aston villa": "أستون فيلا",
-  "brighton & hove albion": "برايتون",
-  "brighton": "برايتون",
-  "west ham united": "وست هام يونايتد",
-  "crystal palace": "كريستال بالاس",
-  "fulham": "فولهام",
-  "brentford": "برينتفورد",
-  "everton": "إيفرتون",
-  "wolverhampton wanderers": "وولفرهامبتون",
-  "wolves": "وولفرهامبتون",
-  "afc bournemouth": "بورنموث",
-  "bournemouth": "بورنموث",
-  "nottingham forest": "نوتنغهام فورست",
-  "leicester city": "ليستر سيتي",
-  "ipswich town": "إيبسويتش تاون",
-  "southampton": "ساوثهامبتون",
-  // Serie A (Italy)
-  "inter": "إنتر ميلان",
-  "internazionale": "إنتر ميلان",
-  "inter milan": "إنتر ميلان",
-  "ac milan": "ميلان",
-  "milan": "ميلان",
-  "juventus": "يوفنتوس",
-  "napoli": "نابولي",
-  "as roma": "روما",
-  "roma": "روما",
-  "lazio": "لاتسيو",
-  "atalanta": "أتالانتا",
-  "fiorentina": "فيورنتينا",
-  "bologna": "بولونيا",
-  "torino": "تورينو",
-  "udinese": "أودينيزي",
-  "genoa": "جنوى",
-  "como": "كومو",
-  "parma": "بارما",
-  "hellas verona": "هيلاس فيرونا",
-  "cagliari": "كالياري",
-  "empoli": "إمبولي",
-  "lecce": "ليتشي",
-  "monza": "مونزا",
-  "venezia": "فينيزيا",
-  // Bundesliga (Germany)
-  "bayern munich": "بايرن ميونخ",
-  "fc bayern münchen": "بايرن ميونخ",
-  "bayer leverkusen": "باير ليفركوزن",
-  "borussia dortmund": "بوروسيا دورتموند",
-  "rb leipzig": "لايبزيغ",
-  "vfb stuttgart": "شتوتغارت",
-  "eintracht frankfurt": "آينتراخت فرانكفورت",
-  "tsg hoffenheim": "هوفنهايم",
-  "sc freiburg": "فرايبورغ",
-  "sv werder bremen": "فيردر بريمن",
-  "fc augsburg": "أوغسبورغ",
-  "vfl wolfsburg": "فولفسبورغ",
-  "borussia monchengladbach": "بوروسيا مونشنغلادباخ",
-  "borussia mönchengladbach": "بوروسيا مونشنغلادباخ",
-  "1. fc union berlin": "يونيون برلين",
-  "mainz 05": "ماينتس",
-  "1. fsv mainz 05": "ماينتس",
-  "vfl bochum": "بوخوم",
-  "fc st. pauli": "سانت باولي",
-  "holstein kiel": "هولشتاين كيل",
-  "1. fc heidenheim 1846": "هايدنهايم",
-  // Ligue 1 (France)
-  "paris saint-germain": "باريس سان جيرمان",
-  "psg": "باريس سان جيرمان",
-  "marseille": "مارسيليا",
-  "olympique de marseille": "مارسيليا",
-  "monaco": "موناكو",
-  "as monaco": "موناكو",
-  "lyon": "ليون",
-  "olympique lyonnais": "ليون",
-  "lille": "ليل",
-  "losc lille": "ليل",
-  "nice": "نيس",
-  "ogc nice": "نيس",
-  "lens": "لانس",
-  "rc lens": "لانس",
-  "rennes": "رين",
-  "stade rennais": "رين",
-  "stade brestois 29": "بريست",
-  "brest": "بريست",
-  // Other UCL & European clubs
-  "benfica": "بنفيكا",
-  "sporting cp": "سبورتينغ لشبونة",
-  "fc porto": "بورتو",
-  "porto": "بورتو",
-  "ajax": "أياكس أمستردام",
-  "psv eindhoven": "آيندهوفن",
-  "feyenoord": "فينورد",
-  "celtic": "سيلتيك",
-  "rangers": "رينجرز",
-  "galatasaray": "غلطة سراي",
-  "fenerbahce": "فنربخشة",
-  "besiktas": "بشكتاش",
-  "shakhtar donetsk": "شاختار دونيتسك",
-  "red bull salzburg": "ريد بول سالزبورغ",
-  "club brugge": "كلوب بروج",
-  "dinamo zagreb": "دينامو زغرب",
-  "sparta prague": "سبارتا براغ",
-  "slovan bratislava": "سلوفان براتيسلافا",
-  "young boys": "يونغ بويز",
-  "crvena zvezda": "النجم الأحمر",
-  "sturm graz": "شتورم غراتس",
-  // Saudi Pro League & Arab clubs
-  "al hilal": "الهلال",
-  "al-hilal": "الهلال",
-  "al nassr": "النصر",
-  "al-nassr": "النصر",
-  "al ittihad": "الاتحاد",
-  "al-ittihad": "الاتحاد",
-  "al ahli": "الأهلي",
-  "al-ahli": "الأهلي",
-  "al shabab": "الشباب",
-  "al-shabab": "الشباب",
-  "al ettifaq": "الاتفاق",
-  "al taawoun": "التعاون",
-  "al fateh": "الفتح",
-  "al qadsiah": "القادسية",
-  "zamalek": "الزمالك",
-  "pyramids fc": "بيراميدز",
-  "esperance": "الترجي التونسي",
-  "wydad": "الوداد الرياضي",
-  "raja": "الرجاء الرياضي",
-  "al ain": "العين الإماراتي",
-  "al sadd": "السد القطري",
-};
-
-export function translateTeamName(raw: string): string {
-  const clean = raw.trim();
-  const key = clean.toLowerCase();
-  if (TEAM_AR[key]) return TEAM_AR[key];
-  for (const [k, v] of Object.entries(TEAM_AR)) {
-    if (key === k || key.startsWith(k + " ") || key.endsWith(" " + k) || key.includes(k)) {
-      return v;
-    }
-  }
-  return clean;
+function pickBestDayTab(matches: MatchItem[], leagueId: string): DayTab {
+  const pool = leagueId === "all" ? matches : matches.filter((m) => m.leagueId === leagueId);
+  if (pool.some((m) => m.status === "in")) return "today";
+  if (pool.some((m) => m.dayKey === "today")) return "today";
+  if (pool.some((m) => m.dayKey === "tomorrow")) return "tomorrow";
+  if (pool.some((m) => m.dayKey === "yesterday")) return "yesterday";
+  if (pool.some((m) => m.dayKey === "upcoming")) return "upcoming";
+  return "today";
 }
 
-let tableEnsured = false;
-async function ensureMatchesTable() {
-  if (tableEnsured) return;
-  try {
-    const { getSql } = await import("@/lib/db");
-    const sql = await getSql();
-    await sql`
-      create table if not exists matches_settings (
-        id int primary key default 1,
-        data jsonb not null,
-        updated_at timestamptz not null default now()
-      )
-    `;
-    tableEnsured = true;
-  } catch (e) {
-    console.error("[matches] ensure table", e);
-  }
-}
-
-export function sanitizeMatchesSettings(raw: unknown): MatchesSettings {
-  const d = DEFAULT_MATCHES_SETTINGS;
-  const obj = (raw && typeof raw === "object" ? raw : {}) as Record<string, any>;
-  const enabled = obj.enabled !== undefined ? Boolean(obj.enabled) : d.enabled;
-  const showOnHome = obj.showOnHome !== undefined ? Boolean(obj.showOnHome) : d.showOnHome;
-
-  const byId = new Map<string, LeagueConfig>();
-  if (Array.isArray(obj.leagues)) {
-    for (const item of obj.leagues) {
-      const id = String(item?.id ?? "").trim().toLowerCase();
-      if (!/^[a-z0-9._-]{2,40}$/.test(id) || byId.has(id)) continue;
-      const builtin = BUILTIN_LEAGUES.find((b) => b.id === id);
-      byId.set(id, {
-        id,
-        nameAr: String(item?.nameAr ?? builtin?.nameAr ?? id).trim().slice(0, 60) || id,
-        shortAr: String(item?.shortAr ?? builtin?.shortAr ?? item?.nameAr ?? id).trim().slice(0, 30) || id,
-        countryAr: String(item?.countryAr ?? builtin?.countryAr ?? "دولي").trim().slice(0, 30),
-        badge: String(item?.badge ?? builtin?.badge ?? "⚽").trim().slice(0, 6) || "⚽",
-        enabled: item?.enabled !== undefined ? Boolean(item.enabled) : (builtin?.enabled ?? true),
-        builtin: Boolean(builtin),
-      });
-    }
-  }
-  for (const b of BUILTIN_LEAGUES) {
-    if (!byId.has(b.id)) byId.set(b.id, { ...b });
-  }
-  const leagues = [...byId.values()];
-  if (!leagues.some((l) => l.enabled)) {
-    const isr = leagues.find((l) => l.id === "isr.1");
-    if (isr) isr.enabled = true;
-  }
-
-  const rawDef = String(obj.defaultLeague ?? d.defaultLeague).trim();
-  const defaultLeague =
-    rawDef === "all" || leagues.some((l) => l.id === rawDef && l.enabled)
-      ? rawDef
-      : (leagues.find((l) => l.enabled)?.id ?? "all");
-
-  const customMatches: CustomMatch[] = [];
-  if (Array.isArray(obj.customMatches)) {
-    for (const m of obj.customMatches.slice(0, 30)) {
-      const homeTeam = String(m?.homeTeam ?? "").trim().slice(0, 50);
-      const awayTeam = String(m?.awayTeam ?? "").trim().slice(0, 50);
-      if (!homeTeam || !awayTeam) continue;
-      const status: CustomMatchStatus =
-        m?.status === "in" || m?.status === "post" ? m.status : "pre";
-      const offset = m?.dateOffset === -1 || m?.dateOffset === 1 ? m.dateOffset : 0;
-      const leagueId = String(m?.leagueId ?? "local.rahat").trim();
-      const lg = leagues.find((l) => l.id === leagueId);
-      customMatches.push({
-        id: String(m?.id ?? Math.random().toString(36).slice(2, 10)).slice(0, 24),
-        leagueId,
-        leagueNameAr: lg?.shortAr ?? String(m?.leagueNameAr ?? "مباريات رهط والنقب").slice(0, 40),
-        homeTeam,
-        awayTeam,
-        homeScore: Math.max(0, Math.min(99, Number(m?.homeScore) || 0)),
-        awayScore: Math.max(0, Math.min(99, Number(m?.awayScore) || 0)),
-        kickoff: String(m?.kickoff ?? "20:00").trim().slice(0, 16) || "20:00",
-        dateOffset: offset,
-        status,
-        minute: m?.minute ? String(m.minute).trim().slice(0, 12) : undefined,
-        note: m?.note ? String(m.note).trim().slice(0, 80) : undefined,
-      });
-    }
-  }
-
-  return { enabled, showOnHome, defaultLeague, leagues, customMatches };
-}
-
-let cachedSettings: { data: MatchesSettings; at: number } | null = null;
-
-export async function loadMatchesSettings(fresh = false): Promise<MatchesSettings> {
-  if (!fresh && cachedSettings && Date.now() - cachedSettings.at < 30_000) {
-    return cachedSettings.data;
-  }
-  try {
-    await ensureMatchesTable();
-    const { getSql } = await import("@/lib/db");
-    const sql = await getSql();
-    const rows = await sql<{ data: unknown }>`select data from matches_settings where id = 1`;
-    const settings = rows[0]?.data
-      ? sanitizeMatchesSettings(rows[0].data)
-      : DEFAULT_MATCHES_SETTINGS;
-    cachedSettings = { data: settings, at: Date.now() };
-    return settings;
-  } catch (e) {
-    console.error("[matches] load settings", e);
-    return cachedSettings?.data ?? DEFAULT_MATCHES_SETTINGS;
-  }
-}
-
-export async function saveMatchesSettingsToDb(input: unknown): Promise<MatchesSettings> {
-  const clean = sanitizeMatchesSettings(input);
-  await ensureMatchesTable();
-  const { getSql } = await import("@/lib/db");
-  const sql = await getSql();
-  await sql`
-    insert into matches_settings (id, data, updated_at)
-    values (1, ${JSON.stringify(clean)}::jsonb, now())
-    on conflict (id) do update set data = excluded.data, updated_at = now()
-  `;
-  cachedSettings = { data: clean, at: Date.now() };
-  boardCache = null;
-  return clean;
-}
-
-function formatYmd(d: Date): string {
-  const y = d.getUTCFullYear();
-  const m = String(d.getUTCMonth() + 1).padStart(2, "0");
-  const day = String(d.getUTCDate()).padStart(2, "0");
-  return `${y}${m}${day}`;
-}
-
-function israelDateKey(iso: string): string {
-  try {
-    return new Intl.DateTimeFormat("en-CA", {
-      timeZone: "Asia/Jerusalem",
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    }).format(new Date(iso));
-  } catch {
-    return iso.slice(0, 10);
-  }
-}
-
-function formatTimeJerusalem(iso: string): string {
-  try {
-    return new Intl.DateTimeFormat("ar-EG", {
-      timeZone: "Asia/Jerusalem",
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    }).format(new Date(iso));
-  } catch {
-    return "20:00";
-  }
-}
-
-function formatShortDateAr(iso: string): string {
-  try {
-    return new Intl.DateTimeFormat("ar-EG", {
-      timeZone: "Asia/Jerusalem",
-      weekday: "short",
-      day: "numeric",
-      month: "short",
-    }).format(new Date(iso));
-  } catch {
-    return "";
-  }
-}
-
-function classifyDayKey(kickoffIso: string): MatchItem["dayKey"] {
-  const now = new Date();
-  const todayKey = israelDateKey(now.toISOString());
-  const yestKey = israelDateKey(new Date(now.getTime() - 86_400_000).toISOString());
-  const tomKey = israelDateKey(new Date(now.getTime() + 86_400_000).toISOString());
-  const dKey = israelDateKey(kickoffIso);
-  if (dKey === todayKey) return "today";
-  if (dKey === yestKey) return "yesterday";
-  if (dKey === tomKey) return "tomorrow";
-  return "upcoming";
-}
-
-/** Map league IDs to TheSportsDB league IDs for supplementary/fallback rounds (especially Israeli Ligat Ha'Al 4644). */
-const SPORTSDB_LEAGUE_IDS: Record<string, string> = {
-  "isr.1": "4644", // Israeli Premier League (Ligat Ha'Al)
-  "esp.1": "4335", // Spanish La Liga
-  "eng.1": "4328", // English Premier League
-  "ita.1": "4332", // Italian Serie A
-  "ger.1": "4331", // German Bundesliga
-  "fra.1": "4334", // French Ligue 1
-  "uefa.champions": "4480", // UEFA Champions League
-  "sau.1": "4668", // Saudi Pro League
-};
-
-async function fetchSportsDbEvents(league: LeagueConfig): Promise<MatchItem[]> {
-  const sdbId = SPORTSDB_LEAGUE_IDS[league.id];
-  if (!sdbId) return [];
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 3_800);
-  try {
-    const [nextRes, pastRes] = await Promise.allSettled([
-      fetch(`https://www.thesportsdb.com/api/v1/json/3/eventsnextleague.php?id=${sdbId}`, {
-        signal: ctrl.signal,
-        headers: { accept: "application/json" },
-      }),
-      fetch(`https://www.thesportsdb.com/api/v1/json/3/eventspastleague.php?id=${sdbId}`, {
-        signal: ctrl.signal,
-        headers: { accept: "application/json" },
-      }),
-    ]);
-
-    const rawEvents: any[] = [];
-    for (const r of [nextRes, pastRes]) {
-      if (r.status === "fulfilled" && r.value.ok) {
-        const j = (await r.value.json().catch(() => ({}))) as { events?: any[] };
-        if (Array.isArray(j?.events)) rawEvents.push(...j.events);
-      }
-    }
-
-    const out: MatchItem[] = [];
-    for (const ev of rawEvents.slice(0, 20)) {
-      if (!ev?.strHomeTeam || !ev?.strAwayTeam) continue;
-      const dateStr = String(ev.dateEvent ?? "");
-      const timeStr = String(ev.strTime ?? "18:00:00").slice(0, 8);
-      if (!dateStr) continue;
-      const kickoffIso = `${dateStr}T${timeStr.includes(":") ? timeStr : "18:00:00"}Z`;
-      const hasScore = ev.intHomeScore !== null && ev.intHomeScore !== undefined && ev.intHomeScore !== "";
-      const rawStatus = String(ev.strStatus ?? "").toUpperCase();
-      const isLive = rawStatus === "LIVE" || rawStatus === "1H" || rawStatus === "2H" || rawStatus === "HT";
-      const status: "pre" | "in" | "post" = isLive ? "in" : hasScore ? "post" : "pre";
-      const dayKey = classifyDayKey(kickoffIso);
-
-      out.push({
-        id: `sdb-${ev.idEvent ?? `${league.id}-${dateStr}-${ev.strHomeTeam}`}`,
-        leagueId: league.id,
-        leagueNameAr: league.shortAr,
-        leagueBadge: league.badge,
-        homeTeam: translateTeamName(String(ev.strHomeTeam)),
-        awayTeam: translateTeamName(String(ev.strAwayTeam)),
-        homeLogo: typeof ev.strHomeTeamBadge === "string" ? ev.strHomeTeamBadge : undefined,
-        awayLogo: typeof ev.strAwayTeamBadge === "string" ? ev.strAwayTeamBadge : undefined,
-        homeScore: hasScore ? Number(ev.intHomeScore) : null,
-        awayScore: hasScore ? Number(ev.intAwayScore) : null,
-        status,
-        statusTextAr:
-          status === "in"
-            ? "مباشر الآن"
-            : status === "post"
-              ? "انتهت"
-              : formatTimeJerusalem(kickoffIso),
-        kickoffIso,
-        kickoffTimeAr: formatTimeJerusalem(kickoffIso),
-        dayKey,
-        dateLabelAr: formatShortDateAr(kickoffIso),
-        venue: ev.strVenue ? String(ev.strVenue) : undefined,
-      });
-    }
-    return out;
-  } catch {
-    return [];
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
-async function fetchLeagueEvents(league: LeagueConfig, dateRangeParam: string): Promise<MatchItem[]> {
-  if (league.id === "local.rahat") return [];
-  const url = `https://site.api.espn.com/apis/site/v2/sports/soccer/${encodeURIComponent(league.id)}/scoreboard?dates=${dateRangeParam}`;
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 3_800);
-  let espnItems: MatchItem[] = [];
-  try {
-    const res = await fetch(url, {
-      signal: ctrl.signal,
-      headers: {
-        "user-agent": "Mozilla/5.0 (compatible; RahatPostBot/1.0; +https://rahatpost.com)",
-        accept: "application/json",
-      },
-    });
-    if (res.ok) {
-      const json = (await res.json()) as { events?: any[] };
-      const events = Array.isArray(json?.events) ? json.events : [];
-      const now = new Date();
-
-      for (const ev of events.slice(0, 24)) {
-        const comp = ev?.competitions?.[0];
-        const competitors: any[] = Array.isArray(comp?.competitors) ? comp.competitors : [];
-        const home = competitors.find((c) => c.homeAway === "home") ?? competitors[0];
-        const away = competitors.find((c) => c.homeAway === "away") ?? competitors[1];
-        if (!home?.team || !away?.team) continue;
-
-        const rawState = String(ev?.status?.type?.state ?? comp?.status?.type?.state ?? "pre");
-        const status: "pre" | "in" | "post" =
-          rawState === "in" ? "in" : rawState === "post" ? "post" : "pre";
-        const clock = String(ev?.status?.displayClock ?? comp?.status?.displayClock ?? "").trim();
-        const detail = String(ev?.status?.type?.shortDetail ?? "").trim();
-        const kickoffIso = String(ev?.date ?? comp?.date ?? now.toISOString());
-        const dayKey = classifyDayKey(kickoffIso);
-
-        let statusTextAr = formatTimeJerusalem(kickoffIso);
-        if (status === "in") {
-          statusTextAr = detail === "HT" ? "استراحة الشوطين" : clock ? `مباشر ${clock}` : "مباشر الآن";
-        } else if (status === "post") {
-          statusTextAr = "انتهت";
-        }
-
-        const homeScore = status === "pre" ? null : Number(home?.score ?? 0);
-        const awayScore = status === "pre" ? null : Number(away?.score ?? 0);
-
-        espnItems.push({
-          id: String(ev?.id ?? `${league.id}-${kickoffIso}-${home.team.displayName}`),
-          leagueId: league.id,
-          leagueNameAr: league.shortAr,
-          leagueBadge: league.badge,
-          homeTeam: translateTeamName(
-            String(home.team.shortDisplayName || home.team.displayName || home.team.name || ""),
-          ),
-          awayTeam: translateTeamName(
-            String(away.team.shortDisplayName || away.team.displayName || away.team.name || ""),
-          ),
-          homeLogo: typeof home.team.logo === "string" ? home.team.logo : undefined,
-          awayLogo: typeof away.team.logo === "string" ? away.team.logo : undefined,
-          homeScore: Number.isFinite(homeScore) ? homeScore : null,
-          awayScore: Number.isFinite(awayScore) ? awayScore : null,
-          status,
-          statusTextAr,
-          kickoffIso,
-          kickoffTimeAr: formatTimeJerusalem(kickoffIso),
-          dayKey,
-          dateLabelAr: formatShortDateAr(kickoffIso),
-          venue: comp?.venue?.fullName ? String(comp.venue.fullName) : undefined,
-        });
-      }
-    }
-  } catch {
-    // fallback below
-  } finally {
-    clearTimeout(timer);
-  }
-
-  // Always enrich Israeli Premier League (isr.1) or any league where ESPN returned < 2 matches using TheSportsDB
-  if (league.id === "isr.1" || espnItems.length < 2) {
-    const sdbItems = await fetchSportsDbEvents(league);
-    const seen = new Set(
-      espnItems.map((m) => `${m.homeTeam}-${m.awayTeam}-${m.kickoffIso.slice(0, 10)}`),
+function TeamCrest({ name, logo }: { name: string; logo?: string }) {
+  if (logo) {
+    return (
+      <img
+        src={logo}
+        alt=""
+        loading="lazy"
+        className="size-7 shrink-0 object-contain"
+      />
     );
-    for (const item of sdbItems) {
-      const key = `${item.homeTeam}-${item.awayTeam}-${item.kickoffIso.slice(0, 10)}`;
-      if (!seen.has(key)) {
-        seen.add(key);
-        espnItems.push(item);
-      }
-    }
   }
-
-  return espnItems;
+  return (
+    <span className="grid size-7 shrink-0 place-items-center rounded-full bg-primary-soft text-xs font-extrabold text-primary-ink">
+      {name.trim().slice(0, 2)}
+    </span>
+  );
 }
 
-let boardCache: { data: MatchesBoardData; at: number } | null = null;
-let boardInflight: Promise<MatchesBoardData> | null = null;
+function MatchRowCard({ m, showLeagueBadge }: { m: MatchItem; showLeagueBadge?: boolean }) {
+  const isLive = m.status === "in";
+  const isDone = m.status === "post";
+  return (
+    <div
+      className={`flex flex-col gap-1.5 rounded-2xl border px-3 py-2.5 transition ${
+        isLive
+          ? "border-alert/50 bg-alert/5 shadow-xs"
+          : "border-line bg-paper hover:border-ink/25"
+      }`}
+    >
+      {showLeagueBadge ? (
+        <div className="flex items-center justify-between text-[11px] font-bold text-muted">
+          <span className="inline-flex items-center gap-1">
+            <span>{m.leagueBadge}</span>
+            <span>{trv(m.leagueNameAr)}</span>
+          </span>
+          <span>{m.dateLabelAr}</span>
+        </div>
+      ) : null}
 
-export async function loadMatchesBoard(forceFresh = false): Promise<MatchesBoardData> {
-  const settings = await loadMatchesSettings(forceFresh);
-  if (!settings.enabled) {
-    return {
-      enabled: false,
-      showOnHome: settings.showOnHome,
-      defaultLeague: settings.defaultLeague,
-      leagues: settings.leagues.filter((l) => l.enabled),
-      matches: [],
-      fetchedAt: Date.now(),
-    };
-  }
+      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+        {/* Home team */}
+        <div className="flex min-w-0 items-center gap-2">
+          <TeamCrest name={m.homeTeam} logo={m.homeLogo} />
+          <span className="truncate text-sm font-bold">{trv(m.homeTeam)}</span>
+        </div>
 
-  if (!forceFresh && boardCache && Date.now() - boardCache.at < 60_000) {
-    return {
-      ...boardCache.data,
-      enabled: settings.enabled,
-      showOnHome: settings.showOnHome,
-      defaultLeague: settings.defaultLeague,
-    };
-  }
+        {/* Center score / kickoff box */}
+        <div className="flex flex-col items-center justify-center px-2">
+          {m.status === "pre" ? (
+            <span
+              dir="ltr"
+              className="rounded-xl bg-surface px-2.5 py-1 text-xs font-extrabold text-ink"
+            >
+              {m.kickoffTimeAr}
+            </span>
+          ) : (
+            <div
+              dir="ltr"
+              className={`flex items-center gap-1.5 rounded-xl px-2.5 py-1 text-base font-extrabold ${
+                isLive ? "bg-alert text-white" : "bg-surface text-ink"
+              }`}
+            >
+              <span>{m.homeScore ?? 0}</span>
+              <span className="opacity-60">:</span>
+              <span>{m.awayScore ?? 0}</span>
+            </div>
+          )}
 
-  if (!forceFresh && boardInflight) return boardInflight;
+          <span
+            className={`mt-1 inline-flex items-center gap-1 text-[11px] font-extrabold ${
+              isLive ? "text-alert" : isDone ? "text-muted" : "text-primary-ink"
+            }`}
+          >
+            {isLive ? (
+              <span className="size-2 animate-ping rounded-full bg-alert" />
+            ) : null}
+            {trv(m.statusTextAr)}
+          </span>
+        </div>
 
-  boardInflight = (async () => {
-    const enabledLeagues = settings.leagues.filter((l) => l.enabled);
-    const now = new Date();
-    // Fetch an 8-day window (-3 days to +5 days) so all weekend & mid-week rounds appear
-    const start = new Date(now.getTime() - 3 * 86_400_000);
-    const end = new Date(now.getTime() + 5 * 86_400_000);
-    const rangeParam = `${formatYmd(start)}-${formatYmd(end)}`;
+        {/* Away team */}
+        <div className="flex min-w-0 items-center justify-end gap-2 text-left">
+          <span className="truncate text-sm font-bold">{trv(m.awayTeam)}</span>
+          <TeamCrest name={m.awayTeam} logo={m.awayLogo} />
+        </div>
+      </div>
 
-    const results = await Promise.all(
-      enabledLeagues.map((lg) => fetchLeagueEvents(lg, rangeParam)),
-    );
-
-    const customItems: MatchItem[] = settings.customMatches.map((m) => {
-      const lg = settings.leagues.find((l) => l.id === m.leagueId);
-      const dayKey: MatchItem["dayKey"] =
-        m.dateOffset === -1 ? "yesterday" : m.dateOffset === 1 ? "tomorrow" : "today";
-      const d = new Date(now.getTime() + m.dateOffset * 86_400_000);
-      return {
-        id: `custom-${m.id}`,
-        leagueId: m.leagueId,
-        leagueNameAr: lg?.shortAr ?? m.leagueNameAr,
-        leagueBadge: lg?.badge ?? "🏟️",
-        homeTeam: m.homeTeam,
-        awayTeam: m.awayTeam,
-        homeScore: m.status === "pre" ? null : m.homeScore,
-        awayScore: m.status === "pre" ? null : m.awayScore,
-        status: m.status,
-        statusTextAr:
-          m.status === "in"
-            ? m.minute
-              ? `مباشر ${m.minute}`
-              : "مباشر الآن"
-            : m.status === "post"
-              ? "انتهت"
-              : m.kickoff,
-        kickoffIso: d.toISOString(),
-        kickoffTimeAr: m.kickoff,
-        dayKey,
-        dateLabelAr: formatShortDateAr(d.toISOString()),
-        note: m.note,
-      };
-    });
-
-    const allMatches = [...customItems, ...results.flat()].sort((a, b) => {
-      // Live matches always come first
-      if (a.status === "in" && b.status !== "in") return -1;
-      if (b.status === "in" && a.status !== "in") return 1;
-      return Date.parse(a.kickoffIso) - Date.parse(b.kickoffIso);
-    });
-
-    const board: MatchesBoardData = {
-      enabled: settings.enabled,
-      showOnHome: settings.showOnHome,
-      defaultLeague: settings.defaultLeague,
-      leagues: enabledLeagues,
-      matches: allMatches,
-      fetchedAt: Date.now(),
-    };
-    boardCache = { data: board, at: Date.now() };
-    return board;
-  })().finally(() => {
-    boardInflight = null;
-  });
-
-  return boardInflight;
+      {m.note ? (
+        <p className="text-center text-[11px] font-semibold text-muted">{trv(m.note)}</p>
+      ) : null}
+    </div>
+  );
 }
 
-export const getMatchesBoard = createServerFn({ method: "GET" }).handler(
-  async (): Promise<MatchesBoardData> => {
+/** Homepage Live Matches Widget with League & Day selector. */
+export function HomeMatchesWidget({ initial }: { initial: MatchesBoardData | null }) {
+  const [board, setBoard] = useState<MatchesBoardData | null>(initial);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const initialLeague = useMemo(() => {
+    if (!board) return "all";
+    if (board.defaultLeague === "all") return "all";
+    if (board.leagues.some((l) => l.id === board.defaultLeague)) return board.defaultLeague;
+    return board.leagues[0]?.id ?? "all";
+  }, [board]);
+
+  const [selectedLeague, setSelectedLeague] = useState<string>(initialLeague);
+  const [dayTab, setDayTab] = useState<DayTab>(() =>
+    board ? pickBestDayTab(board.matches, initialLeague) : "today",
+  );
+
+  useEffect(() => {
+    if (!board) return;
+    setSelectedLeague((prev) => {
+      if (prev === "all" || board.leagues.some((l) => l.id === prev)) return prev;
+      return board.defaultLeague === "all"
+        ? "all"
+        : (board.leagues.find((l) => l.id === board.defaultLeague)?.id ??
+            board.leagues[0]?.id ??
+            "all");
+    });
+  }, [board]);
+
+  // Auto-refresh live scores every 60s
+  useEffect(() => {
+    const id = setInterval(() => {
+      void getMatchesBoard()
+        .then((fresh) => setBoard(fresh))
+        .catch(() => {});
+    }, 60_000);
+    return () => clearInterval(id);
+  }, []);
+
+  if (!board || !board.enabled || !board.showOnHome) return null;
+
+  const liveCount = board.matches.filter((m) => m.status === "in").length;
+
+  const leagueMatches = useMemo(
+    () =>
+      selectedLeague === "all"
+        ? board.matches
+        : board.matches.filter((m) => m.leagueId === selectedLeague),
+    [board.matches, selectedLeague],
+  );
+
+  const filteredMatches = useMemo(() => {
+    if (dayTab === "live") return leagueMatches.filter((m) => m.status === "in");
+    const byDay = leagueMatches.filter((m) => m.dayKey === dayTab);
+    if (byDay.length > 0) return byDay;
+    return leagueMatches.slice(0, 8);
+  }, [leagueMatches, dayTab]);
+
+  const showingFallbackDay =
+    dayTab !== "live" &&
+    leagueMatches.length > 0 &&
+    leagueMatches.filter((m) => m.dayKey === dayTab).length === 0;
+
+  const handleSelectLeague = (id: string) => {
+    setSelectedLeague(id);
+    setDayTab(pickBestDayTab(board.matches, id));
+  };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
     try {
-      return await loadMatchesBoard(false);
-    } catch (e) {
-      console.error("[matches] getMatchesBoard", e);
-      return {
-        enabled: true,
-        showOnHome: true,
-        defaultLeague: "all",
-        leagues: BUILTIN_LEAGUES.filter((l) => l.enabled),
-        matches: [],
-        fetchedAt: Date.now(),
-      };
+      const fresh = await getMatchesBoard();
+      setBoard(fresh);
+    } finally {
+      setRefreshing(false);
     }
-  },
-);
+  };
 
-export const adminGetMatchesSettings = createServerFn({ method: "GET" }).handler(
-  async (): Promise<{ authed: boolean; settings: MatchesSettings }> => {
-    const { isAdmin } = await import("@/lib/admin-auth");
-    if (!(await isAdmin())) return { authed: false, settings: DEFAULT_MATCHES_SETTINGS };
-    const settings = await loadMatchesSettings(true);
-    return { authed: true, settings };
-  },
-);
+  return (
+    <section className="stamp p-4" aria-label={tr("نتائج المباريات المباشرة")}>
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <span className="grid size-9 place-items-center rounded-xl bg-primary text-ink">
+            <Trophy className="size-5" />
+          </span>
+          <div>
+            <div className="flex items-center gap-2">
+              <h2 className="text-lg font-extrabold">{tr("نتائج المباريات المباشرة")}</h2>
+              {liveCount > 0 ? (
+                <span className="inline-flex items-center gap-1 rounded-full bg-alert px-2 py-0.5 text-xs font-extrabold text-white">
+                  <span className="size-1.5 animate-ping rounded-full bg-white" />
+                  {liveCount} {tr("مباشر")}
+                </span>
+              ) : null}
+            </div>
+            <p className="text-xs font-semibold text-muted">
+              {tr("الدوري الإسرائيلي، لا ليغا، أبطال أوروبا والدوريات العالمية لحظة بلحظة")}
+            </p>
+          </div>
+        </div>
 
-export const adminSaveMatchesSettings = createServerFn({ method: "POST" })
-  .inputValidator((d: unknown) => d)
-  .handler(async ({ data }): Promise<{ ok: boolean; settings?: MatchesSettings; message?: string }> => {
-    const { isAdmin } = await import("@/lib/admin-auth");
-    if (!(await isAdmin())) return { ok: false, message: "غير مصرح" };
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="chip text-xs"
+            title={tr("تحديث النتائج")}
+          >
+            <RefreshCw className={`size-3.5 ${refreshing ? "animate-spin" : ""}`} />
+            {tr("تحديث")}
+          </button>
+          <Link to="/sports-news" className="see-all text-xs">
+            {tr("كل المباريات")}
+            <ChevronLeft className="size-4" />
+          </Link>
+        </div>
+      </div>
+
+      {/* League selector tabs */}
+      <div className="scroll-row mb-2.5 gap-1.5 pb-1">
+        <button
+          type="button"
+          onClick={() => handleSelectLeague("all")}
+          className={selectedLeague === "all" ? "chip chip-ink shrink-0" : "chip shrink-0"}
+        >
+          ⚽ {tr("كل الدوريات")}
+        </button>
+        {board.leagues.map((lg) => (
+          <button
+            key={lg.id}
+            type="button"
+            onClick={() => handleSelectLeague(lg.id)}
+            className={selectedLeague === lg.id ? "chip chip-ink shrink-0" : "chip shrink-0"}
+          >
+            <span>{lg.badge}</span>
+            <span>{trv(lg.shortAr)}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* Day filter tabs */}
+      <div className="mb-3 flex flex-wrap items-center gap-1.5 border-b border-line pb-2.5 text-xs font-bold">
+        {(
+          [
+            { key: "today", label: "اليوم" },
+            { key: "yesterday", label: "أمس" },
+            { key: "tomorrow", label: "غداً" },
+            { key: "upcoming", label: "الجولة القادمة والنتائج" },
+          ] as { key: DayTab; label: string }[]
+        ).map((t) => (
+          <button
+            key={t.key}
+            type="button"
+            onClick={() => setDayTab(t.key)}
+            className={`rounded-xl px-3 py-1 transition ${
+              dayTab === t.key
+                ? "bg-primary font-extrabold text-ink"
+                : "bg-surface text-muted hover:text-ink"
+            }`}
+          >
+            {tr(t.label)}
+          </button>
+        ))}
+        {liveCount > 0 ? (
+          <button
+            type="button"
+            onClick={() => setDayTab("live")}
+            className={`rounded-xl px-3 py-1 font-extrabold transition ${
+              dayTab === "live" ? "bg-alert text-white" : "bg-alert/10 text-alert"
+            }`}
+          >
+            🔴 {tr("مباشر الآن")} ({liveCount})
+          </button>
+        ) : null}
+      </div>
+
+      {showingFallbackDay ? (
+        <p className="mb-2 text-xs font-bold text-muted">
+          {tr("لا توجد مباريات في هذا اليوم لهذا الدوري — إليك أحدث نتائج ومباريات الجولة:")}
+        </p>
+      ) : null}
+
+      {filteredMatches.length === 0 ? (
+        <div className="rounded-2xl bg-surface p-5 text-center">
+          <p className="font-bold text-muted">
+            {tr("لا توجد مباريات مسجّلة حالياً في هذا التبويب — جرّب اختيار دوري آخر أو «كل الدوريات».")}
+          </p>
+        </div>
+      ) : (
+        <div className="grid gap-2 sm:grid-cols-2">
+          {filteredMatches.slice(0, 8).map((m) => (
+            <MatchRowCard
+              key={m.id}
+              m={m}
+              showLeagueBadge={selectedLeague === "all" || showingFallbackDay}
+            />
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+/** Full Matches Scoreboard for /sports-news page. */
+export function FullMatchesBoard({ initial }: { initial: MatchesBoardData | null }) {
+  const [board, setBoard] = useState<MatchesBoardData | null>(initial);
+  const [selectedLeague, setSelectedLeague] = useState<string>(
+    initial?.defaultLeague && initial.defaultLeague !== "all" ? initial.defaultLeague : "all",
+  );
+  const [dayTab, setDayTab] = useState<DayTab>("today");
+  const [refreshing, setRefreshing] = useState(false);
+
+  if (!board || !board.enabled) return null;
+
+  const liveCount = board.matches.filter((m) => m.status === "in").length;
+
+  const matches = useMemo(() => {
+    const byLeague =
+      selectedLeague === "all"
+        ? board.matches
+        : board.matches.filter((m) => m.leagueId === selectedLeague);
+    if (dayTab === "live") return byLeague.filter((m) => m.status === "in");
+    const byDay = byLeague.filter((m) => m.dayKey === dayTab);
+    return byDay.length > 0 ? byDay : byLeague;
+  }, [board.matches, selectedLeague, dayTab]);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
     try {
-      const settings = await saveMatchesSettingsToDb(data);
-      return { ok: true, settings };
-    } catch (e) {
-      console.error("[matches] save settings", e);
-      return { ok: false, message: "تعذّر حفظ إعدادات الدوريات." };
+      setBoard(await getMatchesBoard());
+    } finally {
+      setRefreshing(false);
     }
-  });
+  };
 
-export const adminRefreshMatchesNow = createServerFn({ method: "POST" }).handler(
-  async (): Promise<{ ok: boolean; count: number; message: string }> => {
-    const { isAdmin } = await import("@/lib/admin-auth");
-    if (!(await isAdmin())) return { ok: false, count: 0, message: "غير مصرح" };
-    const board = await loadMatchesBoard(true);
-    return {
-      ok: true,
-      count: board.matches.length,
-      message: `تم تحديث جدول المباريات بنجاح (${board.matches.length} مباراة من ${board.leagues.length} دوريات مفعّلة) ✓`,
+  return (
+    <section className="stamp mb-6 p-4" aria-label={tr("جدول ونتائج المباريات المباشرة")}>
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <span className="grid size-10 place-items-center rounded-xl bg-primary text-ink">
+            <Trophy className="size-5" />
+          </span>
+          <div>
+            <h2 className="text-xl font-extrabold">{tr("جدول ونتائج المباريات المباشرة")}</h2>
+            <p className="text-xs font-semibold text-muted">
+              {tr("الدوري الإسرائيلي (ليغات هعَل), لا ليغا, أبطال أوروبا والدوريات العالمية بتوقيت رهط والقدس")}
+            </p>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={handleRefresh}
+          disabled={refreshing}
+          className="btn btn-ghost px-3 py-1.5 text-xs"
+        >
+          <RefreshCw className={`size-4 ${refreshing ? "animate-spin" : ""}`} />
+          {tr("تحديث النتائج الآن")}
+        </button>
+      </div>
+
+      {/* League pills */}
+      <div className="scroll-row mb-3 gap-1.5 pb-1">
+        <button
+          type="button"
+          onClick={() => setSelectedLeague("all")}
+          className={selectedLeague === "all" ? "chip chip-ink shrink-0" : "chip shrink-0"}
+        >
+          ⚽ {tr("كل الدوريات")} ({board.matches.length})
+        </button>
+        {board.leagues.map((lg) => {
+          const count = board.matches.filter((m) => m.leagueId === lg.id).length;
+          return (
+            <button
+              key={lg.id}
+              type="button"
+              onClick={() => setSelectedLeague(lg.id)}
+              className={selectedLeague === lg.id ? "chip chip-ink shrink-0" : "chip shrink-0"}
+            >
+              <span>{lg.badge}</span>
+              <span>{trv(lg.nameAr)}</span>
+              {count > 0 ? <span className="opacity-75">({count})</span> : null}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Day filter */}
+      <div className="mb-3 flex flex-wrap items-center gap-1.5 border-b border-line pb-2.5 text-xs font-bold">
+        {(
+          [
+            { key: "today", label: "مباريات اليوم" },
+            { key: "yesterday", label: "نتائج أمس" },
+            { key: "tomorrow", label: "مباريات غداً" },
+            { key: "upcoming", label: "جميع مباريات الجولة" },
+          ] as { key: DayTab; label: string }[]
+        ).map((t) => (
+          <button
+            key={t.key}
+            type="button"
+            onClick={() => setDayTab(t.key)}
+            className={`rounded-xl px-3 py-1.5 transition ${
+              dayTab === t.key
+                ? "bg-primary font-extrabold text-ink"
+                : "bg-surface text-muted hover:text-ink"
+            }`}
+          >
+            {tr(t.label)}
+          </button>
+        ))}
+        {liveCount > 0 ? (
+          <button
+            type="button"
+            onClick={() => setDayTab("live")}
+            className={`rounded-xl px-3 py-1.5 font-extrabold transition ${
+              dayTab === "live" ? "bg-alert text-white" : "bg-alert/10 text-alert"
+            }`}
+          >
+            🔴 {tr("مباشر الآن")} ({liveCount})
+          </button>
+        ) : null}
+      </div>
+
+      {matches.length === 0 ? (
+        <p className="rounded-2xl bg-surface p-5 text-center font-bold text-muted">
+          {tr("لا توجد مباريات حالياً في هذا الفلتر.")}
+        </p>
+      ) : (
+        <div className="grid gap-2.5 sm:grid-cols-2">
+          {matches.map((m) => (
+            <MatchRowCard key={m.id} m={m} showLeagueBadge />
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+/** Admin Control Panel for choosing leagues (including Israeli Ligat Ha'Al & LaLiga), setting the default league, and adding custom matches. */
+export function MatchesAdmin() {
+  const [s, setS] = useState<MatchesSettings | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [dirty, setDirty] = useState(false);
+  const [msg, setMsg] = useState("");
+
+  // New custom league form
+  const [newLeagueId, setNewLeagueId] = useState("");
+  const [newLeagueName, setNewLeagueName] = useState("");
+  const [newLeagueBadge, setNewLeagueBadge] = useState("⚽");
+
+  // New custom match form
+  const [homeTeam, setHomeTeam] = useState("");
+  const [awayTeam, setAwayTeam] = useState("");
+  const [homeScore, setHomeScore] = useState(0);
+  const [awayScore, setAwayScore] = useState(0);
+  const [matchLeagueId, setMatchLeagueId] = useState("isr.1");
+  const [kickoff, setKickoff] = useState("20:00");
+  const [matchStatus, setMatchStatus] = useState<CustomMatchStatus>("pre");
+  const [matchMinute, setMatchMinute] = useState("");
+  const [matchNote, setMatchNote] = useState("");
+
+  useEffect(() => {
+    void adminGetMatchesSettings().then((r) => {
+      setS(r.settings);
+    });
+  }, []);
+
+  if (!s) {
+    return <p className="stamp p-4 font-bold">{tr("جاري تحميل إعدادات المباريات والدوريات…")}</p>;
+  }
+
+  const update = (patch: Partial<MatchesSettings>) => {
+    setS({ ...s, ...patch });
+    setDirty(true);
+    setMsg("");
+  };
+
+  const save = async (nextSettings?: MatchesSettings) => {
+    const payload = nextSettings ?? s;
+    setSaving(true);
+    setMsg("");
+    const res = await adminSaveMatchesSettings({ data: payload });
+    setSaving(false);
+    if (!res.ok || !res.settings) {
+      setMsg(res.message || tr("تعذّر حفظ الإعدادات."));
+      return;
+    }
+    setS(res.settings);
+    setDirty(false);
+    setMsg(tr("تم حفظ إعدادات الدوريات والليغا وتحديث الموقع فورا ✓"));
+  };
+
+  const refreshLive = async () => {
+    setRefreshing(true);
+    setMsg("");
+    const res = await adminRefreshMatchesNow();
+    setRefreshing(false);
+    setMsg(res.message);
+  };
+
+  const toggleLeague = (id: string) => {
+    const leagues = s.leagues.map((l) => (l.id === id ? { ...l, enabled: !l.enabled } : l));
+    update({ leagues });
+  };
+
+  const moveLeague = (idx: number, dir: -1 | 1) => {
+    const j = idx + dir;
+    if (j < 0 || j >= s.leagues.length) return;
+    const leagues = [...s.leagues];
+    [leagues[idx], leagues[j]] = [leagues[j], leagues[idx]];
+    update({ leagues });
+  };
+
+  const setAsDefaultLeague = (id: string) => {
+    const leagues = s.leagues.map((l) => (l.id === id ? { ...l, enabled: true } : l));
+    const next = { ...s, leagues, defaultLeague: id };
+    setS(next);
+    void save(next);
+  };
+
+  const applyPreset = (mode: "israeli" | "laliga" | "top5" | "all") => {
+    const topSet = new Set(["isr.1", "isr.2", "esp.1", "uefa.champions", "eng.1", "ita.1", "ger.1", "fra.1"]);
+    const isrSet = new Set(["isr.1", "isr.2", "isr.cup", "local.rahat", "esp.1", "uefa.champions"]);
+    const leagues = s.leagues.map((l) => ({
+      ...l,
+      enabled:
+        mode === "all"
+          ? true
+          : mode === "israeli"
+            ? isrSet.has(l.id)
+            : mode === "laliga"
+              ? l.id === "esp.1" || l.id === "isr.1" || l.id === "uefa.champions"
+              : topSet.has(l.id),
+    }));
+    const defaultLeague =
+      mode === "israeli" ? "isr.1" : mode === "laliga" ? "esp.1" : s.defaultLeague;
+    update({ leagues, defaultLeague });
+  };
+
+  const addCustomLeague = () => {
+    const id = newLeagueId.trim().toLowerCase();
+    const nameAr = newLeagueName.trim();
+    if (!/^[a-z0-9._-]{2,40}$/.test(id) || !nameAr) {
+      setMsg(tr("أدخل اسم الدوري بالعربية وكود الدوري باللإنجليزية (مثل ned.1 أو por.1)."));
+      return;
+    }
+    if (s.leagues.some((l) => l.id === id)) {
+      setMsg(tr("هذا الدوري موجود بالفعل في القائمة."));
+      return;
+    }
+    const nextLeague: LeagueConfig = {
+      id,
+      nameAr,
+      shortAr: nameAr.slice(0, 24),
+      countryAr: "دولي",
+      badge: newLeagueBadge.trim() || "⚽",
+      enabled: true,
+      builtin: false,
     };
-  },
-);
+    update({ leagues: [...s.leagues, nextLeague] });
+    setNewLeagueId("");
+    setNewLeagueName("");
+  };
+
+  const addCustomMatch = () => {
+    if (!homeTeam.trim() || !awayTeam.trim()) {
+      setMsg(tr("أدخل اسم الفريق الأول والفريق الثاني."));
+      return;
+    }
+    const lg = s.leagues.find((l) => l.id === matchLeagueId);
+    const m: CustomMatch = {
+      id: Math.random().toString(36).slice(2, 10),
+      leagueId: matchLeagueId,
+      leagueNameAr: lg?.shortAr ?? "الدوري الإسرائيلي",
+      homeTeam: homeTeam.trim(),
+      awayTeam: awayTeam.trim(),
+      homeScore: Number(homeScore) || 0,
+      awayScore: Number(awayScore) || 0,
+      kickoff: kickoff.trim() || "20:00",
+      dateOffset: 0,
+      status: matchStatus,
+      minute: matchMinute.trim() || undefined,
+      note: matchNote.trim() || undefined,
+    };
+    update({ customMatches: [m, ...s.customMatches] });
+    setHomeTeam("");
+    setAwayTeam("");
+    setHomeScore(0);
+    setAwayScore(0);
+    setMatchMinute("");
+    setMatchNote("");
+  };
+
+  const enabledLeagues = s.leagues.filter((l) => l.enabled);
+
+  return (
+    <div className="flex flex-col gap-4">
+      {/* Header & Quick Save Bar */}
+      <section className="stamp flex flex-wrap items-center justify-between gap-3 p-4">
+        <div>
+          <h2 className="text-xl font-extrabold">{tr("إدارة نتائج المباريات المباشرة واختيار الليغا")}</h2>
+          <p className="text-sm font-semibold text-muted">
+            {tr("يتضمن الدوري الإسرائيلي الممتاز (ليغات هعَل) والدرجة الوطنية (ليئوميت) ولا ليغا وأبطال أوروبا — اختر ما يعرضه الموقع وحدد الليغا الافتراضية.")}
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={refreshLive}
+            disabled={refreshing}
+            className="btn btn-ghost text-sm"
+          >
+            <RefreshCw className={`size-4 ${refreshing ? "animate-spin" : ""}`} />
+            {refreshing ? tr("جاري الجلب…") : tr("جلب وتحديث النتائج الآن")}
+          </button>
+          <button
+            type="button"
+            onClick={() => void save()}
+            disabled={saving}
+            className="btn text-sm"
+          >
+            <Check className="size-4" />
+            {saving ? tr("جاري الحفظ…") : tr("حفظ إعدادات الدوريات")}
+          </button>
+        </div>
+      </section>
+
+      {msg ? (
+        <div className="rounded-2xl border border-primary bg-primary-soft p-3 font-extrabold text-ink">
+          {trv(msg)}
+        </div>
+      ) : null}
+
+      {/* 1. General Toggles + Default League Selector */}
+      <section className="stamp grid gap-4 p-4 md:grid-cols-2">
+        <div className="flex flex-col gap-3">
+          <h3 className="text-base font-extrabold">{tr("1. حالة القسم ومكان العرض")}</h3>
+          <label className="flex items-center gap-2.5 rounded-xl border border-line p-3 font-bold">
+            <input
+              type="checkbox"
+              checked={s.enabled}
+              onChange={(e) => update({ enabled: e.target.checked })}
+              className="size-5 accent-primary"
+            />
+            <span>{tr("تفعيل قسم نتائج المباريات المباشرة في الموقع")}</span>
+          </label>
+          <label className="flex items-center gap-2.5 rounded-xl border border-line p-3 font-bold">
+            <input
+              type="checkbox"
+              checked={s.showOnHome}
+              onChange={(e) => update({ showOnHome: e.target.checked })}
+              className="size-5 accent-primary"
+            />
+            <span>{tr("إظهار جدول المباريات المباشرة في الصفحة الرئيسية")}</span>
+          </label>
+        </div>
+
+        <div className="flex flex-col gap-3">
+          <h3 className="text-base font-extrabold">
+            {tr("2. تحديد الليغا الافتراضية عند فتح الموقع")}
+          </h3>
+          <p className="text-xs font-semibold text-muted">
+            {tr("اختر أي ليغا تريد أن تظهر نتائجها أولاً للزائر فور دخوله للموقع (أو اختر «كل الدوريات المفعّلة»):")}
+          </p>
+          <select
+            className="field font-bold"
+            value={s.defaultLeague}
+            onChange={(e) => update({ defaultLeague: e.target.value })}
+          >
+            <option value="all">⚽ {tr("عرض كل الدوريات المفعّلة معاً")}</option>
+            {enabledLeagues.map((lg) => (
+              <option key={lg.id} value={lg.id}>
+                {lg.badge} {lg.nameAr}
+              </option>
+            ))}
+          </select>
+          <div className="flex flex-wrap gap-1.5">
+            <button
+              type="button"
+              onClick={() => setAsDefaultLeague("isr.1")}
+              className={s.defaultLeague === "isr.1" ? "chip chip-ink text-xs" : "chip text-xs"}
+            >
+              ⚽ {tr("تثبيت الدوري الإسرائيلي (ليغات هعَل) كافتراضي")}
+            </button>
+            <button
+              type="button"
+              onClick={() => setAsDefaultLeague("esp.1")}
+              className={s.defaultLeague === "esp.1" ? "chip chip-ink text-xs" : "chip text-xs"}
+            >
+              🇪🇸 {tr("تثبيت الدوري الإسباني (لا ليغا) كافتراضي")}
+            </button>
+            <button
+              type="button"
+              onClick={() => setAsDefaultLeague("uefa.champions")}
+              className={
+                s.defaultLeague === "uefa.champions" ? "chip chip-ink text-xs" : "chip text-xs"
+              }
+            >
+              🏆 {tr("تثبيت أبطال أوروبا كافتراضي")}
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* 2. League Selection List */}
+      <section className="stamp flex flex-col gap-3 p-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h3 className="text-base font-extrabold">
+              {tr("3. اختيار الدوريات والبطولات المعروضة (الليغا)")}
+            </h3>
+            <p className="text-xs font-semibold text-muted">
+              {tr("فعّل أو أخفِ أي دوري، ورتّب أولوية ظهوره بالأسهم، أو اضغط على النجمة ★ لجعله الدوري الافتراضي.")}
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            <button
+              type="button"
+              onClick={() => applyPreset("israeli")}
+              className="chip text-xs"
+            >
+              ⚽ {tr("الدوري الإسرائيلي + لا ليغا + أبطال أوروبا")}
+            </button>
+            <button
+              type="button"
+              onClick={() => applyPreset("top5")}
+              className="chip text-xs"
+            >
+              🔥 {tr("الدوري الإسرائيلي + الدوريات الـ 5 الكبرى")}
+            </button>
+            <button
+              type="button"
+              onClick={() => applyPreset("all")}
+              className="chip text-xs"
+            >
+              ✅ {tr("تفعيل كل الدوريات")}
+            </button>
+          </div>
+        </div>
+
+        <ul className="grid gap-2 sm:grid-cols-2">
+          {s.leagues.map((lg, i) => {
+            const isDef = s.defaultLeague === lg.id;
+            return (
+              <li
+                key={lg.id}
+                className={`flex items-center justify-between gap-2 rounded-2xl border p-3 transition ${
+                  lg.enabled ? "border-line bg-paper" : "border-line/50 bg-surface opacity-60"
+                }`}
+              >
+                <label className="flex min-w-0 flex-1 cursor-pointer items-center gap-2.5">
+                  <input
+                    type="checkbox"
+                    checked={lg.enabled}
+                    onChange={() => toggleLeague(lg.id)}
+                    className="size-4 accent-primary"
+                  />
+                  <span className="text-lg">{lg.badge}</span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5">
+                      <span className="truncate text-sm font-extrabold">{lg.nameAr}</span>
+                      {isDef ? (
+                        <span className="rounded-full bg-primary px-2 py-0.5 text-[10px] font-extrabold text-ink">
+                          {tr("الافتراضي ★")}
+                        </span>
+                      ) : null}
+                    </div>
+                    <span className="text-[11px] font-semibold text-muted">
+                      {lg.countryAr} · <code dir="ltr">{lg.id}</code>
+                    </span>
+                  </div>
+                </label>
+
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setAsDefaultLeague(lg.id)}
+                    title={tr("تعيين كليغا افتراضية")}
+                    className={`grid size-8 place-items-center rounded-lg border ${
+                      isDef
+                        ? "border-primary bg-primary text-ink"
+                        : "border-line bg-paper text-muted hover:text-ink"
+                    }`}
+                  >
+                    <Star className="size-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => moveLeague(i, -1)}
+                    disabled={i === 0}
+                    className="grid size-8 place-items-center rounded-lg border border-line bg-paper disabled:opacity-30"
+                    title={tr("تحريك لأعلى")}
+                  >
+                    <ArrowUp className="size-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => moveLeague(i, 1)}
+                    disabled={i === s.leagues.length - 1}
+                    className="grid size-8 place-items-center rounded-lg border border-line bg-paper disabled:opacity-30"
+                    title={tr("تحريك لأسفل")}
+                  >
+                    <ArrowDown className="size-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => toggleLeague(lg.id)}
+                    className="grid size-8 place-items-center rounded-lg border border-line bg-paper"
+                    title={lg.enabled ? tr("إخفاء") : tr("إظهار")}
+                  >
+                    {lg.enabled ? <Eye className="size-4" /> : <EyeOff className="size-4" />}
+                  </button>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+
+        {/* Add Custom League */}
+        <div className="mt-2 rounded-2xl border border-dashed border-line bg-surface p-3">
+          <p className="mb-2 text-xs font-extrabold">
+            {tr("+ إضافة دوري إضافي مخصص (أمثلة أكواد: ned.1 الدوري الهولندي، por.1 البرتغالي، tur.1 التركي، mar.1 المغربي):")}
+          </p>
+          <div className="grid gap-2 sm:grid-cols-[70px_1fr_1fr_auto]">
+            <input
+              className="field text-center"
+              value={newLeagueBadge}
+              onChange={(e) => setNewLeagueBadge(e.target.value)}
+              placeholder="⚽"
+              maxLength={4}
+            />
+            <input
+              className="field"
+              value={newLeagueName}
+              onChange={(e) => setNewLeagueName(e.target.value)}
+              placeholder={tr("اسم الدوري بالعربية (مثلاً: الدوري التركي)")}
+            />
+            <input
+              className="field"
+              dir="ltr"
+              value={newLeagueId}
+              onChange={(e) => setNewLeagueId(e.target.value)}
+              placeholder="tur.1"
+            />
+            <button type="button" onClick={addCustomLeague} className="btn text-xs">
+              <Plus className="size-4" />
+              {tr("إضافة الدوري")}
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* 3. Custom / Local Matches Manager (e.g. Hapoel Rahat / Negev / Ligat Ha'Al) */}
+      <section className="stamp flex flex-col gap-3 p-4">
+        <div>
+          <h3 className="text-base font-extrabold">
+            {tr("4. إضافة مباراة محلية أو خاصة يدوياً (مثل مباريات الدوري الإسرائيلي أو فرق رهط والنقب)")}
+          </h3>
+          <p className="text-xs font-semibold text-muted">
+            {tr("يمكنك إضافة أي مباراة وتحديث نتيجتها المباشرة لتظهر للزوار في أعلى الجدول.")}
+          </p>
+        </div>
+
+        <div className="grid gap-2 rounded-2xl bg-surface p-3 sm:grid-cols-3">
+          <input
+            className="field"
+            value={homeTeam}
+            onChange={(e) => setHomeTeam(e.target.value)}
+            placeholder={tr("الفريق الأول (مثال: هبوعيل بئر السبع / هبوعيل رهط)")}
+          />
+          <input
+            className="field"
+            value={awayTeam}
+            onChange={(e) => setAwayTeam(e.target.value)}
+            placeholder={tr("الفريق الثاني (مثال: مكابي حيفا / أبناء سخنين)")}
+          />
+          <select
+            className="field"
+            value={matchLeagueId}
+            onChange={(e) => setMatchLeagueId(e.target.value)}
+          >
+            {s.leagues.map((lg) => (
+              <option key={lg.id} value={lg.id}>
+                {lg.badge} {lg.nameAr}
+              </option>
+            ))}
+          </select>
+
+          <div className="flex items-center gap-2">
+            <label className="flex-1 text-xs font-bold">
+              {tr("نتيجة الأول")}
+              <input
+                type="number"
+                min={0}
+                max={99}
+                className="field mt-1"
+                value={homeScore}
+                onChange={(e) => setHomeScore(Number(e.target.value))}
+              />
+            </label>
+            <label className="flex-1 text-xs font-bold">
+              {tr("نتيجة الثاني")}
+              <input
+                type="number"
+                min={0}
+                max={99}
+                className="field mt-1"
+                value={awayScore}
+                onChange={(e) => setAwayScore(Number(e.target.value))}
+              />
+            </label>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <label className="flex-1 text-xs font-bold">
+              {tr("الحالة")}
+              <select
+                className="field mt-1"
+                value={matchStatus}
+                onChange={(e) => setMatchStatus(e.target.value as CustomMatchStatus)}
+              >
+                <option value="pre">{tr("لم تبدأ (عرض الوقت)")}</option>
+                <option value="in">🔴 {tr("مباشر الآن")}</option>
+                <option value="post">{tr("انتهت")}</option>
+              </select>
+            </label>
+            <label className="flex-1 text-xs font-bold">
+              {matchStatus === "in" ? tr("الدقيقة (مثل 65')") : tr("وقت البداية")}
+              <input
+                className="field mt-1"
+                dir="ltr"
+                value={matchStatus === "in" ? matchMinute : kickoff}
+                onChange={(e) =>
+                  matchStatus === "in" ? setMatchMinute(e.target.value) : setKickoff(e.target.value)
+                }
+                placeholder={matchStatus === "in" ? "65'" : "20:00"}
+              />
+            </label>
+          </div>
+
+          <div className="flex items-end gap-2">
+            <label className="flex-1 text-xs font-bold">
+              {tr("ملاحظة (الملعب / الجولة)")}
+              <input
+                className="field mt-1"
+                value={matchNote}
+                onChange={(e) => setMatchNote(e.target.value)}
+                placeholder={tr("استاد تيرنر بئر السبع")}
+              />
+            </label>
+            <button type="button" onClick={addCustomMatch} className="btn h-11 shrink-0 text-xs">
+              <Plus className="size-4" />
+              {tr("إضافة")}
+            </button>
+          </div>
+        </div>
+
+        {s.customMatches.length > 0 ? (
+          <ul className="flex flex-col gap-2">
+            {s.customMatches.map((m) => (
+              <li
+                key={m.id}
+                className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-line bg-paper p-3 text-sm font-bold"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="chip text-xs">{m.leagueNameAr}</span>
+                  <span>{m.homeTeam}</span>
+                  <span className="rounded-lg bg-surface px-2 py-0.5 font-extrabold" dir="ltr">
+                    {m.status === "pre" ? m.kickoff : `${m.homeScore} : ${m.awayScore}`}
+                  </span>
+                  <span>{m.awayTeam}</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      update({
+                        customMatches: s.customMatches.map((x) =>
+                          x.id === m.id
+                            ? {
+                                ...x,
+                                status:
+                                  x.status === "pre" ? "in" : x.status === "in" ? "post" : "pre",
+                              }
+                            : x,
+                        ),
+                      })
+                    }
+                    className="chip text-xs"
+                  >
+                    {m.status === "in"
+                      ? "🔴 مباشر"
+                      : m.status === "post"
+                        ? "انتهت"
+                        : "لم تبدأ"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      update({
+                        customMatches: s.customMatches.filter((x) => x.id !== m.id),
+                      })
+                    }
+                    className="grid size-8 place-items-center rounded-lg border border-line text-alert"
+                    title={tr("حذف")}
+                  >
+                    <Trash2 className="size-4" />
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+      </section>
+
+      {/* Bottom Sticky Save */}
+      <div className="sticky bottom-20 z-20 flex items-center justify-between gap-3 rounded-2xl bg-paper p-3 shadow-[var(--shadow-lift)] md:bottom-4">
+        <span className="text-sm font-bold text-muted">
+          {dirty
+            ? tr("لديك تعديلات غير محفوظة — اضغط حفظ لتطبيقها على الموقع")
+            : tr("جميع إعدادات الدوريات محفوظة")}
+        </span>
+        <button
+          type="button"
+          onClick={() => void save()}
+          disabled={saving}
+          className="btn px-6"
+        >
+          {saving ? tr("جاري الحفظ…") : tr("حفظ التغييرات")}
+        </button>
+      </div>
+    </div>
+  );
+}
