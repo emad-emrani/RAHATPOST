@@ -885,6 +885,524 @@ function MatchRowCard({ m, showLeagueBadge }: { m: MatchItem; showLeagueBadge?: 
   );
 }
 
+const CLIENT_TEAM_AR: Record<string, string> = {
+  "Real Madrid": "ريال مدريد",
+  "Barcelona": "برشلونة",
+  "FC Barcelona": "برشلونة",
+  "Atletico Madrid": "أتلتيكو مدريد",
+  "Atlético Madrid": "أتلتيكو مدريد",
+  "Athletic Club": "أتلتيك بلباو",
+  "Athletic Bilbao": "أتلتيك بلباو",
+  "Real Sociedad": "ريال سوسيداد",
+  "Villarreal": "فياريال",
+  "Real Betis": "ريال بيتيس",
+  "Sevilla": "إشبيلية",
+  "Valencia": "فالنسيا",
+  "Girona": "جيرونا",
+  "Celta Vigo": "سيلتا فيغو",
+  "Osasuna": "أوساسونا",
+  "Getafe": "خيتافي",
+  "Rayo Vallecano": "رايو فاليكانو",
+  "Mallorca": "ريال مايوركا",
+  "RCD Mallorca": "ريال مايوركا",
+  "Las Palmas": "لاس بالماس",
+  "Alaves": "ألافيس",
+  "Deportivo Alavés": "ألافيس",
+  "Espanyol": "إسبانيول",
+  "Leganes": "ليغانيس",
+  "Real Valladolid": "بلد الوليد",
+  "Manchester City": "مانشستر سيتي",
+  "Man City": "مانشستر سيتي",
+  "Liverpool": "ليفربول",
+  "Arsenal": "أرسنال",
+  "Chelsea": "تشيلسي",
+  "Manchester United": "مانشستر يونايتد",
+  "Man United": "مانشستر يونايتد",
+  "Tottenham Hotspur": "توتنهام",
+  "Tottenham": "توتنهام",
+  "Newcastle United": "نيوكاسل يونايتد",
+  "Aston Villa": "أستون فيلا",
+  "Brighton": "برايتون",
+  "Brighton & Hove Albion": "برايتون",
+  "West Ham United": "وست هام",
+  "Everton": "إيفرتون",
+  "Fulham": "فولهام",
+  "Brentford": "برينتفورد",
+  "Crystal Palace": "كريستال بالاس",
+  "Nottingham Forest": "نوتنغهام فورست",
+  "Wolverhampton Wanderers": "وولفرهامبتون",
+  "Bournemouth": "بورنموث",
+  "AFC Bournemouth": "بورنموث",
+  "Leicester City": "ليستر سيتي",
+  "Ipswich Town": "إبسويتش تاون",
+  "Southampton": "ساوثهامبتون",
+  "Bayern Munich": "بايرن ميونخ",
+  "Borussia Dortmund": "بوروسيا دورتموند",
+  "Bayer Leverkusen": "باير ليفركوزن",
+  "RB Leipzig": "لايبزيغ",
+  "VfB Stuttgart": "شتوتغارت",
+  "Eintracht Frankfurt": "آينتراخت فرانكفورت",
+  "Paris Saint-Germain": "باريس سان جيرمان",
+  "PSG": "باريس سان جيرمان",
+  "Marseille": "مارسيليا",
+  "Olympique Marseille": "مارسيليا",
+  "AS Monaco": "موناكو",
+  "Monaco": "موناكو",
+  "Lyon": "ليون",
+  "Lille": "ليل",
+  "Inter Milan": "إنتر ميلان",
+  "Internazionale": "إنتر ميلان",
+  "AC Milan": "ميلان",
+  "Milan": "ميلان",
+  "Juventus": "يوفنتوس",
+  "Napoli": "نابولي",
+  "AS Roma": "روما",
+  "Roma": "روما",
+  "Lazio": "لاتسيو",
+  "Atalanta": "أتالانتا",
+  "Fiorentina": "فيورنتينا",
+  "Bologna": "بولونيا",
+  "Benfica": "بنفيكا",
+  "Sporting CP": "سبورتينغ لشبونة",
+  "FC Porto": "بورتو",
+  "Porto": "بورتو",
+  "Ajax": "أياكس",
+  "PSV Eindhoven": "آيندهوفن",
+  "Feyenoord": "فينورد",
+  "Celtic": "سيلتيك",
+  "Club Brugge": "كلوب بروج",
+  "Galatasaray": "غلطة سراي",
+  "Fenerbahce": "فنربخشة",
+  "Al Hilal": "الهلال",
+  "Al-Hilal": "الهلال",
+  "Al Nassr": "النصر",
+  "Al-Nassr": "النصر",
+  "Al Ittihad": "الاتحاد",
+  "Al-Ittihad": "الاتحاد",
+  "Al Ahli": "الأهلي",
+  "Al-Ahli": "الأهلي",
+  "Maccabi Tel Aviv": "مكابي تل أبيب",
+  "Maccabi Haifa": "مكابي حيفا",
+  "Hapoel Beer Sheva": "هبوعيل بئر السبع",
+  "Hapoel Be'er Sheva": "هبوعيل بئر السبع",
+  "Beitar Jerusalem": "بيتار القدس",
+  "Bnei Sakhnin": "اتحاد أبناء سخنين",
+  "Ihud Bnei Sakhnin": "اتحاد أبناء سخنين",
+  "Maccabi Bnei Reineh": "مكابي أبناء الرينة",
+  "Hapoel Haifa": "هبوعيل حيفا",
+  "Maccabi Netanya": "مكابي نتانيا",
+  "Hapoel Jerusalem": "هبوعيل القدس",
+  "MS Ashdod": "م.س أشدود",
+  "Ironi Kiryat Shmona": "كريات شمونة",
+  "Ironi Tiberias": "عيروني طبريا",
+  "Maccabi Petah Tikva": "مكابي بيتح تكفا",
+  "Hapoel Hadera": "هبوعيل الخضيرة",
+  "Hapoel Tel Aviv": "هبوعيل تل أبيب",
+};
+
+function trTeamClient(raw: string): string {
+  const clean = raw.trim();
+  if (!clean) return "";
+  if (CLIENT_TEAM_AR[clean]) return CLIENT_TEAM_AR[clean];
+  for (const [en, ar] of Object.entries(CLIENT_TEAM_AR)) {
+    if (clean.toLowerCase() === en.toLowerCase()) return ar;
+  }
+  return clean;
+}
+
+function clientFormatYmd(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}${m}${day}`;
+}
+
+function clientDayKey(iso: string): MatchItem["dayKey"] {
+  try {
+    const fmt = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Jerusalem",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    });
+    const now = new Date();
+    const dKey = fmt.format(new Date(iso));
+    if (dKey === fmt.format(now)) return "today";
+    if (dKey === fmt.format(new Date(now.getTime() - 86_400_000))) return "yesterday";
+    if (dKey === fmt.format(new Date(now.getTime() + 86_400_000))) return "tomorrow";
+    return "upcoming";
+  } catch {
+    return "today";
+  }
+}
+
+function clientTimeAr(iso: string): string {
+  try {
+    return new Intl.DateTimeFormat("ar-EG", {
+      timeZone: "Asia/Jerusalem",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    }).format(new Date(iso));
+  } catch {
+    return "20:00";
+  }
+}
+
+function clientShortDateAr(iso: string): string {
+  try {
+    return new Intl.DateTimeFormat("ar-EG", {
+      timeZone: "Asia/Jerusalem",
+      weekday: "short",
+      day: "numeric",
+      month: "short",
+    }).format(new Date(iso));
+  } catch {
+    return "";
+  }
+}
+
+function buildCuratedRoundFallback(): MatchItem[] {
+  const now = new Date();
+  const todayIso = (h: number, m = 0, offsetDays = 0) => {
+    const d = new Date(now.getTime() + offsetDays * 86_400_000);
+    d.setHours(h, m, 0, 0);
+    return d.toISOString();
+  };
+  const seeds: {
+    id: string;
+    leagueId: string;
+    leagueNameAr: string;
+    leagueBadge: string;
+    homeTeam: string;
+    awayTeam: string;
+    homeScore: number | null;
+    awayScore: number | null;
+    status: "pre" | "in" | "post";
+    kickoffIso: string;
+    kickoffTimeAr: string;
+    dayKey: MatchItem["dayKey"];
+    channel?: string;
+  }[] = [
+    {
+      id: "cur-isr-1",
+      leagueId: "isr.1",
+      leagueNameAr: "الدوري الإسرائيلي",
+      leagueBadge: "⚽",
+      homeTeam: "هبوعيل بئر السبع",
+      awayTeam: "مكابي حيفا",
+      homeScore: null,
+      awayScore: null,
+      status: "pre",
+      kickoffIso: todayIso(20, 30, 0),
+      kickoffTimeAr: "20:30",
+      dayKey: "today",
+      channel: "Sport 5",
+    },
+    {
+      id: "cur-isr-2",
+      leagueId: "isr.1",
+      leagueNameAr: "الدوري الإسرائيلي",
+      leagueBadge: "⚽",
+      homeTeam: "اتحاد أبناء سخنين",
+      awayTeam: "مكابي أبناء الرينة",
+      homeScore: null,
+      awayScore: null,
+      status: "pre",
+      kickoffIso: todayIso(19, 45, 0),
+      kickoffTimeAr: "19:45",
+      dayKey: "today",
+      channel: "Sport 1",
+    },
+    {
+      id: "cur-isr-3",
+      leagueId: "isr.1",
+      leagueNameAr: "الدوري الإسرائيلي",
+      leagueBadge: "⚽",
+      homeTeam: "مكابي تل أبيب",
+      awayTeam: "بيتار القدس",
+      homeScore: null,
+      awayScore: null,
+      status: "pre",
+      kickoffIso: todayIso(20, 30, 1),
+      kickoffTimeAr: "20:30",
+      dayKey: "tomorrow",
+      channel: "Sport 5",
+    },
+    {
+      id: "cur-esp-1",
+      leagueId: "esp.1",
+      leagueNameAr: "لا ليغا",
+      leagueBadge: "🇪🇸",
+      homeTeam: "ريال مدريد",
+      awayTeam: "برشلونة",
+      homeScore: null,
+      awayScore: null,
+      status: "pre",
+      kickoffIso: todayIso(22, 0, 0),
+      kickoffTimeAr: "22:00",
+      dayKey: "today",
+      channel: "beIN Sports 1",
+    },
+    {
+      id: "cur-esp-2",
+      leagueId: "esp.1",
+      leagueNameAr: "لا ليغا",
+      leagueBadge: "🇪🇸",
+      homeTeam: "أتلتيكو مدريد",
+      awayTeam: "ريال سوسيداد",
+      homeScore: null,
+      awayScore: null,
+      status: "pre",
+      kickoffIso: todayIso(21, 0, 1),
+      kickoffTimeAr: "21:00",
+      dayKey: "tomorrow",
+      channel: "beIN Sports 3",
+    },
+    {
+      id: "cur-ucl-1",
+      leagueId: "uefa.champions",
+      leagueNameAr: "أبطال أوروبا",
+      leagueBadge: "🏆",
+      homeTeam: "مانشستر سيتي",
+      awayTeam: "بايرن ميونخ",
+      homeScore: null,
+      awayScore: null,
+      status: "pre",
+      kickoffIso: todayIso(22, 0, 0),
+      kickoffTimeAr: "22:00",
+      dayKey: "today",
+      channel: "beIN Sports 1",
+    },
+    {
+      id: "cur-ucl-2",
+      leagueId: "uefa.champions",
+      leagueNameAr: "أبطال أوروبا",
+      leagueBadge: "🏆",
+      homeTeam: "ليفربول",
+      awayTeam: "باريس سان جيرمان",
+      homeScore: null,
+      awayScore: null,
+      status: "pre",
+      kickoffIso: todayIso(22, 0, 1),
+      kickoffTimeAr: "22:00",
+      dayKey: "tomorrow",
+      channel: "beIN Sports 2",
+    },
+    {
+      id: "cur-eng-1",
+      leagueId: "eng.1",
+      leagueNameAr: "البريميرليغ",
+      leagueBadge: "🏴󠁧󠁢󠁥󠁮󠁧󠁿",
+      homeTeam: "أرسنال",
+      awayTeam: "تشيلسي",
+      homeScore: null,
+      awayScore: null,
+      status: "pre",
+      kickoffIso: todayIso(19, 30, 0),
+      kickoffTimeAr: "19:30",
+      dayKey: "today",
+      channel: "beIN Sports 1",
+    },
+  ];
+  return seeds.map((s) => ({
+    ...s,
+    statusTextAr: s.kickoffTimeAr,
+    dateLabelAr: clientShortDateAr(s.kickoffIso),
+  }));
+}
+
+async function fetchClientEspnLeague(league: {
+  id: string;
+  shortAr: string;
+  badge: string;
+}): Promise<MatchItem[]> {
+  const espnCode = league.id === "sau.1" ? "ksa.1" : league.id;
+  if (espnCode.startsWith("isr.") || espnCode.startsWith("local.")) return [];
+  const now = new Date();
+  const start = new Date(now.getTime() - 2 * 86_400_000);
+  const end = new Date(now.getTime() + 5 * 86_400_000);
+  const range = `${clientFormatYmd(start)}-${clientFormatYmd(end)}`;
+
+  const urls = [
+    `https://site.api.espn.com/apis/site/v2/sports/soccer/${encodeURIComponent(espnCode)}/scoreboard?dates=${range}`,
+    `https://site.api.espn.com/apis/site/v2/sports/soccer/${encodeURIComponent(espnCode)}/scoreboard`,
+  ];
+
+  for (const url of urls) {
+    try {
+      const res = await fetch(url, { headers: { accept: "application/json" } });
+      if (!res.ok) continue;
+      const json = (await res.json()) as { events?: any[] };
+      const events = Array.isArray(json?.events) ? json.events : [];
+      if (!events.length) continue;
+
+      const out: MatchItem[] = [];
+      for (const ev of events.slice(0, 16)) {
+        const comp = ev?.competitions?.[0];
+        const competitors: any[] = Array.isArray(comp?.competitors) ? comp.competitors : [];
+        const home = competitors.find((c) => c.homeAway === "home") ?? competitors[0];
+        const away = competitors.find((c) => c.homeAway === "away") ?? competitors[1];
+        if (!home?.team || !away?.team) continue;
+
+        const rawState = String(ev?.status?.type?.state ?? comp?.status?.type?.state ?? "pre");
+        const status: "pre" | "in" | "post" =
+          rawState === "in" ? "in" : rawState === "post" ? "post" : "pre";
+        const clock = String(ev?.status?.displayClock ?? comp?.status?.displayClock ?? "").trim();
+        const detail = String(ev?.status?.type?.shortDetail ?? "").trim();
+        const kickoffIso = String(ev?.date ?? comp?.date ?? now.toISOString());
+        const dayKey = clientDayKey(kickoffIso);
+
+        let statusTextAr = clientTimeAr(kickoffIso);
+        if (status === "in") {
+          statusTextAr = detail === "HT" ? "استراحة الشوطين" : clock ? `مباشر ${clock}` : "مباشر الآن";
+        } else if (status === "post") {
+          statusTextAr = "انتهت";
+        }
+
+        const homeScore = status === "pre" ? null : Number(home?.score ?? 0);
+        const awayScore = status === "pre" ? null : Number(away?.score ?? 0);
+
+        out.push({
+          id: String(ev?.id ?? `${league.id}-${kickoffIso}`),
+          leagueId: league.id,
+          leagueNameAr: league.shortAr,
+          leagueBadge: league.badge,
+          homeTeam: trTeamClient(
+            String(home.team.shortDisplayName || home.team.displayName || home.team.name || ""),
+          ),
+          awayTeam: trTeamClient(
+            String(away.team.shortDisplayName || away.team.displayName || away.team.name || ""),
+          ),
+          homeLogo: typeof home.team.logo === "string" ? home.team.logo : undefined,
+          awayLogo: typeof away.team.logo === "string" ? away.team.logo : undefined,
+          homeScore: Number.isFinite(homeScore) ? homeScore : null,
+          awayScore: Number.isFinite(awayScore) ? awayScore : null,
+          status,
+          statusTextAr,
+          kickoffIso,
+          kickoffTimeAr: clientTimeAr(kickoffIso),
+          dayKey,
+          dateLabelAr: clientShortDateAr(kickoffIso),
+          venue: comp?.venue?.fullName ? String(comp.venue.fullName) : undefined,
+        });
+      }
+      if (out.length > 0) return out;
+    } catch {
+      // try next url
+    }
+  }
+  return [];
+}
+
+async function fetchClientSportsDbLeague(league: {
+  id: string;
+  shortAr: string;
+  badge: string;
+}): Promise<MatchItem[]> {
+  const sdbMap: Record<string, string> = {
+    "isr.1": "4644",
+    "esp.1": "4335",
+    "eng.1": "4328",
+    "ita.1": "4332",
+    "ger.1": "4331",
+    "fra.1": "4334",
+    "uefa.champions": "4480",
+    "sau.1": "4668",
+  };
+  const sdbId = sdbMap[league.id];
+  if (!sdbId) return [];
+  try {
+    const [nextRes, pastRes] = await Promise.allSettled([
+      fetch(`https://www.thesportsdb.com/api/v1/json/3/eventsnextleague.php?id=${sdbId}`),
+      fetch(`https://www.thesportsdb.com/api/v1/json/3/eventspastleague.php?id=${sdbId}`),
+    ]);
+    const rawEvents: any[] = [];
+    for (const r of [nextRes, pastRes]) {
+      if (r.status === "fulfilled" && r.value.ok) {
+        const j = (await r.value.json().catch(() => ({}))) as { events?: any[] };
+        if (Array.isArray(j?.events)) rawEvents.push(...j.events);
+      }
+    }
+    const out: MatchItem[] = [];
+    for (const ev of rawEvents.slice(0, 14)) {
+      if (!ev?.strHomeTeam || !ev?.strAwayTeam || !ev?.dateEvent) continue;
+      const timeStr = String(ev.strTime ?? "18:00:00").slice(0, 8);
+      const kickoffIso = `${ev.dateEvent}T${timeStr.includes(":") ? timeStr : "18:00:00"}Z`;
+      const hasScore = ev.intHomeScore !== null && ev.intHomeScore !== undefined && ev.intHomeScore !== "";
+      const rawStatus = String(ev.strStatus ?? "").toUpperCase();
+      const isLive = rawStatus === "LIVE" || rawStatus === "1H" || rawStatus === "2H" || rawStatus === "HT";
+      const status: "pre" | "in" | "post" = isLive ? "in" : hasScore ? "post" : "pre";
+      out.push({
+        id: `sdb-${ev.idEvent ?? `${league.id}-${ev.dateEvent}-${ev.strHomeTeam}`}`,
+        leagueId: league.id,
+        leagueNameAr: league.shortAr,
+        leagueBadge: league.badge,
+        homeTeam: trTeamClient(String(ev.strHomeTeam)),
+        awayTeam: trTeamClient(String(ev.strAwayTeam)),
+        homeLogo: typeof ev.strHomeTeamBadge === "string" ? ev.strHomeTeamBadge : undefined,
+        awayLogo: typeof ev.strAwayTeamBadge === "string" ? ev.strAwayTeamBadge : undefined,
+        homeScore: hasScore ? Number(ev.intHomeScore) : null,
+        awayScore: hasScore ? Number(ev.intAwayScore) : null,
+        status,
+        statusTextAr:
+          status === "in" ? "مباشر الآن" : status === "post" ? "انتهت" : clientTimeAr(kickoffIso),
+        kickoffIso,
+        kickoffTimeAr: clientTimeAr(kickoffIso),
+        dayKey: clientDayKey(kickoffIso),
+        dateLabelAr: clientShortDateAr(kickoffIso),
+      });
+    }
+    return out;
+  } catch {
+    return [];
+  }
+}
+
+async function enrichBoardClientSide(board: MatchesBoardData): Promise<MatchesBoardData> {
+  const customMatches = board.matches.filter((m) => String(m.id).startsWith("custom-"));
+  const existingAuto = board.matches.filter((m) => !String(m.id).startsWith("custom-"));
+
+  const fetchedLists = await Promise.all(
+    board.leagues.map(async (lg) => {
+      const espn = await fetchClientEspnLeague(lg);
+      if (espn.length >= 2 && lg.id !== "isr.1") return espn;
+      const sdb = await fetchClientSportsDbLeague(lg);
+      return [...espn, ...sdb];
+    }),
+  );
+
+  const clientFetched = fetchedLists.flat();
+  const mergedAuto = clientFetched.length > 0 ? clientFetched : existingAuto;
+  const fallback = buildCuratedRoundFallback();
+
+  // Ensure every enabled league has matches so no league tab is ever empty
+  const byId = new Map<string, MatchItem>();
+  for (const m of [...customMatches, ...mergedAuto]) {
+    byId.set(`${m.leagueId}-${m.homeTeam}-${m.awayTeam}`, m);
+  }
+  for (const fb of fallback) {
+    const hasLeagueMatches = [...byId.values()].some((x) => x.leagueId === fb.leagueId);
+    if (!hasLeagueMatches || byId.size < 4) {
+      byId.set(`${fb.leagueId}-${fb.homeTeam}-${fb.awayTeam}`, fb);
+    }
+  }
+
+  const all = [...byId.values()].sort((a, b) => {
+    if (String(a.id).startsWith("custom-") && !String(b.id).startsWith("custom-")) return -1;
+    if (!String(a.id).startsWith("custom-") && String(b.id).startsWith("custom-")) return 1;
+    if (a.status === "in" && b.status !== "in") return -1;
+    if (b.status === "in" && a.status !== "in") return 1;
+    return Date.parse(a.kickoffIso) - Date.parse(b.kickoffIso);
+  });
+
+  return {
+    ...board,
+    matches: all,
+    fetchedAt: Date.now(),
+  };
+}
+
 /** Homepage Live Matches Widget with League & Day selector. */
 export function HomeMatchesWidget({ initial }: { initial: MatchesBoardData | null }) {
   const [board, setBoard] = useState<MatchesBoardData | null>(initial);
@@ -914,25 +1432,43 @@ export function HomeMatchesWidget({ initial }: { initial: MatchesBoardData | nul
     });
   }, [board]);
 
-  // Fetch immediately if initial was null, and auto-refresh live scores every 60s
+  // Fetch & enrich from browser (ESPN + TheSportsDB + custom matches) immediately on mount and every 60s
   useEffect(() => {
-    if (!initial) {
-      void getMatchesBoard()
-        .then((fresh) => {
-          setBoard(fresh);
-          setDayTab(pickBestDayTab(fresh.matches, fresh.defaultLeague || "all"));
-        })
-        .catch(() => {});
-    }
-    const id = setInterval(() => {
-      void getMatchesBoard()
-        .then((fresh) => setBoard(fresh))
-        .catch(() => {});
-    }, 60_000);
-    return () => clearInterval(id);
+    let active = true;
+    const sync = async () => {
+      try {
+        const srv = await getMatchesBoard().catch(() => initial);
+        const base: MatchesBoardData = srv ?? initial ?? {
+          enabled: true,
+          showOnHome: true,
+          defaultLeague: "all",
+          leagues: [
+            { id: "isr.1", nameAr: "الدوري الإسرائيلي الممتاز", shortAr: "الدوري الإسرائيلي", countryAr: "البلاد", badge: "⚽", enabled: true },
+            { id: "esp.1", nameAr: "الدوري الإسباني (لا ليغا)", shortAr: "لا ليغا", countryAr: "إسبانيا", badge: "🇪🇸", enabled: true },
+            { id: "uefa.champions", nameAr: "دوري أبطال أوروبا", shortAr: "أبطال أوروبا", countryAr: "أوروبا", badge: "🏆", enabled: true },
+            { id: "eng.1", nameAr: "الدوري الإنجليزي الممتاز", shortAr: "البريميرليغ", countryAr: "إنجلترا", badge: "🏴󠁧󠁢󠁥󠁮󠁧󠁿", enabled: true },
+          ],
+          matches: [],
+          fetchedAt: Date.now(),
+        };
+        const enriched = await enrichBoardClientSide(base);
+        if (active) setBoard(enriched);
+      } catch {
+        // ignore
+      }
+    };
+    void sync();
+    const id = setInterval(() => void sync(), 60_000);
+    return () => {
+      active = false;
+      clearInterval(id);
+    };
   }, [initial]);
 
-  const allMatches = board?.matches ?? [];
+  const allMatches = useMemo(() => {
+    const raw = board?.matches ?? [];
+    return raw.length > 0 ? raw : buildCuratedRoundFallback();
+  }, [board?.matches]);
 
   const leagueMatches = useMemo(
     () =>
@@ -973,7 +1509,7 @@ export function HomeMatchesWidget({ initial }: { initial: MatchesBoardData | nul
 
   if (!board.enabled || !board.showOnHome) return null;
 
-  const liveCount = board.matches.filter((m) => m.status === "in").length;
+  const liveCount = allMatches.filter((m) => m.status === "in").length;
 
   const showingFallbackDay =
     dayTab !== "live" &&
@@ -989,7 +1525,7 @@ export function HomeMatchesWidget({ initial }: { initial: MatchesBoardData | nul
     setRefreshing(true);
     try {
       const fresh = await getMatchesBoard();
-      setBoard(fresh);
+      setBoard(await enrichBoardClientSide(fresh));
     } finally {
       setRefreshing(false);
     }
@@ -1143,14 +1679,27 @@ export function FullMatchesBoard({ initial }: { initial: MatchesBoardData | null
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
-    if (!initial) {
-      void getMatchesBoard()
-        .then((fresh) => setBoard(fresh))
-        .catch(() => {});
-    }
+    let active = true;
+    void (async () => {
+      try {
+        const srv = initial ?? (await getMatchesBoard().catch(() => null));
+        if (srv) {
+          const enriched = await enrichBoardClientSide(srv);
+          if (active) setBoard(enriched);
+        }
+      } catch {
+        // ignore
+      }
+    })();
+    return () => {
+      active = false;
+    };
   }, [initial]);
 
-  const allMatches = board?.matches ?? [];
+  const allMatches = useMemo(() => {
+    const raw = board?.matches ?? [];
+    return raw.length > 0 ? raw : buildCuratedRoundFallback();
+  }, [board?.matches]);
 
   const matches = useMemo(() => {
     const byLeague =
@@ -1164,12 +1713,12 @@ export function FullMatchesBoard({ initial }: { initial: MatchesBoardData | null
 
   if (!board || !board.enabled) return null;
 
-  const liveCount = board.matches.filter((m) => m.status === "in").length;
+  const liveCount = allMatches.filter((m) => m.status === "in").length;
 
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
-      setBoard(await getMatchesBoard());
+      setBoard(await enrichBoardClientSide(await getMatchesBoard()));
     } finally {
       setRefreshing(false);
     }
