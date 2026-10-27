@@ -690,6 +690,8 @@ function AdminPage() {
     ads: "moderate_haraj",
     "haraj-cats": "moderate_haraj",
     news: "moderate_news",
+    matches: "moderate_news",
+    "sec-news": "moderate_news",
     reports: "moderate_news",
     comments: "moderate_comments",
     directory: "moderate_directory",
@@ -763,26 +765,6 @@ function AdminPage() {
               </h1>
             </div>
             <div className="flex items-center gap-2">
-              {level === "owner" ? (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => go("matches")}
-                    className="hidden sm:flex items-center gap-1.5 rounded-2xl bg-ink px-3.5 py-2 text-xs font-extrabold text-paper shadow-2xs transition hover:opacity-90"
-                  >
-                    <Trophy className="size-4" aria-hidden />
-                    {tr("نتائج المباريات والليغا")}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => go("sec-news")}
-                    className="hidden sm:flex items-center gap-1.5 rounded-2xl bg-brand px-3.5 py-2 text-xs font-extrabold text-ink shadow-2xs transition hover:opacity-90"
-                  >
-                    <FolderPlus className="size-4" aria-hidden />
-                    {tr("إضافة قسم جديد")}
-                  </button>
-                </>
-              ) : null}
               <LangSwitcher />
               <span
                 className="grid size-10 shrink-0 place-items-center rounded-full bg-brand text-sm font-extrabold text-ink"
@@ -793,6 +775,66 @@ function AdminPage() {
               </span>
             </div>
           </header>
+
+          {/* Always-visible Mobile & Desktop Quick Control Bar */}
+          {level !== "writer" ? (
+            <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+              <button
+                type="button"
+                onClick={() => go("matches")}
+                className={`flex items-center justify-center gap-2 rounded-2xl px-3 py-3 text-xs font-extrabold shadow-xs transition ${
+                  current === "matches"
+                    ? "bg-ink text-paper ring-2 ring-ink/30"
+                    : "bg-[#DC2626] text-white hover:bg-[#B91C1C]"
+                }`}
+              >
+                <Trophy className="size-4 shrink-0" aria-hidden />
+                <span>{tr("⚽ تحكم المباريات والبث")}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => go("sec-news")}
+                className={`flex items-center justify-center gap-2 rounded-2xl px-3 py-3 text-xs font-extrabold shadow-xs transition ${
+                  current.startsWith("sec-")
+                    ? "bg-ink text-paper ring-2 ring-ink/30"
+                    : "bg-brand text-ink hover:opacity-90"
+                }`}
+              >
+                <FolderPlus className="size-4 shrink-0" aria-hidden />
+                <span>{tr("+ إضافة / إدارة قسم")}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => go("publish")}
+                className={`flex items-center justify-center gap-2 rounded-2xl px-3 py-3 text-xs font-extrabold shadow-xs transition ${
+                  current === "publish"
+                    ? "bg-ink text-paper ring-2 ring-ink/30"
+                    : "bg-[#16A34A] text-white hover:bg-[#15803D]"
+                }`}
+              >
+                <PenSquare className="size-4 shrink-0" aria-hidden />
+                <span>{tr("✍️ نشر خبر جديد")}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setMenuOpen(true)}
+                className="flex items-center justify-center gap-2 rounded-2xl border border-line bg-paper px-3 py-3 text-xs font-extrabold text-ink shadow-xs transition hover:bg-primary-soft lg:hidden"
+              >
+                <Menu className="size-4 shrink-0" aria-hidden />
+                <span>{tr("كل أقسام اللوحة")}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => go("home")}
+                className={`hidden lg:flex items-center justify-center gap-2 rounded-2xl border border-line px-3 py-3 text-xs font-extrabold shadow-xs transition ${
+                  current === "home" ? "bg-ink text-paper" : "bg-paper text-ink hover:bg-primary-soft"
+                }`}
+              >
+                <House className="size-4 shrink-0" aria-hidden />
+                <span>{tr("الرئيسية للوحة")}</span>
+              </button>
+            </div>
+          ) : null}
 
           {level !== "writer" ? (
             <div className="mb-4">
@@ -821,10 +863,14 @@ function AdminPage() {
           <CardBoundary key={current}>
           <Suspense fallback={<Skeleton rows={4} />}>
           {current === "home" ? (
-            <DashboardHome
-              go={go}
-              icons={{ haraj: Megaphone, comments: MessageSquare, news: Newspaper, reports: Flag, members: Users, sold: ShoppingBag, stats: BarChart3 }}
-            />
+            <div className="space-y-6">
+              <QuickCustomSectionsBar currentId="news" onSelectSection={(id) => go(`sec-${id}`)} />
+              <MatchesAdmin />
+              <DashboardHome
+                go={go}
+                icons={{ haraj: Megaphone, comments: MessageSquare, news: Newspaper, reports: Flag, members: Users, sold: ShoppingBag, stats: BarChart3 }}
+              />
+            </div>
           ) : current === "review" ? (
             <ReviewQueue onCount={setReviewCount} />
           ) : current === "publish" ? (
