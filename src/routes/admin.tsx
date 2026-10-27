@@ -1,3 +1,4 @@
+```react
 import {
   ArrowDown,
   ArrowRight,
@@ -1900,6 +1901,8 @@ function QuickCustomSectionsBar({
   const [name, setName] = useState("");
   const [category, setCategory] = useState("رهط");
   const [home, setHome] = useState(true);
+  const [liveTileLabel, setLiveTileLabel] = useState("بث مباريات");
+  const [liveTileVisible, setLiveTileVisible] = useState(true);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
 
@@ -1907,6 +1910,11 @@ function QuickCustomSectionsBar({
     const res = await adminGetSiteSettings();
     if (res.authed && res.settings) {
       setSiteSettings(res.settings);
+      const cfg = (res.settings.quickLinks ?? []).find((q) => q.id === "tilelive");
+      if (cfg) {
+        setLiveTileLabel(cfg.title || "بث مباريات");
+        setLiveTileVisible(cfg.subtitle !== " مَخفي");
+      }
     }
   }, []);
 
@@ -2004,6 +2012,81 @@ function QuickCustomSectionsBar({
           {trv(msg)}
         </div>
       ) : null}
+
+      {/* Dedicated control for the "بث مباريات" icon tile in the Homepage top tiles row */}
+      <div className="mt-3 rounded-2xl border border-[#DC2626]/30 bg-[#DC2626]/5 p-3.5">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <span className="size-2.5 animate-ping rounded-full bg-[#DC2626]" />
+            <p className="text-sm font-extrabold text-ink">
+              {tr("التحكم في أيقونة قسم «بث مباريات» في شريط الأيقونات العلوي بالرئيسية")}
+            </p>
+          </div>
+          <button
+            type="button"
+            disabled={busy || !siteSettings}
+            onClick={async () => {
+              if (!siteSettings) return;
+              const nextVis = !liveTileVisible;
+              setLiveTileVisible(nextVis);
+              const others = siteSettings.quickLinks.filter((q) => q.id !== "tilelive");
+              await saveQuickLinks(
+                [
+                  {
+                    id: "tilelive",
+                    title: liveTileLabel.trim() || "بث مباريات",
+                    subtitle: nextVis ? "قسم في الشريط" : " مَخفي",
+                    url: "/sports-news",
+                    emoji: "🔴",
+                  },
+                  ...others,
+                ],
+                nextVis
+                  ? "تم إظهار أيقونة «بث مباريات» في شريط الأقسام العلوي ✓"
+                  : "تم إخفاء أيقونة «بث مباريات» من شريط الأقسام",
+              );
+            }}
+            className={`rounded-xl px-3 py-1.5 text-xs font-extrabold text-white transition ${
+              liveTileVisible ? "bg-[#16A34A]" : "bg-muted"
+            }`}
+          >
+            {liveTileVisible ? tr("ظاهر في شريط الأيقونات ✓") : tr("مخفي من الشريط")}
+          </button>
+        </div>
+        <div className="mt-2.5 flex flex-wrap items-center gap-2">
+          <input
+            type="text"
+            value={liveTileLabel}
+            onChange={(e) => setLiveTileLabel(e.target.value)}
+            placeholder="بث مباريات"
+            className="field max-w-xs text-xs"
+          />
+          <button
+            type="button"
+            disabled={busy || !siteSettings}
+            onClick={async () => {
+              if (!siteSettings) return;
+              const others = siteSettings.quickLinks.filter((q) => q.id !== "tilelive");
+              await saveQuickLinks(
+                [
+                  {
+                    id: "tilelive",
+                    title: liveTileLabel.trim() || "بث مباريات",
+                    subtitle: liveTileVisible ? "قسم في الشريط" : " مَخفي",
+                    url: "/sports-news",
+                    emoji: "🔴",
+                  },
+                  ...others,
+                ],
+                `تم حفظ اسم الأيقونة «${liveTileLabel.trim() || "بث مباريات"}» في شريط الرئيسية ✓`,
+              );
+            }}
+            className="btn py-2 text-xs"
+          >
+            {tr("حفظ اسم الأيقونة")}
+          </button>
+        </div>
+      </div>
 
       <div className="mt-3">
         <p className="mb-1.5 text-xs font-extrabold text-muted">{tr("إضافة سريعة بضغطة واحدة (يظهر فوراً في الصفحة الرئيسية):")}</p>
@@ -2121,3 +2204,4 @@ function QuickCustomSectionsBar({
     </div>
   );
 }
+```
