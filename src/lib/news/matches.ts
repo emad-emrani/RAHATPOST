@@ -25,6 +25,8 @@ export type CustomMatch = {
   status: CustomMatchStatus;
   minute?: string;
   note?: string;
+  streamUrl?: string;
+  channel?: string;
 };
 
 export type MatchesSettings = {
@@ -55,6 +57,8 @@ export type MatchItem = {
   dateLabelAr: string;
   venue?: string;
   note?: string;
+  streamUrl?: string;
+  channel?: string;
 };
 
 export type MatchesBoardData = {
@@ -579,7 +583,9 @@ export function sanitizeMatchesSettings(raw: unknown): MatchesSettings {
         dateOffset: offset,
         status,
         minute: m?.minute ? String(m.minute).trim().slice(0, 12) : undefined,
-        note: m?.note ? String(m.note).trim().slice(0, 80) : undefined,
+        note: m?.note ? String(m.note).trim().slice(0, 500) : undefined,
+        streamUrl: m?.streamUrl ? String(m.streamUrl).trim().slice(0, 600) : undefined,
+        channel: m?.channel ? String(m.channel).trim().slice(0, 60) : undefined,
       });
     }
   }
@@ -925,6 +931,8 @@ export async function loadMatchesBoard(forceFresh = false): Promise<MatchesBoard
         dayKey,
         dateLabelAr: formatShortDateAr(d.toISOString()),
         note: m.note,
+        streamUrl: m.streamUrl,
+        channel: m.channel,
       };
     });
 
