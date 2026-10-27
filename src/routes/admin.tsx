@@ -1,4 +1,3 @@
-```react
 import {
   ArrowDown,
   ArrowRight,
@@ -2204,4 +2203,3 @@ function QuickCustomSectionsBar({
     </div>
   );
 }
-```
