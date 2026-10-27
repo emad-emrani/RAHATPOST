@@ -50,7 +50,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { createMiddleware } from "@tanstack/react-start";
+import { createMiddleware, createServerFn } from "@tanstack/react-start";
 import { PhotoStrip } from "@/components/photo-picker";
 import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import { Shell } from "@/components/shell";
@@ -94,6 +94,100 @@ const StoreAdmin = lazy(() => import("@/components/admin/store-admin").then((m) 
 const StatsAdmin = lazy(() => import("@/components/admin/stats-admin").then((m) => ({ default: m.StatsAdmin })));
 const LanguagesAdmin = lazy(() => import("@/components/admin/languages-admin").then((m) => ({ default: m.LanguagesAdmin })));
 const GeminiAdmin = lazy(() => import("@/components/admin/gemini-admin").then((m) => ({ default: m.GeminiAdmin })));
+
+type QuickCustomSection = {
+  id: string;
+  name: string;
+  enabled: boolean;
+  home: boolean;
+  sortOrder: number;
+};
+
+const adminQuickListCustomSections = createServerFn({ method: "GET" }).handler(
+  async (): Promise<{ authed: boolean; sections: QuickCustomSection[] }> => {
+    const { isAdmin } = await import("@/lib/admin-auth");
+    if (!(await isAdmin())) return { authed: false, sections: [] };
+    try {
+      const { getSql } = await import("@/lib/db");
+      const sql = await getSql();
+      await sql`ALTER TABLE news_sections DROP CONSTRAINT IF EXISTS news_sections_id_check`.catch(() => {});
+      await sql`ALTER TABLE news_feeds DROP CONSTRAINT IF EXISTS news_feeds_section_check`.catch(() => {});
+      const rows = await sql<{ id: string; name: string; enabled: boolean; home: boolean; sort_order: number }>`
+        select id, name, enabled, home, sort_order
+        from news_sections
+        order by sort_order asc, id asc
+      `;
+      return {
+        authed: true,
+        sections: rows.map((r) => ({
+          id: r.id,
+          name: r.name || r.id,
+          enabled: r.enabled !== false,
+          home: r.home !== false,
+          sortOrder: Number(r.sort_order) || 10,
+        })),
+      };
+    } catch {
+      return { authed: true, sections: [] };
+    }
+  },
+);
+
+const adminQuickSaveCustomSection = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => d as { id: string; name: string; home?: boolean; enabled?: boolean })
+  .handler(async ({ data }): Promise<{ ok: boolean; message: string }> => {
+    const { isAdmin } = await import("@/lib/admin-auth");
+    if (!(await isAdmin())) return { ok: false, message: "غير مخول" };
+    const rawId = String(data?.id ?? "")
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9_-]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 36);
+    const name = String(data?.name ?? "").trim().slice(0, 60);
+    if (!rawId || !name) return { ok: false, message: "الرجاء إدخال اسم القسم ومعرّفه" };
+    const home = data?.home !== false;
+    const enabled = data?.enabled !== false;
+    try {
+      const { getSql } = await import("@/lib/db");
+      const sql = await getSql();
+      await sql`ALTER TABLE news_sections DROP CONSTRAINT IF EXISTS news_sections_id_check`.catch(() => {});
+      await sql`ALTER TABLE news_feeds DROP CONSTRAINT IF EXISTS news_feeds_section_check`.catch(() => {});
+      await sql`
+        insert into news_sections (id, name, enabled, home, max_items, translate, rewrite, sort_order)
+        values (${rawId}, ${name}, ${enabled}, ${home}, 24, true, false, 15)
+        on conflict (id) do update set
+          name = excluded.name,
+          enabled = excluded.enabled,
+          home = excluded.home,
+          updated_at = now()
+      `;
+      return { ok: true, message: `تم حفظ القسم «${name}» وإظهاره في الصفحة الرئيسية ✓` };
+    } catch (e) {
+      console.error("[adminQuickSaveCustomSection]", e);
+      return { ok: false, message: "تعذر حفظ القسم في قاعدة البيانات" };
+    }
+  });
+
+const adminQuickDeleteCustomSection = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => d as { id: string })
+  .handler(async ({ data }): Promise<{ ok: boolean; message: string }> => {
+    const { isAdmin } = await import("@/lib/admin-auth");
+    if (!(await isAdmin())) return { ok: false, message: "غير مخول" };
+    const id = String(data?.id ?? "").trim();
+    if (!id || ["news", "israel", "tech", "weather", "sports"].includes(id)) {
+      return { ok: false, message: "لا يمكن حذف الأقسام الأساسية" };
+    }
+    try {
+      const { getSql } = await import("@/lib/db");
+      const sql = await getSql();
+      await sql`delete from news_feeds where section = ${id}`.catch(() => {});
+      await sql`delete from news_sections where id = ${id}`;
+      return { ok: true, message: "تم حذف القسم ✓" };
+    } catch {
+      return { ok: false, message: "تعذر حذف القسم" };
+    }
+  });
 
 export const Route = createFileRoute("/admin")({
   head: () => ({
@@ -750,7 +844,10 @@ function AdminPage() {
           ) : current.startsWith("set-") ? (
             <SiteSettingsAdmin key={current} only={current.slice(4) as SiteSettingsPart} />
           ) : current.startsWith("sec-") ? (
-            <SectionAdmin key={current} id={current.slice(4)} />
+            <div className="space-y-4">
+              <QuickCustomSectionsBar currentId={current.slice(4)} onSelectSection={(id) => go(`sec-${id}`)} />
+              <SectionAdmin key={current} id={current.slice(4) as "news"} />
+            </div>
           ) : current === "auto" ? (
             <AutoNewsAdmin />
           ) : current === "popups" ? (
@@ -1128,6 +1225,8 @@ function MatchesAdmin() {
   const [matchStatus, setMatchStatus] = useState<CustomMatchStatus>("pre");
   const [matchMinute, setMatchMinute] = useState("");
   const [matchNote, setMatchNote] = useState("");
+  const [matchStreamUrl, setMatchStreamUrl] = useState("");
+  const [matchChannel, setMatchChannel] = useState("");
 
   const load = async () => {
     const res = await adminGetMatchesSettings();
@@ -1219,10 +1318,23 @@ function MatchesAdmin() {
       setMsg("الرجاء إدخال اسم الفريق المضيف والفريق الضيف.");
       return;
     }
+    const cleanStream = matchStreamUrl.trim() || undefined;
+    const cleanChan = matchChannel.trim() || undefined;
+    const cleanNote = matchNote.trim();
+    const combinedNote =
+      [
+        cleanChan ? `[${cleanChan}]` : "",
+        cleanNote,
+        cleanStream ?? "",
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .trim() || undefined;
+
     const item: CustomMatch = {
       id: `cm-${Date.now()}`,
       leagueId: matchLeagueId.trim() || "local.negev",
-      leagueNameAr: matchLeagueName.trim() || "مباريات رهط والنقب",
+      leagueNameAr: matchLeagueName.trim() || "مباريات اليوم · بث مباشر",
       homeTeam: homeTeam.trim(),
       awayTeam: awayTeam.trim(),
       homeScore: Number(homeScore) || 0,
@@ -1231,19 +1343,23 @@ function MatchesAdmin() {
       dateOffset,
       status: matchStatus,
       minute: matchMinute.trim() || undefined,
-      note: matchNote.trim() || undefined,
+      note: combinedNote,
+      streamUrl: cleanStream,
+      channel: cleanChan,
     };
     const next: MatchesSettings = {
       ...settings,
       customMatches: [item, ...settings.customMatches],
     };
-    void save(next, `تمت إضافة مباراة «${item.homeTeam} ضد ${item.awayTeam}» ✓`);
+    void save(next, `تمت إضافة مباراة «${item.homeTeam} ضد ${item.awayTeam}» ${cleanStream ? "(مع البث المباشر 📺)" : ""} ✓`);
     setHomeTeam("");
     setAwayTeam("");
     setHomeScore(0);
     setAwayScore(0);
     setMatchMinute("");
     setMatchNote("");
+    setMatchStreamUrl("");
+    setMatchChannel("");
   };
 
   const updateCustomMatch = (id: string, patch: Partial<CustomMatch>) => {
@@ -1528,10 +1644,60 @@ function MatchesAdmin() {
       </div>
 
       <div className="rounded-3xl bg-paper p-5 shadow-[0_1px_3px_rgba(16,24,40,0.06)]">
-        <h3 className="text-base font-extrabold">{tr("إضافة مباراة يدوية (فرق رهط والنقب أو مباريات خاصة)")}</h3>
-        <p className="mb-4 text-xs font-semibold text-muted">
-          {tr("يمكنك إضافة مباريات فرق رهط والنقب (مثل شباب رهط، هبوعيل رهط، أو البطولات المحلية) وتحديث نتيجتها مباشرة.")}
-        </p>
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h3 className="flex items-center gap-2 text-base font-extrabold">
+              <span className="size-2.5 animate-ping rounded-full bg-[#DC2626]" />
+              {tr("إضافة مباراة اليوم · بث مباشر 🔴 (أو مباراة محلية)")}
+            </h3>
+            <p className="text-xs font-semibold text-muted">
+              {tr("أضف مباراة اليوم وحدد حالتها «مباشر الآن 🔴» وضع رابط البث المباشر (يوتيوب / فيسبوك / بث حي) ليظهر زر «📺 مشاهدة البث المباشر» للزوار داخل الموقع.")}
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            <button
+              type="button"
+              onClick={() => {
+                setMatchStatus("in");
+                setDateOffset(0);
+                setMatchLeagueName("مباريات اليوم · بث مباشر");
+              }}
+              className="rounded-full bg-[#DC2626] px-3 py-1.5 text-xs font-extrabold text-white shadow-2xs hover:bg-[#B91C1C]"
+            >
+              🔴 {tr("تجهيز مباراة اليوم بث مباشر")}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setHomeTeam("ريال مدريد");
+                setAwayTeam("برشلونة");
+                setMatchLeagueId("esp.1");
+                setMatchLeagueName("الدوري الإسباني (لا ليغا)");
+                setMatchStatus("in");
+                setDateOffset(0);
+                setMatchChannel("beIN Sports 1");
+              }}
+              className="rounded-full border border-line bg-surface px-3 py-1.5 text-xs font-bold hover:bg-primary-soft"
+            >
+              🇪🇸 {tr("الكلاسيكو (مباشر)")}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setHomeTeam("شباب رهط");
+                setAwayTeam("هبوعيل رهط");
+                setMatchLeagueId("local.negev");
+                setMatchLeagueName("ديربي رهط والنقب");
+                setMatchStatus("in");
+                setDateOffset(0);
+                setMatchChannel("بث مباشر رهط بوست");
+              }}
+              className="rounded-full border border-line bg-surface px-3 py-1.5 text-xs font-bold hover:bg-primary-soft"
+            >
+              🏟️ {tr("ديربي رهط (مباشر)")}
+            </button>
+          </div>
+        </div>
 
         <div className="grid grid-cols-1 gap-3 rounded-2xl bg-surface p-4 sm:grid-cols-4">
           <label className="text-xs font-bold">
@@ -1625,6 +1791,29 @@ function MatchesAdmin() {
             />
           </label>
 
+          <label className="text-xs font-bold sm:col-span-2">
+            📺 {tr("رابط البث المباشر (يوتيوب / فيسبوك لايف / رابط بث حي أو iframe)")}
+            <input
+              type="url"
+              value={matchStreamUrl}
+              onChange={(e) => setMatchStreamUrl(e.target.value)}
+              placeholder="https://www.youtube.com/watch?v=... أو رابط البث المباشر"
+              dir="ltr"
+              className="field mt-1 text-xs"
+            />
+          </label>
+
+          <label className="text-xs font-bold">
+            📡 {tr("القناة الناقلة / المعلق (اختياري)")}
+            <input
+              type="text"
+              value={matchChannel}
+              onChange={(e) => setMatchChannel(e.target.value)}
+              placeholder="مثال: beIN Sports 1 / مكان 33"
+              className="field mt-1 text-xs"
+            />
+          </label>
+
           <div className="flex items-end">
             <button
               type="button"
@@ -1632,7 +1821,7 @@ function MatchesAdmin() {
               className="btn flex w-full items-center justify-center gap-1.5 py-2.5 text-xs"
             >
               <Plus className="size-4" aria-hidden />
-              {tr("إضافة المباراة للجدول")}
+              {tr("إضافة المباراة والبث للجدول")}
             </button>
           </div>
         </div>
@@ -1645,13 +1834,47 @@ function MatchesAdmin() {
                 key={cm.id}
                 className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-line bg-surface/50 p-3"
               >
-                <div>
-                  <span className="rounded-full bg-paper px-2 py-0.5 text-[10px] font-bold text-muted">
-                    {cm.leagueNameAr} · {cm.kickoff}
-                  </span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span className="rounded-full bg-paper px-2 py-0.5 text-[10px] font-bold text-muted">
+                      {cm.leagueNameAr} · {cm.kickoff}
+                    </span>
+                    {cm.streamUrl || (cm.note && /https?:\/\//i.test(cm.note)) ? (
+                      <span className="rounded-full bg-[#DC2626] px-2 py-0.5 text-[10px] font-extrabold text-white">
+                        📺 {tr("بث مباشر مفعّل")}
+                      </span>
+                    ) : null}
+                    {cm.channel ? (
+                      <span className="rounded-full bg-primary-soft px-2 py-0.5 text-[10px] font-extrabold text-primary-ink">
+                        📡 {cm.channel}
+                      </span>
+                    ) : null}
+                  </div>
                   <p className="mt-1 text-sm font-extrabold">
                     {cm.homeTeam} <span className="mx-1 text-primary-ink">({cm.homeScore} - {cm.awayScore})</span> {cm.awayTeam}
                   </p>
+                  <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                    <input
+                      type="url"
+                      defaultValue={cm.streamUrl ?? (cm.note?.match(/https?:\/\/\S+/i)?.[0] ?? "")}
+                      placeholder="https://... رابط البث المباشر (يوتيوب / فيسبوك / بث حي)"
+                      dir="ltr"
+                      onBlur={(e) => {
+                        const val = e.target.value.trim();
+                        if (val !== (cm.streamUrl ?? "")) {
+                          const chanPrefix = cm.channel ? `[${cm.channel}] ` : "";
+                          updateCustomMatch(cm.id, {
+                            streamUrl: val || undefined,
+                            note: `${chanPrefix}${val}`.trim() || undefined,
+                          });
+                        }
+                      }}
+                      className="field max-w-xs py-1 text-[11px]"
+                    />
+                    <span className="text-[10px] font-semibold text-muted">
+                      {tr("(الرابط يُحفظ تلقائياً عند الخروج من الخانة)")}
+                    </span>
+                  </div>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <button
@@ -1690,6 +1913,221 @@ function MatchesAdmin() {
           </div>
         ) : null}
       </div>
+    </div>
+  );
+}
+
+
+const QUICK_SECTION_PRESETS: { id: string; name: string }[] = [
+  { id: "local", name: "أخبار محلية" },
+  { id: "rahat", name: "أخبار رهط والنقب" },
+  { id: "live-matches", name: "بث مباشر المباريات" },
+  { id: "community", name: "بلدية ومجتمع" },
+  { id: "education", name: "تعليم ومدارس" },
+  { id: "economy", name: "اقتصاد وأعمال" },
+];
+
+function QuickCustomSectionsBar({
+  currentId,
+  onSelectSection,
+}: {
+  currentId: string;
+  onSelectSection: (id: string) => void;
+}) {
+  const [sections, setSections] = useState<QuickCustomSection[]>([]);
+  const [name, setName] = useState("");
+  const [id, setId] = useState("");
+  const [home, setHome] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+
+  const load = useCallback(async () => {
+    const res = await adminQuickListCustomSections();
+    if (res.authed) setSections(res.sections);
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const handleAdd = async (preset?: { id: string; name: string }) => {
+    const targetName = (preset?.name ?? name).trim();
+    const targetId = (preset?.id ?? (id || targetName))
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9_-]+/g, "-")
+      .replace(/^-+|-+$/g, "") || `sec-${Date.now().toString(36)}`;
+    if (!targetName) {
+      setMsg("الرجاء كتابة اسم القسم (مثلاً: أخبار محلية)");
+      return;
+    }
+    setBusy(true);
+    try {
+      const res = await adminQuickSaveCustomSection({
+        data: { id: targetId, name: targetName, home: true, enabled: true },
+      });
+      setMsg(res.message);
+      if (res.ok) {
+        setName("");
+        setId("");
+        await load();
+      }
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const toggleHome = async (s: QuickCustomSection) => {
+    setBusy(true);
+    try {
+      const res = await adminQuickSaveCustomSection({
+        data: { id: s.id, name: s.name, home: !s.home, enabled: true },
+      });
+      setMsg(res.message);
+      await load();
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const removeSec = async (secId: string) => {
+    if (!confirm("حذف هذا القسم؟")) return;
+    setBusy(true);
+    try {
+      const res = await adminQuickDeleteCustomSection({ data: { id: secId } });
+      setMsg(res.message);
+      await load();
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="rounded-3xl bg-paper p-5 shadow-[0_1px_3px_rgba(16,24,40,0.06)]">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2.5">
+          <span className="grid size-10 place-items-center rounded-2xl bg-brand text-ink">
+            <FolderPlus className="size-5" aria-hidden />
+          </span>
+          <div>
+            <h2 className="text-lg font-extrabold">{tr("إضافة قسم جديد وإظهاره في الصفحة الرئيسية")}</h2>
+            <p className="text-xs font-semibold text-muted">
+              {tr("أضف أي قسم جديد (مثل: أخبار محلية، أخبار رهط والنقب، بث مباشر) وفعّل ظهوره في الصفحة الرئيسية بضغطة واحدة.")}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {msg ? (
+        <div className="mt-3 rounded-2xl bg-primary-soft/60 px-4 py-2 text-xs font-extrabold text-ink">
+          {trv(msg)}
+        </div>
+      ) : null}
+
+      <div className="mt-3">
+        <p className="mb-1.5 text-xs font-extrabold text-muted">{tr("إضافة سريعة بضغطة واحدة (يظهر فوراً في الصفحة الرئيسية):")}</p>
+        <div className="flex flex-wrap gap-1.5">
+          {QUICK_SECTION_PRESETS.map((p) => {
+            const exists = sections.some((s) => s.id === p.id && s.home);
+            return (
+              <button
+                key={p.id}
+                type="button"
+                disabled={busy}
+                onClick={() => void handleAdd(p)}
+                className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold transition ${
+                  exists ? "bg-[#16A34A] text-white" : "border border-line bg-surface hover:bg-primary-soft"
+                }`}
+              >
+                {exists ? <Check className="size-3.5" aria-hidden /> : <Plus className="size-3.5" aria-hidden />}
+                <span>{p.name}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="mt-3 grid grid-cols-1 gap-2 rounded-2xl bg-surface p-3.5 sm:grid-cols-4">
+        <input
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="اسم القسم بالعربية (مثال: أخبار محلية)"
+          className="field text-xs"
+        />
+        <input
+          type="text"
+          value={id}
+          onChange={(e) => setId(e.target.value)}
+          placeholder="المعرّف بالإنجليزية (مثال: local)"
+          dir="ltr"
+          className="field text-xs"
+        />
+        <label className="flex items-center gap-2 rounded-xl bg-paper px-3 py-2 text-xs font-extrabold">
+          <input
+            type="checkbox"
+            checked={home}
+            onChange={(e) => setHome(e.target.checked)}
+            className="size-4 accent-[#16A34A]"
+          />
+          {tr("إظهار القسم في الصفحة الرئيسية")}
+        </label>
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => void handleAdd()}
+          className="btn flex items-center justify-center gap-1.5 py-2 text-xs"
+        >
+          <Plus className="size-4" aria-hidden />
+          {tr("حفظ وإظهار في الرئيسية")}
+        </button>
+      </div>
+
+      {sections.length > 0 ? (
+        <div className="mt-3 border-t border-line pt-3">
+          <p className="mb-2 text-xs font-extrabold text-muted">{tr("الأقسام الحالية وحالة ظهورها في الصفحة الرئيسية:")}</p>
+          <div className="flex flex-wrap gap-2">
+            {sections.map((s) => {
+              const isBuiltin = ["news", "israel", "tech", "weather", "sports"].includes(s.id);
+              return (
+                <div
+                  key={s.id}
+                  className={`flex items-center gap-2 rounded-2xl border px-3 py-1.5 text-xs font-bold ${
+                    currentId === s.id ? "border-ink bg-primary-soft/40" : "border-line bg-surface"
+                  }`}
+                >
+                  <button
+                    type="button"
+                    onClick={() => onSelectSection(s.id)}
+                    className="font-extrabold hover:underline"
+                  >
+                    {s.name}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void toggleHome(s)}
+                    className={`rounded-lg px-2 py-0.5 text-[11px] font-extrabold text-white ${
+                      s.home ? "bg-[#16A34A]" : "bg-muted"
+                    }`}
+                  >
+                    {s.home ? tr("في الرئيسية ✓") : tr("مخفي من الرئيسية")}
+                  </button>
+                  {!isBuiltin ? (
+                    <button
+                      type="button"
+                      onClick={() => void removeSec(s.id)}
+                      className="text-[#DC2626] hover:opacity-80"
+                      title={tr("حذف القسم")}
+                    >
+                      <Trash2 className="size-3.5" aria-hidden />
+                    </button>
+                  ) : null}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -129,9 +129,69 @@ function TeamCrest({ name, logo }: { name: string; logo?: string }) {
   );
 }
 
+function extractMatchStream(m: MatchItem): {
+  streamUrl?: string;
+  channel?: string;
+  cleanNote?: string;
+} {
+  const rawStream = (m as { streamUrl?: string }).streamUrl?.trim();
+  const rawChannel = (m as { channel?: string }).channel?.trim();
+  let note = (m.note ?? "").trim();
+  let urlFromNote: string | undefined;
+  let chanFromNote: string | undefined;
+
+  const chanMatch = note.match(/^\[([^\]]+)\]\s*(.*)$/);
+  if (chanMatch) {
+    chanFromNote = chanMatch[1].trim();
+    note = chanMatch[2].trim();
+  }
+  const urlMatch = note.match(/https?:\/\/\S+/i);
+  if (urlMatch) {
+    urlFromNote = urlMatch[0].trim();
+    note = note.replace(urlMatch[0], "").replace(/^\|\s*|\s*\|$/g, "").trim();
+  }
+
+  return {
+    streamUrl: rawStream || urlFromNote || undefined,
+    channel: rawChannel || chanFromNote || undefined,
+    cleanNote: note || undefined,
+  };
+}
+
+function toEmbedStreamUrl(rawUrl: string): { type: "iframe" | "video"; src: string } {
+  const url = rawUrl.trim();
+  if (/\.(mp4|webm|ogg|m3u8)(\?.*)?$/i.test(url)) {
+    return { type: "video", src: url };
+  }
+  const ytMatch =
+    url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/live\/|youtube\.com\/embed\/)([A-Za-z0-9_-]{6,})/i);
+  if (ytMatch?.[1]) {
+    return { type: "iframe", src: `https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1&rel=0` };
+  }
+  if (/facebook\.com\/.+\/videos\//i.test(url) || /fb\.watch\//i.test(url)) {
+    return {
+      type: "iframe",
+      src: `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(url)}&show_text=false&autoplay=true`,
+    };
+  }
+  const twitchMatch = url.match(/twitch\.tv\/([A-Za-z0-9_]+)/i);
+  if (twitchMatch?.[1] && !url.includes("player.twitch.tv")) {
+    const host = typeof window !== "undefined" ? window.location.hostname : "www.rahatpost.com";
+    return {
+      type: "iframe",
+      src: `https://player.twitch.tv/?channel=${twitchMatch[1]}&parent=${host}`,
+    };
+  }
+  return { type: "iframe", src: url };
+}
+
 function MatchRowCard({ m, showLeagueBadge }: { m: MatchItem; showLeagueBadge?: boolean }) {
   const isLive = m.status === "in";
   const isDone = m.status === "post";
+  const { streamUrl, channel, cleanNote } = extractMatchStream(m);
+  const [watchOpen, setWatchOpen] = useState(false);
+  const embed = streamUrl ? toEmbedStreamUrl(streamUrl) : null;
+
   return (
     <div
       className={`flex flex-col gap-1.5 rounded-2xl border px-3 py-2.5 transition ${
@@ -198,8 +258,68 @@ function MatchRowCard({ m, showLeagueBadge }: { m: MatchItem; showLeagueBadge?: 
         </div>
       </div>
 
-      {m.note ? (
-        <p className="text-center text-[11px] font-semibold text-muted">{trv(m.note)}</p>
+      {channel || cleanNote || streamUrl ? (
+        <div className="mt-1 flex flex-wrap items-center justify-between gap-2 border-t border-line/60 pt-2">
+          <div className="flex flex-wrap items-center gap-1.5 text-[11px] font-bold text-muted">
+            {channel ? (
+              <span className="rounded-lg bg-surface px-2 py-0.5 font-extrabold text-ink">
+                📡 {trv(channel)}
+              </span>
+            ) : null}
+            {cleanNote ? <span>{trv(cleanNote)}</span> : null}
+          </div>
+
+          {streamUrl ? (
+            <button
+              type="button"
+              onClick={() => setWatchOpen((v) => !v)}
+              className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1 text-xs font-extrabold text-white shadow-2xs transition ${
+                watchOpen ? "bg-ink" : "bg-[#DC2626] hover:bg-[#B91C1C]"
+              }`}
+            >
+              <span className="size-2 animate-ping rounded-full bg-white" />
+              {watchOpen ? tr("إغلاق البث ✕") : tr("📺 مشاهدة البث المباشر")}
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+
+      {watchOpen && streamUrl && embed ? (
+        <div className="mt-2 overflow-hidden rounded-2xl border border-line bg-black text-white shadow-md">
+          <div className="flex flex-wrap items-center justify-between gap-2 bg-ink px-3 py-2 text-xs font-extrabold text-paper">
+            <span className="inline-flex items-center gap-1.5">
+              <span className="size-2 animate-ping rounded-full bg-[#DC2626]" />
+              {tr("بث مباشر:")} {trv(m.homeTeam)} × {trv(m.awayTeam)}
+            </span>
+            <a
+              href={streamUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="rounded-lg bg-white/15 px-2.5 py-1 text-[11px] font-bold text-white hover:bg-white/25"
+            >
+              {tr("فتح البث في نافذة مستقلة ↗")}
+            </a>
+          </div>
+          <div className="relative aspect-video w-full bg-black">
+            {embed.type === "video" ? (
+              <video
+                src={embed.src}
+                controls
+                autoPlay
+                playsInline
+                className="h-full w-full object-contain"
+              />
+            ) : (
+              <iframe
+                src={embed.src}
+                title={`${m.homeTeam} vs ${m.awayTeam}`}
+                className="h-full w-full border-0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+                allowFullScreen
+              />
+            )}
+          </div>
+        </div>
       ) : null}
     </div>
   );
@@ -234,26 +354,32 @@ export function HomeMatchesWidget({ initial }: { initial: MatchesBoardData | nul
     });
   }, [board]);
 
-  // Auto-refresh live scores every 60s
+  // Fetch immediately if initial was null, and auto-refresh live scores every 60s
   useEffect(() => {
+    if (!initial) {
+      void getMatchesBoard()
+        .then((fresh) => {
+          setBoard(fresh);
+          setDayTab(pickBestDayTab(fresh.matches, fresh.defaultLeague || "all"));
+        })
+        .catch(() => {});
+    }
     const id = setInterval(() => {
       void getMatchesBoard()
         .then((fresh) => setBoard(fresh))
         .catch(() => {});
     }, 60_000);
     return () => clearInterval(id);
-  }, []);
+  }, [initial]);
 
-  if (!board || !board.enabled || !board.showOnHome) return null;
-
-  const liveCount = board.matches.filter((m) => m.status === "in").length;
+  const allMatches = board?.matches ?? [];
 
   const leagueMatches = useMemo(
     () =>
       selectedLeague === "all"
-        ? board.matches
-        : board.matches.filter((m) => m.leagueId === selectedLeague),
-    [board.matches, selectedLeague],
+        ? allMatches
+        : allMatches.filter((m) => m.leagueId === selectedLeague),
+    [allMatches, selectedLeague],
   );
 
   const filteredMatches = useMemo(() => {
@@ -262,6 +388,32 @@ export function HomeMatchesWidget({ initial }: { initial: MatchesBoardData | nul
     if (byDay.length > 0) return byDay;
     return leagueMatches.slice(0, 8);
   }, [leagueMatches, dayTab]);
+
+  if (!board) {
+    return (
+      <section className="stamp p-4" aria-label={tr("نتائج المباريات المباشرة")}>
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <span className="grid size-9 place-items-center rounded-xl bg-primary text-ink">
+              <Trophy className="size-5" />
+            </span>
+            <div>
+              <h2 className="text-lg font-extrabold">{tr("مباريات اليوم والبث المباشر")}</h2>
+              <p className="text-xs font-semibold text-muted">{tr("جاري تحميل جدول المباريات المباشرة…")}</p>
+            </div>
+          </div>
+          <Link to="/sports-news" className="see-all text-xs">
+            {tr("كل المباريات")}
+            <ChevronLeft className="size-4" />
+          </Link>
+        </div>
+      </section>
+    );
+  }
+
+  if (!board.enabled || !board.showOnHome) return null;
+
+  const liveCount = board.matches.filter((m) => m.status === "in").length;
 
   const showingFallbackDay =
     dayTab !== "live" &&
@@ -292,11 +444,11 @@ export function HomeMatchesWidget({ initial }: { initial: MatchesBoardData | nul
           </span>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-lg font-extrabold">{tr("نتائج المباريات المباشرة")}</h2>
+              <h2 className="text-lg font-extrabold">{tr("مباريات اليوم والبث المباشر")}</h2>
               {liveCount > 0 ? (
                 <span className="inline-flex items-center gap-1 rounded-full bg-alert px-2 py-0.5 text-xs font-extrabold text-white">
                   <span className="size-1.5 animate-ping rounded-full bg-white" />
-                  {liveCount} {tr("مباشر")}
+                  {liveCount} {tr("مباشر الآن")}
                 </span>
               ) : null}
             </div>
@@ -329,40 +481,58 @@ export function HomeMatchesWidget({ initial }: { initial: MatchesBoardData | nul
         <button
           type="button"
           onClick={() => handleSelectLeague("all")}
-          className={selectedLeague === "all" ? "chip chip-ink shrink-0" : "chip shrink-0"}
+          className={
+            selectedLeague === "all"
+              ? "chip chip-ink shrink-0 text-xs"
+              : "chip shrink-0 text-xs"
+          }
         >
-          ⚽ {tr("كل الدوريات")}
+          <span>⚽</span>
+          <span>{tr("الكل")}</span>
         </button>
-        {board.leagues.map((lg) => (
-          <button
-            key={lg.id}
-            type="button"
-            onClick={() => handleSelectLeague(lg.id)}
-            className={selectedLeague === lg.id ? "chip chip-ink shrink-0" : "chip shrink-0"}
-          >
-            <span>{lg.badge}</span>
-            <span>{trv(lg.shortAr)}</span>
-          </button>
-        ))}
+        {board.leagues.map((lg) => {
+          const active = selectedLeague === lg.id;
+          const hasLive = board.matches.some(
+            (m) => m.leagueId === lg.id && m.status === "in",
+          );
+          return (
+            <button
+              key={lg.id}
+              type="button"
+              onClick={() => handleSelectLeague(lg.id)}
+              className={
+                active
+                  ? "chip chip-ink shrink-0 text-xs"
+                  : "chip shrink-0 text-xs"
+              }
+            >
+              <span>{lg.badge}</span>
+              <span>{trv(lg.shortAr)}</span>
+              {hasLive ? (
+                <span className="size-2 animate-ping rounded-full bg-alert" />
+              ) : null}
+            </button>
+          );
+        })}
       </div>
 
-      {/* Day filter tabs */}
-      <div className="mb-3 flex flex-wrap items-center gap-1.5 border-b border-line pb-2.5 text-xs font-bold">
+      {/* Day filter pills */}
+      <div className="mb-3 flex flex-wrap items-center gap-1.5 text-xs">
         {(
           [
-            { key: "today", label: "اليوم" },
-            { key: "yesterday", label: "أمس" },
+            { key: "today", label: "مباريات اليوم" },
             { key: "tomorrow", label: "غداً" },
-            { key: "upcoming", label: "الجولة القادمة والنتائج" },
+            { key: "yesterday", label: "نتائج أمس" },
+            { key: "upcoming", label: "القادمة" },
           ] as { key: DayTab; label: string }[]
         ).map((t) => (
           <button
             key={t.key}
             type="button"
             onClick={() => setDayTab(t.key)}
-            className={`rounded-xl px-3 py-1 transition ${
+            className={`rounded-xl px-2.5 py-1 font-extrabold transition ${
               dayTab === t.key
-                ? "bg-primary font-extrabold text-ink"
+                ? "bg-ink text-paper"
                 : "bg-surface text-muted hover:text-ink"
             }`}
           >
@@ -373,8 +543,10 @@ export function HomeMatchesWidget({ initial }: { initial: MatchesBoardData | nul
           <button
             type="button"
             onClick={() => setDayTab("live")}
-            className={`rounded-xl px-3 py-1 font-extrabold transition ${
-              dayTab === "live" ? "bg-alert text-white" : "bg-alert/10 text-alert"
+            className={`rounded-xl px-2.5 py-1 font-extrabold transition ${
+              dayTab === "live"
+                ? "bg-alert text-white"
+                : "bg-alert/10 text-alert"
             }`}
           >
             🔴 {tr("مباشر الآن")} ({liveCount})
@@ -382,17 +554,9 @@ export function HomeMatchesWidget({ initial }: { initial: MatchesBoardData | nul
         ) : null}
       </div>
 
-      {showingFallbackDay ? (
-        <p className="mb-2 text-xs font-bold text-muted">
-          {tr("لا توجد مباريات في هذا اليوم لهذا الدوري — إليك أحدث نتائج ومباريات الجولة:")}
-        </p>
-      ) : null}
-
       {filteredMatches.length === 0 ? (
-        <div className="rounded-2xl bg-surface p-5 text-center">
-          <p className="font-bold text-muted">
-            {tr("لا توجد مباريات مسجّلة حالياً في هذا التبويب — جرّب اختيار دوري آخر أو «كل الدوريات».")}
-          </p>
+        <div className="rounded-2xl bg-surface p-4 text-center text-sm font-semibold text-muted">
+          {tr("لا توجد مباريات مسجلة في هذا التبويب حالياً — اختر دوري آخر أو استعرض مباريات الغد.")}
         </div>
       ) : (
         <div className="grid gap-2 sm:grid-cols-2">
@@ -418,19 +582,29 @@ export function FullMatchesBoard({ initial }: { initial: MatchesBoardData | null
   const [dayTab, setDayTab] = useState<DayTab>("today");
   const [refreshing, setRefreshing] = useState(false);
 
-  if (!board || !board.enabled) return null;
+  useEffect(() => {
+    if (!initial) {
+      void getMatchesBoard()
+        .then((fresh) => setBoard(fresh))
+        .catch(() => {});
+    }
+  }, [initial]);
 
-  const liveCount = board.matches.filter((m) => m.status === "in").length;
+  const allMatches = board?.matches ?? [];
 
   const matches = useMemo(() => {
     const byLeague =
       selectedLeague === "all"
-        ? board.matches
-        : board.matches.filter((m) => m.leagueId === selectedLeague);
+        ? allMatches
+        : allMatches.filter((m) => m.leagueId === selectedLeague);
     if (dayTab === "live") return byLeague.filter((m) => m.status === "in");
     const byDay = byLeague.filter((m) => m.dayKey === dayTab);
     return byDay.length > 0 ? byDay : byLeague;
-  }, [board.matches, selectedLeague, dayTab]);
+  }, [allMatches, selectedLeague, dayTab]);
+
+  if (!board || !board.enabled) return null;
+
+  const liveCount = board.matches.filter((m) => m.status === "in").length;
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -492,23 +666,23 @@ export function FullMatchesBoard({ initial }: { initial: MatchesBoardData | null
         })}
       </div>
 
-      {/* Day filter */}
-      <div className="mb-3 flex flex-wrap items-center gap-1.5 border-b border-line pb-2.5 text-xs font-bold">
+      {/* Day tabs */}
+      <div className="mb-4 flex flex-wrap gap-1.5 text-xs">
         {(
           [
             { key: "today", label: "مباريات اليوم" },
-            { key: "yesterday", label: "نتائج أمس" },
-            { key: "tomorrow", label: "مباريات غداً" },
-            { key: "upcoming", label: "جميع مباريات الجولة" },
+            { key: "tomorrow", label: "مباريات الغد" },
+            { key: "yesterday", label: "نتائج الأمس" },
+            { key: "upcoming", label: "المباريات القادمة" },
           ] as { key: DayTab; label: string }[]
         ).map((t) => (
           <button
             key={t.key}
             type="button"
             onClick={() => setDayTab(t.key)}
-            className={`rounded-xl px-3 py-1.5 transition ${
+            className={`rounded-xl px-3 py-1.5 font-extrabold transition ${
               dayTab === t.key
-                ? "bg-primary font-extrabold text-ink"
+                ? "bg-ink text-paper"
                 : "bg-surface text-muted hover:text-ink"
             }`}
           >
