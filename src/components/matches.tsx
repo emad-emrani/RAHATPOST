@@ -57,9 +57,69 @@ function TeamCrest({ name, logo }: { name: string; logo?: string }) {
   );
 }
 
+function extractMatchStream(m: MatchItem): {
+  streamUrl?: string;
+  channel?: string;
+  cleanNote?: string;
+} {
+  const rawStream = (m as { streamUrl?: string }).streamUrl?.trim();
+  const rawChannel = (m as { channel?: string }).channel?.trim();
+  let note = (m.note ?? "").trim();
+  let urlFromNote: string | undefined;
+  let chanFromNote: string | undefined;
+
+  const chanMatch = note.match(/^\[([^\]]+)\]\s*(.*)$/);
+  if (chanMatch) {
+    chanFromNote = chanMatch[1].trim();
+    note = chanMatch[2].trim();
+  }
+  const urlMatch = note.match(/https?:\/\/\S+/i);
+  if (urlMatch) {
+    urlFromNote = urlMatch[0].trim();
+    note = note.replace(urlMatch[0], "").replace(/^\|\s*|\s*\|$/g, "").trim();
+  }
+
+  return {
+    streamUrl: rawStream || urlFromNote || undefined,
+    channel: rawChannel || chanFromNote || undefined,
+    cleanNote: note || undefined,
+  };
+}
+
+function toEmbedStreamUrl(rawUrl: string): { type: "iframe" | "video"; src: string } {
+  const url = rawUrl.trim();
+  if (/\.(mp4|webm|ogg|m3u8)(\?.*)?$/i.test(url)) {
+    return { type: "video", src: url };
+  }
+  const ytMatch =
+    url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/live\/|youtube\.com\/embed\/)([A-Za-z0-9_-]{6,})/i);
+  if (ytMatch?.[1]) {
+    return { type: "iframe", src: `https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1&rel=0` };
+  }
+  if (/facebook\.com\/.+\/videos\//i.test(url) || /fb\.watch\//i.test(url)) {
+    return {
+      type: "iframe",
+      src: `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(url)}&show_text=false&autoplay=true`,
+    };
+  }
+  const twitchMatch = url.match(/twitch\.tv\/([A-Za-z0-9_]+)/i);
+  if (twitchMatch?.[1] && !url.includes("player.twitch.tv")) {
+    const host = typeof window !== "undefined" ? window.location.hostname : "www.rahatpost.com";
+    return {
+      type: "iframe",
+      src: `https://player.twitch.tv/?channel=${twitchMatch[1]}&parent=${host}`,
+    };
+  }
+  return { type: "iframe", src: url };
+}
+
 function MatchRowCard({ m, showLeagueBadge }: { m: MatchItem; showLeagueBadge?: boolean }) {
   const isLive = m.status === "in";
   const isDone = m.status === "post";
+  const { streamUrl, channel, cleanNote } = extractMatchStream(m);
+  const [watchOpen, setWatchOpen] = useState(false);
+  const embed = streamUrl ? toEmbedStreamUrl(streamUrl) : null;
+
   return (
     <div
       className={`flex flex-col gap-1.5 rounded-2xl border px-3 py-2.5 transition ${
@@ -126,8 +186,68 @@ function MatchRowCard({ m, showLeagueBadge }: { m: MatchItem; showLeagueBadge?: 
         </div>
       </div>
 
-      {m.note ? (
-        <p className="text-center text-[11px] font-semibold text-muted">{trv(m.note)}</p>
+      {channel || cleanNote || streamUrl ? (
+        <div className="mt-1 flex flex-wrap items-center justify-between gap-2 border-t border-line/60 pt-2">
+          <div className="flex flex-wrap items-center gap-1.5 text-[11px] font-bold text-muted">
+            {channel ? (
+              <span className="rounded-lg bg-surface px-2 py-0.5 font-extrabold text-ink">
+                📡 {trv(channel)}
+              </span>
+            ) : null}
+            {cleanNote ? <span>{trv(cleanNote)}</span> : null}
+          </div>
+
+          {streamUrl ? (
+            <button
+              type="button"
+              onClick={() => setWatchOpen((v) => !v)}
+              className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1 text-xs font-extrabold text-white shadow-2xs transition ${
+                watchOpen ? "bg-ink" : "bg-[#DC2626] hover:bg-[#B91C1C]"
+              }`}
+            >
+              <span className="size-2 animate-ping rounded-full bg-white" />
+              {watchOpen ? tr("إغلاق البث ✕") : tr("📺 مشاهدة البث المباشر")}
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+
+      {watchOpen && streamUrl && embed ? (
+        <div className="mt-2 overflow-hidden rounded-2xl border border-line bg-black text-white shadow-md">
+          <div className="flex flex-wrap items-center justify-between gap-2 bg-ink px-3 py-2 text-xs font-extrabold text-paper">
+            <span className="inline-flex items-center gap-1.5">
+              <span className="size-2 animate-ping rounded-full bg-[#DC2626]" />
+              {tr("بث مباشر:")} {trv(m.homeTeam)} × {trv(m.awayTeam)}
+            </span>
+            <a
+              href={streamUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="rounded-lg bg-white/15 px-2.5 py-1 text-[11px] font-bold text-white hover:bg-white/25"
+            >
+              {tr("فتح البث في نافذة مستقلة ↗")}
+            </a>
+          </div>
+          <div className="relative aspect-video w-full bg-black">
+            {embed.type === "video" ? (
+              <video
+                src={embed.src}
+                controls
+                autoPlay
+                playsInline
+                className="h-full w-full object-contain"
+              />
+            ) : (
+              <iframe
+                src={embed.src}
+                title={`${m.homeTeam} vs ${m.awayTeam}`}
+                className="h-full w-full border-0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+                allowFullScreen
+              />
+            )}
+          </div>
+        </div>
       ) : null}
     </div>
   );
