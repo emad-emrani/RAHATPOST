@@ -1,5 +1,4 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { createServerFn } from "@tanstack/react-start";
 import { Bus, ChevronLeft, MapPin, RefreshCw, Search, Trophy } from "lucide-react";
 import { Fragment, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useSiteSettings } from "@/lib/site-settings/context";
@@ -39,33 +38,6 @@ import { localized, localizedIsrael } from "@/lib/i18n/localize";
 
 const postGuide = getGuide("post");
 
-const getCustomSectionsForHome = createServerFn({ method: "GET" }).handler(
-  async (): Promise<{ id: string; name: string; home: boolean; items: NewsItem[] }[]> => {
-    try {
-      const { getSql } = await import("@/lib/db");
-      const sql = await getSql();
-      const rows = await sql<{ id: string; name: string; enabled: boolean; home: boolean }>`
-        select id, name, enabled, home from news_sections
-        where enabled = true and home = true
-          and id not in ('news', 'israel', 'tech', 'weather', 'sports')
-        order by sort_order asc, id asc
-      `;
-      if (!rows.length) return [];
-      const allNews = await getNews().catch(() => ({ items: [] as NewsItem[] }));
-      return rows.map((r) => ({
-        id: r.id,
-        name: r.name || r.id,
-        home: r.home !== false,
-        items: allNews.items.filter(
-          (i) => i.category === r.name || i.category === r.id,
-        ),
-      }));
-    } catch {
-      return [];
-    }
-  },
-);
-
 export const Route = createFileRoute("/")({
   // ?q= opens the page with the search filled in (WebSite SearchAction target).
   validateSearch: (search: Record<string, unknown>): { q?: string } => ({
@@ -80,7 +52,7 @@ export const Route = createFileRoute("/")({
       jsonLd: [organizationLd, websiteLd],
     }),
   loader: async () => {
-    const [news, approved, ads, israel, weather, board, store, tech, flags, sports, customSections, matches] = await Promise.all([
+    const [news, approved, ads, israel, weather, board, store, tech, flags, sports, matches] = await Promise.all([
       getNews(),
       getApprovedEntries(),
       getListings(),
@@ -91,7 +63,6 @@ export const Route = createFileRoute("/")({
       getTechNews().catch(() => null),
       getAutoSectionFlags().catch(() => ({}) as Record<string, boolean>),
       getSportsNews().catch(() => null),
-      getCustomSectionsForHome().catch(() => []),
       matchesForHome(),
     ]);
     const [lNews, lIsrael, lStore, lTech, lSports] = await Promise.all([
@@ -101,7 +72,7 @@ export const Route = createFileRoute("/")({
       tech ? localized(tech, (d) => [{ items: d.items.slice(0, 5), fields: ["title", "summary"] }], "auto") : null,
       sports ? localized(sports, (d) => [{ items: d.items.slice(0, 5), fields: ["title", "summary"] }], "auto") : null,
     ]);
-    return { news: lNews, approved: approved.entries, ads, israel: lIsrael, weather, board, store: lStore, tech: lTech, sports: lSports, flags, customSections, matches };
+    return { news: lNews, approved: approved.entries, ads, israel: lIsrael, weather, board, store: lStore, tech: lTech, sports: lSports, flags, matches };
   },
   // New items must show up within a minute or two: short CDN cache, revalidated in the background.
   headers: () => ({ "Cache-Control": HOME_CACHE }),
@@ -135,12 +106,29 @@ async function matchesForHome(): Promise<MatchesBoardData | null> {
 }
 
 function Home() {
-  const { news, approved, ads: adsData, israel, weather, board, store, tech, sports, flags, customSections, matches } = Route.useLoaderData();
+  const { news, approved, ads: adsData, israel, weather, board, store, tech, sports, flags, matches } = Route.useLoaderData();
   const showSec = (id: string) => flags[id] !== false;
   const techTop = tech?.home ? tech.items.slice(0, 5) : [];
   const sportsTop = sports?.home ? sports.items.slice(0, 5) : [];
-  const visibleCustomSections = (customSections ?? []).filter((s) => s.home);
   const settings = useSiteSettings();
+  const visibleCustomSections = useMemo(() => {
+    return (settings.quickLinks ?? [])
+      .filter((q) => q.id.startsWith("sec") && q.subtitle !== " مَخفي")
+      .map((q) => {
+        const cat = q.url.includes("q=") ? decodeURIComponent(q.url.split("q=")[1] ?? "") : "";
+        const matched = news.items.filter(
+          (i) =>
+            (cat && (i.category === cat || i.title.includes(cat) || i.summary.includes(cat))) ||
+            i.category === q.title,
+        );
+        return {
+          id: q.id,
+          name: `${q.emoji ? q.emoji + " " : ""}${q.title}`,
+          home: true,
+          items: matched.length > 0 ? matched : news.items.slice(0, 5),
+        };
+      });
+  }, [settings.quickLinks, news.items]);
   const israelItems = useMemo(() => israel?.items ?? [], [israel]);
   const israelTop = [
     ...israelItems.filter((item) => item.pinned),
@@ -252,7 +240,8 @@ function Home() {
     </section>
   ) : null;
 
-  const blocks: Record<HomeSectionId, ReactNode> = {
+  type ExtendedHomeSectionId = HomeSectionId | "matches";
+  const blocks: Record<ExtendedHomeSectionId, ReactNode> = {
     weather: !showSec("weather") ? null : <HomeTodayChips weather={weather} serverNow={news.now} />,
     slider: <HomeCarousel lead={top} leadTime={top ? relativeTimeAr(top.publishedAt, now) : ""} sections={sectionSlides} />,
     search: (
@@ -519,11 +508,11 @@ function Home() {
 
   // Ensure the install banner never blocks above-the-fold news even if an older DB order had it at #2
   const rawOrder = settings.home.filter((h) => h.visible).map((h) => h.id);
-  const baseOrder: HomeSectionId[] = [
+  const baseOrder: ExtendedHomeSectionId[] = [
     ...rawOrder.filter((id) => id !== "install"),
     ...(rawOrder.includes("install") ? (["install"] as HomeSectionId[]) : []),
   ];
-  const order: HomeSectionId[] = (() => {
+  const order: ExtendedHomeSectionId[] = (() => {
     if (baseOrder.includes("matches")) return baseOrder;
     const newsIdx = baseOrder.indexOf("news");
     if (newsIdx !== -1) {
@@ -535,7 +524,7 @@ function Home() {
     }
     return ["matches", ...baseOrder];
   })();
-  const TOP: HomeSectionId[] = ["weather", "slider", "search"];
+  const TOP: ExtendedHomeSectionId[] = ["weather", "slider", "search"];
 
   return (
     <Shell>

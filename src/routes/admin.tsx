@@ -50,7 +50,9 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { createMiddleware, createServerFn } from "@tanstack/react-start";
+import { createMiddleware } from "@tanstack/react-start";
+import { adminGetSiteSettings, adminSaveSiteSettings } from "@/lib/site-settings/api";
+import type { SiteSettings } from "@/lib/site-settings/types";
 import { PhotoStrip } from "@/components/photo-picker";
 import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import { Shell } from "@/components/shell";
@@ -98,96 +100,10 @@ const GeminiAdmin = lazy(() => import("@/components/admin/gemini-admin").then((m
 type QuickCustomSection = {
   id: string;
   name: string;
-  enabled: boolean;
+  category: string;
   home: boolean;
-  sortOrder: number;
+  emoji: string;
 };
-
-const adminQuickListCustomSections = createServerFn({ method: "GET" }).handler(
-  async (): Promise<{ authed: boolean; sections: QuickCustomSection[] }> => {
-    const { isAdmin } = await import("@/lib/admin-auth");
-    if (!(await isAdmin())) return { authed: false, sections: [] };
-    try {
-      const { getSql } = await import("@/lib/db");
-      const sql = await getSql();
-      await sql`ALTER TABLE news_sections DROP CONSTRAINT IF EXISTS news_sections_id_check`.catch(() => {});
-      await sql`ALTER TABLE news_feeds DROP CONSTRAINT IF EXISTS news_feeds_section_check`.catch(() => {});
-      const rows = await sql<{ id: string; name: string; enabled: boolean; home: boolean; sort_order: number }>`
-        select id, name, enabled, home, sort_order
-        from news_sections
-        order by sort_order asc, id asc
-      `;
-      return {
-        authed: true,
-        sections: rows.map((r) => ({
-          id: r.id,
-          name: r.name || r.id,
-          enabled: r.enabled !== false,
-          home: r.home !== false,
-          sortOrder: Number(r.sort_order) || 10,
-        })),
-      };
-    } catch {
-      return { authed: true, sections: [] };
-    }
-  },
-);
-
-const adminQuickSaveCustomSection = createServerFn({ method: "POST" })
-  .inputValidator((d: unknown) => d as { id: string; name: string; home?: boolean; enabled?: boolean })
-  .handler(async ({ data }): Promise<{ ok: boolean; message: string }> => {
-    const { isAdmin } = await import("@/lib/admin-auth");
-    if (!(await isAdmin())) return { ok: false, message: "غير مخول" };
-    const rawId = String(data?.id ?? "")
-      .trim()
-      .toLowerCase()
-      .replace(/[^a-z0-9_-]+/g, "-")
-      .replace(/^-+|-+$/g, "")
-      .slice(0, 36);
-    const name = String(data?.name ?? "").trim().slice(0, 60);
-    if (!rawId || !name) return { ok: false, message: "الرجاء إدخال اسم القسم ومعرّفه" };
-    const home = data?.home !== false;
-    const enabled = data?.enabled !== false;
-    try {
-      const { getSql } = await import("@/lib/db");
-      const sql = await getSql();
-      await sql`ALTER TABLE news_sections DROP CONSTRAINT IF EXISTS news_sections_id_check`.catch(() => {});
-      await sql`ALTER TABLE news_feeds DROP CONSTRAINT IF EXISTS news_feeds_section_check`.catch(() => {});
-      await sql`
-        insert into news_sections (id, name, enabled, home, max_items, translate, rewrite, sort_order)
-        values (${rawId}, ${name}, ${enabled}, ${home}, 24, true, false, 15)
-        on conflict (id) do update set
-          name = excluded.name,
-          enabled = excluded.enabled,
-          home = excluded.home,
-          updated_at = now()
-      `;
-      return { ok: true, message: `تم حفظ القسم «${name}» وإظهاره في الصفحة الرئيسية ✓` };
-    } catch (e) {
-      console.error("[adminQuickSaveCustomSection]", e);
-      return { ok: false, message: "تعذر حفظ القسم في قاعدة البيانات" };
-    }
-  });
-
-const adminQuickDeleteCustomSection = createServerFn({ method: "POST" })
-  .inputValidator((d: unknown) => d as { id: string })
-  .handler(async ({ data }): Promise<{ ok: boolean; message: string }> => {
-    const { isAdmin } = await import("@/lib/admin-auth");
-    if (!(await isAdmin())) return { ok: false, message: "غير مخول" };
-    const id = String(data?.id ?? "").trim();
-    if (!id || ["news", "israel", "tech", "weather", "sports"].includes(id)) {
-      return { ok: false, message: "لا يمكن حذف الأقسام الأساسية" };
-    }
-    try {
-      const { getSql } = await import("@/lib/db");
-      const sql = await getSql();
-      await sql`delete from news_feeds where section = ${id}`.catch(() => {});
-      await sql`delete from news_sections where id = ${id}`;
-      return { ok: true, message: "تم حذف القسم ✓" };
-    } catch {
-      return { ok: false, message: "تعذر حذف القسم" };
-    }
-  });
 
 export const Route = createFileRoute("/admin")({
   head: () => ({
@@ -1964,13 +1880,13 @@ function MatchesAdmin() {
 }
 
 
-const QUICK_SECTION_PRESETS: { id: string; name: string }[] = [
-  { id: "local", name: "أخبار محلية" },
-  { id: "rahat", name: "أخبار رهط والنقب" },
-  { id: "live-matches", name: "بث مباشر المباريات" },
-  { id: "community", name: "بلدية ومجتمع" },
-  { id: "education", name: "تعليم ومدارس" },
-  { id: "economy", name: "اقتصاد وأعمال" },
+const QUICK_SECTION_PRESETS: { id: string; name: string; category: string; emoji: string }[] = [
+  { id: "seclocal", name: "أخبار محلية", category: "رهط", emoji: "📰" },
+  { id: "secrahat", name: "أخبار رهط والنقب", category: "النقب", emoji: "📍" },
+  { id: "seclive", name: "بث مباشر المباريات", category: "رياضة", emoji: "🔴" },
+  { id: "seccomm", name: "بلدية ومجتمع", category: "بلدية", emoji: "🏛️" },
+  { id: "seceduc", name: "تعليم ومدارس", category: "تعليم", emoji: "🎓" },
+  { id: "sececon", name: "اقتصاد وأعمال", category: "أعمال", emoji: "💼" },
 ];
 
 function QuickCustomSectionsBar({
@@ -1980,72 +1896,91 @@ function QuickCustomSectionsBar({
   currentId: string;
   onSelectSection: (id: string) => void;
 }) {
-  const [sections, setSections] = useState<QuickCustomSection[]>([]);
+  const [siteSettings, setSiteSettings] = useState<SiteSettings | null>(null);
   const [name, setName] = useState("");
-  const [id, setId] = useState("");
+  const [category, setCategory] = useState("رهط");
   const [home, setHome] = useState(true);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
 
   const load = useCallback(async () => {
-    const res = await adminQuickListCustomSections();
-    if (res.authed) setSections(res.sections);
+    const res = await adminGetSiteSettings();
+    if (res.authed && res.settings) {
+      setSiteSettings(res.settings);
+    }
   }, []);
 
   useEffect(() => {
     void load();
   }, [load]);
 
-  const handleAdd = async (preset?: { id: string; name: string }) => {
-    const targetName = (preset?.name ?? name).trim();
-    const targetId = (preset?.id ?? (id || targetName))
-      .trim()
-      .toLowerCase()
-      .replace(/[^a-z0-9_-]+/g, "-")
-      .replace(/^-+|-+$/g, "") || `sec-${Date.now().toString(36)}`;
-    if (!targetName) {
-      setMsg("الرجاء كتابة اسم القسم (مثلاً: أخبار محلية)");
-      return;
-    }
+  const customSections: QuickCustomSection[] = (siteSettings?.quickLinks ?? [])
+    .filter((q) => q.id.startsWith("sec"))
+    .map((q) => ({
+      id: q.id,
+      name: q.title,
+      category: q.url.includes("q=") ? decodeURIComponent(q.url.split("q=")[1] ?? "رهط") : "رهط",
+      home: q.subtitle !== " مَخفي",
+      emoji: q.emoji || "📰",
+    }));
+
+  const saveQuickLinks = async (nextLinks: SiteSettings["quickLinks"], successMsg: string) => {
+    if (!siteSettings) return;
     setBusy(true);
+    setMsg("");
     try {
-      const res = await adminQuickSaveCustomSection({
-        data: { id: targetId, name: targetName, home: true, enabled: true },
-      });
-      setMsg(res.message);
-      if (res.ok) {
-        setName("");
-        setId("");
-        await load();
+      const next: SiteSettings = { ...siteSettings, quickLinks: nextLinks };
+      const res = await adminSaveSiteSettings({ data: next });
+      if (res.ok && res.settings) {
+        setSiteSettings(res.settings);
+        setMsg(successMsg);
+      } else {
+        setMsg(res.message ?? "تعذر حفظ القسم");
       }
     } finally {
       setBusy(false);
     }
   };
 
-  const toggleHome = async (s: QuickCustomSection) => {
-    setBusy(true);
-    try {
-      const res = await adminQuickSaveCustomSection({
-        data: { id: s.id, name: s.name, home: !s.home, enabled: true },
-      });
-      setMsg(res.message);
-      await load();
-    } finally {
-      setBusy(false);
+  const handleAdd = async (preset?: { id: string; name: string; category: string; emoji: string }) => {
+    if (!siteSettings) return;
+    const targetName = (preset?.name ?? name).trim();
+    const targetCat = (preset?.category ?? category).trim() || "رهط";
+    const targetEmoji = preset?.emoji ?? "📰";
+    const targetId = preset?.id ?? `sec${Date.now().toString(36).replace(/[^a-z0-9]/g, "").slice(-10)}`;
+    if (!targetName) {
+      setMsg("الرجاء كتابة اسم القسم (مثلاً: أخبار محلية)");
+      return;
     }
+    const existing = siteSettings.quickLinks.filter((q) => q.id !== targetId);
+    const nextLinks: SiteSettings["quickLinks"] = [
+      ...existing,
+      {
+        id: targetId,
+        title: targetName,
+        subtitle: home ? "قسم في الرئيسية" : " مَخفي",
+        url: targetCat === "رياضة" ? "/sports-news" : `/news?q=${encodeURIComponent(targetCat)}`,
+        emoji: targetEmoji,
+      },
+    ];
+    await saveQuickLinks(nextLinks, `تم حفظ القسم «${targetName}» وإظهاره في الصفحة الرئيسية ✓`);
+    if (!preset) setName("");
+  };
+
+  const toggleHome = async (s: QuickCustomSection) => {
+    if (!siteSettings) return;
+    const nextLinks = siteSettings.quickLinks.map((q) =>
+      q.id === s.id
+        ? { ...q, subtitle: s.home ? " مَخفي" : "قسم في الرئيسية" }
+        : q,
+    );
+    await saveQuickLinks(nextLinks, s.home ? `تم إخفاء «${s.name}» من الرئيسية` : `تم إظهار «${s.name}» في الصفحة الرئيسية ✓`);
   };
 
   const removeSec = async (secId: string) => {
-    if (!confirm("حذف هذا القسم؟")) return;
-    setBusy(true);
-    try {
-      const res = await adminQuickDeleteCustomSection({ data: { id: secId } });
-      setMsg(res.message);
-      await load();
-    } finally {
-      setBusy(false);
-    }
+    if (!siteSettings || !confirm("حذف هذا القسم؟")) return;
+    const nextLinks = siteSettings.quickLinks.filter((q) => q.id !== secId);
+    await saveQuickLinks(nextLinks, "تم حذف القسم ✓");
   };
 
   return (
@@ -2074,7 +2009,7 @@ function QuickCustomSectionsBar({
         <p className="mb-1.5 text-xs font-extrabold text-muted">{tr("إضافة سريعة بضغطة واحدة (يظهر فوراً في الصفحة الرئيسية):")}</p>
         <div className="flex flex-wrap gap-1.5">
           {QUICK_SECTION_PRESETS.map((p) => {
-            const exists = sections.some((s) => s.id === p.id && s.home);
+            const exists = customSections.some((s) => s.id === p.id && s.home);
             return (
               <button
                 key={p.id}
@@ -2086,7 +2021,7 @@ function QuickCustomSectionsBar({
                 }`}
               >
                 {exists ? <Check className="size-3.5" aria-hidden /> : <Plus className="size-3.5" aria-hidden />}
-                <span>{p.name}</span>
+                <span>{p.emoji} {p.name}</span>
               </button>
             );
           })}
@@ -2101,14 +2036,20 @@ function QuickCustomSectionsBar({
           placeholder="اسم القسم بالعربية (مثال: أخبار محلية)"
           className="field text-xs"
         />
-        <input
-          type="text"
-          value={id}
-          onChange={(e) => setId(e.target.value)}
-          placeholder="المعرّف بالإنجليزية (مثال: local)"
-          dir="ltr"
+        <select
+          value={category}
+          onChange={(e) => setCategory(e.target.value)}
           className="field text-xs"
-        />
+        >
+          <option value="رهط">تصنيف الأخبار: رهط</option>
+          <option value="النقب">تصنيف الأخبار: النقب</option>
+          <option value="بلدية">تصنيف الأخبار: بلدية</option>
+          <option value="تعليم">تصنيف الأخبار: تعليم</option>
+          <option value="صحة">تصنيف الأخبار: صحة</option>
+          <option value="رياضة">تصنيف الأخبار: رياضة ومباريات</option>
+          <option value="مجتمع">تصنيف الأخبار: مجتمع</option>
+          <option value="أعمال">تصنيف الأخبار: أعمال واقتصاد</option>
+        </select>
         <label className="flex items-center gap-2 rounded-xl bg-paper px-3 py-2 text-xs font-extrabold">
           <input
             type="checkbox"
@@ -2129,51 +2070,54 @@ function QuickCustomSectionsBar({
         </button>
       </div>
 
-      {sections.length > 0 ? (
-        <div className="mt-3 border-t border-line pt-3">
-          <p className="mb-2 text-xs font-extrabold text-muted">{tr("الأقسام الحالية وحالة ظهورها في الصفحة الرئيسية:")}</p>
-          <div className="flex flex-wrap gap-2">
-            {sections.map((s) => {
-              const isBuiltin = ["news", "israel", "tech", "weather", "sports"].includes(s.id);
-              return (
-                <div
-                  key={s.id}
-                  className={`flex items-center gap-2 rounded-2xl border px-3 py-1.5 text-xs font-bold ${
-                    currentId === s.id ? "border-ink bg-primary-soft/40" : "border-line bg-surface"
-                  }`}
-                >
-                  <button
-                    type="button"
-                    onClick={() => onSelectSection(s.id)}
-                    className="font-extrabold hover:underline"
-                  >
-                    {s.name}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => void toggleHome(s)}
-                    className={`rounded-lg px-2 py-0.5 text-[11px] font-extrabold text-white ${
-                      s.home ? "bg-[#16A34A]" : "bg-muted"
-                    }`}
-                  >
-                    {s.home ? tr("في الرئيسية ✓") : tr("مخفي من الرئيسية")}
-                  </button>
-                  {!isBuiltin ? (
-                    <button
-                      type="button"
-                      onClick={() => void removeSec(s.id)}
-                      className="text-[#DC2626] hover:opacity-80"
-                      title={tr("حذف القسم")}
-                    >
-                      <Trash2 className="size-3.5" aria-hidden />
-                    </button>
-                  ) : null}
-                </div>
-              );
-            })}
-          </div>
+      <div className="mt-3 border-t border-line pt-3">
+        <p className="mb-2 text-xs font-extrabold text-muted">{tr("الأقسام المضافة وحالة ظهورها في الصفحة الرئيسية:")}</p>
+        <div className="flex flex-wrap gap-2">
+          {[
+            { id: "news", label: "الأخبار المحلية (الأساسي)" },
+            { id: "israel", label: "أخبار إسرائيل" },
+            { id: "sports", label: "الرياضة" },
+            { id: "tech", label: "التقنية" },
+            { id: "weather", label: "الطقس" },
+          ].map((b) => (
+            <button
+              key={b.id}
+              type="button"
+              onClick={() => onSelectSection(b.id)}
+              className={`rounded-2xl border px-3 py-1.5 text-xs font-extrabold transition ${
+                currentId === b.id ? "border-ink bg-ink text-paper" : "border-line bg-surface hover:bg-primary-soft"
+              }`}
+            >
+              {b.label}
+            </button>
+          ))}
+          {customSections.map((s) => (
+            <div
+              key={s.id}
+              className="flex items-center gap-2 rounded-2xl border border-line bg-surface px-3 py-1.5 text-xs font-bold"
+            >
+              <span className="font-extrabold">{s.emoji} {s.name}</span>
+              <button
+                type="button"
+                onClick={() => void toggleHome(s)}
+                className={`rounded-lg px-2 py-0.5 text-[11px] font-extrabold text-white ${
+                  s.home ? "bg-[#16A34A]" : "bg-muted"
+                }`}
+              >
+                {s.home ? tr("في الرئيسية ✓") : tr("مخفي من الرئيسية")}
+              </button>
+              <button
+                type="button"
+                onClick={() => void removeSec(s.id)}
+                className="text-[#DC2626] hover:opacity-80"
+                title={tr("حذف القسم")}
+              >
+                <Trash2 className="size-3.5" aria-hidden />
+              </button>
+            </div>
+          ))}
         </div>
-      ) : null}
+      </div>
     </div>
   );
 }
