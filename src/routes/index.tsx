@@ -165,26 +165,71 @@ function Home() {
     item: { image: i.image, title: i.title, category: i.category, source: i.source },
     meta: `${relativeTimeAr(i.publishedAt, now)} · ${newsByline(i)}`,
   });
-  const israelFirst = israelTop[0];
-  const sectionSlides: SectionSlide[] = [
-    ...(showSec("news") && latestFeed ? [newsSlide("news", "آخر الأخبار", latestFeed)] : []),
-    ...visibleCustomSections.filter((cs) => cs.items.length > 0).map((cs) => newsSlide(`custom-${cs.id}`, cs.name, cs.items[0])),
-    ...(showSec("israel") && israelFirst
-      ? [
-          {
-            key: "israel",
-            label: "أخبار إسرائيل",
-            link: { to: "/israel-news/$slug" as const, params: { slug: israelFirst.slug } },
-            item: { image: israelFirst.image, title: israelFirst.titleAr ?? israelFirst.titleHe, category: israelFirst.category, source: israelFirst.source },
-            title: <IsraelTitle item={israelFirst} />,
-            meta: `${relativeTimeAr(israelFirst.publishedAt, now)} · ${trv(israelFirst.source)}`,
-          },
-        ]
-      : []),
-    ...(sportsTop[0] ? [newsSlide("sports", "رياضة", sportsTop[0])] : []),
-    ...(tech?.items[0] && showSec("tech") ? [newsSlide("tech", "أخبار تقنية", tech.items[0])] : []),
-    ...(latestReader ? [newsSlide("reader", "من القراء", latestReader)] : []),
-  ];
+  const sliderCfg = useMemo(() => {
+    const raw = (settings.quickLinks ?? []).find((q) => q.id === "slidercfg")?.subtitle ?? "";
+    let size: "sm" | "md" | "lg" | "xl" = "md";
+    let secs: string[] | null = null;
+    for (const part of raw.split("|")) {
+      if (part.startsWith("size:")) {
+        const v = part.slice(5).trim();
+        if (v === "sm" || v === "md" || v === "lg" || v === "xl") size = v;
+      } else if (part.startsWith("secs:")) {
+        const list = part.slice(5).split(",").map((x) => x.trim()).filter(Boolean);
+        if (list.length > 0) secs = list;
+      }
+    }
+    const heightPx = size === "sm" ? "180px" : size === "lg" ? "310px" : size === "xl" ? "380px" : "240px";
+    return { size, secs, heightPx };
+  }, [settings.quickLinks]);
+
+  const israelSlide = (key: string, i: IsraelNewsItem): SectionSlide => ({
+    key,
+    label: "أخبار إسرائيل",
+    link: { to: "/israel-news/$slug" as const, params: { slug: i.slug } },
+    item: { image: i.image, title: i.titleAr ?? i.titleHe, category: i.category, source: i.source },
+    title: <IsraelTitle item={i} />,
+    meta: `${relativeTimeAr(i.publishedAt, now)} · ${trv(i.source)}`,
+  });
+
+  const sectionSlides: SectionSlide[] = (() => {
+    const picked = sliderCfg.secs;
+    // If admin selected a single specific section for the slider, show up to 5 items from that section!
+    if (picked && picked.length === 1) {
+      const onlyId = picked[0];
+      if (onlyId === "news") {
+        return ranked.filter((i) => !i.reader).slice(0, 5).map((i, idx) => newsSlide(`news-${idx}`, "آخر الأخبار", i));
+      }
+      if (onlyId === "israel") {
+        return israelTop.slice(0, 5).map((i, idx) => israelSlide(`israel-${idx}`, i));
+      }
+      if (onlyId === "sports") {
+        return (sports?.items ?? []).slice(0, 5).map((i, idx) => newsSlide(`sports-${idx}`, "رياضة", i));
+      }
+      if (onlyId === "tech") {
+        return (tech?.items ?? []).slice(0, 5).map((i, idx) => newsSlide(`tech-${idx}`, "أخبار تقنية", i));
+      }
+      if (onlyId === "reader") {
+        return ranked.filter((i) => i.reader).slice(0, 5).map((i, idx) => newsSlide(`reader-${idx}`, "من القراء", i));
+      }
+      const custom = visibleCustomSections.find((cs) => cs.id === onlyId);
+      if (custom && custom.items.length > 0) {
+        return custom.items.slice(0, 5).map((i, idx) => newsSlide(`custom-${custom.id}-${idx}`, custom.name, i));
+      }
+    }
+
+    const allow = (id: string) => !picked || picked.includes(id);
+    const israelFirst = israelTop[0];
+    return [
+      ...(allow("news") && showSec("news") && latestFeed ? [newsSlide("news", "آخر الأخبار", latestFeed)] : []),
+      ...visibleCustomSections
+        .filter((cs) => allow(cs.id) && cs.items.length > 0)
+        .map((cs) => newsSlide(`custom-${cs.id}`, cs.name, cs.items[0])),
+      ...(allow("israel") && showSec("israel") && israelFirst ? [israelSlide("israel", israelFirst)] : []),
+      ...(allow("sports") && sportsTop[0] ? [newsSlide("sports", "رياضة", sportsTop[0])] : []),
+      ...(allow("tech") && tech?.items[0] && showSec("tech") ? [newsSlide("tech", "أخبار تقنية", tech.items[0])] : []),
+      ...(allow("reader") && latestReader ? [newsSlide("reader", "من القراء", latestReader)] : []),
+    ];
+  })();
 
   const results = useMemo(() => {
     if (!query) return null;
@@ -243,7 +288,18 @@ function Home() {
   type ExtendedHomeSectionId = HomeSectionId | "matches";
   const blocks: Record<ExtendedHomeSectionId, ReactNode> = {
     weather: !showSec("weather") ? null : <HomeTodayChips weather={weather} serverNow={news.now} />,
-    slider: <HomeCarousel lead={top} leadTime={top ? relativeTimeAr(top.publishedAt, now) : ""} sections={sectionSlides} />,
+    slider: (
+      <div className="home-slider-sized" style={{ ["--slider-custom-h" as string]: sliderCfg.heightPx }}>
+        {sliderCfg.size !== "md" ? (
+          <style>{`.home-slider-sized .carousel > * { min-height: var(--slider-custom-h) !important; height: var(--slider-custom-h) !important; }`}</style>
+        ) : null}
+        <HomeCarousel
+          lead={(!sliderCfg.secs || sliderCfg.secs.includes("news")) ? top : sectionSlides[0] ? undefined : top}
+          leadTime={top ? relativeTimeAr(top.publishedAt, now) : ""}
+          sections={sectionSlides}
+        />
+      </div>
+    ),
     search: (
       <label className="search-field block">
         <span className="sr-only">{tr("بحث")}</span>
@@ -1925,7 +1981,7 @@ function HomeTilesBar({ hasLiveMatch }: { hasLiveMatch?: boolean }) {
 
 function HomeQuickLinks() {
   const links = (useSiteSettings().quickLinks ?? []).filter(
-    (l) => l.id !== "tilelive" && l.subtitle !== " مَخفي",
+    (l) => l.id !== "tilelive" && l.id !== "slidercfg" && !l.id.startsWith("sec") && l.subtitle !== " مَخفي",
   );
   if (!links.length) return null;
   return (
