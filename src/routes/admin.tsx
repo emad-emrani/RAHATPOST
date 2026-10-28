@@ -43,6 +43,7 @@ import {
   Store,
   Trash2,
   Trophy,
+  Tv,
   Type,
   UserPlus,
   Users,
@@ -2346,15 +2347,54 @@ async function uploadSettingImage(file: File): Promise<string> {
 }
 
 type SliderSizeKey = "sm" | "md" | "lg" | "xl";
+type BottomBarStyleKey = "classic" | "floating" | "dark" | "dock" | "minimal" | "hidden";
+type BarBtnItem = { icon: string; label: string; to: string };
+
+const DEFAULT_TOP_BAR_BTNS: BarBtnItem[] = [
+  { icon: "news", label: "الأخبار", to: "/news" },
+  { icon: "tv", label: "بث مباريات", to: "/sports-news" },
+  { icon: "siren", label: "اليوم", to: "/today" },
+  { icon: "ad", label: "حراج", to: "/haraj" },
+  { icon: "bus", label: "الباصات", to: "/buses" },
+  { icon: "store", label: "المتجر", to: "/store" },
+  { icon: "pin", label: "الدليل", to: "/directory" },
+];
+
+const DEFAULT_BOT_BAR_BTNS: BarBtnItem[] = [
+  { icon: "home", label: "الرئيسية", to: "/" },
+  { icon: "news", label: "الأخبار", to: "/news" },
+  { icon: "tv", label: "بث مباريات", to: "/sports-news" },
+  { icon: "bus", label: "باصات", to: "/buses" },
+  { icon: "ad", label: "حراج", to: "/haraj" },
+  { icon: "siren", label: "اليوم", to: "/today" },
+];
+
+const BAR_ICON_OPTIONS: { key: string; label: string }[] = [
+  { key: "home", label: "🏠 الرئيسية" },
+  { key: "news", label: "📰 أخبار" },
+  { key: "tv", label: "📺 بث مباشر / تلفاز" },
+  { key: "trophy", label: "⚽ كأس / مباريات" },
+  { key: "bus", label: "🚌 باصات" },
+  { key: "ad", label: "📢 حراج / إعلانات" },
+  { key: "siren", label: "🚨 طوارئ / اليوم" },
+  { key: "pin", label: "📍 الدليل / موقع" },
+  { key: "store", label: "🛍️ المتجر" },
+  { key: "globe", label: "🌍 عالمي / إسرائيل" },
+  { key: "cpu", label: "💻 تقنية" },
+  { key: "plus", label: "➕ إضافة" },
+];
 
 function parseSliderConfig(quickLinks: SiteSettings["quickLinks"]): {
   size: SliderSizeKey;
   sections: string[];
+  ampAds: boolean;
 } {
   const item = (quickLinks ?? []).find((q) => q.id === "slidercfg");
   const raw = item?.subtitle ?? "";
+  const titleFlags = item?.title ?? "";
   let size: SliderSizeKey = "md";
   let sections: string[] = ["news", "israel", "sports", "tech", "reader"];
+  const ampAds = !titleFlags.includes("amp:0");
   for (const part of raw.split("|")) {
     if (part.startsWith("size:")) {
       const v = part.slice(5).trim();
@@ -2368,24 +2408,118 @@ function parseSliderConfig(quickLinks: SiteSettings["quickLinks"]): {
       if (list.length > 0) sections = list;
     }
   }
-  return { size, sections };
+  return { size, sections, ampAds };
 }
 
 function encodeSliderConfig(
   quickLinks: SiteSettings["quickLinks"],
   size: SliderSizeKey,
   sections: string[],
+  ampAds?: boolean,
 ): SiteSettings["quickLinks"] {
+  const current = parseSliderConfig(quickLinks);
+  const nextAmp = ampAds !== undefined ? ampAds : current.ampAds;
   const others = (quickLinks ?? []).filter((q) => q.id !== "slidercfg");
   const sub = `size:${size}|secs:${sections.join(",")}`.slice(0, 100);
   return [
     ...others,
     {
       id: "slidercfg",
-      title: "slidercfg",
+      title: `amp:${nextAmp ? "1" : "0"}`,
       subtitle: sub,
       url: "/",
       emoji: "🎞️",
+    },
+  ];
+}
+
+function parseTopBarConfig(quickLinks: SiteSettings["quickLinks"]): BarBtnItem[] {
+  const item = (quickLinks ?? []).find((q) => q.id === "topbarcfg");
+  if (!item || !item.url.startsWith("/__top?")) return DEFAULT_TOP_BAR_BTNS;
+  const labels = (item.subtitle ?? "").split("|");
+  const pairs = item.url.slice(7).split("|").filter(Boolean);
+  if (!pairs.length) return DEFAULT_TOP_BAR_BTNS;
+  return pairs.map((p, idx) => {
+    const colon = p.indexOf(":");
+    const icon = colon > 0 ? p.slice(0, colon) : "news";
+    const to = colon > 0 ? p.slice(colon + 1) : p;
+    return {
+      icon: icon || "news",
+      to: to || "/news",
+      label: (labels[idx] ?? "").trim() || "قسم",
+    };
+  });
+}
+
+function encodeTopBarConfig(
+  quickLinks: SiteSettings["quickLinks"],
+  btns: BarBtnItem[],
+): SiteSettings["quickLinks"] {
+  const others = (quickLinks ?? []).filter((q) => q.id !== "topbarcfg");
+  const clean = btns.slice(0, 10);
+  const subtitle = clean.map((b) => b.label.replace(/\|/g, " ").trim() || "قسم").join("|").slice(0, 100);
+  const url = ("/__top?" + clean.map((b) => `${b.icon}:${b.to.replace(/\s+/g, "")}`).join("|")).slice(0, 300);
+  return [
+    ...others,
+    {
+      id: "topbarcfg",
+      title: "topbarcfg",
+      subtitle: subtitle || "الأخبار",
+      url,
+      emoji: "🧭",
+    },
+  ];
+}
+
+function parseBotBarConfig(quickLinks: SiteSettings["quickLinks"]): {
+  style: BottomBarStyleKey;
+  btns: BarBtnItem[];
+} {
+  const item = (quickLinks ?? []).find((q) => q.id === "botbarcfg");
+  if (!item || !item.url.startsWith("/__bot?")) {
+    return { style: "classic", btns: DEFAULT_BOT_BAR_BTNS };
+  }
+  const rawStyle = item.title.trim() as BottomBarStyleKey;
+  const style: BottomBarStyleKey =
+    rawStyle === "floating" ||
+    rawStyle === "dark" ||
+    rawStyle === "dock" ||
+    rawStyle === "minimal" ||
+    rawStyle === "hidden"
+      ? rawStyle
+      : "classic";
+  const labels = (item.subtitle ?? "").split("|");
+  const pairs = item.url.slice(7).split("|").filter(Boolean);
+  const btns: BarBtnItem[] = pairs.map((p, idx) => {
+    const colon = p.indexOf(":");
+    const icon = colon > 0 ? p.slice(0, colon) : "home";
+    const to = colon > 0 ? p.slice(colon + 1) : p;
+    return {
+      icon: icon || "home",
+      to: to || "/",
+      label: (labels[idx] ?? "").trim() || "زر",
+    };
+  });
+  return { style, btns: btns.length > 0 ? btns : DEFAULT_BOT_BAR_BTNS };
+}
+
+function encodeBotBarConfig(
+  quickLinks: SiteSettings["quickLinks"],
+  style: BottomBarStyleKey,
+  btns: BarBtnItem[],
+): SiteSettings["quickLinks"] {
+  const others = (quickLinks ?? []).filter((q) => q.id !== "botbarcfg");
+  const clean = btns.slice(0, 7);
+  const subtitle = clean.map((b) => b.label.replace(/\|/g, " ").trim() || "زر").join("|").slice(0, 100);
+  const url = ("/__bot?" + clean.map((b) => `${b.icon}:${b.to.replace(/\s+/g, "")}`).join("|")).slice(0, 300);
+  return [
+    ...others,
+    {
+      id: "botbarcfg",
+      title: style,
+      subtitle: subtitle || "الرئيسية",
+      url,
+      emoji: "📱",
     },
   ];
 }
@@ -2485,16 +2619,7 @@ function SiteSettingsAdmin({ only }: { only?: SettingsPartKey } = {}) {
       ) : null}
       {part === "slider" ? <SliderPart s={s} set={set} setMsg={setMsg} /> : null}
       {part === "texts" ? <TextsPart s={s} set={set} setMsg={setMsg} /> : null}
-      {part === "menus" ? (
-        <>
-          <SettingsCard title={tr("شريط التنقل السفلي وقائمة الأقسام العلوية")}>
-            <ToggleList list={s.nav} labels={NAV_ITEMS} onChange={(nav) => set({ nav })} />
-          </SettingsCard>
-          <SettingsCard title={tr("أيقونات الأقسام في الرئيسية")}>
-            <ToggleList list={s.tiles} labels={TILE_ITEMS} onChange={(tiles) => set({ tiles })} />
-          </SettingsCard>
-        </>
-      ) : null}
+      {part === "menus" ? <MenusAndBarsPart s={s} set={set} /> : null}
       {part === "links" ? <LinksPart s={s} set={set} /> : null}
       {part === "google" ? <GooglePart s={s} set={set} /> : null}
 
@@ -3047,10 +3172,10 @@ function SliderPart({ s, set, setMsg }: SettingsPartProps & { setMsg: (m: string
 
 function LinksPart({ s, set }: SettingsPartProps) {
   const internalLinks = (s.quickLinks ?? []).filter(
-    (l) => l.id === "tilelive" || l.id === "slidercfg" || l.id.startsWith("sec"),
+    (l) => l.id === "tilelive" || l.id === "slidercfg" || l.id === "topbarcfg" || l.id === "botbarcfg" || l.id.startsWith("sec"),
   );
   const userLinks = (s.quickLinks ?? []).filter(
-    (l) => l.id !== "tilelive" && l.id !== "slidercfg" && !l.id.startsWith("sec"),
+    (l) => l.id !== "tilelive" && l.id !== "slidercfg" && l.id !== "topbarcfg" && l.id !== "botbarcfg" && !l.id.startsWith("sec"),
   );
 
   const setUserLinks = (nextUserLinks: SiteSettings["quickLinks"]) => {
@@ -3200,6 +3325,40 @@ function GooglePart({ s, set }: SettingsPartProps) {
         {check(g.autoAds, tr("الإعلانات التلقائية (Auto ads) — فعّلها أيضاً من حساب AdSense"), (v) =>
           up({ autoAds: v }),
         )}
+        <div className="rounded-2xl border border-[#16A34A]/35 bg-[#16A34A]/5 p-3.5">
+          <label className="flex cursor-pointer items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-extrabold text-ink">
+                ⚡ {tr("تمكين Google من وضع إعلانات تلقائية على مواقع AMP (AMP Auto Ads)")}
+              </p>
+              <p className="mt-0.5 text-xs font-semibold text-muted">
+                {tr("يدرج تلقائياً سكربت amp-auto-ads ووسم <amp-auto-ads> برقم الناشر الخاص بك لعرض إعلانات جوجل على صفحات AMP والهواتف.")}
+              </p>
+            </div>
+            <input
+              type="checkbox"
+              checked={parseSliderConfig(s.quickLinks).ampAds}
+              onChange={(e) => {
+                const cur = parseSliderConfig(s.quickLinks);
+                set({
+                  quickLinks: encodeSliderConfig(s.quickLinks, cur.size, cur.sections, e.target.checked),
+                });
+              }}
+              className="size-5 accent-[#16A34A]"
+            />
+          </label>
+          {parseSliderConfig(s.quickLinks).ampAds && normalizedPub ? (
+            <div className="mt-2.5 space-y-1.5 rounded-xl bg-paper p-2.5 text-[11px] font-bold">
+              <p className="text-[#16A34A]">{tr("✓ إعلانات AMP مفعّلة في الموقع بالكود التالي:")}</p>
+              <code className="block break-all text-muted" dir="ltr">
+                {`<script async custom-element="amp-auto-ads" src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js"></script>`}
+              </code>
+              <code className="block break-all text-primary-ink" dir="ltr">
+                {`<amp-auto-ads type="adsense" data-ad-client="${normalizedPub}"></amp-auto-ads>`}
+              </code>
+            </div>
+          ) : null}
+        </div>
         <div className="flex flex-col gap-2">
           <p className="font-bold">{tr("وحدات إعلانية يدوية")}</p>
           {g.slots.map((a, i) => (
@@ -3289,5 +3448,421 @@ function GooglePart({ s, set }: SettingsPartProps) {
         {bad(g.gscCode, /^[A-Za-z0-9_-]{10,100}$/)}
       </SettingsCard>
     </>
+  );
+}
+
+
+const QUICK_PRESET_DESTINATIONS: BarBtnItem[] = [
+  { icon: "home", label: "الرئيسية", to: "/" },
+  { icon: "news", label: "الأخبار", to: "/news" },
+  { icon: "tv", label: "بث مباريات", to: "/sports-news" },
+  { icon: "siren", label: "اليوم", to: "/today" },
+  { icon: "ad", label: "حراج", to: "/haraj" },
+  { icon: "bus", label: "الباصات", to: "/buses" },
+  { icon: "store", label: "المتجر", to: "/store" },
+  { icon: "pin", label: "الدليل", to: "/directory" },
+  { icon: "globe", label: "أخبار إسرائيل", to: "/israel-news" },
+  { icon: "cpu", label: "أخبار تقنية", to: "/tech-news" },
+  { icon: "plus", label: "أضف", to: "/submit" },
+];
+
+function MenusAndBarsPart({ s, set }: SettingsPartProps) {
+  const topBtns = parseTopBarConfig(s.quickLinks);
+  const botCfg = parseBotBarConfig(s.quickLinks);
+
+  const [newTopLabel, setNewTopLabel] = useState("");
+  const [newTopIcon, setNewTopIcon] = useState("tv");
+  const [newTopUrl, setNewTopUrl] = useState("/sports-news");
+
+  const [newBotLabel, setNewBotLabel] = useState("");
+  const [newBotIcon, setNewBotIcon] = useState("tv");
+  const [newBotUrl, setNewBotUrl] = useState("/sports-news");
+
+  const updateTop = (next: BarBtnItem[]) => {
+    set({ quickLinks: encodeTopBarConfig(s.quickLinks, next) });
+  };
+
+  const updateBot = (nextStyle: BottomBarStyleKey, nextBtns: BarBtnItem[]) => {
+    set({ quickLinks: encodeBotBarConfig(s.quickLinks, nextStyle, nextBtns) });
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* 1. Full Top Category Bar Control */}
+      <SettingsCard
+        title={tr("1. التحكم في القائمة العلوية وشريط الأقسام (إضافة وإزالة وترتيب)")}
+        hint={tr("تحكّم كامل في أزرار وأقسام الشريط العلوي في الصفحة الرئيسية: احذف أي قسم أو أضف قسماً جديداً أو غيّر ترتيبه.")}
+      >
+        <ul className="space-y-2">
+          {topBtns.map((btn, idx) => (
+            <li
+              key={`${btn.to}-${idx}`}
+              className="flex flex-wrap items-center gap-2 rounded-2xl border border-line bg-surface/60 p-2.5"
+            >
+              <select
+                value={btn.icon}
+                onChange={(e) =>
+                  updateTop(topBtns.map((b, i) => (i === idx ? { ...b, icon: e.target.value } : b)))
+                }
+                className="field w-36 py-1.5 text-xs font-bold"
+              >
+                {BAR_ICON_OPTIONS.map((o) => (
+                  <option key={o.key} value={o.key}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+              <input
+                type="text"
+                value={btn.label}
+                onChange={(e) =>
+                  updateTop(topBtns.map((b, i) => (i === idx ? { ...b, label: e.target.value } : b)))
+                }
+                className="field min-w-28 flex-1 py-1.5 text-xs font-extrabold"
+                placeholder="اسم القسم"
+              />
+              <input
+                type="text"
+                dir="ltr"
+                value={btn.to}
+                onChange={(e) =>
+                  updateTop(topBtns.map((b, i) => (i === idx ? { ...b, to: e.target.value } : b)))
+                }
+                className="field w-36 py-1.5 text-xs"
+                placeholder="/sports-news"
+              />
+              <div className="flex items-center gap-1">
+                <SettingsIconBtn
+                  label={tr("أعلى")}
+                  disabled={idx === 0}
+                  onClick={() => updateTop(moveItem(topBtns, idx, -1))}
+                >
+                  <ArrowUp className="size-4" />
+                </SettingsIconBtn>
+                <SettingsIconBtn
+                  label={tr("أسفل")}
+                  disabled={idx === topBtns.length - 1}
+                  onClick={() => updateTop(moveItem(topBtns, idx, 1))}
+                >
+                  <ArrowDown className="size-4" />
+                </SettingsIconBtn>
+                <button
+                  type="button"
+                  onClick={() => updateTop(topBtns.filter((_, i) => i !== idx))}
+                  className="flex items-center gap-1 rounded-xl border border-[#DC2626]/30 bg-[#DC2626]/10 px-2.5 py-1.5 text-xs font-extrabold text-[#DC2626] hover:bg-[#DC2626] hover:text-white"
+                  title={tr("إزالة من القائمة العلوية")}
+                >
+                  <Trash2 className="size-3.5" />
+                  {tr("إزالة")}
+                </button>
+              </div>
+            </li>
+          ))}
+        </ul>
+
+        <div className="mt-2 border-t border-line pt-3">
+          <p className="mb-2 text-xs font-extrabold text-muted">
+            {tr("+ إضافة سريعة لقسم في القائمة العلوية:")}
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {QUICK_PRESET_DESTINATIONS.filter((d) => d.to !== "/").map((preset) => {
+              const exists = topBtns.some((b) => b.to === preset.to && b.label === preset.label);
+              return (
+                <button
+                  key={`${preset.to}-${preset.label}`}
+                  type="button"
+                  onClick={() => {
+                    if (exists) {
+                      updateTop(topBtns.filter((b) => !(b.to === preset.to && b.label === preset.label)));
+                    } else {
+                      updateTop([...topBtns, { ...preset }]);
+                    }
+                  }}
+                  className={`rounded-xl px-2.5 py-1.5 text-xs font-extrabold transition ${
+                    exists
+                      ? "bg-[#16A34A] text-white"
+                      : "border border-line bg-surface text-ink hover:bg-primary-soft"
+                  }`}
+                >
+                  {exists ? `✓ ${preset.label}` : `+ ${preset.label}`}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="mt-3 grid grid-cols-1 gap-2 rounded-2xl bg-surface p-3 sm:grid-cols-4">
+            <input
+              type="text"
+              value={newTopLabel}
+              onChange={(e) => setNewTopLabel(e.target.value)}
+              placeholder="اسم القسم الجديد (مثلاً: بث مباريات)"
+              className="field text-xs"
+            />
+            <select
+              value={newTopIcon}
+              onChange={(e) => setNewTopIcon(e.target.value)}
+              className="field text-xs"
+            >
+              {BAR_ICON_OPTIONS.map((o) => (
+                <option key={o.key} value={o.key}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+            <input
+              type="text"
+              dir="ltr"
+              value={newTopUrl}
+              onChange={(e) => setNewTopUrl(e.target.value)}
+              placeholder="/sports-news أو /news?q=رهط"
+              className="field text-xs"
+            />
+            <button
+              type="button"
+              onClick={() => {
+                if (!newTopLabel.trim()) return;
+                updateTop([
+                  ...topBtns,
+                  {
+                    icon: newTopIcon,
+                    label: newTopLabel.trim(),
+                    to: newTopUrl.trim() || "/news",
+                  },
+                ]);
+                setNewTopLabel("");
+              }}
+              className="btn py-2 text-xs"
+            >
+              + {tr("إضافة للقائمة العلوية")}
+            </button>
+          </div>
+        </div>
+      </SettingsCard>
+
+      {/* 2. Bottom Bar Styles / Shapes */}
+      <SettingsCard
+        title={tr("2. أشكال وتصاميم البار السفلي (اختر شكل البار السفلي)")}
+        hint={tr("يمكنك تغيير شكل وتصميم البار السفلي للهواتف بين 5 أشكال احترافية أو إخفاؤه.")}
+      >
+        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
+          {(
+            [
+              {
+                key: "classic",
+                label: "الشكل الكلاسيكي",
+                desc: "شريط سفلي كامل مع كبسولة صفراء للزر النشط",
+              },
+              {
+                key: "floating",
+                label: "الكبسولة العائمة",
+                desc: "بار عائم بزوايا دائرية وظل ناعم أنيق",
+              },
+              {
+                key: "dark",
+                label: "الزجاجي الداكن",
+                desc: "خلفية داكنة فاخرة مع تمييز ذهبي للزر النشط",
+              },
+              {
+                key: "dock",
+                label: "أيقونات التطبيقات (Dock)",
+                desc: "مربعات أيقونات بارزة بحجم واضح",
+              },
+              {
+                key: "minimal",
+                label: "النحيف المدمج",
+                desc: "شريط نحيف مع خط علوي ملون للزر النشط",
+              },
+              {
+                key: "hidden",
+                label: "إخفاء البار السفلي",
+                desc: "إلغاء إظهار البار السفلي في الموقع",
+              },
+            ] as { key: BottomBarStyleKey; label: string; desc: string }[]
+          ).map((st) => (
+            <button
+              key={st.key}
+              type="button"
+              onClick={() => updateBot(st.key, botCfg.btns)}
+              className={`flex flex-col items-start rounded-2xl border p-3 text-start transition ${
+                botCfg.style === st.key
+                  ? "border-ink bg-ink text-paper shadow-xs"
+                  : "border-line bg-surface text-ink hover:bg-primary-soft"
+              }`}
+            >
+              <span className="text-xs font-extrabold">{tr(st.label)}</span>
+              <span className="mt-1 text-[11px] opacity-75">{tr(st.desc)}</span>
+            </button>
+          ))}
+        </div>
+      </SettingsCard>
+
+      {/* 3. Bottom Bar Buttons Add / Remove / Reorder */}
+      <SettingsCard
+        title={tr("3. أزرار البار السفلي (إضافة أزرار، إلغاء أزرار، وترتيبها)")}
+        hint={tr("تحكّم في كل زر يظهر في البار السفلي: يمكنك إلغاء أي زر أو إضافة زر جديد أو تغيير اسمه وأيقونته.")}
+      >
+        <ul className="space-y-2">
+          {botCfg.btns.map((btn, idx) => (
+            <li
+              key={`${btn.to}-${idx}`}
+              className="flex flex-wrap items-center gap-2 rounded-2xl border border-line bg-surface/60 p-2.5"
+            >
+              <select
+                value={btn.icon}
+                onChange={(e) =>
+                  updateBot(
+                    botCfg.style,
+                    botCfg.btns.map((b, i) => (i === idx ? { ...b, icon: e.target.value } : b)),
+                  )
+                }
+                className="field w-36 py-1.5 text-xs font-bold"
+              >
+                {BAR_ICON_OPTIONS.map((o) => (
+                  <option key={o.key} value={o.key}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+              <input
+                type="text"
+                value={btn.label}
+                onChange={(e) =>
+                  updateBot(
+                    botCfg.style,
+                    botCfg.btns.map((b, i) => (i === idx ? { ...b, label: e.target.value } : b)),
+                  )
+                }
+                className="field min-w-28 flex-1 py-1.5 text-xs font-extrabold"
+                placeholder="اسم الزر"
+              />
+              <input
+                type="text"
+                dir="ltr"
+                value={btn.to}
+                onChange={(e) =>
+                  updateBot(
+                    botCfg.style,
+                    botCfg.btns.map((b, i) => (i === idx ? { ...b, to: e.target.value } : b)),
+                  )
+                }
+                className="field w-36 py-1.5 text-xs"
+                placeholder="/sports-news"
+              />
+              <div className="flex items-center gap-1">
+                <SettingsIconBtn
+                  label={tr("أعلى")}
+                  disabled={idx === 0}
+                  onClick={() => updateBot(botCfg.style, moveItem(botCfg.btns, idx, -1))}
+                >
+                  <ArrowUp className="size-4" />
+                </SettingsIconBtn>
+                <SettingsIconBtn
+                  label={tr("أسفل")}
+                  disabled={idx === botCfg.btns.length - 1}
+                  onClick={() => updateBot(botCfg.style, moveItem(botCfg.btns, idx, 1))}
+                >
+                  <ArrowDown className="size-4" />
+                </SettingsIconBtn>
+                <button
+                  type="button"
+                  onClick={() =>
+                    updateBot(
+                      botCfg.style,
+                      botCfg.btns.filter((_, i) => i !== idx),
+                    )
+                  }
+                  className="flex items-center gap-1 rounded-xl border border-[#DC2626]/30 bg-[#DC2626]/10 px-2.5 py-1.5 text-xs font-extrabold text-[#DC2626] hover:bg-[#DC2626] hover:text-white"
+                  title={tr("إلغاء الزر من البار السفلي")}
+                >
+                  <Trash2 className="size-3.5" />
+                  {tr("إلغاء الزر")}
+                </button>
+              </div>
+            </li>
+          ))}
+        </ul>
+
+        <div className="mt-2 border-t border-line pt-3">
+          <p className="mb-2 text-xs font-extrabold text-muted">
+            {tr("+ إضافة أو إلغاء سريع لأزرار البار السفلي:")}
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {QUICK_PRESET_DESTINATIONS.map((preset) => {
+              const exists = botCfg.btns.some((b) => b.to === preset.to && b.label === preset.label);
+              return (
+                <button
+                  key={`${preset.to}-${preset.label}`}
+                  type="button"
+                  onClick={() => {
+                    if (exists) {
+                      updateBot(
+                        botCfg.style,
+                        botCfg.btns.filter((b) => !(b.to === preset.to && b.label === preset.label)),
+                      );
+                    } else {
+                      updateBot(botCfg.style, [...botCfg.btns, { ...preset }]);
+                    }
+                  }}
+                  className={`rounded-xl px-2.5 py-1.5 text-xs font-extrabold transition ${
+                    exists
+                      ? "bg-[#16A34A] text-white"
+                      : "border border-line bg-surface text-ink hover:bg-primary-soft"
+                  }`}
+                >
+                  {exists ? `✓ ${preset.label}` : `+ ${preset.label}`}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="mt-3 grid grid-cols-1 gap-2 rounded-2xl bg-surface p-3 sm:grid-cols-4">
+            <input
+              type="text"
+              value={newBotLabel}
+              onChange={(e) => setNewBotLabel(e.target.value)}
+              placeholder="اسم الزر الجديد (مثلاً: بث مباريات)"
+              className="field text-xs"
+            />
+            <select
+              value={newBotIcon}
+              onChange={(e) => setNewBotIcon(e.target.value)}
+              className="field text-xs"
+            >
+              {BAR_ICON_OPTIONS.map((o) => (
+                <option key={o.key} value={o.key}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+            <input
+              type="text"
+              dir="ltr"
+              value={newBotUrl}
+              onChange={(e) => setNewBotUrl(e.target.value)}
+              placeholder="/sports-news أو /today"
+              className="field text-xs"
+            />
+            <button
+              type="button"
+              onClick={() => {
+                if (!newBotLabel.trim()) return;
+                updateBot(botCfg.style, [
+                  ...botCfg.btns,
+                  {
+                    icon: newBotIcon,
+                    label: newBotLabel.trim(),
+                    to: newBotUrl.trim() || "/",
+                  },
+                ]);
+                setNewBotLabel("");
+              }}
+              className="btn py-2 text-xs"
+            >
+              + {tr("إضافة الزر للبار السفلي")}
+            </button>
+          </div>
+        </div>
+      </SettingsCard>
+    </div>
   );
 }

@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Bus, ChevronLeft, MapPin, Megaphone, Newspaper, Plus, RefreshCw, Search, Siren, Store, Trophy, Tv, type LucideIcon } from "lucide-react";
+import { Bus, ChevronDown, ChevronLeft, ChevronRight, Cpu, Globe, House, MapPin, Megaphone, Newspaper, Plus, RefreshCw, Search, Siren, Store, Trophy, Tv, type LucideIcon } from "lucide-react";
 import { Fragment, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useSiteSettings } from "@/lib/site-settings/context";
 import type { HomeSectionId } from "@/lib/site-settings/types";
@@ -634,6 +634,8 @@ function Home() {
           </>
         )}
       </div>
+      <AmpAutoAdsBridge />
+      <CustomBottomBar />
     </Shell>
   );
 }
@@ -1459,10 +1461,12 @@ async function enrichBoardClientSide(board: MatchesBoardData): Promise<MatchesBo
   };
 }
 
-/** Homepage Live Matches Widget with League & Day selector. */
+/** Homepage Live Matches Widget — Compact by default (shows ongoing/featured match + compact league dropdown) & expandable. */
 export function HomeMatchesWidget({ initial }: { initial: MatchesBoardData | null }) {
   const [board, setBoard] = useState<MatchesBoardData | null>(initial);
   const [refreshing, setRefreshing] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+  const [featuredIdx, setFeaturedIdx] = useState(0);
 
   const initialLeague = useMemo(() => {
     if (!board) return "all";
@@ -1488,7 +1492,6 @@ export function HomeMatchesWidget({ initial }: { initial: MatchesBoardData | nul
     });
   }, [board]);
 
-  // Fetch & enrich from browser (ESPN + TheSportsDB + custom matches) immediately on mount and every 60s
   useEffect(() => {
     let active = true;
     const sync = async () => {
@@ -1526,13 +1529,21 @@ export function HomeMatchesWidget({ initial }: { initial: MatchesBoardData | nul
     return raw.length > 0 ? raw : buildCuratedRoundFallback();
   }, [board?.matches]);
 
-  const leagueMatches = useMemo(
-    () =>
+  const leagueMatches = useMemo(() => {
+    const filtered =
       selectedLeague === "all"
         ? allMatches
-        : allMatches.filter((m) => m.leagueId === selectedLeague),
-    [allMatches, selectedLeague],
-  );
+        : allMatches.filter((m) => m.leagueId === selectedLeague);
+    const list = filtered.length > 0 ? filtered : allMatches;
+    // Prioritize live ("in") matches first, then today matches
+    return [...list].sort((a, b) => {
+      if (a.status === "in" && b.status !== "in") return -1;
+      if (b.status === "in" && a.status !== "in") return 1;
+      if (a.dayKey === "today" && b.dayKey !== "today") return -1;
+      if (b.dayKey === "today" && a.dayKey !== "today") return 1;
+      return Date.parse(a.kickoffIso) - Date.parse(b.kickoffIso);
+    });
+  }, [allMatches, selectedLeague]);
 
   const filteredMatches = useMemo(() => {
     if (dayTab === "live") return leagueMatches.filter((m) => m.status === "in");
@@ -1543,20 +1554,15 @@ export function HomeMatchesWidget({ initial }: { initial: MatchesBoardData | nul
 
   if (!board) {
     return (
-      <section className="stamp p-4" aria-label={tr("نتائج المباريات المباشرة")}>
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <span className="grid size-9 place-items-center rounded-xl bg-primary text-ink">
-              <Trophy className="size-5" />
-            </span>
-            <div>
-              <h2 className="text-lg font-extrabold">{tr("مباريات اليوم والبث المباشر")}</h2>
-              <p className="text-xs font-semibold text-muted">{tr("جاري تحميل جدول المباريات المباشرة…")}</p>
-            </div>
-          </div>
+      <section className="stamp px-3 py-2.5" aria-label={tr("نتائج المباريات المباشرة")}>
+        <div className="flex items-center justify-between gap-2 text-xs font-extrabold">
+          <span className="inline-flex items-center gap-1.5">
+            <Trophy className="size-4 text-primary-ink" />
+            {tr("مباريات اليوم")}
+          </span>
           <Link to="/sports-news" className="see-all text-xs">
-            {tr("كل المباريات")}
-            <ChevronLeft className="size-4" />
+            {tr("الكل")}
+            <ChevronLeft className="size-3.5" />
           </Link>
         </div>
       </section>
@@ -1566,15 +1572,13 @@ export function HomeMatchesWidget({ initial }: { initial: MatchesBoardData | nul
   if (!board.enabled || !board.showOnHome) return null;
 
   const liveCount = allMatches.filter((m) => m.status === "in").length;
-
-  const showingFallbackDay =
-    dayTab !== "live" &&
-    leagueMatches.length > 0 &&
-    leagueMatches.filter((m) => m.dayKey === dayTab).length === 0;
+  const safeFeaturedIdx = leagueMatches.length > 0 ? featuredIdx % leagueMatches.length : 0;
+  const currentFeaturedMatch = leagueMatches[safeFeaturedIdx] ?? leagueMatches[0];
 
   const handleSelectLeague = (id: string) => {
     setSelectedLeague(id);
-    setDayTab(pickBestDayTab(board.matches, id));
+    setFeaturedIdx(0);
+    setDayTab(pickBestDayTab(allMatches, id));
   };
 
   const handleRefresh = async () => {
@@ -1588,137 +1592,153 @@ export function HomeMatchesWidget({ initial }: { initial: MatchesBoardData | nul
   };
 
   return (
-    <section className="stamp p-4" aria-label={tr("نتائج المباريات المباشرة")}>
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <span className="grid size-9 place-items-center rounded-xl bg-primary text-ink">
-            <Trophy className="size-5" />
+    <section className="stamp px-3 py-2.5" aria-label={tr("نتائج المباريات المباشرة")}>
+      {/* Compact Header Row: Title + Compact League Dropdown + Expand/Collapse */}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-1.5">
+          <span className="grid size-7 shrink-0 place-items-center rounded-lg bg-primary text-ink">
+            <Trophy className="size-4" />
           </span>
-          <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-lg font-extrabold">{tr("مباريات اليوم والبث المباشر")}</h2>
-              {liveCount > 0 ? (
-                <span className="inline-flex items-center gap-1 rounded-full bg-alert px-2 py-0.5 text-xs font-extrabold text-white">
-                  <span className="size-1.5 animate-ping rounded-full bg-white" />
-                  {liveCount} {tr("مباشر الآن")}
-                </span>
-              ) : null}
-            </div>
-            <p className="text-xs font-semibold text-muted">
-              {tr("الدوري الإسرائيلي، لا ليغا، أبطال أوروبا والدوريات العالمية لحظة بلحظة")}
-            </p>
-          </div>
+          <h2 className="text-sm font-extrabold">{tr("مباريات اليوم")}</h2>
+          {liveCount > 0 ? (
+            <span className="inline-flex items-center gap-1 rounded-full bg-alert px-2 py-0.5 text-[10px] font-extrabold text-white">
+              <span className="size-1.5 animate-ping rounded-full bg-white" />
+              {liveCount} {tr("مباشر")}
+            </span>
+          ) : null}
         </div>
 
         <div className="flex items-center gap-1.5">
+          {/* Compact League Selector Dropdown */}
+          <select
+            aria-label={tr("اختر الدوري أو البطولة")}
+            value={selectedLeague}
+            onChange={(e) => handleSelectLeague(e.target.value)}
+            className="max-w-36 rounded-xl border border-line bg-surface px-2 py-1 text-xs font-extrabold text-ink focus:outline-none"
+          >
+            <option value="all">⚽ {tr("كل الدوريات")}</option>
+            {board.leagues.map((lg) => (
+              <option key={lg.id} value={lg.id}>
+                {lg.badge} {trv(lg.shortAr)}
+              </option>
+            ))}
+          </select>
+
           <button
             type="button"
             onClick={handleRefresh}
             disabled={refreshing}
-            className="chip text-xs"
+            className="grid size-7 place-items-center rounded-xl border border-line bg-surface text-muted hover:text-ink"
             title={tr("تحديث النتائج")}
           >
             <RefreshCw className={`size-3.5 ${refreshing ? "animate-spin" : ""}`} />
-            {tr("تحديث")}
           </button>
-          <Link to="/sports-news" className="see-all text-xs">
-            {tr("كل المباريات")}
-            <ChevronLeft className="size-4" />
-          </Link>
+
+          <button
+            type="button"
+            onClick={() => setExpanded((v) => !v)}
+            className="inline-flex items-center gap-1 rounded-xl border border-line bg-surface px-2.5 py-1 text-xs font-extrabold text-ink hover:bg-primary-soft"
+          >
+            <span>{expanded ? tr("تصغير") : tr("المزيد")}</span>
+            <ChevronDown className={`size-3.5 transition-transform ${expanded ? "rotate-180" : ""}`} />
+          </button>
         </div>
       </div>
 
-      {/* League selector tabs */}
-      <div className="scroll-row mb-2.5 gap-1.5 pb-1">
-        <button
-          type="button"
-          onClick={() => handleSelectLeague("all")}
-          className={
-            selectedLeague === "all"
-              ? "chip chip-ink shrink-0 text-xs"
-              : "chip shrink-0 text-xs"
-          }
-        >
-          <span>⚽</span>
-          <span>{tr("الكل")}</span>
-        </button>
-        {board.leagues.map((lg) => {
-          const active = selectedLeague === lg.id;
-          const hasLive = board.matches.some(
-            (m) => m.leagueId === lg.id && m.status === "in",
-          );
-          return (
-            <button
-              key={lg.id}
-              type="button"
-              onClick={() => handleSelectLeague(lg.id)}
-              className={
-                active
-                  ? "chip chip-ink shrink-0 text-xs"
-                  : "chip shrink-0 text-xs"
-              }
-            >
-              <span>{lg.badge}</span>
-              <span>{trv(lg.shortAr)}</span>
-              {hasLive ? (
-                <span className="size-2 animate-ping rounded-full bg-alert" />
+      {/* Compact Mode (Default): Shows ONLY the ongoing/featured match + small next/prev switcher */}
+      {!expanded ? (
+        <div className="mt-2">
+          {currentFeaturedMatch ? (
+            <div className="space-y-1.5">
+              <MatchRowCard m={currentFeaturedMatch} showLeagueBadge />
+              {leagueMatches.length > 1 ? (
+                <div className="flex items-center justify-between px-1 pt-0.5 text-[11px] font-bold text-muted">
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setFeaturedIdx((i) => (i - 1 + leagueMatches.length) % leagueMatches.length)
+                      }
+                      className="grid size-6 place-items-center rounded-lg border border-line bg-surface text-ink hover:bg-primary-soft"
+                      aria-label={tr("المباراة السابقة")}
+                    >
+                      <ChevronRight className="size-3.5" />
+                    </button>
+                    <span className="px-1 text-[10px] font-extrabold">
+                      {safeFeaturedIdx + 1} / {leagueMatches.length}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setFeaturedIdx((i) => (i + 1) % leagueMatches.length)}
+                      className="grid size-6 place-items-center rounded-lg border border-line bg-surface text-ink hover:bg-primary-soft"
+                      aria-label={tr("المباراة التالية")}
+                    >
+                      <ChevronLeft className="size-3.5" />
+                    </button>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setExpanded(true)}
+                    className="font-extrabold text-primary-ink hover:underline"
+                  >
+                    {tr("عرض كل المباريات ({0}) ▾", leagueMatches.length)}
+                  </button>
+                </div>
               ) : null}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Day filter pills */}
-      <div className="mb-3 flex flex-wrap items-center gap-1.5 text-xs">
-        {(
-          [
-            { key: "today", label: "مباريات اليوم" },
-            { key: "tomorrow", label: "غداً" },
-            { key: "yesterday", label: "نتائج أمس" },
-            { key: "upcoming", label: "القادمة" },
-          ] as { key: DayTab; label: string }[]
-        ).map((t) => (
-          <button
-            key={t.key}
-            type="button"
-            onClick={() => setDayTab(t.key)}
-            className={`rounded-xl px-2.5 py-1 font-extrabold transition ${
-              dayTab === t.key
-                ? "bg-ink text-paper"
-                : "bg-surface text-muted hover:text-ink"
-            }`}
-          >
-            {tr(t.label)}
-          </button>
-        ))}
-        {liveCount > 0 ? (
-          <button
-            type="button"
-            onClick={() => setDayTab("live")}
-            className={`rounded-xl px-2.5 py-1 font-extrabold transition ${
-              dayTab === "live"
-                ? "bg-alert text-white"
-                : "bg-alert/10 text-alert"
-            }`}
-          >
-            🔴 {tr("مباشر الآن")} ({liveCount})
-          </button>
-        ) : null}
-      </div>
-
-      {filteredMatches.length === 0 ? (
-        <div className="rounded-2xl bg-surface p-4 text-center text-sm font-semibold text-muted">
-          {tr("لا توجد مباريات مسجلة في هذا التبويب حالياً — اختر دوري آخر أو استعرض مباريات الغد.")}
+            </div>
+          ) : null}
         </div>
       ) : (
-        <div className="grid gap-2 sm:grid-cols-2">
-          {filteredMatches.slice(0, 8).map((m) => (
-            <MatchRowCard
-              key={m.id}
-              m={m}
-              showLeagueBadge={selectedLeague === "all" || showingFallbackDay}
-            />
-          ))}
+        /* Expanded Mode: Day tabs + full matches grid */
+        <div className="mt-2.5 border-t border-line/60 pt-2.5">
+          <div className="mb-2.5 flex flex-wrap items-center justify-between gap-1.5 text-xs">
+            <div className="flex flex-wrap items-center gap-1">
+              {(
+                [
+                  { key: "today", label: "اليوم" },
+                  { key: "tomorrow", label: "غداً" },
+                  { key: "yesterday", label: "أمس" },
+                  { key: "upcoming", label: "القادمة" },
+                ] as { key: DayTab; label: string }[]
+              ).map((t) => (
+                <button
+                  key={t.key}
+                  type="button"
+                  onClick={() => setDayTab(t.key)}
+                  className={`rounded-xl px-2.5 py-1 font-extrabold transition ${
+                    dayTab === t.key
+                      ? "bg-ink text-paper"
+                      : "bg-surface text-muted hover:text-ink"
+                  }`}
+                >
+                  {tr(t.label)}
+                </button>
+              ))}
+              {liveCount > 0 ? (
+                <button
+                  type="button"
+                  onClick={() => setDayTab("live")}
+                  className={`rounded-xl px-2.5 py-1 font-extrabold transition ${
+                    dayTab === "live"
+                      ? "bg-alert text-white"
+                      : "bg-alert/10 text-alert"
+                  }`}
+                >
+                  🔴 {tr("مباشر")} ({liveCount})
+                </button>
+              ) : null}
+            </div>
+            <Link to="/sports-news" className="see-all text-xs">
+              {tr("صفحة المباريات")}
+              <ChevronLeft className="size-3.5" />
+            </Link>
+          </div>
+
+          <div className="grid gap-2 sm:grid-cols-2">
+            {filteredMatches.slice(0, 8).map((m) => (
+              <MatchRowCard key={m.id} m={m} showLeagueBadge />
+            ))}
+          </div>
         </div>
       )}
     </section>
@@ -1882,58 +1902,81 @@ export function FullMatchesBoard({ initial }: { initial: MatchesBoardData | null
   );
 }
 
-const BASE_TILES: { to: string; label: string; icon: LucideIcon }[] = [
-  { to: "/news", label: "الأخبار", icon: Newspaper },
-  { to: "/buses", label: "الباصات", icon: Bus },
-  { to: "/directory", label: "الدليل", icon: MapPin },
-  { to: "/haraj", label: "حراج", icon: Megaphone },
-  { to: "/today", label: "اليوم", icon: Siren },
-  { to: "/store", label: "المتجر", icon: Store },
-  { to: "/submit", label: "أضف", icon: Plus },
+const ICON_MAP: Record<string, LucideIcon> = {
+  home: House,
+  news: Newspaper,
+  tv: Tv,
+  trophy: Trophy,
+  bus: Bus,
+  ad: Megaphone,
+  siren: Siren,
+  pin: MapPin,
+  store: Store,
+  globe: Globe,
+  cpu: Cpu,
+  plus: Plus,
+};
+
+const DEFAULT_TOP_TILES: { icon: string; label: string; to: string }[] = [
+  { icon: "news", label: "الأخبار", to: "/news" },
+  { icon: "tv", label: "بث مباريات", to: "/sports-news" },
+  { icon: "siren", label: "اليوم", to: "/today" },
+  { icon: "ad", label: "حراج", to: "/haraj" },
+  { icon: "bus", label: "الباصات", to: "/buses" },
+  { icon: "store", label: "المتجر", to: "/store" },
+  { icon: "pin", label: "الدليل", to: "/directory" },
+];
+
+const DEFAULT_BOT_TILES: { icon: string; label: string; to: string }[] = [
+  { icon: "home", label: "الرئيسية", to: "/" },
+  { icon: "news", label: "الأخبار", to: "/news" },
+  { icon: "tv", label: "بث مباريات", to: "/sports-news" },
+  { icon: "bus", label: "باصات", to: "/buses" },
+  { icon: "ad", label: "حراج", to: "/haraj" },
+  { icon: "siren", label: "اليوم", to: "/today" },
 ];
 
 function HomeTilesBar({ hasLiveMatch }: { hasLiveMatch?: boolean }) {
   const st = useSiteSettings();
-  const order = st.tiles;
-  const baseList = order
-    .filter((o) => o.visible)
-    .map((o) => BASE_TILES.find((t) => t.to === o.id))
-    .filter((t): t is (typeof BASE_TILES)[number] => Boolean(t));
-
-  // Check admin configuration for the "بث مباريات" tile (stored in quickLinks with id === "tilelive")
+  const topCfgItem = (st.quickLinks ?? []).find((q) => q.id === "topbarcfg");
   const liveTileCfg = (st.quickLinks ?? []).find((q) => q.id === "tilelive");
   const showLiveTile = liveTileCfg ? liveTileCfg.subtitle !== " مَخفي" : true;
   const liveTileLabel = liveTileCfg?.title?.trim() || "بث مباريات";
-  const liveTileTarget =
-    liveTileCfg?.url?.trim() && liveTileCfg.url.startsWith("/")
-      ? liveTileCfg.url.trim()
-      : "/sports-news";
+
+  const configuredList = useMemo(() => {
+    if (topCfgItem && topCfgItem.url.startsWith("/__top?")) {
+      const labels = (topCfgItem.subtitle ?? "").split("|");
+      const pairs = topCfgItem.url.slice(7).split("|").filter(Boolean);
+      if (pairs.length > 0) {
+        return pairs.map((p, idx) => {
+          const colon = p.indexOf(":");
+          const icon = colon > 0 ? p.slice(0, colon) : "news";
+          const to = colon > 0 ? p.slice(colon + 1) : p;
+          return {
+            icon: icon || "news",
+            to: to || "/news",
+            label: (labels[idx] ?? "").trim() || "قسم",
+          };
+        });
+      }
+    }
+    const visibleIds = new Set(st.tiles.filter((o) => o.visible).map((o) => o.id));
+    return DEFAULT_TOP_TILES.filter((t) => {
+      if (t.to === "/sports-news") return showLiveTile;
+      return visibleIds.size === 0 || visibleIds.has(t.to as "/news");
+    }).map((t) => (t.to === "/sports-news" ? { ...t, label: liveTileLabel } : t));
+  }, [topCfgItem, st.tiles, showLiveTile, liveTileLabel]);
 
   // Also include any custom sections added in /admin
   const customSecTiles = (st.quickLinks ?? [])
     .filter((q) => q.id.startsWith("sec") && q.subtitle !== " مَخفي")
     .map((q) => ({
+      icon: "news",
       to: q.url || "/news",
       label: q.title,
-      icon: Newspaper as LucideIcon,
-      isLiveTile: false,
     }));
 
-  const combined: { to: string; label: string; icon: LucideIcon; isLiveTile?: boolean }[] = [
-    ...baseList.map((b) => ({ ...b, isLiveTile: false })),
-  ];
-
-  if (showLiveTile) {
-    // Insert "بث مباريات" right at the front of the visible tiles (index 1, right beside الأخبار / اليوم)
-    const insertIdx = combined.length > 0 ? 1 : 0;
-    combined.splice(insertIdx, 0, {
-      to: liveTileTarget,
-      label: liveTileLabel,
-      icon: Tv,
-      isLiveTile: true,
-    });
-  }
-
+  const combined = [...configuredList];
   for (const ct of customSecTiles) {
     if (!combined.some((c) => c.label === ct.label)) {
       combined.push(ct);
@@ -1948,7 +1991,8 @@ function HomeTilesBar({ hasLiveMatch }: { hasLiveMatch?: boolean }) {
       aria-label={tr("الأقسام")}
     >
       {combined.map((t, idx) => {
-        const Icon = t.icon;
+        const Icon = ICON_MAP[t.icon] ?? Newspaper;
+        const isLiveTile = t.to === "/sports-news" || t.icon === "tv";
         return (
           <Link
             key={`${t.to}-${idx}`}
@@ -1957,11 +2001,11 @@ function HomeTilesBar({ hasLiveMatch }: { hasLiveMatch?: boolean }) {
           >
             <span
               className={`tile-icon relative sm:w-full ${
-                t.isLiveTile ? "ring-2 ring-[#DC2626]/40" : ""
+                isLiveTile ? "ring-2 ring-[#DC2626]/40" : ""
               }`}
             >
               <Icon className="size-6 sm:size-7" aria-hidden />
-              {t.isLiveTile ? (
+              {isLiveTile ? (
                 <span
                   className={`absolute top-1.5 start-1.5 size-2.5 rounded-full bg-[#DC2626] ${
                     hasLiveMatch ? "animate-ping" : ""
@@ -1969,7 +2013,7 @@ function HomeTilesBar({ hasLiveMatch }: { hasLiveMatch?: boolean }) {
                 />
               ) : null}
             </span>
-            <span className={t.isLiveTile ? "font-extrabold text-[#DC2626]" : ""}>
+            <span className={isLiveTile ? "font-extrabold text-[#DC2626]" : ""}>
               {t.to === "/haraj" ? trv(st.texts.harajNav) : trv(t.label)}
             </span>
           </Link>
@@ -1981,7 +2025,13 @@ function HomeTilesBar({ hasLiveMatch }: { hasLiveMatch?: boolean }) {
 
 function HomeQuickLinks() {
   const links = (useSiteSettings().quickLinks ?? []).filter(
-    (l) => l.id !== "tilelive" && l.id !== "slidercfg" && !l.id.startsWith("sec") && l.subtitle !== " مَخفي",
+    (l) =>
+      l.id !== "tilelive" &&
+      l.id !== "slidercfg" &&
+      l.id !== "topbarcfg" &&
+      l.id !== "botbarcfg" &&
+      !l.id.startsWith("sec") &&
+      l.subtitle !== " مَخفي",
   );
   if (!links.length) return null;
   return (
@@ -2009,5 +2059,187 @@ function HomeQuickLinks() {
         })}
       </ul>
     </section>
+  );
+}
+
+/** Injects Google AMP Auto Ads (<script custom-element="amp-auto-ads"> + <amp-auto-ads>) when enabled in /admin. */
+function AmpAutoAdsBridge() {
+  const st = useSiteSettings();
+  const sliderItem = (st.quickLinks ?? []).find((q) => q.id === "slidercfg");
+  const ampEnabled = !(sliderItem?.title ?? "").includes("amp:0");
+  const pub = st.google?.adsensePub?.trim();
+
+  useEffect(() => {
+    if (!ampEnabled || !pub || typeof document === "undefined") return;
+    const id = "amp-auto-ads-script";
+    if (!document.getElementById(id)) {
+      const s = document.createElement("script");
+      s.id = id;
+      s.async = true;
+      s.setAttribute("custom-element", "amp-auto-ads");
+      s.src = "https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js";
+      document.head.appendChild(s);
+    }
+  }, [ampEnabled, pub]);
+
+  if (!ampEnabled || !pub) return null;
+  return (
+    <div
+      aria-hidden
+      dangerouslySetInnerHTML={{
+        __html: `<amp-auto-ads type="adsense" data-ad-client="${pub}"></amp-auto-ads>`,
+      }}
+    />
+  );
+}
+
+/** Customizable Mobile Bottom Bar with 5 selectable visual styles/shapes and custom buttons. */
+function CustomBottomBar() {
+  const st = useSiteSettings();
+  const botItem = (st.quickLinks ?? []).find((q) => q.id === "botbarcfg");
+
+  const { style, btns } = useMemo(() => {
+    if (!botItem || !botItem.url.startsWith("/__bot?")) {
+      return { style: "classic", btns: DEFAULT_BOT_TILES };
+    }
+    const rawStyle = botItem.title.trim();
+    const validStyle =
+      rawStyle === "floating" ||
+      rawStyle === "dark" ||
+      rawStyle === "dock" ||
+      rawStyle === "minimal" ||
+      rawStyle === "hidden"
+        ? rawStyle
+        : "classic";
+    const labels = (botItem.subtitle ?? "").split("|");
+    const pairs = botItem.url.slice(7).split("|").filter(Boolean);
+    const parsedBtns = pairs.map((p, idx) => {
+      const colon = p.indexOf(":");
+      const icon = colon > 0 ? p.slice(0, colon) : "home";
+      const to = colon > 0 ? p.slice(colon + 1) : p;
+      return {
+        icon: icon || "home",
+        to: to || "/",
+        label: (labels[idx] ?? "").trim() || "زر",
+      };
+    });
+    return {
+      style: validStyle,
+      btns: parsedBtns.length > 0 ? parsedBtns : DEFAULT_BOT_TILES,
+    };
+  }, [botItem]);
+
+  if (style === "hidden") {
+    return (
+      <style>{`nav.edge-t.fixed.bottom-0:not(.custom-botbar) { display: none !important; }`}</style>
+    );
+  }
+
+  const navWrapCls =
+    style === "floating"
+      ? "custom-botbar fixed inset-x-3 bottom-3 z-40 rounded-full border border-line bg-paper/95 px-2 py-1.5 shadow-xl backdrop-blur-md md:hidden"
+      : style === "dark"
+        ? "custom-botbar fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-[#111827]/95 pb-[env(safe-area-inset-bottom)] text-white shadow-xl backdrop-blur-md md:hidden"
+        : style === "dock"
+          ? "custom-botbar fixed inset-x-2 bottom-2 z-40 rounded-3xl border border-line bg-paper/95 p-1.5 shadow-lg backdrop-blur-md md:hidden"
+          : style === "minimal"
+            ? "custom-botbar fixed inset-x-0 bottom-0 z-40 border-t border-line bg-paper/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md md:hidden"
+            : "custom-botbar edge-t fixed inset-x-0 bottom-0 z-40 bg-paper/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md md:hidden";
+
+  return (
+    <>
+      <style>{`nav.edge-t.fixed.bottom-0:not(.custom-botbar) { display: none !important; }`}</style>
+      <nav className={navWrapCls} aria-label={tr("التنقل السفلي")}>
+        <div className="mx-auto flex max-w-xl items-center justify-around">
+          {btns.map((item, idx) => {
+            const Icon = ICON_MAP[item.icon] ?? House;
+            const exact = item.to === "/";
+            if (style === "dark") {
+              return (
+                <Link
+                  key={`${item.to}-${idx}`}
+                  to={item.to as "/"}
+                  activeOptions={{ exact }}
+                  className="flex flex-1 flex-col items-center justify-center gap-0.5 py-2 text-[11px] font-bold text-white/70 transition"
+                  activeProps={{
+                    className:
+                      "flex flex-1 flex-col items-center justify-center gap-0.5 py-2 text-[11px] font-extrabold text-[#FDB700]",
+                  }}
+                >
+                  <Icon className="size-5" aria-hidden />
+                  <span className="truncate">{trv(item.label)}</span>
+                </Link>
+              );
+            }
+            if (style === "floating") {
+              return (
+                <Link
+                  key={`${item.to}-${idx}`}
+                  to={item.to as "/"}
+                  activeOptions={{ exact }}
+                  className="flex flex-1 flex-col items-center justify-center gap-0.5 rounded-full py-1.5 text-[11px] font-bold text-muted transition"
+                  activeProps={{
+                    className:
+                      "flex flex-1 flex-col items-center justify-center gap-0.5 rounded-full bg-ink py-1.5 text-[11px] font-extrabold text-paper shadow-xs",
+                  }}
+                >
+                  <Icon className="size-4" aria-hidden />
+                  <span className="truncate">{trv(item.label)}</span>
+                </Link>
+              );
+            }
+            if (style === "dock") {
+              return (
+                <Link
+                  key={`${item.to}-${idx}`}
+                  to={item.to as "/"}
+                  activeOptions={{ exact }}
+                  className="flex flex-1 flex-col items-center justify-center gap-1 rounded-2xl py-1.5 text-[11px] font-bold text-muted transition"
+                  activeProps={{
+                    className:
+                      "flex flex-1 flex-col items-center justify-center gap-1 rounded-2xl bg-primary py-1.5 text-[11px] font-extrabold text-ink shadow-xs",
+                  }}
+                >
+                  <span className="grid size-8 place-items-center rounded-xl bg-surface/80">
+                    <Icon className="size-5" aria-hidden />
+                  </span>
+                  <span className="truncate">{trv(item.label)}</span>
+                </Link>
+              );
+            }
+            if (style === "minimal") {
+              return (
+                <Link
+                  key={`${item.to}-${idx}`}
+                  to={item.to as "/"}
+                  activeOptions={{ exact }}
+                  className="flex flex-1 flex-col items-center justify-center gap-0.5 border-t-2 border-transparent py-1.5 text-[11px] font-bold text-muted transition"
+                  activeProps={{
+                    className:
+                      "flex flex-1 flex-col items-center justify-center gap-0.5 border-t-2 border-ink py-1.5 text-[11px] font-extrabold text-ink",
+                  }}
+                >
+                  <Icon className="size-4" aria-hidden />
+                  <span className="truncate">{trv(item.label)}</span>
+                </Link>
+              );
+            }
+            return (
+              <Link
+                key={`${item.to}-${idx}`}
+                to={item.to as "/"}
+                activeOptions={{ exact }}
+                className="tabbar-link"
+              >
+                <span className="tab-icon">
+                  <Icon className="size-5" aria-hidden />
+                </span>
+                {item.to === "/haraj" ? trv(st.texts.harajNav) : trv(item.label)}
+              </Link>
+            );
+          })}
+        </div>
+      </nav>
+    </>
   );
 }
