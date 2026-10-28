@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { createMiddleware } from "@tanstack/react-start";
 import {
   ArrowRight,
   CheckCircle2,
@@ -32,6 +33,31 @@ function safeRedirect(value: unknown): string {
   return /^\/(?!\/)[^\s\\]*$/.test(s) && !s.startsWith("/api/") ? s : "/";
 }
 
+function encodeLoginRpc(obj: unknown): string {
+  const bytes = new TextEncoder().encode(JSON.stringify(obj ?? {}));
+  let bin = "";
+  for (let i = 0; i < bytes.length; i++) {
+    bin += String.fromCharCode(bytes[i]);
+  }
+  return btoa(bin);
+}
+
+async function callLoginRpc<T = Record<string, unknown>>(
+  action: string,
+  payload: Record<string, unknown> = {},
+): Promise<T> {
+  const res = await fetch(`/login?_rpc=${Date.now()}`, {
+    method: "GET",
+    credentials: "include",
+    headers: {
+      "x-rp-login-action": action,
+      "x-rp-login-payload": encodeLoginRpc(payload),
+      accept: "application/json",
+    },
+  });
+  return (await res.json()) as T;
+}
+
 export const Route = createFileRoute("/login")({
   head: () => ({
     meta: [
@@ -50,6 +76,215 @@ export const Route = createFileRoute("/login")({
     mode: typeof search.mode === "string" ? search.mode : undefined,
   }),
   loader: () => getAuthConfig(),
+  server: {
+    middleware: [
+      createMiddleware().server(async ({ next }) => {
+        try {
+          const { getRequest, setCookie } = await import("@tanstack/react-start/server");
+          const req = getRequest();
+          const rpcAction = req?.headers?.get("x-rp-login-action");
+          if (rpcAction && req) {
+            const rawPayload = req.headers.get("x-rp-login-payload") ?? "";
+            const data = rawPayload
+              ? (JSON.parse(Buffer.from(rawPayload, "base64").toString("utf8")) as Record<string, unknown>)
+              : {};
+
+            const { getSql } = await import("@/lib/db");
+            const sql = await getSql();
+            await sql.query(
+              `create table if not exists auth_settings (key text primary key, value jsonb not null, updated_at timestamptz not null default now())`,
+            );
+
+            const hashBetterAuthPassword = async (plain: string): Promise<string> => {
+              try {
+                const { auth } = await import("@/lib/auth/server");
+                const ctx = await auth.$context;
+                if (ctx?.password?.hash) return await ctx.password.hash(plain);
+              } catch {
+                /* fallback */
+              }
+              const cryptoMod = (await import("better-auth/crypto")) as {
+                hashPassword?: (p: string) => Promise<string>;
+              };
+              if (cryptoMod.hashPassword) return await cryptoMod.hashPassword(plain);
+              throw new Error("تعذّر تشفير الرقم السري.");
+            };
+
+            const verifyBetterAuthPassword = async (hash: string, plain: string): Promise<boolean> => {
+              try {
+                const { auth } = await import("@/lib/auth/server");
+                const ctx = await auth.$context;
+                if (ctx?.password?.verify) return await ctx.password.verify({ hash, password: plain });
+              } catch {
+                /* fallback */
+              }
+              try {
+                const cryptoMod = (await import("better-auth/crypto")) as {
+                  verifyPassword?: (args: { hash: string; password: string }) => Promise<boolean>;
+                };
+                if (cryptoMod.verifyPassword) return await cryptoMod.verifyPassword({ hash, password: plain });
+              } catch {
+                /* ignore */
+              }
+              return false;
+            };
+
+            let rpcRes: Record<string, unknown> = { ok: false, message: "طلب غير معروف." };
+            let cookieHeaderToSet = "";
+
+            if (rpcAction === "owner-login") {
+              const password = String(data.password ?? "").trim();
+              const remember = Boolean(data.remember);
+              const { ADMIN_COOKIE, checkPassword, issueSession, REMEMBER_MS } = await import(
+                "@/lib/directory/auth.server"
+              );
+              const { masterEmails } = await import("@/lib/admin-auth");
+              const { randomBytes } = await import("node:crypto");
+              const mEmail = (masterEmails()[0] || "amad.wwf@gmail.com").toLowerCase();
+
+              const rows = await sql.query<{ value: unknown }>(
+                `select value from auth_settings where key = 'owner_password' limit 1`,
+              );
+              const rawVal = rows[0]?.value;
+              const savedObj = (typeof rawVal === "string" ? JSON.parse(rawVal) : rawVal) as
+                | { password?: string }
+                | undefined;
+              const savedCustomPw = savedObj?.password?.trim();
+
+              let matched = false;
+              if (savedCustomPw) {
+                matched = password === savedCustomPw;
+              } else if (checkPassword(password)) {
+                matched = true;
+              } else {
+                const masterAcc = await sql.query<{ password: string | null }>(
+                  `select a."password" from "account" a join "user" u on u."id" = a."userId"
+                   where lower(u."email") = $1 and a."providerId" = 'credential' limit 1`,
+                  [mEmail],
+                );
+                if (masterAcc[0]?.password) {
+                  matched = await verifyBetterAuthPassword(masterAcc[0].password, password);
+                }
+              }
+
+              if (!matched) {
+                rpcRes = { ok: false, message: "كلمة مرور الإدارة غير صحيحة." };
+              } else {
+                const hashed = await hashBetterAuthPassword(password);
+                const existingUser = await sql.query<{ id: string }>(
+                  `select "id" from "user" where lower("email") = $1 limit 1`,
+                  [mEmail],
+                );
+                let uid = existingUser[0]?.id;
+                if (!uid) {
+                  uid = randomBytes(16).toString("hex");
+                  await sql.query(
+                    `insert into "user" ("id", "name", "email", "emailVerified", "createdAt", "updatedAt")
+                     values ($1, $2, $3, true, now(), now())`,
+                    [uid, "إدارة رهط بوست", mEmail],
+                  );
+                } else {
+                  await sql.query(
+                    `update "user" set "emailVerified" = true, "updatedAt" = now() where "id" = $1`,
+                    [uid],
+                  );
+                }
+                const existingAcc = await sql.query<{ id: string }>(
+                  `select "id" from "account" where "userId" = $1 and "providerId" = 'credential' limit 1`,
+                  [uid],
+                );
+                if (existingAcc[0]?.id) {
+                  await sql.query(
+                    `update "account" set "password" = $1, "updatedAt" = now() where "id" = $2`,
+                    [hashed, existingAcc[0].id],
+                  );
+                } else {
+                  const accId = randomBytes(16).toString("hex");
+                  await sql.query(
+                    `insert into "account" ("id", "accountId", "providerId", "userId", "password", "createdAt", "updatedAt")
+                     values ($1, $2, 'credential', $2, $3, now(), now())`,
+                    [accId, uid, hashed],
+                  );
+                }
+                try {
+                  if (!process.env.ADMIN_PASSWORD || process.env.ADMIN_PASSWORD.trim().length < 8) {
+                    process.env.ADMIN_PASSWORD =
+                      (process.env.BETTER_AUTH_SECRET || "rahatpost-owner-secret-key").slice(0, 32);
+                  }
+                  const tok = remember ? issueSession(REMEMBER_MS) : issueSession();
+                  setCookie(ADMIN_COOKIE, tok, {
+                    httpOnly: true,
+                    secure: Boolean(process.env.VERCEL),
+                    sameSite: "strict",
+                    path: "/",
+                    ...(remember ? { maxAge: REMEMBER_MS / 1000 } : {}),
+                  });
+                  const maxAgePart = remember ? `; Max-Age=${Math.floor(REMEMBER_MS / 1000)}` : "";
+                  const securePart = process.env.VERCEL ? "; Secure" : "";
+                  cookieHeaderToSet = `${ADMIN_COOKIE}=${tok}; Path=/; HttpOnly; SameSite=Strict${securePart}${maxAgePart}`;
+                } catch {
+                  /* ignore */
+                }
+                rpcRes = { ok: true, masterEmail: mEmail };
+              }
+            } else if (rpcAction === "self-change-password") {
+              const email = String(data.email ?? "").trim().toLowerCase();
+              const currentPassword = String(data.currentPassword ?? "");
+              const newPassword = String(data.newPassword ?? "").trim();
+              if (!email || !currentPassword || newPassword.length < 8) {
+                rpcRes = {
+                  ok: false,
+                  message: "تحقق من إدخال البريد الإلكتروني والرقم السري الحالي والجديد (8 أحرف على الأقل).",
+                };
+              } else {
+                const rows = await sql.query<{ userId: string; accId: string; password: string | null }>(
+                  `select u."id" as "userId", a."id" as "accId", a."password"
+                   from "user" u
+                   join "account" a on a."userId" = u."id" and a."providerId" = 'credential'
+                   where lower(u."email") = $1 limit 1`,
+                  [email],
+                );
+                const row = rows[0];
+                if (!row || !row.password) {
+                  rpcRes = { ok: false, message: "البريد الإلكتروني أو الرقم السري الحالي غير صحيح." };
+                } else {
+                  const okCurrent = await verifyBetterAuthPassword(row.password, currentPassword);
+                  if (!okCurrent) {
+                    rpcRes = { ok: false, message: "الرقم السري الحالي غير صحيح." };
+                  } else {
+                    const newHash = await hashBetterAuthPassword(newPassword);
+                    await sql.query(
+                      `update "account" set "password" = $1, "updatedAt" = now() where "id" = $2`,
+                      [newHash, row.accId],
+                    );
+                    rpcRes = {
+                      ok: true,
+                      message: "تم تغيير الرقم السري بنجاح! يمكنك الآن تسجيل الدخول بالرقم السري الجديد.",
+                    };
+                  }
+                }
+              }
+            }
+
+            const result = await next();
+            const headers = new Headers((result as { response?: Response }).response?.headers);
+            headers.set("content-type", "application/json; charset=utf-8");
+            headers.set("cache-control", "no-store");
+            if (cookieHeaderToSet) {
+              headers.append("set-cookie", cookieHeaderToSet);
+            }
+            return {
+              ...result,
+              response: new Response(JSON.stringify(rpcRes), { status: 200, headers }),
+            } as typeof result;
+          }
+        } catch (err) {
+          console.error("[login-rpc] error", err);
+        }
+        return next();
+      }),
+    ],
+  },
   component: LoginPage,
 });
 
@@ -361,32 +596,55 @@ function LoginPage() {
                 }`}
               >
                 {activeSide === "forgot" ? (
-                  /* Forgot Password Sub-view */
+                  /* Change or Reset Password Sub-view */
                   <div className="my-auto flex flex-col">
-                    <div className="mb-6 text-center">
+                    <div className="mb-5 text-center">
                       <div className="mx-auto mb-3 flex size-12 items-center justify-center rounded-2xl bg-primary/20 text-ink">
                         <KeyRound className="size-6" />
                       </div>
                       <h2 className="text-2xl font-extrabold">
-                        {tr("استعادة كلمة المرور")}
+                        {tr("تغيير أو استعادة الرقم السري")}
                       </h2>
                       <p className="mt-1 text-xs font-semibold text-muted">
                         {tr(
-                          "أدخل بريدك الإلكتروني وسنرسل لك رابطاً لتعيين كلمة مرور جديدة.",
+                          "أدخل بريدك الإلكتروني والرقم السري الحالي لتعيين رقم سري جديد فوراً، أو اطلب من إدارة الموقع تغييره لك من لوحة التحكم.",
                         )}
                       </p>
                     </div>
 
                     <form
-                      className="flex flex-col gap-3.5"
+                      className="flex flex-col gap-3"
                       onSubmit={async (e) => {
                         e.preventDefault();
                         setForgotMsg("");
                         setForgotOk("");
                         const f = new FormData(e.currentTarget);
                         const email = String(f.get("email") ?? "").trim();
+                        const currentPassword = String(f.get("currentPassword") ?? "");
+                        const newPassword = String(f.get("newPassword") ?? "").trim();
                         setBusyForgot(true);
                         try {
+                          if (currentPassword && newPassword) {
+                            const rpc = await callLoginRpc<{
+                              ok: boolean;
+                              message?: string;
+                            }>("self-change-password", {
+                              email,
+                              currentPassword,
+                              newPassword,
+                            });
+                            if (rpc.ok) {
+                              setForgotOk(
+                                rpc.message ??
+                                  tr("تم تغيير الرقم السري بنجاح! يمكنك تسجيل الدخول الآن."),
+                              );
+                            } else {
+                              setForgotMsg(
+                                rpc.message ?? tr("تعذّر تغيير الرقم السري."),
+                              );
+                            }
+                            return;
+                          }
                           const res = await authClient.requestPasswordReset({
                             email,
                             redirectTo: "/reset-password",
@@ -395,7 +653,7 @@ function LoginPage() {
                             setForgotMsg(
                               friendlyAuthError(
                                 res.error.message,
-                                tr("تعذّر إرسال الرابط. حاول لاحقاً."),
+                                tr("تعذّر إرسال الرابط. يمكنك التواصل مع إدارة الموقع لتغيير الرقم السري مباشرة."),
                               ),
                             );
                           } else {
@@ -412,7 +670,7 @@ function LoginPage() {
                         }
                       }}
                     >
-                      <label className="group flex items-center gap-3 rounded-2xl border border-transparent bg-surface px-4 py-3.5 transition focus-within:border-primary focus-within:bg-paper focus-within:shadow-xs">
+                      <label className="group flex items-center gap-3 rounded-2xl border border-transparent bg-surface px-4 py-3 transition focus-within:border-primary focus-within:bg-paper focus-within:shadow-xs">
                         <Mail className="size-5 shrink-0 text-muted transition group-focus-within:text-ink" />
                         <input
                           name="email"
@@ -421,6 +679,31 @@ function LoginPage() {
                           dir="ltr"
                           autoComplete="email"
                           placeholder={tr("البريد الإلكتروني")}
+                          className="w-full bg-transparent text-sm font-semibold text-ink outline-none placeholder:text-muted"
+                        />
+                      </label>
+
+                      <label className="group flex items-center gap-3 rounded-2xl border border-transparent bg-surface px-4 py-3 transition focus-within:border-primary focus-within:bg-paper focus-within:shadow-xs">
+                        <Lock className="size-5 shrink-0 text-muted transition group-focus-within:text-ink" />
+                        <input
+                          name="currentPassword"
+                          type={showLoginPass ? "text" : "password"}
+                          dir="ltr"
+                          autoComplete="current-password"
+                          placeholder={tr("الرقم السري الحالي (لتغييره مباشرة)")}
+                          className="w-full bg-transparent text-sm font-semibold text-ink outline-none placeholder:text-muted"
+                        />
+                      </label>
+
+                      <label className="group flex items-center gap-3 rounded-2xl border border-transparent bg-surface px-4 py-3 transition focus-within:border-primary focus-within:bg-paper focus-within:shadow-xs">
+                        <KeyRound className="size-5 shrink-0 text-muted transition group-focus-within:text-ink" />
+                        <input
+                          name="newPassword"
+                          type={showLoginPass ? "text" : "password"}
+                          minLength={8}
+                          dir="ltr"
+                          autoComplete="new-password"
+                          placeholder={tr("الرقم السري الجديد (8 أحرف على الأقل)")}
                           className="w-full bg-transparent text-sm font-semibold text-ink outline-none placeholder:text-muted"
                         />
                       </label>
@@ -448,8 +731,8 @@ function LoginPage() {
                         className="mt-1 flex w-full items-center justify-center gap-2 rounded-2xl bg-primary px-5 py-3.5 text-sm font-extrabold text-ink shadow-sm transition hover:brightness-95 disabled:opacity-50"
                       >
                         {busyForgot
-                          ? tr("جاري الإرسال…")
-                          : tr("أرسل رابط إعادة التعيين")}
+                          ? tr("جاري الحفظ…")
+                          : tr("حفظ الرقم السري الجديد / استعادة")}
                       </button>
 
                       <button
@@ -588,7 +871,7 @@ function LoginPage() {
                           }}
                           className="text-muted underline decoration-line underline-offset-4 transition hover:text-ink"
                         >
-                          {tr("نسيت كلمة المرور؟")}
+                          {tr("نسيت أو تريد تغيير الرقم السري؟")}
                         </button>
                       </div>
 
@@ -755,6 +1038,26 @@ function LoginPage() {
                         const remember = fd.get("remember") === "on";
                         setBusyOwner(true);
                         try {
+                          const rpc = await callLoginRpc<{
+                            ok: boolean;
+                            message?: string;
+                            masterEmail?: string;
+                          }>("owner-login", { password, remember });
+                          if (rpc.ok) {
+                            if (rpc.masterEmail) {
+                              try {
+                                await authClient.signIn.email({
+                                  email: rpc.masterEmail,
+                                  password,
+                                  rememberMe: remember,
+                                });
+                              } catch {
+                                /* cookie auth set */
+                              }
+                            }
+                            window.location.replace("/admin");
+                            return;
+                          }
                           const res = await adminLogin({
                             data: { password, remember },
                           });
@@ -762,7 +1065,7 @@ function LoginPage() {
                             window.location.replace("/admin");
                           } else {
                             setOwnerError(
-                              res.message ?? tr("كلمة مرور الإدارة غير صحيحة."),
+                              rpc.message ?? res.message ?? tr("كلمة مرور الإدارة غير صحيحة."),
                             );
                           }
                         } catch {

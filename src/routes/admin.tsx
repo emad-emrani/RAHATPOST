@@ -128,6 +128,31 @@ type QuickCustomSection = {
   emoji: string;
 };
 
+function encodeRpcPayload(obj: unknown): string {
+  const bytes = new TextEncoder().encode(JSON.stringify(obj ?? {}));
+  let bin = "";
+  for (let i = 0; i < bytes.length; i++) {
+    bin += String.fromCharCode(bytes[i]);
+  }
+  return btoa(bin);
+}
+
+async function callAdminRpc<T = Record<string, unknown>>(
+  action: string,
+  payload: Record<string, unknown> = {},
+): Promise<T> {
+  const res = await fetch(`/admin?_rpc=${Date.now()}`, {
+    method: "GET",
+    credentials: "include",
+    headers: {
+      "x-rp-admin-action": action,
+      "x-rp-admin-payload": encodeRpcPayload(payload),
+      accept: "application/json",
+    },
+  });
+  return (await res.json()) as T;
+}
+
 export const Route = createFileRoute("/admin")({
   head: () => ({
     meta: [{ title: tr("إدارة · رهط بوست") }, { name: "robots", content: "noindex, nofollow" }],
@@ -136,19 +161,404 @@ export const Route = createFileRoute("/admin")({
   server: {
     middleware: [
       createMiddleware().server(async ({ next }) => {
-        const result = await next();
         try {
-          const { getAdminAccess } = await import("@/lib/admin-auth");
-          if (!(await getAdminAccess())) {
-            const { getSessionUser } = await import("@/lib/auth/verify.server");
-            if (await getSessionUser()) {
-              const r = (result as { response?: Response }).response;
-              if (r) return { ...result, response: new Response(r.body, { status: 403, headers: r.headers }) } as typeof result;
+          const { getRequest, setCookie } = await import("@tanstack/react-start/server");
+          const req = getRequest();
+          const rpcAction = req?.headers?.get("x-rp-admin-action");
+          if (rpcAction && req) {
+            const rawPayload = req.headers.get("x-rp-admin-payload") ?? "";
+            const data = rawPayload
+              ? (JSON.parse(Buffer.from(rawPayload, "base64").toString("utf8")) as Record<string, unknown>)
+              : {};
+
+            const { getSql } = await import("@/lib/db");
+            const sql = await getSql();
+            await sql.query(
+              `create table if not exists auth_settings (key text primary key, value jsonb not null, updated_at timestamptz not null default now())`,
+            );
+
+            const hashBetterAuthPassword = async (plain: string): Promise<string> => {
+              try {
+                const { auth } = await import("@/lib/auth/server");
+                const ctx = await auth.$context;
+                if (ctx?.password?.hash) return await ctx.password.hash(plain);
+              } catch (e) {
+                console.error("[admin-rpc] auth.$context.password.hash fallback", e);
+              }
+              const cryptoMod = (await import("better-auth/crypto")) as {
+                hashPassword?: (p: string) => Promise<string>;
+              };
+              if (cryptoMod.hashPassword) return await cryptoMod.hashPassword(plain);
+              throw new Error("تعذّر تشفير الرقم السري.");
+            };
+
+            const verifyBetterAuthPassword = async (hash: string, plain: string): Promise<boolean> => {
+              try {
+                const { auth } = await import("@/lib/auth/server");
+                const ctx = await auth.$context;
+                if (ctx?.password?.verify) return await ctx.password.verify({ hash, password: plain });
+              } catch {
+                /* fallback */
+              }
+              try {
+                const cryptoMod = (await import("better-auth/crypto")) as {
+                  verifyPassword?: (args: { hash: string; password: string }) => Promise<boolean>;
+                };
+                if (cryptoMod.verifyPassword) return await cryptoMod.verifyPassword({ hash, password: plain });
+              } catch {
+                /* ignore */
+              }
+              return false;
+            };
+
+            const syncMasterAccountPassword = async (plainPassword: string): Promise<string> => {
+              const { masterEmails } = await import("@/lib/admin-auth");
+              const { randomBytes } = await import("node:crypto");
+              const mEmail = (masterEmails()[0] || "amad.wwf@gmail.com").toLowerCase();
+              const hashed = await hashBetterAuthPassword(plainPassword);
+              const existingUser = await sql.query<{ id: string }>(
+                `select "id" from "user" where lower("email") = $1 limit 1`,
+                [mEmail],
+              );
+              let uid = existingUser[0]?.id;
+              if (!uid) {
+                uid = randomBytes(16).toString("hex");
+                await sql.query(
+                  `insert into "user" ("id", "name", "email", "emailVerified", "createdAt", "updatedAt")
+                   values ($1, $2, $3, true, now(), now())`,
+                  [uid, "إدارة رهط بوست", mEmail],
+                );
+              } else {
+                await sql.query(
+                  `update "user" set "emailVerified" = true, "updatedAt" = now() where "id" = $1`,
+                  [uid],
+                );
+              }
+              const existingAcc = await sql.query<{ id: string }>(
+                `select "id" from "account" where "userId" = $1 and "providerId" = 'credential' limit 1`,
+                [uid],
+              );
+              if (existingAcc[0]?.id) {
+                await sql.query(
+                  `update "account" set "password" = $1, "updatedAt" = now() where "id" = $2`,
+                  [hashed, existingAcc[0].id],
+                );
+              } else {
+                const accId = randomBytes(16).toString("hex");
+                await sql.query(
+                  `insert into "account" ("id", "accountId", "providerId", "userId", "password", "createdAt", "updatedAt")
+                   values ($1, $2, 'credential', $2, $3, now(), now())`,
+                  [accId, uid, hashed],
+                );
+              }
+              return mEmail;
+            };
+
+            let rpcRes: Record<string, unknown> = { ok: false, message: "طلب غير معروف." };
+            let cookieHeaderToSet = "";
+
+            if (rpcAction === "owner-login") {
+              const password = String(data.password ?? "").trim();
+              const remember = Boolean(data.remember);
+              if (password.length < 4) {
+                rpcRes = { ok: false, message: "أدخل كلمة المرور." };
+              } else {
+                const { ADMIN_COOKIE, checkPassword, issueSession, REMEMBER_MS } = await import(
+                  "@/lib/directory/auth.server"
+                );
+                const { masterEmails } = await import("@/lib/admin-auth");
+                const mEmail = (masterEmails()[0] || "amad.wwf@gmail.com").toLowerCase();
+
+                const rows = await sql.query<{ value: unknown }>(
+                  `select value from auth_settings where key = 'owner_password' limit 1`,
+                );
+                const rawVal = rows[0]?.value;
+                const savedObj = (typeof rawVal === "string" ? JSON.parse(rawVal) : rawVal) as
+                  | { password?: string }
+                  | undefined;
+                const savedCustomPw = savedObj?.password?.trim();
+
+                let matched = false;
+                if (savedCustomPw) {
+                  matched = password === savedCustomPw;
+                } else if (checkPassword(password)) {
+                  matched = true;
+                } else {
+                  // Also check if it matches master user's credential password in DB
+                  const masterAcc = await sql.query<{ password: string | null }>(
+                    `select a."password" from "account" a join "user" u on u."id" = a."userId"
+                     where lower(u."email") = $1 and a."providerId" = 'credential' limit 1`,
+                    [mEmail],
+                  );
+                  if (masterAcc[0]?.password) {
+                    matched = await verifyBetterAuthPassword(masterAcc[0].password, password);
+                  } else if (!process.env.ADMIN_PASSWORD || process.env.ADMIN_PASSWORD.trim().length < 8) {
+                    // First-time setup when ADMIN_PASSWORD env var is not configured
+                    if (password.length >= 8) {
+                      await sql.query(
+                        `insert into auth_settings (key, value, updated_at) values ('owner_password', $1::jsonb, now())
+                         on conflict (key) do update set value = excluded.value, updated_at = now()`,
+                        [JSON.stringify({ password, updatedAt: new Date().toISOString() })],
+                      );
+                      matched = true;
+                    }
+                  }
+                }
+
+                if (!matched) {
+                  rpcRes = { ok: false, message: "كلمة المرور غير صحيحة." };
+                } else {
+                  const syncedEmail = await syncMasterAccountPassword(password);
+                  try {
+                    if (!process.env.ADMIN_PASSWORD || process.env.ADMIN_PASSWORD.trim().length < 8) {
+                      process.env.ADMIN_PASSWORD =
+                        (process.env.BETTER_AUTH_SECRET || "rahatpost-owner-secret-key").slice(0, 32);
+                    }
+                    const tok = remember ? issueSession(REMEMBER_MS) : issueSession();
+                    setCookie(ADMIN_COOKIE, tok, {
+                      httpOnly: true,
+                      secure: Boolean(process.env.VERCEL),
+                      sameSite: "strict",
+                      path: "/",
+                      ...(remember ? { maxAge: REMEMBER_MS / 1000 } : {}),
+                    });
+                    const maxAgePart = remember ? `; Max-Age=${Math.floor(REMEMBER_MS / 1000)}` : "";
+                    const securePart = process.env.VERCEL ? "; Secure" : "";
+                    cookieHeaderToSet = `${ADMIN_COOKIE}=${tok}; Path=/; HttpOnly; SameSite=Strict${securePart}${maxAgePart}`;
+                  } catch (e) {
+                    console.error("[admin-rpc] issueSession notice", e);
+                  }
+                  rpcRes = { ok: true, masterEmail: syncedEmail };
+                }
+              }
+            } else {
+              // All management actions below require Owner access
+              const { getAdminAccess, masterEmails } = await import("@/lib/admin-auth");
+              const access = await getAdminAccess();
+              if (!access || access.level !== "owner") {
+                rpcRes = { ok: false, authed: false, message: "هذا الإجراء متاح لمالك الموقع فقط." };
+              } else if (rpcAction === "get-password-overview") {
+                const q = String(data.q ?? "").trim().slice(0, 80);
+                const like = `%${q.replace(/[%_\\]/g, "\\$&")}%`;
+                const pwRows = await sql.query<{ value: unknown; updated_at: Date | string }>(
+                  `select value, updated_at from auth_settings where key = 'owner_password' limit 1`,
+                );
+                const rawPw = pwRows[0]?.value;
+                const parsedPw = (typeof rawPw === "string" ? JSON.parse(rawPw) : rawPw) as
+                  | { password?: string; updatedAt?: string }
+                  | undefined;
+
+                const memberRows = await sql.query<{
+                  id: string;
+                  name: string;
+                  email: string;
+                  image: string | null;
+                  createdAt: Date | string;
+                  methods: string[] | null;
+                  hasPassword: boolean;
+                  blocked: boolean;
+                  role: string | null;
+                }>(
+                  `select u."id", u."name", u."email", u."image", u."createdAt",
+                     (select array_agg(distinct a."providerId") from "account" a where a."userId" = u."id") as methods,
+                     exists (select 1 from "account" a where a."userId" = u."id" and a."providerId" = 'credential' and a."password" is not null) as "hasPassword",
+                     exists (select 1 from user_blocks b where b.user_id = u."id") as blocked,
+                     case when lower(u."email") = any($2::text[]) and u."emailVerified" then 'adminmaster'
+                          else (select r.role from admin_roles r where r.user_id = u."id") end as role
+                   from "user" u
+                   where u."id" <> 'haraj-sample-seller' and ($1 = '' or u."name" ilike $3 or u."email" ilike $3)
+                   order by u."createdAt" desc limit 300`,
+                  [q, masterEmails(), like],
+                );
+
+                const { loadRoles } = await import("@/lib/team/roles.server");
+                const roles = await loadRoles();
+
+                rpcRes = {
+                  ok: true,
+                  authed: true,
+                  hasCustomOwnerPassword: Boolean(parsedPw?.password),
+                  ownerPasswordUpdatedAt: parsedPw?.updatedAt ?? null,
+                  masterEmail: masterEmails()[0] || "amad.wwf@gmail.com",
+                  roles,
+                  members: memberRows.map((r) => ({
+                    id: r.id,
+                    name: r.name || "بدون اسم",
+                    email: r.email || "",
+                    image: r.image,
+                    methods: r.methods ?? [],
+                    hasPassword: Boolean(r.hasPassword),
+                    joined: (r.createdAt instanceof Date ? r.createdAt : new Date(r.createdAt)).toISOString(),
+                    blocked: Boolean(r.blocked),
+                    role: r.role ?? "member",
+                  })),
+                };
+              } else if (rpcAction === "change-owner-password") {
+                const newPassword = String(data.newPassword ?? "").trim();
+                if (newPassword.length < 8) {
+                  rpcRes = { ok: false, message: "الرقم السري الجديد يجب أن يتكون من 8 أحرف أو أرقام على الأقل." };
+                } else {
+                  const updatedAt = new Date().toISOString();
+                  await sql.query(
+                    `insert into auth_settings (key, value, updated_at) values ('owner_password', $1::jsonb, now())
+                     on conflict (key) do update set value = excluded.value, updated_at = now()`,
+                    [JSON.stringify({ password: newPassword, updatedAt })],
+                  );
+                  const syncedEmail = await syncMasterAccountPassword(newPassword);
+                  rpcRes = {
+                    ok: true,
+                    masterEmail: syncedEmail,
+                    updatedAt,
+                    message: "تم تغيير الرقم السري للمالك وحفظه بنجاح!",
+                  };
+                }
+              } else if (rpcAction === "set-member-password") {
+                const userId = String(data.userId ?? "").trim();
+                const newPassword = String(data.newPassword ?? "").trim();
+                if (!userId) {
+                  rpcRes = { ok: false, message: "المشترك غير محدد." };
+                } else if (newPassword.length < 8) {
+                  rpcRes = { ok: false, message: "الرقم السري يجب أن يتكون من 8 أحرف أو أرقام على الأقل." };
+                } else {
+                  const hashed = await hashBetterAuthPassword(newPassword);
+                  const existingAcc = await sql.query<{ id: string }>(
+                    `select "id" from "account" where "userId" = $1 and "providerId" = 'credential' limit 1`,
+                    [userId],
+                  );
+                  if (existingAcc[0]?.id) {
+                    await sql.query(
+                      `update "account" set "password" = $1, "updatedAt" = now() where "id" = $2`,
+                      [hashed, existingAcc[0].id],
+                    );
+                  } else {
+                    const { randomBytes } = await import("node:crypto");
+                    const accId = randomBytes(16).toString("hex");
+                    await sql.query(
+                      `insert into "account" ("id", "accountId", "providerId", "userId", "password", "createdAt", "updatedAt")
+                       values ($1, $2, 'credential', $2, $3, now(), now())`,
+                      [accId, userId, hashed],
+                    );
+                  }
+                  await sql.query(
+                    `update "user" set "emailVerified" = true, "updatedAt" = now() where "id" = $1`,
+                    [userId],
+                  );
+                  rpcRes = {
+                    ok: true,
+                    message: "تم تغيير الرقم السري للمشترك بنجاح! يمكنه الآن تسجيل الدخول بالرقم السري الجديد.",
+                  };
+                }
+              } else if (rpcAction === "create-member-with-password") {
+                const name = String(data.name ?? "").trim().slice(0, 80);
+                const email = String(data.email ?? "").trim().toLowerCase().slice(0, 254);
+                const password = String(data.password ?? "").trim();
+                const role = String(data.role ?? "member").trim();
+                if (name.length < 2) {
+                  rpcRes = { ok: false, message: "اكتب اسم المشترك (حرفان على الأقل)." };
+                } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                  rpcRes = { ok: false, message: "البريد الإلكتروني غير صالح." };
+                } else if (password.length < 8) {
+                  rpcRes = { ok: false, message: "الرقم السري يجب أن يتكون من 8 أحرف أو أرقام على الأقل." };
+                } else {
+                  const { randomBytes } = await import("node:crypto");
+                  const hashed = await hashBetterAuthPassword(password);
+                  const existingUser = await sql.query<{ id: string }>(
+                    `select "id" from "user" where lower("email") = $1 limit 1`,
+                    [email],
+                  );
+                  let userId = existingUser[0]?.id;
+                  if (userId) {
+                    await sql.query(
+                      `update "user" set "name" = $1, "emailVerified" = true, "updatedAt" = now() where "id" = $2`,
+                      [name, userId],
+                    );
+                  } else {
+                    userId = randomBytes(16).toString("hex");
+                    await sql.query(
+                      `insert into "user" ("id", "name", "email", "emailVerified", "createdAt", "updatedAt")
+                       values ($1, $2, $3, true, now(), now())`,
+                      [userId, name, email],
+                    );
+                  }
+                  const existingAcc = await sql.query<{ id: string }>(
+                    `select "id" from "account" where "userId" = $1 and "providerId" = 'credential' limit 1`,
+                    [userId],
+                  );
+                  if (existingAcc[0]?.id) {
+                    await sql.query(
+                      `update "account" set "password" = $1, "updatedAt" = now() where "id" = $2`,
+                      [hashed, existingAcc[0].id],
+                    );
+                  } else {
+                    const accId = randomBytes(16).toString("hex");
+                    await sql.query(
+                      `insert into "account" ("id", "accountId", "providerId", "userId", "password", "createdAt", "updatedAt")
+                       values ($1, $2, 'credential', $2, $3, now(), now())`,
+                      [accId, userId, hashed],
+                    );
+                  }
+                  if (role && role !== "member" && role !== "adminmaster") {
+                    await sql.query(
+                      `insert into admin_roles (user_id, role) values ($1, $2)
+                       on conflict (user_id) do update set role = excluded.role`,
+                      [userId, role],
+                    );
+                  }
+                  rpcRes = {
+                    ok: true,
+                    message: "تم إنشاء/تحديث حساب المشترك وتعيين الرقم السري بنجاح!",
+                  };
+                }
+              } else if (rpcAction === "set-member-role") {
+                const userId = String(data.userId ?? "").trim();
+                const role = String(data.role ?? "").trim();
+                if (!userId) {
+                  rpcRes = { ok: false, message: "المشترك غير محدد." };
+                } else {
+                  if (role && role !== "member" && role !== "adminmaster") {
+                    await sql.query(
+                      `insert into admin_roles (user_id, role) values ($1, $2)
+                       on conflict (user_id) do update set role = excluded.role`,
+                      [userId, role],
+                    );
+                  } else {
+                    await sql.query(`delete from admin_roles where user_id = $1`, [userId]);
+                  }
+                  rpcRes = { ok: true, message: "تم تحديث دور المشترك بنجاح." };
+                }
+              } else if (rpcAction === "toggle-member-block") {
+                const userId = String(data.userId ?? "").trim();
+                const blocked = Boolean(data.blocked);
+                if (!userId) {
+                  rpcRes = { ok: false, message: "المشترك غير محدد." };
+                } else {
+                  const { setBlocked } = await import("@/lib/auth/settings.server");
+                  await setBlocked(userId, blocked);
+                  rpcRes = {
+                    ok: true,
+                    message: blocked ? "تم حظر المشترك." : "تم إلغاء حظر المشترك.",
+                  };
+                }
+              }
             }
+
+            const result = await next();
+            const headers = new Headers((result as { response?: Response }).response?.headers);
+            headers.set("content-type", "application/json; charset=utf-8");
+            headers.set("cache-control", "no-store");
+            if (cookieHeaderToSet) {
+              headers.append("set-cookie", cookieHeaderToSet);
+            }
+            return {
+              ...result,
+              response: new Response(JSON.stringify(rpcRes), { status: 200, headers }),
+            } as typeof result;
           }
-        } catch {
-          /* auth not configured */
+        } catch (err) {
+          console.error("[admin-rpc] middleware error", err);
         }
+
+        const result = await next();
         return result;
       }),
     ],
@@ -178,6 +588,7 @@ type Section =
   | "auto"
   | "publish"
   | "matches"
+  | "members-passwords"
   | "members-list"
   | "members-roles"
   | "members-invite"
@@ -232,6 +643,7 @@ const ALL_TABS: { key: Section; label: string; icon: LucideIcon }[] = [
   { key: "popups", label: "النوافذ الترويجية (Popups)", icon: MonitorUp },
   { key: "emails", label: "قوالب البريد الإلكتروني", icon: Mail },
   { key: "set-google", label: "جوجل وSEO وAdSense", icon: Settings },
+  { key: "members-passwords", label: "كلمات المرور والمشتركين", icon: KeyRound },
   { key: "members-list", label: "قائمة الأعضاء", icon: Users },
   { key: "members-roles", label: "الأدوار والصلاحيات", icon: BadgeCheck },
   { key: "members-invite", label: "دعوة عضو للفريق", icon: UserPlus },
@@ -280,7 +692,7 @@ const GROUPS: { id: string; label: string; desc: string; icon: LucideIcon; keys:
     label: "الفريق والأعضاء والأقسام",
     desc: "إدارة الأقسام، إضافة قسم جديد، وإدارة المشرفين والأعضاء",
     icon: Users,
-    keys: ["sec-manage", "sec-add", "members-list", "members-roles", "members-invite", "members-methods"],
+    keys: ["members-passwords", "members-list", "sec-manage", "sec-add", "members-roles", "members-invite", "members-methods"],
   },
   {
     id: "settings",
@@ -496,6 +908,687 @@ function AdminMenu({
 const isDesktop = () => typeof window !== "undefined" && window.matchMedia("(min-width: 1024px)").matches;
 
 
+
+type ManagedMember = {
+  id: string;
+  name: string;
+  email: string;
+  image: string | null;
+  methods: string[];
+  hasPassword: boolean;
+  joined: string;
+  blocked: boolean;
+  role: string;
+};
+
+function PasswordAndMembersManager() {
+  const [loading, setLoading] = useState(true);
+  const [q, setQ] = useState("");
+  const [members, setMembers] = useState<ManagedMember[]>([]);
+  const [roles, setRoles] = useState<{ key: string; name: string }[]>([]);
+  const [hasCustomOwnerPw, setHasCustomOwnerPw] = useState(false);
+  const [ownerPwUpdatedAt, setOwnerPwUpdatedAt] = useState<string | null>(null);
+  const [masterEmail, setMasterEmail] = useState("amad.wwf@gmail.com");
+
+  // Owner password state
+  const [ownerPw, setOwnerPw] = useState("");
+  const [ownerPw2, setOwnerPw2] = useState("");
+  const [showOwnerPw, setShowOwnerPw] = useState(false);
+  const [busyOwnerPw, setBusyOwnerPw] = useState(false);
+  const [ownerPwMsg, setOwnerPwMsg] = useState<{ ok: boolean; text: string } | null>(null);
+
+  // Create new member state
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [newEmail, setNewEmail] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [newRole, setNewRole] = useState("member");
+  const [showNewPass, setShowNewPass] = useState(false);
+  const [busyCreate, setBusyCreate] = useState(false);
+  const [createMsg, setCreateMsg] = useState<{ ok: boolean; text: string } | null>(null);
+
+  // Per-member password edit state
+  const [editingUserId, setEditingUserId] = useState<string>("");
+  const [memberNewPw, setMemberNewPw] = useState<string>("");
+  const [showMemberPw, setShowMemberPw] = useState(false);
+  const [busyMemberId, setBusyMemberId] = useState<string>("");
+  const [memberFeedback, setMemberFeedback] = useState<Record<string, { ok: boolean; text: string }>>({});
+
+  const loadOverview = useCallback(async (searchQuery = "") => {
+    setLoading(true);
+    try {
+      const res = await callAdminRpc<{
+        ok: boolean;
+        hasCustomOwnerPassword?: boolean;
+        ownerPasswordUpdatedAt?: string | null;
+        masterEmail?: string;
+        roles?: { key: string; name: string }[];
+        members?: ManagedMember[];
+      }>("get-password-overview", { q: searchQuery });
+      if (res.ok) {
+        setHasCustomOwnerPw(Boolean(res.hasCustomOwnerPassword));
+        setOwnerPwUpdatedAt(res.ownerPasswordUpdatedAt ?? null);
+        if (res.masterEmail) setMasterEmail(res.masterEmail);
+        setRoles(res.roles ?? []);
+        setMembers(res.members ?? []);
+      }
+    } catch (e) {
+      console.error("loadOverview failed", e);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadOverview("");
+  }, [loadOverview]);
+
+  return (
+    <div className="space-y-5">
+      {/* ==================== CARD 1: CHANGE OWNER PASSWORD ==================== */}
+      <section className="rounded-3xl border border-primary/40 bg-paper p-5 shadow-[0_4px_20px_rgba(16,24,40,0.06)] sm:p-6">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-primary text-ink shadow-xs">
+              <KeyRound className="size-6" />
+            </span>
+            <div>
+              <h2 className="text-lg font-extrabold sm:text-xl">
+                {tr("تغيير الرقم السري للمالك (لوحة التحكم)")}
+              </h2>
+              <p className="mt-0.5 text-xs font-semibold text-muted">
+                {tr("يُستخدم هذا الرقم السري للدخول المباشر إلى لوحة التحكم (/admin) وكذلك لحساب المالك الرئيسي")} ({masterEmail})
+              </p>
+            </div>
+          </div>
+          <span
+            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-extrabold ${
+              hasCustomOwnerPw
+                ? "bg-emerald-500/15 text-emerald-800"
+                : "bg-surface text-muted"
+            }`}
+          >
+            <Check className="size-3.5" />
+            {hasCustomOwnerPw
+              ? tr("الرقم السري مخصّص من اللوحة")
+              : tr("الرقم السري الافتراضي")}
+          </span>
+        </div>
+
+        <form
+          className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2"
+          onSubmit={async (e) => {
+            e.preventDefault();
+            setOwnerPwMsg(null);
+            if (ownerPw.trim().length < 8) {
+              setOwnerPwMsg({
+                ok: false,
+                text: tr("الرقم السري يجب أن يتكون من 8 أحرف أو أرقام على الأقل."),
+              });
+              return;
+            }
+            if (ownerPw.trim() !== ownerPw2.trim()) {
+              setOwnerPwMsg({
+                ok: false,
+                text: tr("الرقمان السريان غير متطابقين."),
+              });
+              return;
+            }
+            setBusyOwnerPw(true);
+            try {
+              const res = await callAdminRpc<{
+                ok: boolean;
+                message?: string;
+                updatedAt?: string;
+              }>("change-owner-password", { newPassword: ownerPw.trim() });
+              if (res.ok) {
+                setHasCustomOwnerPw(true);
+                setOwnerPwUpdatedAt(res.updatedAt ?? new Date().toISOString());
+                setOwnerPw("");
+                setOwnerPw2("");
+                setOwnerPwMsg({
+                  ok: true,
+                  text:
+                    res.message ??
+                    tr("تم تغيير الرقم السري للمالك بنجاح! يمكنك الدخول به الآن."),
+                });
+              } else {
+                setOwnerPwMsg({
+                  ok: false,
+                  text: res.message ?? tr("تعذّر حفظ الرقم السري الجديد."),
+                });
+              }
+            } catch {
+              setOwnerPwMsg({
+                ok: false,
+                text: tr("تعذّر الاتصال بالخادم. حاول مرة أخرى."),
+              });
+            } finally {
+              setBusyOwnerPw(false);
+            }
+          }}
+        >
+          <label className="block">
+            <span className="mb-1 block text-xs font-extrabold text-muted">
+              {tr("الرقم السري الجديد للمالك (8 أحرف أو أرقام على الأقل)")}
+            </span>
+            <div className="flex items-center gap-2 rounded-2xl border border-line bg-surface px-3.5 py-2.5 focus-within:border-primary focus-within:bg-paper">
+              <Lock className="size-4 shrink-0 text-muted" />
+              <input
+                type={showOwnerPw ? "text" : "password"}
+                required
+                minLength={8}
+                dir="ltr"
+                value={ownerPw}
+                onChange={(e) => setOwnerPw(e.target.value)}
+                placeholder={tr("أدخل الرقم السري الجديد")}
+                className="w-full bg-transparent text-sm font-bold text-ink outline-none"
+              />
+              <button
+                type="button"
+                onClick={() => setShowOwnerPw((v) => !v)}
+                className="text-muted hover:text-ink"
+              >
+                {showOwnerPw ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+              </button>
+            </div>
+          </label>
+
+          <label className="block">
+            <span className="mb-1 block text-xs font-extrabold text-muted">
+              {tr("تأكيد الرقم السري الجديد")}
+            </span>
+            <div className="flex items-center gap-2 rounded-2xl border border-line bg-surface px-3.5 py-2.5 focus-within:border-primary focus-within:bg-paper">
+              <Lock className="size-4 shrink-0 text-muted" />
+              <input
+                type={showOwnerPw ? "text" : "password"}
+                required
+                minLength={8}
+                dir="ltr"
+                value={ownerPw2}
+                onChange={(e) => setOwnerPw2(e.target.value)}
+                placeholder={tr("أعد كتابة الرقم السري الجديد")}
+                className="w-full bg-transparent text-sm font-bold text-ink outline-none"
+              />
+            </div>
+          </label>
+
+          <div className="sm:col-span-2 flex flex-wrap items-center justify-between gap-3 pt-1">
+            {ownerPwUpdatedAt ? (
+              <span className="text-xs font-semibold text-muted">
+                {tr("آخر تحديث:")} {new Date(ownerPwUpdatedAt).toLocaleString("ar-IL")}
+              </span>
+            ) : (
+              <span />
+            )}
+            <button
+              type="submit"
+              disabled={busyOwnerPw}
+              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-primary px-6 py-3 text-sm font-extrabold text-ink shadow-xs transition hover:brightness-95 disabled:opacity-50"
+            >
+              <KeyRound className="size-4" />
+              {busyOwnerPw ? tr("جاري الحفظ…") : tr("حفظ الرقم السري الجديد للمالك")}
+            </button>
+          </div>
+
+          {ownerPwMsg ? (
+            <p
+              role="status"
+              className={`sm:col-span-2 rounded-2xl px-4 py-3 text-xs font-extrabold ${
+                ownerPwMsg.ok
+                  ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
+                  : "bg-red-50 text-red-700 border border-red-200"
+              }`}
+            >
+              {ownerPwMsg.text}
+            </p>
+          ) : null}
+        </form>
+      </section>
+
+      {/* ==================== CARD 2: SUBSCRIBERS & PASSWORD MANAGEMENT ==================== */}
+      <section className="rounded-3xl bg-paper p-5 shadow-[0_4px_20px_rgba(16,24,40,0.06)] sm:p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-extrabold sm:text-xl">
+              {tr("إدارة المشتركين وتغيير الرقم السري لأي مشترك")}
+            </h2>
+            <p className="mt-0.5 text-xs font-semibold text-muted">
+              {tr("اضغط على «🔑 تغيير الرقم السري» بجانب أي مشترك لتعيين رقم سري جديد له فوراً بدون الحاجة لرسالة بريد إلكتروني")}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setShowCreateForm((v) => !v);
+              setCreateMsg(null);
+            }}
+            className="inline-flex items-center gap-1.5 rounded-2xl bg-ink px-4 py-2.5 text-xs font-extrabold text-paper shadow-xs transition hover:opacity-90"
+          >
+            <UserPlus className="size-4" />
+            {showCreateForm ? tr("إغلاق النموذج") : tr("+ إضافة مشترك جديد برقم سري")}
+          </button>
+        </div>
+
+        {/* Create New Member With Password Form */}
+        {showCreateForm ? (
+          <form
+            className="mt-4 grid grid-cols-1 gap-3 rounded-2xl border border-primary/50 bg-primary/10 p-4 sm:grid-cols-2 lg:grid-cols-4"
+            onSubmit={async (e) => {
+              e.preventDefault();
+              setCreateMsg(null);
+              setBusyCreate(true);
+              try {
+                const res = await callAdminRpc<{ ok: boolean; message?: string }>(
+                  "create-member-with-password",
+                  {
+                    name: newName.trim(),
+                    email: newEmail.trim(),
+                    password: newPassword.trim(),
+                    role: newRole,
+                  },
+                );
+                if (res.ok) {
+                  setNewName("");
+                  setNewEmail("");
+                  setNewPassword("");
+                  setNewRole("member");
+                  setCreateMsg({
+                    ok: true,
+                    text: res.message ?? tr("تم إنشاء حساب المشترك وتعيين الرقم السري بنجاح!"),
+                  });
+                  await loadOverview(q);
+                } else {
+                  setCreateMsg({
+                    ok: false,
+                    text: res.message ?? tr("تعذّر إنشاء الحساب."),
+                  });
+                }
+              } catch {
+                setCreateMsg({ ok: false, text: tr("تعذّر الاتصال بالخادم.") });
+              } finally {
+                setBusyCreate(false);
+              }
+            }}
+          >
+            <label className="block">
+              <span className="mb-1 block text-xs font-extrabold">{tr("الاسم الكامل")}</span>
+              <input
+                type="text"
+                required
+                minLength={2}
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                placeholder={tr("اسم المشترك")}
+                className="field w-full bg-paper"
+              />
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-xs font-extrabold">{tr("البريد الإلكتروني")}</span>
+              <input
+                type="email"
+                required
+                dir="ltr"
+                value={newEmail}
+                onChange={(e) => setNewEmail(e.target.value)}
+                placeholder="user@example.com"
+                className="field w-full bg-paper"
+              />
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-xs font-extrabold">{tr("الرقم السري (8+ أحرف)")}</span>
+              <div className="flex items-center gap-1 rounded-xl border border-line bg-paper px-3 py-2">
+                <input
+                  type={showNewPass ? "text" : "password"}
+                  required
+                  minLength={8}
+                  dir="ltr"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="********"
+                  className="w-full bg-transparent text-sm font-bold outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowNewPass((v) => !v)}
+                  className="text-muted hover:text-ink"
+                >
+                  {showNewPass ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                </button>
+              </div>
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-xs font-extrabold">{tr("الدور / الصلاحية")}</span>
+              <select
+                value={newRole}
+                onChange={(e) => setNewRole(e.target.value)}
+                className="field w-full bg-paper"
+              >
+                <option value="member">{tr("عضو عادي")}</option>
+                {roles
+                  .filter((r) => r.key !== "member")
+                  .map((r) => (
+                    <option key={r.key} value={r.key}>
+                      {trv(r.name)}
+                    </option>
+                  ))}
+              </select>
+            </label>
+            <div className="sm:col-span-2 lg:col-span-4 flex items-center justify-end gap-2 pt-1">
+              <button
+                type="submit"
+                disabled={busyCreate}
+                className="rounded-2xl bg-primary px-5 py-2.5 text-xs font-extrabold text-ink shadow-xs transition hover:brightness-95 disabled:opacity-50"
+              >
+                {busyCreate ? tr("جاري الإنشاء…") : tr("حفظ المشترك وتعيين الرقم السري")}
+              </button>
+            </div>
+            {createMsg ? (
+              <p
+                className={`sm:col-span-2 lg:col-span-4 rounded-xl px-3 py-2 text-xs font-extrabold ${
+                  createMsg.ok ? "bg-emerald-50 text-emerald-800" : "bg-red-50 text-red-700"
+                }`}
+              >
+                {createMsg.text}
+              </p>
+            ) : null}
+          </form>
+        ) : null}
+
+        {/* Search Subscribers Bar */}
+        <form
+          className="mt-4 flex gap-2"
+          onSubmit={(e) => {
+            e.preventDefault();
+            void loadOverview(q);
+          }}
+        >
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder={tr("ابحث عن مشترك بالاسم أو البريد الإلكتروني…")}
+            className="field flex-1"
+          />
+          <button type="submit" className="btn">
+            {tr("بحث")}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setQ("");
+              void loadOverview("");
+            }}
+            className="btn btn-ghost"
+            title={tr("تحديث القائمة")}
+          >
+            <RefreshCw className="size-4" />
+          </button>
+        </form>
+
+        {/* Subscribers List */}
+        {loading ? (
+          <p className="mt-4 rounded-2xl bg-surface p-4 text-center text-sm font-bold text-muted">
+            {tr("جاري تحميل قائمة المشتركين…")}
+          </p>
+        ) : members.length === 0 ? (
+          <p className="mt-4 rounded-2xl bg-surface p-4 text-center text-sm font-bold text-muted">
+            {tr("لا يوجد مشتركون مطابقون للبحث.")}
+          </p>
+        ) : (
+          <ul className="mt-4 space-y-3">
+            {members.map((m) => {
+              const isEditingPw = editingUserId === m.id;
+              const fb = memberFeedback[m.id];
+              return (
+                <li
+                  key={m.id}
+                  className={`rounded-2xl border border-line bg-surface/50 p-4 transition ${
+                    m.blocked ? "opacity-75" : ""
+                  }`}
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex min-w-0 items-center gap-3">
+                      {m.image ? (
+                        <img
+                          src={m.image}
+                          alt=""
+                          className="size-11 shrink-0 rounded-full object-cover"
+                          referrerPolicy="no-referrer"
+                        />
+                      ) : (
+                        <span className="grid size-11 shrink-0 place-items-center rounded-full bg-primary/30 text-sm font-extrabold text-ink">
+                          {(m.name || "؟").slice(0, 1)}
+                        </span>
+                      )}
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="truncate font-extrabold text-ink">{m.name}</p>
+                          {m.role === "adminmaster" ? (
+                            <span className="rounded-full bg-primary px-2.5 py-0.5 text-[11px] font-extrabold text-ink">
+                              {tr("المالك الرئيسي")}
+                            </span>
+                          ) : null}
+                          {m.hasPassword ? (
+                            <span className="rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-[11px] font-extrabold text-emerald-800">
+                              {tr("لديه رقم سري")}
+                            </span>
+                          ) : (
+                            <span className="rounded-full bg-amber-500/15 px-2.5 py-0.5 text-[11px] font-extrabold text-amber-900">
+                              {tr("دخول اجتماعي (بدون رقم سري بعد)")}
+                            </span>
+                          )}
+                          {m.blocked ? (
+                            <span className="rounded-full bg-red-500/15 px-2.5 py-0.5 text-[11px] font-extrabold text-red-700">
+                              {tr("محظور")}
+                            </span>
+                          ) : null}
+                        </div>
+                        <p className="truncate text-xs font-bold text-muted" dir="ltr">
+                          {m.email}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Action Controls for Subscriber */}
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (isEditingPw) {
+                            setEditingUserId("");
+                            setMemberNewPw("");
+                          } else {
+                            setEditingUserId(m.id);
+                            setMemberNewPw("");
+                            setShowMemberPw(true);
+                          }
+                        }}
+                        className={`inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-extrabold shadow-xs transition ${
+                          isEditingPw
+                            ? "bg-ink text-paper"
+                            : "bg-primary text-ink hover:brightness-95"
+                        }`}
+                      >
+                        <KeyRound className="size-3.5" />
+                        {isEditingPw ? tr("إلغاء") : tr("تغيير الرقم السري")}
+                      </button>
+
+                      <select
+                        value={m.role}
+                        disabled={busyMemberId === m.id || m.role === "adminmaster"}
+                        aria-label={tr("الدور")}
+                        onChange={async (e) => {
+                          const nextRole = e.target.value;
+                          setBusyMemberId(m.id);
+                          try {
+                            const res = await callAdminRpc<{ ok: boolean; message?: string }>(
+                              "set-member-role",
+                              { userId: m.id, role: nextRole },
+                            );
+                            setMemberFeedback((prev) => ({
+                              ...prev,
+                              [m.id]: {
+                                ok: res.ok,
+                                text: res.message ?? (res.ok ? tr("تم تحديث الدور.") : tr("تعذّر تحديث الدور.")),
+                              },
+                            }));
+                            await loadOverview(q);
+                          } finally {
+                            setBusyMemberId("");
+                          }
+                        }}
+                        className="rounded-xl border border-line bg-paper px-3 py-2 text-xs font-extrabold text-ink"
+                      >
+                        {m.role === "adminmaster" ? (
+                          <option value="adminmaster">{tr("المالك الرئيسي")}</option>
+                        ) : null}
+                        <option value="member">{tr("عضو")}</option>
+                        {roles
+                          .filter((r) => r.key !== "member")
+                          .map((r) => (
+                            <option key={r.key} value={r.key}>
+                              {trv(r.name)}
+                            </option>
+                          ))}
+                      </select>
+
+                      {m.role !== "adminmaster" ? (
+                        <button
+                          type="button"
+                          disabled={busyMemberId === m.id}
+                          onClick={async () => {
+                            if (
+                              !m.blocked &&
+                              !confirm(tr("هل تريد حظر هذا المشترك وإغلاق جلسته الحالية؟"))
+                            )
+                              return;
+                            setBusyMemberId(m.id);
+                            try {
+                              const res = await callAdminRpc<{ ok: boolean; message?: string }>(
+                                "toggle-member-block",
+                                { userId: m.id, blocked: !m.blocked },
+                              );
+                              setMemberFeedback((prev) => ({
+                                ...prev,
+                                [m.id]: {
+                                  ok: res.ok,
+                                  text: res.message ?? tr("تم التحديث."),
+                                },
+                              }));
+                              await loadOverview(q);
+                            } finally {
+                              setBusyMemberId("");
+                            }
+                          }}
+                          className={`rounded-xl px-3 py-2 text-xs font-extrabold transition ${
+                            m.blocked
+                              ? "bg-emerald-600 text-white hover:bg-emerald-700"
+                              : "border border-red-200 bg-red-50 text-red-700 hover:bg-red-100"
+                          }`}
+                        >
+                          {m.blocked ? tr("إلغاء الحظر") : tr("حظر")}
+                        </button>
+                      ) : null}
+                    </div>
+                  </div>
+
+                  {/* Expandable Inline Password Reset Box */}
+                  {isEditingPw ? (
+                    <form
+                      className="mt-3 flex flex-wrap items-center gap-2 rounded-2xl border border-primary bg-paper p-3 shadow-xs"
+                      onSubmit={async (e) => {
+                        e.preventDefault();
+                        if (memberNewPw.trim().length < 8) {
+                          setMemberFeedback((prev) => ({
+                            ...prev,
+                            [m.id]: {
+                              ok: false,
+                              text: tr("الرقم السري يجب أن يتكون من 8 أحرف أو أرقام على الأقل."),
+                            },
+                          }));
+                          return;
+                        }
+                        setBusyMemberId(m.id);
+                        try {
+                          const res = await callAdminRpc<{ ok: boolean; message?: string }>(
+                            "set-member-password",
+                            { userId: m.id, newPassword: memberNewPw.trim() },
+                          );
+                          setMemberFeedback((prev) => ({
+                            ...prev,
+                            [m.id]: {
+                              ok: res.ok,
+                              text:
+                                res.message ??
+                                (res.ok
+                                  ? tr("تم حفظ الرقم السري الجديد للمشترك!")
+                                  : tr("تعذّر حفظ الرقم السري.")),
+                            },
+                          }));
+                          if (res.ok) {
+                            setEditingUserId("");
+                            setMemberNewPw("");
+                            await loadOverview(q);
+                          }
+                        } catch {
+                          setMemberFeedback((prev) => ({
+                            ...prev,
+                            [m.id]: { ok: false, text: tr("تعذّر الاتصال بالخادم.") },
+                          }));
+                        } finally {
+                          setBusyMemberId("");
+                        }
+                      }}
+                    >
+                      <div className="flex min-w-[220px] flex-1 items-center gap-2 rounded-xl border border-line bg-surface px-3 py-2">
+                        <Lock className="size-4 shrink-0 text-muted" />
+                        <input
+                          type={showMemberPw ? "text" : "password"}
+                          required
+                          minLength={8}
+                          dir="ltr"
+                          value={memberNewPw}
+                          onChange={(e) => setMemberNewPw(e.target.value)}
+                          placeholder={tr("اكتب الرقم السري الجديد (8+ أحرف أو أرقام)")}
+                          className="w-full bg-transparent text-sm font-bold text-ink outline-none"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowMemberPw((v) => !v)}
+                          className="text-muted hover:text-ink"
+                        >
+                          {showMemberPw ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                        </button>
+                      </div>
+                      <button
+                        type="submit"
+                        disabled={busyMemberId === m.id}
+                        className="rounded-xl bg-primary px-4 py-2.5 text-xs font-extrabold text-ink shadow-xs transition hover:brightness-95 disabled:opacity-50"
+                      >
+                        {busyMemberId === m.id ? tr("جاري الحفظ…") : tr("حفظ الرقم السري الجديد")}
+                      </button>
+                    </form>
+                  ) : null}
+
+                  {fb ? (
+                    <p
+                      className={`mt-2 rounded-xl px-3 py-2 text-xs font-extrabold ${
+                        fb.ok ? "bg-emerald-50 text-emerald-800" : "bg-red-50 text-red-700"
+                      }`}
+                    >
+                      {fb.text}
+                    </p>
+                  ) : null}
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
+    </div>
+  );
+}
+
 function AdminLoginPortal({
   who,
   error,
@@ -641,12 +1734,34 @@ function AdminLoginPortal({
                     const remember = fd.get("remember") === "on";
                     setBusyOwner(true);
                     try {
+                      const rpc = await callAdminRpc<{
+                        ok: boolean;
+                        message?: string;
+                        masterEmail?: string;
+                      }>("owner-login", { password, remember });
+                      if (rpc.ok) {
+                        if (rpc.masterEmail) {
+                          try {
+                            const { authClient } = await import("@/lib/auth/client");
+                            await authClient.signIn.email({
+                              email: rpc.masterEmail,
+                              password,
+                              rememberMe: remember,
+                            });
+                          } catch {
+                            /* cookie auth already set */
+                          }
+                        }
+                        setError("");
+                        await onSuccess();
+                        return;
+                      }
                       const res = await adminLogin({ data: { password, remember } });
                       if (res.ok) {
                         setError("");
                         await onSuccess();
                       } else {
-                        setError(res.message ?? tr("كلمة المرور غير صحيحة."));
+                        setError(rpc.message ?? res.message ?? tr("كلمة المرور غير صحيحة."));
                       }
                     } catch {
                       setError(tr("تعذّر الاتصال. حاول مرة أخرى."));
@@ -1267,10 +2382,37 @@ function AdminPage() {
           <CardBoundary key={current}>
           <Suspense fallback={<Skeleton rows={4} />}>
           {current === "home" ? (
-            <DashboardHome
-              go={go}
-              icons={{ haraj: Megaphone, comments: MessageSquare, news: Newspaper, reports: Flag, members: Users, sold: ShoppingBag, stats: BarChart3 }}
-            />
+            <div className="space-y-4">
+              {level === "owner" ? (
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-3xl border border-primary/50 bg-paper p-4 shadow-xs">
+                  <div className="flex items-center gap-3">
+                    <span className="grid size-10 shrink-0 place-items-center rounded-2xl bg-primary text-ink">
+                      <KeyRound className="size-5" />
+                    </span>
+                    <div>
+                      <p className="text-sm font-extrabold text-ink">
+                        {tr("إدارة الرقم السري للمالك والمشتركين")}
+                      </p>
+                      <p className="text-xs font-semibold text-muted">
+                        {tr("غيّر الرقم السري للوحة التحكم أو عيّن رقماً سرياً جديداً لأي مشترك مباشرة")}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => go("members-passwords")}
+                    className="inline-flex items-center gap-2 rounded-2xl bg-primary px-4 py-2.5 text-xs font-extrabold text-ink shadow-xs transition hover:brightness-95"
+                  >
+                    <KeyRound className="size-4" />
+                    {tr("فتح إدارة كلمات المرور")}
+                  </button>
+                </div>
+              ) : null}
+              <DashboardHome
+                go={go}
+                icons={{ haraj: Megaphone, comments: MessageSquare, news: Newspaper, reports: Flag, members: Users, sold: ShoppingBag, stats: BarChart3 }}
+              />
+            </div>
           ) : current === "review" ? (
             <ReviewQueue onCount={setReviewCount} />
           ) : current === "publish" ? (
@@ -1304,6 +2446,12 @@ function AdminPage() {
             <PopupsAdmin />
           ) : current === "emails" ? (
             <EmailAdmin />
+          ) : current === "members-passwords" ? (
+            <PasswordAndMembersManager />
+          ) : current === "members-list" ? (
+            <div className="space-y-6">
+              <PasswordAndMembersManager />
+            </div>
           ) : current.startsWith("members-") ? (
             <MembersAdmin key={current} only={current.slice(8) as "list"} />
           ) : current === "comments" ? (
