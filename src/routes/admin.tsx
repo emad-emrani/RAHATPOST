@@ -36,7 +36,11 @@ import {
   RefreshCw,
   Rss,
   Settings,
+  Lock,
+  LogIn,
+  ShieldCheck,
   ShieldX,
+  User,
   ShoppingBag,
   Siren,
   Sparkles,
@@ -95,6 +99,8 @@ import { tr, trv } from "@/lib/i18n/core";
 import { AdminSearch, CardBoundary, DashboardHome, ReviewQueue, Skeleton } from "@/components/admin/admin-v2";
 import type { SiteSettingsPart } from "@/components/admin/site-settings-admin";
 import { LangSwitcher } from "@/components/lang-switcher";
+import logoUrl from "@/assets/logo.jpg";
+import { useSiteSettings } from "@/lib/site-settings/context";
 
 const CommentsAdmin = lazy(() => import("@/components/admin/comments-admin").then((m) => ({ default: m.CommentsAdmin })));
 const AlertsAdmin = lazy(() => import("@/components/admin/content-admin").then((m) => ({ default: m.AlertsAdmin })));
@@ -489,6 +495,494 @@ function AdminMenu({
 
 const isDesktop = () => typeof window !== "undefined" && window.matchMedia("(min-width: 1024px)").matches;
 
+
+function AdminLoginPortal({
+  who,
+  error,
+  setError,
+  onSuccess,
+}: {
+  who: { name: string; signedIn: boolean };
+  error: string;
+  setError: (msg: string) => void;
+  onSuccess: () => Promise<void>;
+}) {
+  const st = useSiteSettings();
+  const [activeSide, setActiveSide] = useState<"owner" | "team">("owner");
+  const [showOwnerPass, setShowOwnerPass] = useState(false);
+  const [showTeamPass, setShowTeamPass] = useState(false);
+  const [busyOwner, setBusyOwner] = useState(false);
+  const [busyTeam, setBusyTeam] = useState(false);
+  const [busySocial, setBusySocial] = useState("");
+  const [teamError, setTeamError] = useState("");
+
+  const handleSocial = async (provider: "google" | "facebook") => {
+    setBusySocial(provider);
+    setTeamError("");
+    setError("");
+    try {
+      const { authClient, signInWith } = await import("@/lib/auth/client");
+      if (who.signedIn) {
+        await authClient.signOut().catch(() => {});
+      }
+      await signInWith(provider, "/admin");
+    } catch {
+      setTeamError(tr("تعذّر بدء تسجيل الدخول عبر المنصة. حاول مرة أخرى."));
+      setBusySocial("");
+    }
+  };
+
+  return (
+    <div className="relative min-h-screen overflow-hidden bg-surface text-ink">
+      {/* Split Two-Tone Brand Background matching login.tsx and Rahat Post brand colors */}
+      <div aria-hidden className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+        <div className="absolute inset-y-0 right-0 w-full bg-gradient-to-b from-primary/35 via-primary/15 to-surface lg:w-1/2 lg:bg-primary" />
+        <div className="hidden lg:block lg:absolute lg:inset-y-0 lg:left-0 lg:w-1/2 lg:bg-[#e8eaee]" />
+        <div className="absolute -top-28 -right-28 size-96 rounded-full bg-primary/40 blur-3xl lg:bg-paper/20" />
+        <div className="absolute -bottom-28 -left-28 size-96 rounded-full bg-primary/25 blur-3xl" />
+      </div>
+
+      {/* Top Navigation Bar */}
+      <header className="relative z-10 mx-auto flex max-w-6xl items-center justify-between px-4 pt-5 pb-3">
+        <Link
+          to="/"
+          className="inline-flex items-center gap-1.5 rounded-full bg-paper/90 px-4 py-2 text-sm font-extrabold text-ink shadow-sm ring-1 ring-line backdrop-blur transition hover:bg-paper"
+        >
+          <ArrowRight className="size-4 ltr:rotate-180" aria-hidden />
+          {tr("العودة للموقع")}
+        </Link>
+        <div className="flex items-center gap-2">
+          <LangSwitcher />
+        </div>
+      </header>
+
+      <main className="relative z-10 mx-auto flex min-h-[calc(100vh-88px)] max-w-6xl flex-col items-center justify-center px-4 py-6">
+        <div className="w-full max-w-5xl overflow-hidden rounded-[2.25rem] bg-paper shadow-[0_24px_70px_rgba(16,24,40,0.14)] ring-1 ring-black/5">
+          {/* Mobile Top Switcher Banner */}
+          <div className="bg-primary px-5 py-5 text-ink lg:hidden">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <img
+                  src={st.logoKey ? mediaUrl(st.logoKey) : logoUrl}
+                  alt=""
+                  width={52}
+                  height={52}
+                  className="size-[52px] rounded-2xl bg-paper object-cover shadow-md ring-2 ring-paper/70"
+                />
+                <div>
+                  <p className="text-xs font-extrabold opacity-80">{trv(st.texts.siteName)}</p>
+                  <h1 className="text-lg font-extrabold">{tr("بوابة لوحة التحكم")}</h1>
+                </div>
+              </div>
+              <div className="flex rounded-full bg-ink/10 p-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveSide("owner");
+                    setError("");
+                    setTeamError("");
+                  }}
+                  className={`rounded-full px-3.5 py-1.5 text-xs font-extrabold transition ${
+                    activeSide === "owner"
+                      ? "bg-ink text-paper shadow-xs"
+                      : "text-ink hover:bg-ink/10"
+                  }`}
+                >
+                  {tr("دخول المالك")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveSide("team");
+                    setError("");
+                    setTeamError("");
+                  }}
+                  className={`rounded-full px-3.5 py-1.5 text-xs font-extrabold transition ${
+                    activeSide === "team"
+                      ? "bg-ink text-paper shadow-xs"
+                      : "text-ink hover:bg-ink/10"
+                  }`}
+                >
+                  {tr("دخول الفريق")}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* 3-Column Split Layout: [Owner Master Login] | [Center Welcome Strip] | [Team Account Login] */}
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_250px_1fr]">
+            {/* ==================== COLUMN 1: OWNER MASTER PASSWORD LOGIN ==================== */}
+            <section
+              aria-label={tr("دخول مالك الموقع")}
+              className={`flex flex-col justify-between p-6 sm:p-8 lg:p-9 transition-opacity ${
+                activeSide === "team" ? "hidden lg:flex lg:opacity-95" : "flex"
+              }`}
+            >
+              <div className="my-auto flex flex-col">
+                <div className="mb-6 text-center">
+                  <div className="mx-auto mb-3 flex size-12 items-center justify-center rounded-2xl bg-primary/25 text-ink">
+                    <ShieldCheck className="size-6" />
+                  </div>
+                  <h2 className="text-2xl font-extrabold tracking-tight sm:text-3xl">
+                    {tr("دخول المالك")}
+                  </h2>
+                  <p className="mt-1.5 text-xs font-semibold text-muted">
+                    {tr("أدخل كلمة المرور الرئيسية للوصول الكامل إلى لوحة التحكم")}
+                  </p>
+                </div>
+
+                <form
+                  className="flex flex-col gap-3.5"
+                  onSubmit={async (event) => {
+                    event.preventDefault();
+                    setError("");
+                    const fd = new FormData(event.currentTarget);
+                    const password = String(fd.get("password") ?? "");
+                    const remember = fd.get("remember") === "on";
+                    setBusyOwner(true);
+                    try {
+                      const res = await adminLogin({ data: { password, remember } });
+                      if (res.ok) {
+                        setError("");
+                        await onSuccess();
+                      } else {
+                        setError(res.message ?? tr("كلمة المرور غير صحيحة."));
+                      }
+                    } catch {
+                      setError(tr("تعذّر الاتصال. حاول مرة أخرى."));
+                    } finally {
+                      setBusyOwner(false);
+                    }
+                  }}
+                >
+                  <input type="text" name="username" value="admin" autoComplete="username" readOnly hidden />
+                  <label className="group flex items-center gap-3 rounded-2xl border border-transparent bg-surface px-4 py-3.5 transition focus-within:border-primary focus-within:bg-paper focus-within:shadow-xs">
+                    <Lock className="size-5 shrink-0 text-muted transition group-focus-within:text-ink" />
+                    <input
+                      name="password"
+                      type={showOwnerPass ? "text" : "password"}
+                      required
+                      autoComplete="current-password"
+                      dir="ltr"
+                      placeholder={tr("كلمة مرور لوحة التحكم")}
+                      aria-label={tr("كلمة مرور لوحة التحكم")}
+                      onFocus={() => setActiveSide("owner")}
+                      className="w-full bg-transparent text-sm font-semibold text-ink outline-none placeholder:text-muted"
+                    />
+                    <button
+                      type="button"
+                      tabIndex={-1}
+                      onClick={() => setShowOwnerPass((v) => !v)}
+                      className="text-muted hover:text-ink"
+                      aria-label={showOwnerPass ? tr("إخفاء كلمة المرور") : tr("إظهار كلمة المرور")}
+                    >
+                      {showOwnerPass ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                    </button>
+                  </label>
+
+                  <label className="flex cursor-pointer items-center gap-2 px-1 text-xs font-bold text-muted hover:text-ink">
+                    <input
+                      type="checkbox"
+                      name="remember"
+                      defaultChecked
+                      className="size-4 rounded accent-primary"
+                    />
+                    {tr("تذكرني (30 يوماً)")}
+                  </label>
+
+                  {error ? (
+                    <p role="alert" className="rounded-xl bg-red-50 px-3 py-2 text-xs font-bold text-red-700">
+                      {trv(error)}
+                    </p>
+                  ) : null}
+
+                  <button
+                    type="submit"
+                    disabled={busyOwner}
+                    className="mt-1 flex w-full items-center justify-center gap-2 rounded-2xl bg-primary px-5 py-3.5 text-sm font-extrabold text-ink shadow-sm transition hover:brightness-95 disabled:opacity-50"
+                  >
+                    <ShieldCheck className="size-4" />
+                    {busyOwner ? tr("جاري الدخول…") : tr("دخول لوحة التحكم")}
+                  </button>
+                </form>
+
+                <p className="mt-5 text-center text-xs font-bold text-muted lg:hidden">
+                  {tr("هل أنت مشرف أو محرر؟")}{" "}
+                  <button
+                    type="button"
+                    onClick={() => setActiveSide("team")}
+                    className="font-extrabold text-ink underline"
+                  >
+                    {tr("دخول أعضاء الفريق")}
+                  </button>
+                </p>
+              </div>
+            </section>
+
+            {/* ==================== COLUMN 2: CENTER BRAND WELCOME STRIP ==================== */}
+            <aside className="relative hidden flex-col items-center justify-between overflow-hidden bg-primary px-6 py-10 text-center text-ink lg:flex">
+              <div
+                aria-hidden
+                className="pointer-events-none absolute -top-12 -left-12 size-36 rounded-full bg-paper/25"
+              />
+              <div
+                aria-hidden
+                className="pointer-events-none absolute -bottom-14 -right-14 size-44 rounded-full bg-ink/5"
+              />
+
+              <div className="relative z-10 flex flex-col items-center gap-2">
+                <img
+                  src={st.logoKey ? mediaUrl(st.logoKey) : logoUrl}
+                  alt=""
+                  width={68}
+                  height={68}
+                  className="size-[68px] rounded-3xl bg-paper object-cover shadow-md ring-4 ring-paper/70"
+                />
+                <span className="inline-flex items-center gap-1 rounded-full bg-ink/10 px-3 py-0.5 text-[11px] font-extrabold">
+                  <Sparkles className="size-3" />
+                  {trv(st.texts.siteName)}
+                </span>
+              </div>
+
+              <div className="relative z-10 my-6 flex w-full flex-col items-center gap-5">
+                <h2 className="text-2xl font-extrabold leading-tight">
+                  {tr("لوحة التحكم")}
+                </h2>
+
+                <div className="flex w-full flex-col items-center gap-2">
+                  <p className="text-xs font-bold opacity-85">{tr("إدارة الموقع الكاملة")}</p>
+                  <button
+                    type="button"
+                    onClick={() => setActiveSide("owner")}
+                    className={`w-full max-w-[165px] rounded-full border-2 border-ink px-5 py-2 text-xs font-extrabold transition ${
+                      activeSide === "owner"
+                        ? "bg-ink text-paper shadow-sm"
+                        : "bg-transparent text-ink hover:bg-ink hover:text-paper"
+                    }`}
+                  >
+                    {tr("دخول المالك")}
+                  </button>
+                </div>
+
+                <div className="h-px w-12 bg-ink/20" />
+
+                <div className="flex w-full flex-col items-center gap-2">
+                  <p className="text-xs font-bold opacity-85">{tr("المشرفون والمحررون")}</p>
+                  <button
+                    type="button"
+                    onClick={() => setActiveSide("team")}
+                    className={`w-full max-w-[165px] rounded-full border-2 border-ink px-5 py-2 text-xs font-extrabold transition ${
+                      activeSide === "team"
+                        ? "bg-ink text-paper shadow-sm"
+                        : "bg-transparent text-ink hover:bg-ink hover:text-paper"
+                    }`}
+                  >
+                    {tr("دخول الفريق")}
+                  </button>
+                </div>
+              </div>
+
+              <p className="relative z-10 text-[11px] font-bold opacity-75">
+                {tr("بوابتك لإدارة الأخبار والإعلانات والأقسام")}
+              </p>
+            </aside>
+
+            {/* ==================== COLUMN 3: TEAM MEMBER LOGIN ==================== */}
+            <section
+              aria-label={tr("دخول أعضاء الفريق")}
+              className={`flex flex-col justify-between p-6 sm:p-8 lg:p-9 transition-opacity ${
+                activeSide === "owner" ? "hidden lg:flex lg:opacity-95" : "flex"
+              }`}
+            >
+              <div className="my-auto flex flex-col">
+                <div className="mb-5 text-center">
+                  <h2 className="text-2xl font-extrabold tracking-tight sm:text-3xl">
+                    {tr("أعضاء الفريق")}
+                  </h2>
+                  <p className="mt-1.5 text-xs font-semibold text-muted">
+                    {tr("دخول المشرفين والكتّاب المعتمدين بحساباتهم")}
+                  </p>
+                </div>
+
+                {who.signedIn ? (
+                  <div className="mb-4 rounded-2xl border border-amber-300/80 bg-amber-50/80 p-3.5 text-xs font-bold text-amber-950">
+                    <p>
+                      {tr("أنت مسجّل الدخول حالياً بحساب لا يملك صلاحية فريق الإدارة. يمكنك الدخول بكلمة مرور المالك، أو تسجيل الدخول بحساب فريق معتمد أدناه.")}
+                    </p>
+                  </div>
+                ) : null}
+
+                <form
+                  className="flex flex-col gap-3"
+                  onSubmit={async (event) => {
+                    event.preventDefault();
+                    setTeamError("");
+                    const f = new FormData(event.currentTarget);
+                    const email = String(f.get("email") ?? "").trim();
+                    const password = String(f.get("password") ?? "");
+                    const rememberMe = f.get("remember") === "on";
+                    setBusyTeam(true);
+                    try {
+                      const { authClient } = await import("@/lib/auth/client");
+                      if (who.signedIn) {
+                        await authClient.signOut().catch(() => {});
+                      }
+                      const res = await authClient.signIn.email({
+                        email,
+                        password,
+                        rememberMe,
+                      });
+                      if (res.error) {
+                        setTeamError(tr("البريد الإلكتروني أو كلمة المرور غير صحيحة."));
+                        return;
+                      }
+                      await onSuccess();
+                    } catch {
+                      setTeamError(tr("تعذّر الاتصال. حاول مرة أخرى."));
+                    } finally {
+                      setBusyTeam(false);
+                    }
+                  }}
+                >
+                  <label className="group flex items-center gap-3 rounded-2xl border border-transparent bg-surface px-4 py-3.5 transition focus-within:border-primary focus-within:bg-paper focus-within:shadow-xs">
+                    <User className="size-5 shrink-0 text-muted transition group-focus-within:text-ink" />
+                    <input
+                      name="email"
+                      type="email"
+                      required
+                      autoComplete="username"
+                      dir="ltr"
+                      placeholder={tr("البريد الإلكتروني للعضو")}
+                      aria-label={tr("البريد الإلكتروني")}
+                      onFocus={() => setActiveSide("team")}
+                      className="w-full bg-transparent text-sm font-semibold text-ink outline-none placeholder:text-muted"
+                    />
+                  </label>
+
+                  <label className="group flex items-center gap-3 rounded-2xl border border-transparent bg-surface px-4 py-3.5 transition focus-within:border-primary focus-within:bg-paper focus-within:shadow-xs">
+                    <Lock className="size-5 shrink-0 text-muted transition group-focus-within:text-ink" />
+                    <input
+                      name="password"
+                      type={showTeamPass ? "text" : "password"}
+                      required
+                      minLength={8}
+                      maxLength={128}
+                      autoComplete="current-password"
+                      dir="ltr"
+                      placeholder={tr("كلمة المرور")}
+                      aria-label={tr("كلمة المرور")}
+                      onFocus={() => setActiveSide("team")}
+                      className="w-full bg-transparent text-sm font-semibold text-ink outline-none placeholder:text-muted"
+                    />
+                    <button
+                      type="button"
+                      tabIndex={-1}
+                      onClick={() => setShowTeamPass((v) => !v)}
+                      className="text-muted hover:text-ink"
+                      aria-label={showTeamPass ? tr("إخفاء كلمة المرور") : tr("إظهار كلمة المرور")}
+                    >
+                      {showTeamPass ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                    </button>
+                  </label>
+
+                  <label className="flex cursor-pointer items-center gap-2 px-1 text-xs font-bold text-muted hover:text-ink">
+                    <input
+                      type="checkbox"
+                      name="remember"
+                      defaultChecked
+                      className="size-4 rounded accent-primary"
+                    />
+                    {tr("تذكرني")}
+                  </label>
+
+                  {teamError ? (
+                    <p role="alert" className="rounded-xl bg-red-50 px-3 py-2 text-xs font-bold text-red-700">
+                      {trv(teamError)}
+                    </p>
+                  ) : null}
+
+                  <button
+                    type="submit"
+                    disabled={busyTeam || Boolean(busySocial)}
+                    className="mt-1 flex w-full items-center justify-center gap-2 rounded-2xl bg-primary px-5 py-3.5 text-sm font-extrabold text-ink shadow-sm transition hover:brightness-95 disabled:opacity-50"
+                  >
+                    <LogIn className="size-4" />
+                    {busyTeam ? tr("جاري الدخول…") : tr("دخول بحساب الفريق")}
+                  </button>
+                </form>
+
+                {/* Social Team Login */}
+                <div className="mt-4 flex flex-col items-center gap-3">
+                  <div className="flex w-full items-center gap-2 text-xs font-bold text-muted">
+                    <span className="h-px flex-1 bg-line" />
+                    <span>{tr("أو الدخول عبر المنصات الاجتماعية")}</span>
+                    <span className="h-px flex-1 bg-line" />
+                  </div>
+                  <div className="flex items-center justify-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => handleSocial("google")}
+                      disabled={Boolean(busySocial)}
+                      title={tr("المتابعة باستخدام Google")}
+                      aria-label={tr("المتابعة باستخدام Google")}
+                      className="flex size-11 items-center justify-center rounded-full border border-line bg-surface/80 text-ink shadow-xs transition hover:-translate-y-0.5 hover:border-primary hover:bg-primary/15 disabled:opacity-50"
+                    >
+                      <svg viewBox="0 0 24 24" className="size-5" aria-hidden>
+                        <path
+                          fill="#4285F4"
+                          d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.4h6.5a5.6 5.6 0 0 1-2.4 3.6v3h3.9c2.3-2.1 3.5-5.2 3.5-8.7Z"
+                        />
+                        <path
+                          fill="#34A853"
+                          d="M12 24c3.2 0 6-1.1 8-2.9l-3.9-3c-1.1.7-2.5 1.2-4.1 1.2-3.1 0-5.8-2.1-6.7-5H1.3v3.1A12 12 0 0 0 12 24Z"
+                        />
+                        <path
+                          fill="#FBBC05"
+                          d="M5.3 14.3a7.2 7.2 0 0 1 0-4.6V6.6h-4a12 12 0 0 0 0 10.8l4-3.1Z"
+                        />
+                        <path
+                          fill="#EA4335"
+                          d="M12 4.8c1.8 0 3.3.6 4.6 1.8l3.4-3.4A12 12 0 0 0 1.3 6.6l4 3.1c.9-2.9 3.6-4.9 6.7-4.9Z"
+                        />
+                      </svg>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleSocial("facebook")}
+                      disabled={Boolean(busySocial)}
+                      title={tr("المتابعة باستخدام Facebook")}
+                      aria-label={tr("المتابعة باستخدام Facebook")}
+                      className="flex size-11 items-center justify-center rounded-full border border-line bg-surface/80 text-ink shadow-xs transition hover:-translate-y-0.5 hover:border-primary hover:bg-primary/15 disabled:opacity-50"
+                    >
+                      <svg viewBox="0 0 24 24" className="size-5" aria-hidden>
+                        <path
+                          fill="#1877F2"
+                          d="M24 12a12 12 0 1 0-13.9 11.9v-8.4H7.1V12h3V9.4c0-3 1.8-4.7 4.5-4.7 1.3 0 2.7.2 2.7.2v3h-1.5c-1.5 0-2 .9-2 1.9V12h3.4l-.5 3.5h-2.9v8.4A12 12 0 0 0 24 12Z"
+                        />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+
+                <p className="mt-5 text-center text-xs font-bold text-muted lg:hidden">
+                  {tr("هل أنت مالك الموقع؟")}{" "}
+                  <button
+                    type="button"
+                    onClick={() => setActiveSide("owner")}
+                    className="font-extrabold text-ink underline"
+                  >
+                    {tr("دخول المالك بكلمة المرور")}
+                  </button>
+                </p>
+              </div>
+            </section>
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+}
+
 function AdminPage() {
   const gate = Route.useLoaderData();
   const [state, setState] = useState<"loading" | "login" | "ready">("loading");
@@ -551,78 +1045,14 @@ function AdminPage() {
     );
   }
 
-  if (gate.denied || (state === "login" && who.signedIn)) {
+  if (state === "login" || (gate.denied && !level)) {
     return (
-      <AuthLayout title={tr("عذراً، لا تملك صلاحية الدخول إلى لوحة التحكم")} subtitle={tr("لوحة الإدارة لأعضاء الفريق الذين منحهم مالك الموقع صلاحية من قسم الأعضاء.")}>
-        <div className="mx-auto grid size-16 place-items-center rounded-full bg-primary-soft text-primary-ink" aria-hidden>
-          <ShieldX className="size-8" />
-        </div>
-        <Link to="/" className="btn">{tr("العودة إلى الصفحة الرئيسية")}</Link>
-        <button
-          type="button"
-          className="btn btn-ghost"
-          onClick={async () => {
-            const { authClient } = await import("@/lib/auth/client");
-            await authClient.signOut().catch(() => {});
-            window.location.href = "/login?redirect=%2Fadmin";
-          }}
-        >
-          {tr("تسجيل الخروج أو التبديل إلى حساب آخر")}
-        </button>
-      </AuthLayout>
-    );
-  }
-
-  if (state === "login") {
-    return (
-      <AuthLayout title={tr("لوحة الإدارة")} subtitle={tr("دخول المالك بكلمة المرور، أو أعضاء الفريق بحساباتهم.")}>
-        <form
-          className="flex flex-col gap-3"
-          onSubmit={async (event) => {
-            event.preventDefault();
-            const fd = new FormData(event.currentTarget);
-            const password = String(fd.get("password") ?? "");
-            const res = await adminLogin({ data: { password, remember: fd.get("remember") === "on" } });
-            if (res.ok) {
-              setError("");
-              await refresh();
-            } else setError(res.message ?? tr("تعذّر الدخول."));
-          }}
-        >
-          <label className="block font-bold">
-            {tr("كلمة المرور")}
-            <input type="text" name="username" value="admin" autoComplete="username" readOnly hidden />
-            <input
-              name="password"
-              type="password"
-              required
-              autoComplete="current-password"
-              className="field mt-1"
-              dir="ltr"
-            />
-          </label>
-          <label className="flex items-center gap-2 text-sm font-bold">
-            <input type="checkbox" name="remember" defaultChecked className="size-5 accent-[#FDB700]" />
-            {tr("تذكرني (30 يوماً)")}
-          </label>
-          {error ? <p className="font-bold">{trv(error)}</p> : null}
-          <button type="submit" className="btn">
-            {tr("دخول")}
-          </button>
-        </form>
-        <div className="mt-2 flex flex-col gap-2 border-t border-line pt-4">
-          <p className="font-bold">{tr("أعضاء الفريق (مشرف / كاتب)")}</p>
-          {who.signedIn ? (
-            <p className="font-semibold text-muted">
-              {tr("حسابك ليس له صلاحية في لوحة الإدارة. اطلب من مالك الموقع إضافتك.")}
-            </p>
-          ) : (
-            <a className="btn btn-ghost" href="/login?redirect=%2Fadmin">
-              {tr("دخول أعضاء الفريق بحساباتهم")}
-            </a>
-          )}
-        </div>
-      </AuthLayout>
+      <AdminLoginPortal
+        who={who}
+        error={error}
+        setError={setError}
+        onSuccess={refresh}
+      />
     );
   }
 

@@ -8,25 +8,28 @@ import {
   Lock,
   LogIn,
   Mail,
+  ShieldCheck,
   Sparkles,
   User,
   UserPlus,
 } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import logoUrl from "@/assets/logo.jpg";
 import { LangSwitcher } from "@/components/lang-switcher";
 import type { AuthConfig } from "@/components/sign-in";
 import { getAuthConfig } from "@/lib/auth/api";
 import { authClient, signInWith, type SocialProvider } from "@/lib/auth/client";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
+import { adminLogin } from "@/lib/directory/api";
 import { tr, trv } from "@/lib/i18n/core";
 import { mediaUrl } from "@/lib/media/types";
 import { useSiteSettings } from "@/lib/site-settings/context";
 
-/** Only same-site relative paths are allowed as the post-login destination. */
+/** Only same-site relative paths are allowed as the post-login destination (defaults to "/"). */
 function safeRedirect(value: unknown): string {
   const s = typeof value === "string" ? value : "";
-  return /^\/(?!\/)[^\s\\]*$/.test(s) && !s.startsWith("/api/") ? s : "/my-posts";
+  if (!s || s === "/my-posts") return "/";
+  return /^\/(?!\/)[^\s\\]*$/.test(s) && !s.startsWith("/api/") ? s : "/";
 }
 
 export const Route = createFileRoute("/login")({
@@ -172,6 +175,8 @@ function LoginPage() {
   const { user, isPending } = useCurrentUserState();
   const st = useSiteSettings();
 
+  const isAdminRedirect = redirect.startsWith("/admin");
+
   const [activeSide, setActiveSide] = useState<"in" | "up" | "forgot">(
     search.mode === "register" || search.mode === "up" ? "up" : "in",
   );
@@ -179,21 +184,29 @@ function LoginPage() {
   const [busyIn, setBusyIn] = useState(false);
   const [busyUp, setBusyUp] = useState(false);
   const [busyForgot, setBusyForgot] = useState(false);
+  const [busyOwner, setBusyOwner] = useState(false);
 
   const [loginError, setLoginError] = useState(
     search.error ? tr("لم يكتمل تسجيل الدخول. حاول مرة أخرى.") : "",
   );
   const [registerError, setRegisterError] = useState("");
+  const [ownerError, setOwnerError] = useState("");
   const [forgotMsg, setForgotMsg] = useState("");
   const [forgotOk, setForgotOk] = useState("");
 
   const [showLoginPass, setShowLoginPass] = useState(false);
   const [showRegPass, setShowRegPass] = useState(false);
+  const [showOwnerPass, setShowOwnerPass] = useState(false);
 
   const loginInputRef = useRef<HTMLInputElement>(null);
   const registerInputRef = useRef<HTMLInputElement>(null);
+  const ownerInputRef = useRef<HTMLInputElement>(null);
 
-  const isAdminRedirect = redirect.startsWith("/admin");
+  useEffect(() => {
+    if (!isPending && user && !isAdminRedirect && typeof window !== "undefined") {
+      window.location.replace(redirect);
+    }
+  }, [isPending, user, isAdminRedirect, redirect]);
 
   const handleSocial = async (provider: SocialProvider) => {
     setBusySocial(provider);
@@ -213,8 +226,10 @@ function LoginPage() {
     setActiveSide(panel);
     setLoginError("");
     setRegisterError("");
+    setOwnerError("");
     setTimeout(() => {
       if (panel === "in") loginInputRef.current?.focus();
+      else if (isAdminRedirect) ownerInputRef.current?.focus();
       else registerInputRef.current?.focus();
     }, 80);
   };
@@ -248,7 +263,7 @@ function LoginPage() {
       </header>
 
       <main className="relative z-10 mx-auto flex min-h-[calc(100vh-88px)] max-w-6xl flex-col items-center justify-center px-4 py-6">
-        {!isPending && user ? (
+        {!isPending && user && !isAdminRedirect ? (
           /* Already Signed In Card */
           <div className="w-full max-w-md rounded-[2rem] bg-paper p-8 text-center shadow-[0_20px_60px_rgba(16,24,40,0.12)] ring-1 ring-line">
             <img
@@ -271,21 +286,21 @@ function LoginPage() {
             </p>
             <div className="mt-6 flex flex-col gap-2.5">
               <Link
-                to="/my-posts"
+                to="/"
                 className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary px-5 py-3.5 text-sm font-extrabold text-ink shadow-sm transition hover:brightness-95"
               >
-                {tr("الذهاب إلى منشوراتي")}
+                {tr("الذهاب إلى الصفحة الرئيسية")}
               </Link>
               <Link
-                to="/"
+                to="/my-posts"
                 className="flex w-full items-center justify-center gap-2 rounded-2xl bg-surface px-5 py-3 text-sm font-bold text-ink transition hover:bg-line/60"
               >
-                {tr("الصفحة الرئيسية")}
+                {tr("منشوراتي")}
               </Link>
             </div>
           </div>
         ) : (
-          /* Main Split Login / Welcome / Registration Card */
+          /* Main Split Login / Welcome / Registration (or Owner Admin Login) Card */
           <div className="w-full max-w-5xl overflow-hidden rounded-[2.25rem] bg-paper shadow-[0_24px_70px_rgba(16,24,40,0.14)] ring-1 ring-black/5">
             {/* Mobile Top Switcher Banner (shown on < lg screens) */}
             <div className="bg-primary px-5 py-5 text-ink lg:hidden">
@@ -303,54 +318,46 @@ function LoginPage() {
                       {trv(st.texts.siteName)}
                     </p>
                     <h1 className="text-lg font-extrabold">
-                      {tr("أهلاً وسهلاً بك!")}
+                      {isAdminRedirect
+                        ? tr("بوابة لوحة التحكم")
+                        : tr("أهلاً وسهلاً بك!")}
                     </h1>
                   </div>
                 </div>
-                {!isAdminRedirect ? (
-                  <div className="flex rounded-full bg-ink/10 p-1">
-                    <button
-                      type="button"
-                      onClick={() => focusPanel("in")}
-                      className={`rounded-full px-3.5 py-1.5 text-xs font-extrabold transition ${
-                        activeSide !== "up"
-                          ? "bg-ink text-paper shadow-xs"
-                          : "text-ink hover:bg-ink/10"
-                      }`}
-                    >
-                      {tr("تسجيل الدخول")}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => focusPanel("up")}
-                      className={`rounded-full px-3.5 py-1.5 text-xs font-extrabold transition ${
-                        activeSide === "up"
-                          ? "bg-ink text-paper shadow-xs"
-                          : "text-ink hover:bg-ink/10"
-                      }`}
-                    >
-                      {tr("إنشاء حساب")}
-                    </button>
-                  </div>
-                ) : null}
+                <div className="flex rounded-full bg-ink/10 p-1">
+                  <button
+                    type="button"
+                    onClick={() => focusPanel("in")}
+                    className={`rounded-full px-3.5 py-1.5 text-xs font-extrabold transition ${
+                      activeSide !== "up"
+                        ? "bg-ink text-paper shadow-xs"
+                        : "text-ink hover:bg-ink/10"
+                    }`}
+                  >
+                    {isAdminRedirect ? tr("دخول الفريق") : tr("تسجيل الدخول")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => focusPanel("up")}
+                    className={`rounded-full px-3.5 py-1.5 text-xs font-extrabold transition ${
+                      activeSide === "up"
+                        ? "bg-ink text-paper shadow-xs"
+                        : "text-ink hover:bg-ink/10"
+                    }`}
+                  >
+                    {isAdminRedirect ? tr("دخول المالك") : tr("إنشاء حساب")}
+                  </button>
+                </div>
               </div>
             </div>
 
-            {/* 3-Column Desktop Layout: [Login Panel] | [Center Welcome Strip] | [Registration Panel] */}
-            <div
-              className={`grid grid-cols-1 ${
-                isAdminRedirect
-                  ? "lg:grid-cols-[1fr_280px]"
-                  : "lg:grid-cols-[1fr_250px_1fr]"
-              }`}
-            >
+            {/* 3-Column Desktop Layout: [Login Panel] | [Center Welcome Strip] | [Registration / Owner Panel] */}
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_250px_1fr]">
               {/* ==================== COLUMN 1: LOGIN / FORGOT PASSWORD ==================== */}
               <section
                 aria-label={tr("تسجيل الدخول")}
                 className={`flex flex-col justify-between p-6 sm:p-8 lg:p-9 transition-opacity ${
-                  activeSide === "up" && !isAdminRedirect
-                    ? "hidden lg:flex lg:opacity-95"
-                    : "flex"
+                  activeSide === "up" ? "hidden lg:flex lg:opacity-95" : "flex"
                 }`}
               >
                 {activeSide === "forgot" ? (
@@ -469,8 +476,8 @@ function LoginPage() {
                       </h2>
                       <p className="mt-1.5 text-xs font-semibold text-muted">
                         {isAdminRedirect
-                          ? tr("للحسابات المعتمدة في فريق الإدارة فقط")
-                          : tr("ادخل ببيانات حسابك لمتابعة منشوراتك وإعلاناتك")}
+                          ? tr("لأعضاء الفريق (مشرف / محرر) بحساباتهم المعتمدة")
+                          : tr("ادخل ببيانات حسابك لمتابعة أخبار وإعلانات رهط بوست")}
                       </p>
                     </div>
 
@@ -501,7 +508,7 @@ function LoginPage() {
                             );
                             return;
                           }
-                          window.location.href = redirect;
+                          window.location.replace(redirect);
                         } catch {
                           setLoginError(tr("تعذّر الاتصال. حاول مرة أخرى."));
                         } finally {
@@ -614,25 +621,26 @@ function LoginPage() {
                     />
 
                     {/* Mobile Switch Prompt */}
-                    {!isAdminRedirect ? (
-                      <p className="mt-5 text-center text-xs font-bold text-muted lg:hidden">
-                        {tr("ليس لديك حساب بعد؟")}{" "}
-                        <button
-                          type="button"
-                          onClick={() => focusPanel("up")}
-                          className="font-extrabold text-ink underline"
-                        >
-                          {tr("إنشاء حساب جديد")}
-                        </button>
-                      </p>
-                    ) : null}
+                    <p className="mt-5 text-center text-xs font-bold text-muted lg:hidden">
+                      {isAdminRedirect
+                        ? tr("هل أنت مالك الموقع؟")
+                        : tr("ليس لديك حساب بعد؟")}{" "}
+                      <button
+                        type="button"
+                        onClick={() => focusPanel("up")}
+                        className="font-extrabold text-ink underline"
+                      >
+                        {isAdminRedirect
+                          ? tr("دخول المالك بكلمة المرور")
+                          : tr("إنشاء حساب جديد")}
+                      </button>
+                    </p>
                   </div>
                 )}
               </section>
 
               {/* ==================== COLUMN 2: CENTER BRAND WELCOME STRIP ==================== */}
               <aside className="relative hidden flex-col items-center justify-between overflow-hidden bg-primary px-6 py-10 text-center text-ink lg:flex">
-                {/* Subtle decorative circles matching modern split-card aesthetic */}
                 <div
                   aria-hidden
                   className="pointer-events-none absolute -top-12 -left-12 size-36 rounded-full bg-paper/25"
@@ -660,54 +668,50 @@ function LoginPage() {
                 {/* Middle Welcome Callouts */}
                 <div className="relative z-10 my-6 flex w-full flex-col items-center gap-5">
                   <h2 className="text-2xl font-extrabold leading-tight">
-                    {tr("أهلاً وسهلاً بك!")}
+                    {isAdminRedirect
+                      ? tr("بوابة الإدارة")
+                      : tr("أهلاً وسهلاً بك!")}
                   </h2>
 
-                  {!isAdminRedirect ? (
-                    <>
-                      <div className="flex w-full flex-col items-center gap-2">
-                        <p className="text-xs font-bold opacity-85">
-                          {tr("ليس لديك حساب بعد؟")}
-                        </p>
-                        <button
-                          type="button"
-                          onClick={() => focusPanel("up")}
-                          className={`w-full max-w-[165px] rounded-full border-2 border-ink px-5 py-2 text-xs font-extrabold transition ${
-                            activeSide === "up"
-                              ? "bg-ink text-paper shadow-sm"
-                              : "bg-transparent text-ink hover:bg-ink hover:text-paper"
-                          }`}
-                        >
-                          {tr("إنشاء حساب")}
-                        </button>
-                      </div>
-
-                      <div className="h-px w-12 bg-ink/20" />
-
-                      <div className="flex w-full flex-col items-center gap-2">
-                        <p className="text-xs font-bold opacity-85">
-                          {tr("لديك حساب بالفعل؟")}
-                        </p>
-                        <button
-                          type="button"
-                          onClick={() => focusPanel("in")}
-                          className={`w-full max-w-[165px] rounded-full border-2 border-ink px-5 py-2 text-xs font-extrabold transition ${
-                            activeSide === "in"
-                              ? "bg-ink text-paper shadow-sm"
-                              : "bg-transparent text-ink hover:bg-ink hover:text-paper"
-                          }`}
-                        >
-                          {tr("تسجيل الدخول")}
-                        </button>
-                      </div>
-                    </>
-                  ) : (
-                    <p className="text-xs font-bold leading-relaxed opacity-85">
-                      {tr(
-                        "بوابة الإدارة مخصّصة للمشرفين والمحررين المعتمدين في رهط بوست.",
-                      )}
+                  <div className="flex w-full flex-col items-center gap-2">
+                    <p className="text-xs font-bold opacity-85">
+                      {isAdminRedirect
+                        ? tr("دخول مالك الموقع المباشر")
+                        : tr("ليس لديك حساب بعد؟")}
                     </p>
-                  )}
+                    <button
+                      type="button"
+                      onClick={() => focusPanel("up")}
+                      className={`w-full max-w-[165px] rounded-full border-2 border-ink px-5 py-2 text-xs font-extrabold transition ${
+                        activeSide === "up"
+                          ? "bg-ink text-paper shadow-sm"
+                          : "bg-transparent text-ink hover:bg-ink hover:text-paper"
+                      }`}
+                    >
+                      {isAdminRedirect ? tr("دخول المالك") : tr("إنشاء حساب")}
+                    </button>
+                  </div>
+
+                  <div className="h-px w-12 bg-ink/20" />
+
+                  <div className="flex w-full flex-col items-center gap-2">
+                    <p className="text-xs font-bold opacity-85">
+                      {isAdminRedirect
+                        ? tr("للمشرفين والمحررين")
+                        : tr("لديك حساب بالفعل؟")}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => focusPanel("in")}
+                      className={`w-full max-w-[165px] rounded-full border-2 border-ink px-5 py-2 text-xs font-extrabold transition ${
+                        activeSide === "in"
+                          ? "bg-ink text-paper shadow-sm"
+                          : "bg-transparent text-ink hover:bg-ink hover:text-paper"
+                      }`}
+                    >
+                      {isAdminRedirect ? tr("دخول الفريق") : tr("تسجيل الدخول")}
+                    </button>
+                  </div>
                 </div>
 
                 {/* Bottom Tagline */}
@@ -716,8 +720,143 @@ function LoginPage() {
                 </p>
               </aside>
 
-              {/* ==================== COLUMN 3: REGISTRATION ==================== */}
-              {!isAdminRedirect ? (
+              {/* ==================== COLUMN 3: REGISTRATION OR OWNER ADMIN LOGIN ==================== */}
+              {isAdminRedirect ? (
+                <section
+                  aria-label={tr("دخول مالك الموقع")}
+                  className={`flex flex-col justify-between p-6 sm:p-8 lg:p-9 transition-opacity ${
+                    activeSide !== "up"
+                      ? "hidden lg:flex lg:opacity-95"
+                      : "flex"
+                  }`}
+                >
+                  <div className="my-auto flex flex-col">
+                    <div className="mb-6 text-center">
+                      <div className="mx-auto mb-3 flex size-12 items-center justify-center rounded-2xl bg-primary/25 text-ink">
+                        <ShieldCheck className="size-6" />
+                      </div>
+                      <h2 className="text-2xl font-extrabold tracking-tight sm:text-3xl">
+                        {tr("دخول المالك")}
+                      </h2>
+                      <p className="mt-1.5 text-xs font-semibold text-muted">
+                        {tr(
+                          "أدخل كلمة مرور الإدارة الرئيسية للدخول المباشر إلى لوحة التحكم",
+                        )}
+                      </p>
+                    </div>
+
+                    <form
+                      className="flex flex-col gap-3.5"
+                      onSubmit={async (event) => {
+                        event.preventDefault();
+                        setOwnerError("");
+                        const fd = new FormData(event.currentTarget);
+                        const password = String(fd.get("password") ?? "");
+                        const remember = fd.get("remember") === "on";
+                        setBusyOwner(true);
+                        try {
+                          const res = await adminLogin({
+                            data: { password, remember },
+                          });
+                          if (res.ok) {
+                            window.location.replace("/admin");
+                          } else {
+                            setOwnerError(
+                              res.message ?? tr("كلمة مرور الإدارة غير صحيحة."),
+                            );
+                          }
+                        } catch {
+                          setOwnerError(tr("تعذّر الاتصال. حاول مرة أخرى."));
+                        } finally {
+                          setBusyOwner(false);
+                        }
+                      }}
+                    >
+                      <input
+                        type="text"
+                        name="username"
+                        value="admin"
+                        autoComplete="username"
+                        readOnly
+                        hidden
+                      />
+                      <label className="group flex items-center gap-3 rounded-2xl border border-transparent bg-surface px-4 py-3.5 transition focus-within:border-primary focus-within:bg-paper focus-within:shadow-xs">
+                        <Lock className="size-5 shrink-0 text-muted transition group-focus-within:text-ink" />
+                        <input
+                          ref={ownerInputRef}
+                          name="password"
+                          type={showOwnerPass ? "text" : "password"}
+                          required
+                          autoComplete="current-password"
+                          dir="ltr"
+                          placeholder={tr("كلمة مرور لوحة التحكم")}
+                          aria-label={tr("كلمة مرور لوحة التحكم")}
+                          onFocus={() => setActiveSide("up")}
+                          className="w-full bg-transparent text-sm font-semibold text-ink outline-none placeholder:text-muted"
+                        />
+                        <button
+                          type="button"
+                          tabIndex={-1}
+                          onClick={() => setShowOwnerPass((v) => !v)}
+                          className="text-muted hover:text-ink"
+                          aria-label={
+                            showOwnerPass
+                              ? tr("إخفاء كلمة المرور")
+                              : tr("إظهار كلمة المرور")
+                          }
+                        >
+                          {showOwnerPass ? (
+                            <EyeOff className="size-4" />
+                          ) : (
+                            <Eye className="size-4" />
+                          )}
+                        </button>
+                      </label>
+
+                      <label className="flex cursor-pointer items-center gap-2 px-1 text-xs font-bold text-muted hover:text-ink">
+                        <input
+                          type="checkbox"
+                          name="remember"
+                          defaultChecked
+                          className="size-4 rounded accent-primary"
+                        />
+                        {tr("تذكرني (30 يوماً)")}
+                      </label>
+
+                      {ownerError ? (
+                        <p
+                          role="alert"
+                          className="rounded-xl bg-red-50 px-3 py-2 text-xs font-bold text-red-700"
+                        >
+                          {trv(ownerError)}
+                        </p>
+                      ) : null}
+
+                      <button
+                        type="submit"
+                        disabled={busyOwner}
+                        className="mt-1 flex w-full items-center justify-center gap-2 rounded-2xl bg-primary px-5 py-3.5 text-sm font-extrabold text-ink shadow-sm transition hover:brightness-95 disabled:opacity-50"
+                      >
+                        <ShieldCheck className="size-4" />
+                        {busyOwner
+                          ? tr("جاري الدخول…")
+                          : tr("دخول لوحة التحكم")}
+                      </button>
+                    </form>
+
+                    <p className="mt-5 text-center text-xs font-bold text-muted lg:hidden">
+                      {tr("عضو في فريق التحرير؟")}{" "}
+                      <button
+                        type="button"
+                        onClick={() => focusPanel("in")}
+                        className="font-extrabold text-ink underline"
+                      >
+                        {tr("دخول بحساب الفريق")}
+                      </button>
+                    </p>
+                  </div>
+                </section>
+              ) : (
                 <section
                   aria-label={tr("إنشاء حساب جديد")}
                   className={`flex flex-col justify-between p-6 sm:p-8 lg:p-9 transition-opacity ${
@@ -792,7 +931,7 @@ function LoginPage() {
                             );
                             return;
                           }
-                          window.location.href = redirect;
+                          window.location.replace(redirect);
                         } catch {
                           setRegisterError(
                             tr("تعذّر الاتصال. حاول مرة أخرى."),
@@ -930,7 +1069,7 @@ function LoginPage() {
                     </p>
                   </div>
                 </section>
-              ) : null}
+              )}
             </div>
           </div>
         )}
