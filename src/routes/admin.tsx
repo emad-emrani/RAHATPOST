@@ -5,6 +5,7 @@ import {
   BadgeCheck,
   BarChart3,
   Bell,
+  Bus,
   Check,
   ChevronDown,
   ChevronLeft,
@@ -111,6 +112,7 @@ const StoreAdmin = lazy(() => import("@/components/admin/store-admin").then((m) 
 const StatsAdmin = lazy(() => import("@/components/admin/stats-admin").then((m) => ({ default: m.StatsAdmin })));
 const LanguagesAdmin = lazy(() => import("@/components/admin/languages-admin").then((m) => ({ default: m.LanguagesAdmin })));
 const GeminiAdmin = lazy(() => import("@/components/admin/gemini-admin").then((m) => ({ default: m.GeminiAdmin })));
+const BusLinesAdmin = lazy(() => import("@/components/admin/bus-admin").then((m) => ({ default: m.BusLinesAdmin })));
 
 type QuickCustomSection = {
   id: string;
@@ -182,6 +184,7 @@ type Section =
   | "directory"
   | "comments"
   | "reports"
+  | "buses"
   | "duty"
   | "alerts"
   | "push"
@@ -210,6 +213,7 @@ const ALL_TABS: { key: Section; label: string; icon: LucideIcon }[] = [
   { key: "sec-sports", label: "أخبار الرياضة", icon: Trophy },
   { key: "sec-tech", label: "أخبار التقنية", icon: Cpu },
   { key: "sec-weather", label: "حالة الطقس", icon: CloudSun },
+  { key: "buses", label: "الباصات", icon: Bus },
   { key: "duty", label: "صيدلية المناوبة", icon: Pill },
   { key: "directory", label: "طلبات دليل المصالح", icon: Store },
   { key: "comments", label: "التعليقات", icon: MessageSquare },
@@ -256,7 +260,7 @@ const GROUPS: { id: string; label: string; desc: string; icon: LucideIcon; keys:
     label: "الحراج والمتجر والدليل",
     desc: "إعلانات السوق، المتجر، دليل رهط، والصيدلية",
     icon: Store,
-    keys: ["ads", "haraj-cats", "store", "directory", "duty", "comments", "reports"],
+    keys: ["buses", "ads", "haraj-cats", "store", "directory", "duty", "comments", "reports"],
   },
   {
     id: "marketing",
@@ -876,6 +880,8 @@ function AdminPage() {
             <CommentsAdmin />
           ) : current === "reports" ? (
             <ReportsAdmin />
+          ) : current === "buses" ? (
+            <BusLinesAdmin />
           ) : current === "duty" ? (
             <DutyAdmin />
           ) : current === "alerts" ? (

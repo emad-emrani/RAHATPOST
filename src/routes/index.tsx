@@ -472,15 +472,15 @@ function Home() {
     ),
     buses: (
       <section>
-        <SectionTitle title={tr("باصات غاليم في رهط والنقب")} to="/buses" more={tr("كل المواعيد")} />
+        <SectionTitle title={tr("باصات غاليم")} to="/buses" more={tr("كل المواعيد")} />
         <Link to="/buses" className="stamp press flex items-center gap-3 p-4">
           <span className="icon-badge">
             <Bus className="size-6" aria-hidden />
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block font-bold">{tr("خطوط المدينة 1 حتى 6، وبئر السبع والبلدات المجاورة")}</span>
+            <span className="block font-bold">{tr("خطوط المدينة 1 حتى 6، وبئر السبع وما حولها")}</span>
             <span className="text-sm font-semibold text-muted">
-              {tr("شركة גלים · تتبع مباشر على الخريطة وجدول أوقات اليوم")}
+              {tr("شركة גלים · أوقات مباشرة وجدول اليوم")}
             </span>
           </span>
           <ChevronLeft className="size-5 text-muted" aria-hidden />

@@ -23,17 +23,8 @@ export const Route = createFileRoute("/buses")({
     seo({
       title: tr("باصات رهط: مواعيد خطوط غاليم ووصول الباص المباشر · رهط بوست"),
       description:
-        tr("مواعيد باصات رهط لحظة بلحظة: خطوط شركة غاليم داخل رهط (1 حتى 6) وإلى بئر السبع وتل السبع وكسيفة وعرعرة النقب وسديروت وعسقلان، وصول الباص إلى المحطة مباشرة وجدول رحلات اليوم."),
+        tr("مواعيد باصات رهط لحظة بلحظة: خطوط شركة غاليم داخل رهط وإلى تل السبع وكسيفة وعرعرة النقب، وصول الباص إلى المحطة مباشرة وجدول رحلات اليوم."),
       path: "/buses",
-      keywords: [
-        "باصات رهط",
-        "باصات غاليم رهط",
-        "مواعيد باصات رهط",
-        "خط 450 رهط بئر السبع",
-        "خط 425 رهط تل السبع",
-        "خط 423 رهط كسيفة",
-        "خط 427 رهط عرعرة النقب",
-      ],
       jsonLd: [breadcrumbLd([{ name: tr("باصات رهط"), path: "/buses" }])],
     }),
   // Server time as the first render's clock, so SSR and hydration agree.
@@ -99,8 +90,6 @@ function BusesPage() {
       <LiveArrivals now={now} />
 
       <Timetable now={now} dates={dates} today={today} />
-
-      <AllBusLinesLinks />
     </Shell>
   );
 }
@@ -469,36 +458,6 @@ function Timetable({ now, dates, today }: { now: number; dates: string[]; today:
       <p className="mt-4 text-sm font-semibold text-muted">
         {tr("مصدر المواعيد: بيانات GTFS المفتوحة من وزارة المواصلات، وتُحدَّث يومياً. قد تتغير المواعيد في الأعياد والطوارئ.")}
       </p>
-    </section>
-  );
-}
-
-/** Server-rendered directory of all city and intercity bus line map pages for search crawlers and users. */
-function AllBusLinesLinks() {
-  return (
-    <section className="stamp mt-8 p-4" aria-label={tr("خرائط ومسارات جميع خطوط باصات رهط")}>
-      <h2 className="text-lg font-bold">{tr("خرائط ومسارات جميع خطوط باصات رهط")}</h2>
-      <p className="mt-1 text-sm font-semibold text-muted">
-        {tr("اختر رقم الخط لعرض مساره الكامل ومحطاته ومواقع الباصات المباشرة على الخريطة:")}
-      </p>
-      <ul className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
-        {busLines.map((l) => (
-          <li key={l.number}>
-            <Link
-              to="/buses/map/$line"
-              params={{ line: l.number }}
-              className="flex items-center justify-between gap-2 rounded-xl border border-line bg-surface px-3 py-2 text-sm font-bold hover:bg-primary-soft"
-            >
-              <span className="chip chip-ink shrink-0">
-                {tr("خط")} {trv(l.number)}
-              </span>
-              <span className="min-w-0 flex-1 truncate text-start">
-                {trv(l.from)} ↔ {trv(l.to)}
-              </span>
-            </Link>
-          </li>
-        ))}
-      </ul>
     </section>
   );
 }
