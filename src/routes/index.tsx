@@ -582,8 +582,8 @@ function Home() {
   })();
   const TOP: ExtendedHomeSectionId[] = ["weather", "slider", "search"];
 
-  const sidebarSlot1 = st.google?.slots?.[0]?.slot || "";
-  const sidebarSlot2 = st.google?.slots?.[1]?.slot || "";
+  const sidebarSlot1 = settings.google?.slots?.[0]?.slot || "";
+  const sidebarSlot2 = settings.google?.slots?.[1]?.slot || "";
 
   return (
     <Shell wide>
@@ -702,7 +702,7 @@ function Home() {
               minHeight={250}
             />
           ) : (
-            <AdSlots placement="home-top" />
+            <AdSlots placement="home" />
           )}
 
           {sidebarSlot2 ? (
@@ -711,9 +711,7 @@ function Home() {
               dataAdFormat="vertical"
               minHeight={600}
             />
-          ) : (
-            <AdSlots placement="home-mid" />
-          )}
+          ) : null}
         </aside>
       </div>
       <AmpAutoAdsBridge />
