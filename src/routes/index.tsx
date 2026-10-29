@@ -105,11 +105,101 @@ async function matchesForHome(): Promise<MatchesBoardData | null> {
   }
 }
 
+/** Apply deterministic per-section & per-item natural time offsets when RSS feeds emit batch timestamps. */
+function staggerSectionItems<T extends { slug: string; publishedAt: string; reader?: unknown; staff?: boolean }>(
+  items: T[],
+  sectionOffsetMin: number,
+): T[] {
+  const seenMinutes = new Map<number, number>();
+  return items.map((item, idx) => {
+    if (item.reader || item.staff) return item;
+    const ms = Date.parse(item.publishedAt);
+    if (Number.isNaN(ms)) return item;
+    const minBucket = Math.floor(ms / 60_000);
+    const dupCount = seenMinutes.get(minBucket) ?? 0;
+    seenMinutes.set(minBucket, dupCount + 1);
+    const hashSeed = item.slug.split("").reduce((acc, ch) => (acc * 31 + ch.charCodeAt(0)) & 0xffff, 0);
+    const extraSec = ((hashSeed % 110) + dupCount * 135 + sectionOffsetMin * 60 + idx * 25) * 1000;
+    const adjustedMs = Math.min(Date.now() - 30_000, ms - extraSec);
+    return { ...item, publishedAt: new Date(adjustedMs).toISOString() };
+  });
+}
+
 function Home() {
-  const { news, approved, ads: adsData, israel, weather, board, store, tech, sports, flags, matches } = Route.useLoaderData();
+  const loaderData = Route.useLoaderData();
+  const { approved, ads: adsData, weather, board, store, flags, matches } = loaderData;
+  const [news, setNews] = useState(loaderData.news);
+  const [israel, setIsrael] = useState(loaderData.israel);
+  const [sports, setSports] = useState(loaderData.sports);
+  const [tech, setTech] = useState(loaderData.tech);
+
+  useEffect(() => {
+    setNews(loaderData.news);
+    setIsrael(loaderData.israel);
+    setSports(loaderData.sports);
+    setTech(loaderData.tech);
+  }, [loaderData.news, loaderData.israel, loaderData.sports, loaderData.tech]);
+
+  // Independent staggered per-section RSS polling (News: 3m, Israel: 7m, Sports: 11m, Tech: 17m)
+  useEffect(() => {
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    const scheduleStaggered = (
+      offsetMs: number,
+      intervalMs: number,
+      task: () => Promise<void>,
+    ) => {
+      const t1 = setTimeout(() => {
+        if (document.visibilityState === "visible") void task();
+        const t2 = setInterval(() => {
+          if (document.visibilityState === "visible") void task();
+        }, intervalMs);
+        timers.push(t2 as unknown as ReturnType<typeof setTimeout>);
+      }, offsetMs);
+      timers.push(t1);
+    };
+
+    scheduleStaggered(45_000, 3 * 60_000, async () => {
+      try {
+        const fresh = await getNews();
+        if (fresh?.items?.length) setNews(fresh);
+      } catch {}
+    });
+    scheduleStaggered(2 * 60_000 + 15_000, 7 * 60_000, async () => {
+      try {
+        const fresh = await getIsraelNews();
+        if (fresh?.items?.length) setIsrael(fresh);
+      } catch {}
+    });
+    scheduleStaggered(5 * 60_000 + 10_000, 11 * 60_000, async () => {
+      try {
+        const fresh = await getSportsNews();
+        if (fresh?.items?.length) setSports(fresh);
+      } catch {}
+    });
+    scheduleStaggered(9 * 60_000 + 20_000, 17 * 60_000, async () => {
+      try {
+        const fresh = await getTechNews();
+        if (fresh?.items?.length) setTech(fresh);
+      } catch {}
+    });
+
+    return () => {
+      timers.forEach((t) => {
+        clearTimeout(t);
+        clearInterval(t);
+      });
+    };
+  }, []);
+
   const showSec = (id: string) => flags[id] !== false;
-  const techTop = tech?.home ? tech.items.slice(0, 5) : [];
-  const sportsTop = sports?.home ? sports.items.slice(0, 5) : [];
+  const techTop = useMemo(
+    () => (tech?.home ? staggerSectionItems(tech.items.slice(0, 5), 9) : []),
+    [tech],
+  );
+  const sportsTop = useMemo(
+    () => (sports?.home ? staggerSectionItems(sports.items.slice(0, 5), 5) : []),
+    [sports],
+  );
   const settings = useSiteSettings();
   const visibleCustomSections = useMemo(() => {
     return (settings.quickLinks ?? [])
@@ -129,7 +219,10 @@ function Home() {
         };
       });
   }, [settings.quickLinks, news.items]);
-  const israelItems = useMemo(() => israel?.items ?? [], [israel]);
+  const israelItems = useMemo(
+    () => staggerSectionItems(israel?.items ?? [], 2),
+    [israel],
+  );
   const israelTop = [
     ...israelItems.filter((item) => item.pinned),
     ...israelItems.filter((item) => item.titleAr && !item.pinned),
@@ -147,7 +240,7 @@ function Home() {
   const search = Route.useSearch();
   const [q, setQ] = useState(search.q ?? "");
   const query = q.trim();
-  const ranked = newestFirst(news.items);
+  const ranked = useMemo(() => staggerSectionItems(newestFirst(news.items), 0), [news.items]);
   const breaking = news.items.find((item) => item.breaking);
   const israelBreaking = israelItems.find((item) => item.breaking);
   const top = ranked[0];
