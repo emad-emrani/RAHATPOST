@@ -190,17 +190,30 @@ function BusMapPage() {
     busLayer.current.clearLayers();
     for (const v of vehicles) {
       const age = Math.max(0, Math.round((Date.now() - Date.parse(v.at)) / 60_000));
+      const digits = String(v.ref ?? "").replace(/\D/g, "");
+      const plate =
+        digits.length === 8
+          ? `${digits.slice(0, 3)}-${digits.slice(3, 5)}-${digits.slice(5)}`
+          : digits.length === 7
+            ? `${digits.slice(0, 2)}-${digits.slice(2, 5)}-${digits.slice(5)}`
+            : v.ref;
       Lf.marker([v.lat, v.lon], {
         icon: Lf.divIcon({
           className: "",
-          html: `<div class="bus-pin">🚌 ${line}</div>`,
-          iconSize: [56, 28],
-          iconAnchor: [28, 14],
+          html: `<div style="display:inline-flex;flex-direction:column;align-items:center;transform:translate(-50%,-50%);">
+            <div class="bus-pin">🚌 ${line}</div>
+            <div dir="ltr" style="margin-top:2px;background:#facc15;color:#111827;font-family:monospace;font-weight:900;font-size:10px;padding:1px 6px;border-radius:4px;border:1.5px solid #111827;white-space:nowrap;">IL ${plate}</div>
+          </div>`,
+          iconSize: [96, 44],
+          iconAnchor: [48, 22],
         }),
         zIndexOffset: 1000,
       })
         .addTo(busLayer.current)
-        .bindTooltip(age < 1 ? tr("موقع مباشر الآن") : tr("آخر موقع قبل {0} د", age), { direction: "top" });
+        .bindTooltip(
+          `${tr("لوحة الترخيص:")} ${plate} · ${age < 1 ? tr("موقع مباشر الآن") : tr("آخر موقع قبل {0} د", age)}`,
+          { direction: "top" },
+        );
     }
   }, [vehicles, ready, line]);
 
