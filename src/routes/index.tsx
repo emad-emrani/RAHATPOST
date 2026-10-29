@@ -582,57 +582,139 @@ function Home() {
   })();
   const TOP: ExtendedHomeSectionId[] = ["weather", "slider", "search"];
 
+  const sidebarSlot1 = st.google?.slots?.[0]?.slot || "";
+  const sidebarSlot2 = st.google?.slots?.[1]?.slot || "";
+
   return (
-    <Shell>
-      <div className="flex flex-col gap-6">
-        <h1 className="sr-only">{tr("رهط بوست: أخبار وخدمات رهط والنقب")}</h1>
-        <AlertsBanner alerts={board.alerts} />
-        {breaking ? (
-          <Link
-            to="/news/$slug"
-            params={{ slug: breaking.slug }}
-            className="alert-card press block px-4 py-3"
-          >
-            <span className="chip bg-white/20 text-white">{tr("عاجل")}</span>
-            <span className="mt-2 block text-lg font-bold">{trv(breaking.title)}</span>
-            <span className="text-sm font-semibold">
-              {relativeTimeAr(breaking.publishedAt, now)} · {trv(breaking.source)}
-            </span>
-          </Link>
-        ) : israelBreaking ? (
-          <Link
-            to="/israel-news/$slug"
-            params={{ slug: israelBreaking.slug }}
-            className="alert-card press block px-4 py-3"
-          >
-            <span className="chip bg-white/20 text-white">{tr("عاجل")}</span>
-            <span className="mt-2 block text-lg font-bold">
-              {israelBreaking.titleAr ?? israelBreaking.titleHe}
-            </span>
-            <span className="text-sm font-semibold">
-              {relativeTimeAr(israelBreaking.publishedAt, now)} · {trv(israelBreaking.source)}
-            </span>
-          </Link>
-        ) : null}
-        {results ? (
-          <>
-            {order
-              .filter((id) => TOP.includes(id))
-              .map((id) => (
+    <Shell wide>
+      <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-12">
+        {/* Main Content Column (8 cols on lg, 9 cols on xl) */}
+        <div className="flex min-w-0 flex-col gap-6 lg:col-span-8 xl:col-span-9">
+          <h1 className="sr-only">{tr("رهط بوست: أخبار وخدمات رهط والنقب")}</h1>
+          <AlertsBanner alerts={board.alerts} />
+          {breaking ? (
+            <Link
+              to="/news/$slug"
+              params={{ slug: breaking.slug }}
+              className="alert-card press block px-4 py-3"
+            >
+              <span className="chip bg-white/20 text-white">{tr("عاجل")}</span>
+              <span className="mt-2 block text-lg font-bold">{trv(breaking.title)}</span>
+              <span className="text-sm font-semibold">
+                {relativeTimeAr(breaking.publishedAt, now)} · {trv(breaking.source)}
+              </span>
+            </Link>
+          ) : israelBreaking ? (
+            <Link
+              to="/israel-news/$slug"
+              params={{ slug: israelBreaking.slug }}
+              className="alert-card press block px-4 py-3"
+            >
+              <span className="chip bg-white/20 text-white">{tr("عاجل")}</span>
+              <span className="mt-2 block text-lg font-bold">
+                {israelBreaking.titleAr ?? israelBreaking.titleHe}
+              </span>
+              <span className="text-sm font-semibold">
+                {relativeTimeAr(israelBreaking.publishedAt, now)} · {trv(israelBreaking.source)}
+              </span>
+            </Link>
+          ) : null}
+          {results ? (
+            <>
+              {order
+                .filter((id) => TOP.includes(id))
+                .map((id) => (
+                  <Fragment key={id}>{trv(blocks[id])}</Fragment>
+                ))}
+              {order.includes("search") ? null : blocks.search}
+              <SearchResults query={query} results={results} />
+            </>
+          ) : (
+            <>
+              {order.map((id) => (
                 <Fragment key={id}>{trv(blocks[id])}</Fragment>
               ))}
-            {order.includes("search") ? null : blocks.search}
-            <SearchResults query={query} results={results} />
-          </>
-        ) : (
-          <>
-            {order.map((id) => (
-              <Fragment key={id}>{trv(blocks[id])}</Fragment>
-            ))}
-            {!order.includes("matches") ? blocks.matches : null}
-            {!order.includes("directory") ? directoryPreview : null}
-          </>
-        )}
+              {!order.includes("matches") ? blocks.matches : null}
+              {!order.includes("directory") ? directoryPreview : null}
+            </>
+          )}
+        </div>
+
+        {/* Sticky Desktop Sidebar Column (4 cols on lg, 3 cols on xl) */}
+        <aside
+          aria-label={tr("الشريط الجانبي للخدمات والإعلانات")}
+          className="hidden w-full space-y-5 lg:sticky lg:top-20 lg:col-span-4 lg:block xl:col-span-3"
+        >
+          {/* Quick Community Services Card */}
+          <div className="rounded-3xl border border-line bg-paper p-4 shadow-2xs">
+            <div className="flex items-center justify-between border-b border-line pb-3">
+              <h2 className="text-sm font-extrabold text-ink">
+                {tr("خدمات رهط والنقب السريعة")}
+              </h2>
+              <span className="rounded-full bg-primary px-2.5 py-0.5 text-[11px] font-extrabold text-ink">
+                {tr("مباشر")}
+              </span>
+            </div>
+            <div className="mt-3 grid grid-cols-2 gap-2 text-xs font-extrabold">
+              <Link
+                to="/buses"
+                className="flex items-center justify-center gap-1.5 rounded-2xl bg-surface px-3 py-2.5 text-ink transition hover:bg-primary"
+              >
+                <Bus className="size-4 shrink-0" />
+                <span>{tr("خريطة الباصات")}</span>
+              </Link>
+              <Link
+                to="/sports-news"
+                className="flex items-center justify-center gap-1.5 rounded-2xl bg-surface px-3 py-2.5 text-ink transition hover:bg-primary"
+              >
+                <Tv className="size-4 shrink-0" />
+                <span>{tr("بث مباريات")}</span>
+              </Link>
+              <Link
+                to="/today"
+                className="flex items-center justify-center gap-1.5 rounded-2xl bg-surface px-3 py-2.5 text-ink transition hover:bg-primary"
+              >
+                <Siren className="size-4 shrink-0" />
+                <span>{tr("لوحة اليوم")}</span>
+              </Link>
+              <Link
+                to="/haraj"
+                className="flex items-center justify-center gap-1.5 rounded-2xl bg-surface px-3 py-2.5 text-ink transition hover:bg-primary"
+              >
+                <Megaphone className="size-4 shrink-0" />
+                <span>{tr("حراج رهط")}</span>
+              </Link>
+              <Link
+                to="/directory"
+                className="col-span-2 flex items-center justify-center gap-1.5 rounded-2xl bg-ink px-3 py-2.5 text-paper transition hover:opacity-90"
+              >
+                <MapPin className="size-4 shrink-0" />
+                <span>{tr("دليل محلات وخدمات رهط")}</span>
+              </Link>
+            </div>
+          </div>
+
+          {/* Configured Sticky Sidebar AdSense Units */}
+          {sidebarSlot1 ? (
+            <AdBanner
+              dataAdSlot={sidebarSlot1}
+              dataAdFormat="rectangle"
+              minHeight={250}
+            />
+          ) : (
+            <AdSlots placement="home-top" />
+          )}
+
+          {sidebarSlot2 ? (
+            <AdBanner
+              dataAdSlot={sidebarSlot2}
+              dataAdFormat="vertical"
+              minHeight={600}
+            />
+          ) : (
+            <AdSlots placement="home-mid" />
+          )}
+        </aside>
       </div>
       <AmpAutoAdsBridge />
       <CustomBottomBar />
@@ -2062,6 +2144,125 @@ function HomeQuickLinks() {
         })}
       </ul>
     </section>
+  );
+}
+
+/** Re-render-safe AdSense Banner component for React 19 / TanStack Start + Sticky Desktop Sidebar. */
+function AdBanner({
+  dataAdSlot,
+  dataAdClient,
+  dataAdFormat = "auto",
+  minHeight = 120,
+  className = "",
+}: {
+  dataAdSlot: string;
+  dataAdClient?: string;
+  dataAdFormat?: "auto" | "fluid" | "rectangle" | "vertical" | "horizontal";
+  minHeight?: number;
+  className?: string;
+}) {
+  const st = useSiteSettings();
+  const client = (dataAdClient || st.google?.adsensePub || "ca-pub-9063892572843254").trim();
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const insRef = useRef<HTMLModElement | null>(null);
+  const pushedSlotRef = useRef<string | null>(null);
+  const [unfilled, setUnfilled] = useState(false);
+
+  useEffect(() => {
+    const containerEl = containerRef.current;
+    const insEl = insRef.current;
+    if (!containerEl || !insEl || typeof window === "undefined" || !client || !dataAdSlot) return;
+
+    if (
+      pushedSlotRef.current === dataAdSlot ||
+      insEl.getAttribute("data-adsbygoogle-status") === "done" ||
+      insEl.getAttribute("data-ad-status") === "filled"
+    ) {
+      return;
+    }
+
+    let rafId: number | null = null;
+    let ro: ResizeObserver | null = null;
+    let mo: MutationObserver | null = null;
+
+    const pushAdSafely = () => {
+      if (!insRef.current || !containerRef.current) return;
+      if (
+        pushedSlotRef.current === dataAdSlot ||
+        insRef.current.getAttribute("data-adsbygoogle-status") === "done" ||
+        insRef.current.innerHTML.trim().length > 0
+      ) {
+        return;
+      }
+      if (containerRef.current.getBoundingClientRect().width <= 0) return;
+      try {
+        pushedSlotRef.current = dataAdSlot;
+        const win = window as unknown as { adsbygoogle?: Record<string, unknown>[] };
+        (win.adsbygoogle = win.adsbygoogle || []).push({});
+      } catch {
+        /* ignore adblocker or duplicate push */
+      }
+    };
+
+    mo = new MutationObserver(() => {
+      const status = insEl.getAttribute("data-ad-status");
+      if (status === "unfilled") setUnfilled(true);
+      else if (status === "filled") setUnfilled(false);
+    });
+    mo.observe(insEl, {
+      attributes: true,
+      attributeFilter: ["data-ad-status", "data-adsbygoogle-status"],
+    });
+
+    if (containerEl.getBoundingClientRect().width > 0) {
+      rafId = window.requestAnimationFrame(pushAdSafely);
+    } else if (typeof ResizeObserver !== "undefined") {
+      ro = new ResizeObserver((entries) => {
+        for (const entry of entries) {
+          if (entry.contentRect.width > 0) {
+            pushAdSafely();
+            ro?.disconnect();
+            break;
+          }
+        }
+      });
+      ro.observe(containerEl);
+    }
+
+    return () => {
+      if (rafId !== null) window.cancelAnimationFrame(rafId);
+      ro?.disconnect();
+      mo?.disconnect();
+    };
+  }, [client, dataAdSlot]);
+
+  if (!st.google?.adsenseEnabled || !client || unfilled) return null;
+
+  return (
+    <aside
+      ref={containerRef}
+      aria-label={tr("إعلان")}
+      className={`overflow-hidden rounded-3xl border border-line bg-paper p-3 shadow-2xs ${className}`}
+    >
+      <div className="mb-1.5 flex items-center justify-between px-1 text-[11px] font-bold text-muted">
+        <span>{tr("إعلان")}</span>
+        <span className="text-[10px] opacity-75">{trv(st.texts.siteName)}</span>
+      </div>
+      <div
+        className="relative flex w-full items-center justify-center overflow-hidden rounded-2xl bg-surface/60"
+        style={{ minHeight: `${minHeight}px` }}
+      >
+        <ins
+          ref={insRef}
+          className="adsbygoogle block w-full"
+          style={{ display: "block", minHeight: `${minHeight}px`, width: "100%" }}
+          data-ad-client={client}
+          data-ad-slot={dataAdSlot}
+          data-ad-format={dataAdFormat}
+          data-full-width-responsive="true"
+        />
+      </div>
+    </aside>
   );
 }
 
