@@ -1,4 +1,27 @@
-import { createRootRoute, HeadContent, Outlet, Scripts } from "@tanstack/react-router";
+import {
+  createRootRoute,
+  HeadContent,
+  Link,
+  Outlet,
+  Scripts,
+  useLocation,
+} from "@tanstack/react-router";
+import {
+  Bus,
+  Cpu,
+  Globe,
+  House,
+  MapPin,
+  Megaphone,
+  Newspaper,
+  Plus,
+  Siren,
+  Store,
+  Trophy,
+  Tv,
+  type LucideIcon,
+} from "lucide-react";
+import { useMemo, type CSSProperties } from "react";
 import { AuthProvider } from "@/lib/auth/provider";
 import { PreviewHostBridge } from "@/components/preview-host-bridge";
 import { ServiceWorkerRegistration } from "@/components/install-app";
@@ -6,13 +29,327 @@ import { SiteAnalytics } from "@/components/analytics";
 import appCss from "../styles.css?url";
 import { GoogleServices } from "@/components/google-services";
 import { getSiteSettings } from "@/lib/site-settings/api";
-import { SiteSettingsProvider } from "@/lib/site-settings/context";
-import { DEFAULT_SETTINGS, themeCss } from "@/lib/site-settings/types";
+import { SiteSettingsProvider, useSiteSettings } from "@/lib/site-settings/context";
+import { DEFAULT_ADSENSE_PUB, DEFAULT_SETTINGS, themeCss } from "@/lib/site-settings/types";
 import { mediaUrl } from "@/lib/media/types";
 import { getI18n } from "@/lib/i18n/api";
-import { BUILTIN_LANGS, setI18nState, tr, type I18nState } from "@/lib/i18n/core";
+import { BUILTIN_LANGS, setI18nState, tr, trv, type I18nState } from "@/lib/i18n/core";
 
 const ARABIC_STATE: I18nState = { lang: "ar", dir: "rtl", dict: {}, langs: BUILTIN_LANGS };
+
+const BOT_ICON_MAP: Record<string, LucideIcon> = {
+  home: House,
+  news: Newspaper,
+  tv: Tv,
+  trophy: Trophy,
+  bus: Bus,
+  ad: Megaphone,
+  siren: Siren,
+  pin: MapPin,
+  store: Store,
+  globe: Globe,
+  cpu: Cpu,
+  plus: Plus,
+};
+
+const DEFAULT_BOT_TILES: { icon: string; label: string; to: string }[] = [
+  { icon: "home", label: "الرئيسية", to: "/" },
+  { icon: "news", label: "الأخبار", to: "/news" },
+  { icon: "tv", label: "بث مباريات", to: "/sports-news" },
+  { icon: "bus", label: "باصات", to: "/buses" },
+  { icon: "ad", label: "حراج", to: "/haraj" },
+  { icon: "siren", label: "اليوم", to: "/today" },
+];
+
+const NAV_TO_BOT_ITEM: Record<string, { icon: string; label: string; to: string }> = {
+  "/": { icon: "home", label: "الرئيسية", to: "/" },
+  "/news": { icon: "news", label: "الأخبار", to: "/news" },
+  "/buses": { icon: "bus", label: "باصات", to: "/buses" },
+  "/directory": { icon: "pin", label: "الدليل", to: "/directory" },
+  "/haraj": { icon: "ad", label: "حراج", to: "/haraj" },
+  "/today": { icon: "siren", label: "اليوم", to: "/today" },
+  "/store": { icon: "store", label: "المتجر", to: "/store" },
+};
+
+function fromBase64Url(b64u: string): string {
+  try {
+    const b64 = b64u.replace(/-/g, "+").replace(/_/g, "/");
+    const pad = b64.length % 4 === 0 ? "" : "=".repeat(4 - (b64.length % 4));
+    const bin = typeof atob === "function" ? atob(b64 + pad) : Buffer.from(b64 + pad, "base64").toString("binary");
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return new TextDecoder().decode(bytes);
+  } catch {
+    return "";
+  }
+}
+
+function GlobalCustomBottomBar() {
+  const st = useSiteSettings();
+  const location = useLocation();
+  const pathname = location.pathname || "/";
+
+  // Hide on admin, login, reset-password, and app-auth screens
+  const isSystemScreen =
+    pathname.startsWith("/admin") ||
+    pathname.startsWith("/login") ||
+    pathname.startsWith("/reset-password") ||
+    pathname.startsWith("/app-auth");
+
+  const botItem = (st.quickLinks ?? []).find((q) => q.id === "botbarcfg");
+  const cssItem = (st.quickLinks ?? []).find((q) => q.id === "botbarcss");
+
+  const { style, btns } = useMemo(() => {
+    if (!botItem || !botItem.url.startsWith("/__bot?")) {
+      // Preserve exact order from st.nav if configured, otherwise DEFAULT_BOT_TILES
+      const navOrdered = (st.nav ?? [])
+        .filter((n) => n.visible)
+        .map((n) => NAV_TO_BOT_ITEM[n.id])
+        .filter(Boolean);
+      return {
+        style: "classic",
+        btns: navOrdered.length > 0 ? navOrdered : DEFAULT_BOT_TILES,
+      };
+    }
+    const rawStyle = botItem.title.trim();
+    const validStyle =
+      rawStyle === "floating" ||
+      rawStyle === "dark" ||
+      rawStyle === "dock" ||
+      rawStyle === "minimal" ||
+      rawStyle === "neon" ||
+      rawStyle === "glass" ||
+      rawStyle === "custom" ||
+      rawStyle === "hidden"
+        ? rawStyle
+        : "classic";
+    const labels = (botItem.subtitle ?? "").split("|");
+    const pairs = botItem.url.slice(7).split("|").filter(Boolean);
+    const parsedBtns = pairs.map((p, idx) => {
+      const colon = p.indexOf(":");
+      const icon = colon > 0 ? p.slice(0, colon) : "home";
+      const to = colon > 0 ? p.slice(colon + 1) : p;
+      return {
+        icon: icon || "home",
+        to: to || "/",
+        label: (labels[idx] ?? "").trim() || "زر",
+      };
+    });
+    return {
+      style: validStyle,
+      btns: parsedBtns.length > 0 ? parsedBtns : DEFAULT_BOT_TILES,
+    };
+  }, [botItem, st.nav]);
+
+  const customCfg = useMemo(() => {
+    let bg = "#111827";
+    let fg = "#9ca3af";
+    let ab = "#f2c94c";
+    let af = "#111827";
+    let r = 24;
+    let m = 10;
+    let rawCss = "";
+    if (cssItem) {
+      for (const part of (cssItem.title ?? "").split("|")) {
+        if (part.startsWith("bg:")) bg = part.slice(3) || bg;
+        else if (part.startsWith("fg:")) fg = part.slice(3) || fg;
+        else if (part.startsWith("ab:")) ab = part.slice(3) || ab;
+        else if (part.startsWith("af:")) af = part.slice(3) || af;
+        else if (part.startsWith("r:")) r = Number(part.slice(2)) || 0;
+        else if (part.startsWith("m:")) m = Number(part.slice(2)) || 0;
+      }
+      const b64Part1 = cssItem.url?.startsWith("/__bcss?") ? cssItem.url.slice(8) : "";
+      const b64Part2 = cssItem.subtitle && cssItem.subtitle !== "css" ? cssItem.subtitle : "";
+      if (b64Part1) rawCss = fromBase64Url(b64Part1 + b64Part2);
+    }
+    return { bg, fg, ab, af, r, m, rawCss };
+  }, [cssItem]);
+
+  if (isSystemScreen) return null;
+
+  const hideLegacyCss = `
+    nav.edge-t.fixed.bottom-0:not(.custom-botbar) { display: none !important; }
+    nav.custom-botbar:not(#rp-global-bottom-bar) { display: none !important; }
+  `;
+
+  if (style === "hidden") {
+    return <style>{hideLegacyCss}</style>;
+  }
+
+  const userExtraCss = customCfg.rawCss.trim()
+    ? customCfg.rawCss.includes("{")
+      ? customCfg.rawCss
+      : `#rp-global-bottom-bar { ${customCfg.rawCss} }`
+    : "";
+
+  const navWrapCls =
+    style === "floating"
+      ? "custom-botbar fixed inset-x-3 bottom-3 z-40 rounded-full border border-line bg-paper/95 px-2 py-1.5 shadow-xl backdrop-blur-md md:hidden"
+      : style === "dark"
+        ? "custom-botbar fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-[#111827]/95 pb-[env(safe-area-inset-bottom)] text-white shadow-xl backdrop-blur-md md:hidden"
+        : style === "dock"
+          ? "custom-botbar fixed inset-x-2 bottom-2 z-40 rounded-3xl border border-line bg-paper/95 p-1.5 shadow-lg backdrop-blur-md md:hidden"
+          : style === "minimal"
+            ? "custom-botbar fixed inset-x-0 bottom-0 z-40 border-t border-line bg-paper/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md md:hidden"
+            : style === "neon"
+              ? "custom-botbar fixed inset-x-3 bottom-3 z-40 rounded-3xl border border-[#f2c94c]/60 bg-gradient-to-r from-[#0f172a] via-[#1e293b] to-[#0f172a] px-2 py-1.5 text-white shadow-[0_10px_30px_rgba(242,201,76,0.25)] backdrop-blur-md md:hidden"
+              : style === "glass"
+                ? "custom-botbar fixed inset-x-3 bottom-3 z-40 rounded-3xl border border-white/40 bg-white/75 px-2 py-1.5 text-ink shadow-[0_8px_32px_rgba(15,23,42,0.12)] backdrop-blur-xl md:hidden"
+                : style === "custom"
+                  ? "custom-botbar fixed z-40 px-2 py-1.5 shadow-xl backdrop-blur-md md:hidden"
+                  : "custom-botbar edge-t fixed inset-x-0 bottom-0 z-40 bg-paper/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md md:hidden";
+
+  const customNavStyle: CSSProperties | undefined =
+    style === "custom"
+      ? {
+          backgroundColor: customCfg.bg,
+          color: customCfg.fg,
+          borderRadius: `${customCfg.r}px`,
+          bottom: `${customCfg.m}px`,
+          left: customCfg.m > 0 ? `${customCfg.m}px` : "0px",
+          right: customCfg.m > 0 ? `${customCfg.m}px` : "0px",
+        }
+      : undefined;
+
+  return (
+    <>
+      <style>{hideLegacyCss + "\n" + userExtraCss}</style>
+      <nav
+        id="rp-global-bottom-bar"
+        className={navWrapCls}
+        style={customNavStyle}
+        aria-label={tr("التنقل السفلي")}
+      >
+        <div className="mx-auto flex max-w-xl items-center justify-around">
+          {btns.map((item, idx) => {
+            const Icon = BOT_ICON_MAP[item.icon] ?? House;
+            const exact = item.to === "/";
+            const isActive = exact
+              ? pathname === "/"
+              : pathname === item.to || pathname.startsWith(`${item.to}/`);
+
+            if (style === "custom") {
+              return (
+                <Link
+                  key={`${item.to}-${idx}`}
+                  to={item.to as "/"}
+                  activeOptions={{ exact }}
+                  data-active={isActive ? "true" : "false"}
+                  className="custom-botbar-item flex flex-1 flex-col items-center justify-center gap-0.5 rounded-2xl py-1.5 text-[11px] font-extrabold transition"
+                  style={
+                    isActive
+                      ? {
+                          backgroundColor: customCfg.ab,
+                          color: customCfg.af,
+                          borderRadius: `${Math.max(8, customCfg.r - 6)}px`,
+                        }
+                      : { color: customCfg.fg }
+                  }
+                >
+                  <Icon className="size-5" aria-hidden />
+                  <span className="truncate">
+                    {item.to === "/haraj" ? trv(st.texts.harajNav) : trv(item.label)}
+                  </span>
+                </Link>
+              );
+            }
+            if (style === "dark" || style === "neon") {
+              return (
+                <Link
+                  key={`${item.to}-${idx}`}
+                  to={item.to as "/"}
+                  activeOptions={{ exact }}
+                  className="flex flex-1 flex-col items-center justify-center gap-0.5 py-2 text-[11px] font-bold text-white/70 transition"
+                  activeProps={{
+                    className:
+                      "flex flex-1 flex-col items-center justify-center gap-0.5 py-2 text-[11px] font-extrabold text-[#FDB700]",
+                  }}
+                >
+                  <Icon className="size-5" aria-hidden />
+                  <span className="truncate">
+                    {item.to === "/haraj" ? trv(st.texts.harajNav) : trv(item.label)}
+                  </span>
+                </Link>
+              );
+            }
+            if (style === "floating" || style === "glass") {
+              return (
+                <Link
+                  key={`${item.to}-${idx}`}
+                  to={item.to as "/"}
+                  activeOptions={{ exact }}
+                  className="flex flex-1 flex-col items-center justify-center gap-0.5 rounded-full py-1.5 text-[11px] font-bold text-muted transition"
+                  activeProps={{
+                    className:
+                      "flex flex-1 flex-col items-center justify-center gap-0.5 rounded-full bg-ink py-1.5 text-[11px] font-extrabold text-paper shadow-xs",
+                  }}
+                >
+                  <Icon className="size-4" aria-hidden />
+                  <span className="truncate">
+                    {item.to === "/haraj" ? trv(st.texts.harajNav) : trv(item.label)}
+                  </span>
+                </Link>
+              );
+            }
+            if (style === "dock") {
+              return (
+                <Link
+                  key={`${item.to}-${idx}`}
+                  to={item.to as "/"}
+                  activeOptions={{ exact }}
+                  className="flex flex-1 flex-col items-center justify-center gap-1 rounded-2xl py-1.5 text-[11px] font-bold text-muted transition"
+                  activeProps={{
+                    className:
+                      "flex flex-1 flex-col items-center justify-center gap-1 rounded-2xl bg-primary py-1.5 text-[11px] font-extrabold text-ink shadow-xs",
+                  }}
+                >
+                  <span className="grid size-8 place-items-center rounded-xl bg-surface/80">
+                    <Icon className="size-5" aria-hidden />
+                  </span>
+                  <span className="truncate">
+                    {item.to === "/haraj" ? trv(st.texts.harajNav) : trv(item.label)}
+                  </span>
+                </Link>
+              );
+            }
+            if (style === "minimal") {
+              return (
+                <Link
+                  key={`${item.to}-${idx}`}
+                  to={item.to as "/"}
+                  activeOptions={{ exact }}
+                  className="flex flex-1 flex-col items-center justify-center gap-0.5 border-t-2 border-transparent py-1.5 text-[11px] font-bold text-muted transition"
+                  activeProps={{
+                    className:
+                      "flex flex-1 flex-col items-center justify-center gap-0.5 border-t-2 border-ink py-1.5 text-[11px] font-extrabold text-ink",
+                  }}
+                >
+                  <Icon className="size-4" aria-hidden />
+                  <span className="truncate">
+                    {item.to === "/haraj" ? trv(st.texts.harajNav) : trv(item.label)}
+                  </span>
+                </Link>
+              );
+            }
+            return (
+              <Link
+                key={`${item.to}-${idx}`}
+                to={item.to as "/"}
+                activeOptions={{ exact }}
+                className="tabbar-link"
+              >
+                <span className="tab-icon">
+                  <Icon className="size-5" aria-hidden />
+                </span>
+                {item.to === "/haraj" ? trv(st.texts.harajNav) : trv(item.label)}
+              </Link>
+            );
+          })}
+        </div>
+      </nav>
+    </>
+  );
+}
 
 export const Route = createRootRoute({
   loader: async ({ location }) => {
@@ -30,7 +367,7 @@ export const Route = createRootRoute({
     const st = loaderData?.settings ?? DEFAULT_SETTINGS;
     const base = baseHead();
     const gsc = st.google.gscCode;
-    const adsensePub = st.google.adsensePub;
+    const adsensePub = st.google.adsensePub || DEFAULT_ADSENSE_PUB;
     const i18n = loaderData?.i18n ?? ARABIC_STATE;
     const nonDefault = i18n.langs.find((l) => l.isDefault)?.code !== i18n.lang;
     return {
@@ -43,7 +380,7 @@ export const Route = createRootRoute({
         ...(gsc && gsc !== __SITE_VERIFICATION__.google
           ? [{ name: "google-site-verification", content: gsc }]
           : []),
-        ...(adsensePub ? [{ name: "google-adsense-account", content: adsensePub }] : []),
+        { name: "google-adsense-account", content: adsensePub },
       ],
       links: st.faviconKey
         ? [
@@ -61,10 +398,16 @@ function RootComponent() {
   setI18nState(i18n);
   const css = themeCss(settings.theme);
   const defLang = i18n.langs.find((l) => l.isDefault)?.code ?? "ar";
+  const adsensePub = settings.google.adsensePub || DEFAULT_ADSENSE_PUB;
   return (
     <html lang={i18n.lang} dir={i18n.dir} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: langRedirectScript(i18n.lang, defLang, i18n.langs.map((l) => l.code)) }} />
+        <script
+          async
+          src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adsensePub}`}
+          crossOrigin="anonymous"
+        />
         <HeadContent />
         {css ? <style id="site-theme" dangerouslySetInnerHTML={{ __html: css }} /> : null}
       </head>
@@ -74,6 +417,7 @@ function RootComponent() {
           <ServiceWorkerRegistration />
           <AuthProvider>
             <Outlet />
+            <GlobalCustomBottomBar />
           </AuthProvider>
           <SiteAnalytics />
           <GoogleServices />

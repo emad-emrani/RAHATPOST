@@ -1940,7 +1940,9 @@ function HomeTilesBar({ hasLiveMatch }: { hasLiveMatch?: boolean }) {
   const st = useSiteSettings();
   const topCfgItem = (st.quickLinks ?? []).find((q) => q.id === "topbarcfg");
   const liveTileCfg = (st.quickLinks ?? []).find((q) => q.id === "tilelive");
-  const showLiveTile = liveTileCfg ? liveTileCfg.subtitle !== " مَخفي" : true;
+  const showLiveTile = liveTileCfg ? !liveTileCfg.subtitle?.includes("مَخفي") : true;
+  const liveTileGlow =
+    !liveTileCfg?.subtitle?.includes("بدون توهج") && liveTileCfg?.emoji !== "⚪";
   const liveTileLabel = liveTileCfg?.title?.trim() || "بث مباريات";
 
   const configuredList = useMemo(() => {
@@ -2001,11 +2003,11 @@ function HomeTilesBar({ hasLiveMatch }: { hasLiveMatch?: boolean }) {
           >
             <span
               className={`tile-icon relative sm:w-full ${
-                isLiveTile ? "ring-2 ring-[#DC2626]/40" : ""
+                isLiveTile && liveTileGlow ? "ring-2 ring-[#DC2626]/40" : ""
               }`}
             >
               <Icon className="size-6 sm:size-7" aria-hidden />
-              {isLiveTile ? (
+              {isLiveTile && liveTileGlow ? (
                 <span
                   className={`absolute top-1.5 start-1.5 size-2.5 rounded-full bg-[#DC2626] ${
                     hasLiveMatch ? "animate-ping" : ""
@@ -2013,7 +2015,7 @@ function HomeTilesBar({ hasLiveMatch }: { hasLiveMatch?: boolean }) {
                 />
               ) : null}
             </span>
-            <span className={isLiveTile ? "font-extrabold text-[#DC2626]" : ""}>
+            <span className={isLiveTile && liveTileGlow ? "font-extrabold text-[#DC2626]" : ""}>
               {t.to === "/haraj" ? trv(st.texts.harajNav) : trv(t.label)}
             </span>
           </Link>
@@ -2030,6 +2032,7 @@ function HomeQuickLinks() {
       l.id !== "slidercfg" &&
       l.id !== "topbarcfg" &&
       l.id !== "botbarcfg" &&
+      l.id !== "botbarcss" &&
       !l.id.startsWith("sec") &&
       l.subtitle !== " مَخفي",
   );
@@ -2093,14 +2096,45 @@ function AmpAutoAdsBridge() {
   );
 }
 
-/** Customizable Mobile Bottom Bar with 5 selectable visual styles/shapes and custom buttons. */
+/** Customizable Mobile Bottom Bar with preset styles, custom code/builder, and preserved order. */
+function fromBotBase64Url(b64u: string): string {
+  try {
+    const b64 = b64u.replace(/-/g, "+").replace(/_/g, "/");
+    const pad = b64.length % 4 === 0 ? "" : "=".repeat(4 - (b64.length % 4));
+    const bin = typeof atob === "function" ? atob(b64 + pad) : "";
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return new TextDecoder().decode(bytes);
+  } catch {
+    return "";
+  }
+}
+
+const HOME_NAV_TO_BOT: Record<string, { icon: string; label: string; to: string }> = {
+  "/": { icon: "home", label: "الرئيسية", to: "/" },
+  "/news": { icon: "news", label: "الأخبار", to: "/news" },
+  "/buses": { icon: "bus", label: "باصات", to: "/buses" },
+  "/directory": { icon: "pin", label: "الدليل", to: "/directory" },
+  "/haraj": { icon: "ad", label: "حراج", to: "/haraj" },
+  "/today": { icon: "siren", label: "اليوم", to: "/today" },
+  "/store": { icon: "store", label: "المتجر", to: "/store" },
+};
+
 function CustomBottomBar() {
   const st = useSiteSettings();
   const botItem = (st.quickLinks ?? []).find((q) => q.id === "botbarcfg");
+  const cssItem = (st.quickLinks ?? []).find((q) => q.id === "botbarcss");
 
   const { style, btns } = useMemo(() => {
     if (!botItem || !botItem.url.startsWith("/__bot?")) {
-      return { style: "classic", btns: DEFAULT_BOT_TILES };
+      const navOrdered = (st.nav ?? [])
+        .filter((n) => n.visible)
+        .map((n) => HOME_NAV_TO_BOT[n.id])
+        .filter(Boolean);
+      return {
+        style: "classic",
+        btns: navOrdered.length > 0 ? navOrdered : DEFAULT_BOT_TILES,
+      };
     }
     const rawStyle = botItem.title.trim();
     const validStyle =
@@ -2108,6 +2142,9 @@ function CustomBottomBar() {
       rawStyle === "dark" ||
       rawStyle === "dock" ||
       rawStyle === "minimal" ||
+      rawStyle === "neon" ||
+      rawStyle === "glass" ||
+      rawStyle === "custom" ||
       rawStyle === "hidden"
         ? rawStyle
         : "classic";
@@ -2127,13 +2164,43 @@ function CustomBottomBar() {
       style: validStyle,
       btns: parsedBtns.length > 0 ? parsedBtns : DEFAULT_BOT_TILES,
     };
-  }, [botItem]);
+  }, [botItem, st.nav]);
+
+  const customCfg = useMemo(() => {
+    let bg = "#111827";
+    let fg = "#9ca3af";
+    let ab = "#f2c94c";
+    let af = "#111827";
+    let r = 24;
+    let m = 10;
+    let rawCss = "";
+    if (cssItem) {
+      for (const part of (cssItem.title ?? "").split("|")) {
+        if (part.startsWith("bg:")) bg = part.slice(3) || bg;
+        else if (part.startsWith("fg:")) fg = part.slice(3) || fg;
+        else if (part.startsWith("ab:")) ab = part.slice(3) || ab;
+        else if (part.startsWith("af:")) af = part.slice(3) || af;
+        else if (part.startsWith("r:")) r = Number(part.slice(2)) || 0;
+        else if (part.startsWith("m:")) m = Number(part.slice(2)) || 0;
+      }
+      const b64Part1 = cssItem.url?.startsWith("/__bcss?") ? cssItem.url.slice(8) : "";
+      const b64Part2 = cssItem.subtitle && cssItem.subtitle !== "css" ? cssItem.subtitle : "";
+      if (b64Part1) rawCss = fromBotBase64Url(b64Part1 + b64Part2);
+    }
+    return { bg, fg, ab, af, r, m, rawCss };
+  }, [cssItem]);
 
   if (style === "hidden") {
     return (
       <style>{`nav.edge-t.fixed.bottom-0:not(.custom-botbar) { display: none !important; }`}</style>
     );
   }
+
+  const userExtraCss = customCfg.rawCss.trim()
+    ? customCfg.rawCss.includes("{")
+      ? customCfg.rawCss
+      : `.custom-botbar { ${customCfg.rawCss} }`
+    : "";
 
   const navWrapCls =
     style === "floating"
@@ -2144,17 +2211,60 @@ function CustomBottomBar() {
           ? "custom-botbar fixed inset-x-2 bottom-2 z-40 rounded-3xl border border-line bg-paper/95 p-1.5 shadow-lg backdrop-blur-md md:hidden"
           : style === "minimal"
             ? "custom-botbar fixed inset-x-0 bottom-0 z-40 border-t border-line bg-paper/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md md:hidden"
-            : "custom-botbar edge-t fixed inset-x-0 bottom-0 z-40 bg-paper/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md md:hidden";
+            : style === "neon"
+              ? "custom-botbar fixed inset-x-3 bottom-3 z-40 rounded-3xl border border-[#f2c94c]/60 bg-gradient-to-r from-[#0f172a] via-[#1e293b] to-[#0f172a] px-2 py-1.5 text-white shadow-[0_10px_30px_rgba(242,201,76,0.25)] backdrop-blur-md md:hidden"
+              : style === "glass"
+                ? "custom-botbar fixed inset-x-3 bottom-3 z-40 rounded-3xl border border-white/40 bg-white/75 px-2 py-1.5 text-ink shadow-[0_8px_32px_rgba(15,23,42,0.12)] backdrop-blur-xl md:hidden"
+                : style === "custom"
+                  ? "custom-botbar fixed z-40 px-2 py-1.5 shadow-xl backdrop-blur-md md:hidden"
+                  : "custom-botbar edge-t fixed inset-x-0 bottom-0 z-40 bg-paper/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md md:hidden";
+
+  const customNavStyle =
+    style === "custom"
+      ? {
+          backgroundColor: customCfg.bg,
+          color: customCfg.fg,
+          borderRadius: `${customCfg.r}px`,
+          bottom: `${customCfg.m}px`,
+          left: customCfg.m > 0 ? `${customCfg.m}px` : "0px",
+          right: customCfg.m > 0 ? `${customCfg.m}px` : "0px",
+        }
+      : undefined;
 
   return (
     <>
-      <style>{`nav.edge-t.fixed.bottom-0:not(.custom-botbar) { display: none !important; }`}</style>
-      <nav className={navWrapCls} aria-label={tr("التنقل السفلي")}>
+      <style>{`nav.edge-t.fixed.bottom-0:not(.custom-botbar) { display: none !important; }
+${userExtraCss}`}</style>
+      <nav className={navWrapCls} style={customNavStyle} aria-label={tr("التنقل السفلي")}>
         <div className="mx-auto flex max-w-xl items-center justify-around">
           {btns.map((item, idx) => {
             const Icon = ICON_MAP[item.icon] ?? House;
             const exact = item.to === "/";
-            if (style === "dark") {
+            const isActive = exact;
+            if (style === "custom") {
+              return (
+                <Link
+                  key={`${item.to}-${idx}`}
+                  to={item.to as "/"}
+                  activeOptions={{ exact }}
+                  data-active={isActive ? "true" : "false"}
+                  className="custom-botbar-item flex flex-1 flex-col items-center justify-center gap-0.5 rounded-2xl py-1.5 text-[11px] font-extrabold transition"
+                  style={
+                    isActive
+                      ? {
+                          backgroundColor: customCfg.ab,
+                          color: customCfg.af,
+                          borderRadius: `${Math.max(8, customCfg.r - 6)}px`,
+                        }
+                      : { color: customCfg.fg }
+                  }
+                >
+                  <Icon className="size-5" aria-hidden />
+                  <span className="truncate">{trv(item.label)}</span>
+                </Link>
+              );
+            }
+            if (style === "dark" || style === "neon") {
               return (
                 <Link
                   key={`${item.to}-${idx}`}
@@ -2171,7 +2281,7 @@ function CustomBottomBar() {
                 </Link>
               );
             }
-            if (style === "floating") {
+            if (style === "floating" || style === "glass") {
               return (
                 <Link
                   key={`${item.to}-${idx}`}

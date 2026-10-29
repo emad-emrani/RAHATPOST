@@ -3542,6 +3542,7 @@ function QuickCustomSectionsBar({
   const [home, setHome] = useState(true);
   const [liveTileLabel, setLiveTileLabel] = useState("بث مباريات");
   const [liveTileVisible, setLiveTileVisible] = useState(true);
+  const [liveTileGlow, setLiveTileGlow] = useState(true);
   const [dirtyLiveTile, setDirtyLiveTile] = useState(false);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
@@ -3553,7 +3554,8 @@ function QuickCustomSectionsBar({
       const cfg = (res.settings.quickLinks ?? []).find((q) => q.id === "tilelive");
       if (cfg) {
         setLiveTileLabel(cfg.title || "بث مباريات");
-        setLiveTileVisible(cfg.subtitle !== " مَخفي");
+        setLiveTileVisible(!cfg.subtitle?.includes("مَخفي"));
+        setLiveTileGlow(!cfg.subtitle?.includes("بدون توهج") && cfg.emoji !== "⚪");
       }
     }
   }, []);
@@ -3746,44 +3748,89 @@ function QuickCustomSectionsBar({
           </div>
 
           {/* Dedicated control for the "بث مباريات" icon tile in the Homepage top tiles row */}
-          <div className="mt-4 rounded-2xl border border-[#DC2626]/30 bg-[#DC2626]/5 p-3.5">
+          <div className={`mt-4 rounded-2xl border p-3.5 transition ${liveTileGlow ? "border-[#DC2626]/30 bg-[#DC2626]/5" : "border-line bg-surface"}`}>
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="flex items-center gap-2">
-                <span className="size-2.5 animate-ping rounded-full bg-[#DC2626]" />
-                <p className="text-sm font-extrabold text-ink">
-                  {tr("أيقونة قسم «بث مباريات» في شريط الأيقونات العلوي بالرئيسية")}
-                </p>
+                <span className={`size-2.5 rounded-full ${liveTileGlow ? "animate-ping bg-[#DC2626]" : "bg-emerald-600"}`} />
+                <div>
+                  <p className="text-sm font-extrabold text-ink">
+                    {tr("أيقونة قسم «بث مباريات» في شريط الأيقونات العلوي بالرئيسية")}
+                  </p>
+                  <p className="text-[11px] font-semibold text-muted">
+                    {liveTileGlow
+                      ? tr("التوهج الأحمر مفعّل حالياً — يمكنك إطفاؤه ليكون مريحاً للعين")
+                      : tr("التوهج مطفأ حالياً (وضع مريح للعين بهدوء باقي الأيقونات)")}
+                  </p>
+                </div>
               </div>
-              <button
-                type="button"
-                disabled={busy || !siteSettings}
-                onClick={async () => {
-                  if (!siteSettings) return;
-                  const nextVis = !liveTileVisible;
-                  setLiveTileVisible(nextVis);
-                  const others = siteSettings.quickLinks.filter((q) => q.id !== "tilelive");
-                  await saveQuickLinks(
-                    [
-                      {
-                        id: "tilelive",
-                        title: liveTileLabel.trim() || "بث مباريات",
-                        subtitle: nextVis ? "قسم في الشريط" : " مَخفي",
-                        url: "/sports-news",
-                        emoji: "🔴",
-                      },
-                      ...others,
-                    ],
-                    nextVis
-                      ? "تم إظهار أيقونة «بث مباريات» في شريط الأقسام العلوي ✓"
-                      : "تم إخفاء أيقونة «بث مباريات» من شريط الأقسام",
-                  );
-                }}
-                className={`rounded-xl px-3 py-1.5 text-xs font-extrabold text-white transition ${
-                  liveTileVisible ? "bg-[#16A34A]" : "bg-muted"
-                }`}
-              >
-                {liveTileVisible ? tr("ظاهر في شريط الأيقونات ✓") : tr("مخفي من الشريط")}
-              </button>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  disabled={busy || !siteSettings}
+                  onClick={async () => {
+                    if (!siteSettings) return;
+                    const nextGlow = !liveTileGlow;
+                    setLiveTileGlow(nextGlow);
+                    const subParts = [liveTileVisible ? "قسم في الشريط" : " مَخفي"];
+                    if (!nextGlow) subParts.push("بدون توهج");
+                    const others = siteSettings.quickLinks.filter((q) => q.id !== "tilelive");
+                    await saveQuickLinks(
+                      [
+                        {
+                          id: "tilelive",
+                          title: liveTileLabel.trim() || "بث مباريات",
+                          subtitle: subParts.join("|"),
+                          url: "/sports-news",
+                          emoji: nextGlow ? "🔴" : "⚪",
+                        },
+                        ...others,
+                      ],
+                      nextGlow
+                        ? "تم تشغيل توهج أيقونة «بث مباريات» ✓"
+                        : "تم إطفاء توهج أيقونة «بث مباريات» ليكون مريحاً للعين ✓",
+                    );
+                  }}
+                  className={`rounded-xl px-3 py-1.5 text-xs font-extrabold transition ${
+                    liveTileGlow
+                      ? "border border-[#DC2626]/40 bg-paper text-[#DC2626] hover:bg-[#DC2626]/10"
+                      : "bg-ink text-paper"
+                  }`}
+                >
+                  {liveTileGlow ? tr("⚪ إطفاء التوهج (مريح للعين)") : tr("🔴 التوهج مطفأ (اضغط لتشغيله)")}
+                </button>
+                <button
+                  type="button"
+                  disabled={busy || !siteSettings}
+                  onClick={async () => {
+                    if (!siteSettings) return;
+                    const nextVis = !liveTileVisible;
+                    setLiveTileVisible(nextVis);
+                    const subParts = [nextVis ? "قسم في الشريط" : " مَخفي"];
+                    if (!liveTileGlow) subParts.push("بدون توهج");
+                    const others = siteSettings.quickLinks.filter((q) => q.id !== "tilelive");
+                    await saveQuickLinks(
+                      [
+                        {
+                          id: "tilelive",
+                          title: liveTileLabel.trim() || "بث مباريات",
+                          subtitle: subParts.join("|"),
+                          url: "/sports-news",
+                          emoji: liveTileGlow ? "🔴" : "⚪",
+                        },
+                        ...others,
+                      ],
+                      nextVis
+                        ? "تم إظهار أيقونة «بث مباريات» في شريط الأقسام العلوي ✓"
+                        : "تم إخفاء أيقونة «بث مباريات» من شريط الأقسام",
+                    );
+                  }}
+                  className={`rounded-xl px-3 py-1.5 text-xs font-extrabold text-white transition ${
+                    liveTileVisible ? "bg-[#16A34A]" : "bg-muted"
+                  }`}
+                >
+                  {liveTileVisible ? tr("ظاهر في شريط الأيقونات ✓") : tr("مخفي من الشريط")}
+                </button>
+              </div>
             </div>
             <div className="mt-2.5 flex flex-wrap items-center gap-2">
               <input
@@ -3802,15 +3849,17 @@ function QuickCustomSectionsBar({
                   disabled={busy || !siteSettings}
                   onClick={async () => {
                     if (!siteSettings) return;
+                    const subParts = [liveTileVisible ? "قسم في الشريط" : " مَخفي"];
+                    if (!liveTileGlow) subParts.push("بدون توهج");
                     const others = siteSettings.quickLinks.filter((q) => q.id !== "tilelive");
                     await saveQuickLinks(
                       [
                         {
                           id: "tilelive",
                           title: liveTileLabel.trim() || "بث مباريات",
-                          subtitle: liveTileVisible ? "قسم في الشريط" : " مَخفي",
+                          subtitle: subParts.join("|"),
                           url: "/sports-news",
-                          emoji: "🔴",
+                          emoji: liveTileGlow ? "🔴" : "⚪",
                         },
                         ...others,
                       ],
@@ -3931,8 +3980,96 @@ async function uploadSettingImage(file: File): Promise<string> {
 }
 
 type SliderSizeKey = "sm" | "md" | "lg" | "xl";
-type BottomBarStyleKey = "classic" | "floating" | "dark" | "dock" | "minimal" | "hidden";
+type BottomBarStyleKey =
+  | "classic"
+  | "floating"
+  | "dark"
+  | "dock"
+  | "minimal"
+  | "neon"
+  | "glass"
+  | "custom"
+  | "hidden";
 type BarBtnItem = { icon: string; label: string; to: string };
+type CustomBotCssConfig = {
+  bg: string;
+  fg: string;
+  ab: string;
+  af: string;
+  r: number;
+  m: number;
+  rawCss: string;
+};
+
+function toAdminBase64Url(str: string): string {
+  try {
+    const bytes = new TextEncoder().encode(str);
+    let bin = "";
+    for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+    return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  } catch {
+    return "";
+  }
+}
+
+function fromAdminBase64Url(b64u: string): string {
+  try {
+    const b64 = b64u.replace(/-/g, "+").replace(/_/g, "/");
+    const pad = b64.length % 4 === 0 ? "" : "=".repeat(4 - (b64.length % 4));
+    const bin = atob(b64 + pad);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return new TextDecoder().decode(bytes);
+  } catch {
+    return "";
+  }
+}
+
+function parseBotBarCssConfig(quickLinks: SiteSettings["quickLinks"]): CustomBotCssConfig {
+  const cssItem = (quickLinks ?? []).find((q) => q.id === "botbarcss");
+  let bg = "#111827";
+  let fg = "#9ca3af";
+  let ab = "#f2c94c";
+  let af = "#111827";
+  let r = 24;
+  let m = 10;
+  let rawCss = "";
+  if (cssItem) {
+    for (const part of (cssItem.title ?? "").split("|")) {
+      if (part.startsWith("bg:")) bg = part.slice(3) || bg;
+      else if (part.startsWith("fg:")) fg = part.slice(3) || fg;
+      else if (part.startsWith("ab:")) ab = part.slice(3) || ab;
+      else if (part.startsWith("af:")) af = part.slice(3) || af;
+      else if (part.startsWith("r:")) r = Number(part.slice(2)) || 0;
+      else if (part.startsWith("m:")) m = Number(part.slice(2)) || 0;
+    }
+    const b64Part1 = cssItem.url?.startsWith("/__bcss?") ? cssItem.url.slice(8) : "";
+    const b64Part2 = cssItem.subtitle && cssItem.subtitle !== "css" ? cssItem.subtitle : "";
+    if (b64Part1) rawCss = fromAdminBase64Url(b64Part1 + b64Part2);
+  }
+  return { bg, fg, ab, af, r, m, rawCss };
+}
+
+function encodeBotBarCssConfig(
+  quickLinks: SiteSettings["quickLinks"],
+  cfg: CustomBotCssConfig,
+): SiteSettings["quickLinks"] {
+  const others = (quickLinks ?? []).filter((q) => q.id !== "botbarcss");
+  const title = `bg:${cfg.bg}|fg:${cfg.fg}|ab:${cfg.ab}|af:${cfg.af}|r:${cfg.r}|m:${cfg.m}`.slice(0, 60);
+  const b64 = toAdminBase64Url(cfg.rawCss.trim().slice(0, 260));
+  const url = `/__bcss?${b64.slice(0, 280)}`;
+  const subtitle = b64.slice(280, 380) || "css";
+  return [
+    ...others,
+    {
+      id: "botbarcss",
+      title,
+      subtitle,
+      url,
+      emoji: "🎨",
+    },
+  ];
+}
 
 const DEFAULT_TOP_BAR_BTNS: BarBtnItem[] = [
   { icon: "news", label: "الأخبار", to: "/news" },
@@ -4069,6 +4206,9 @@ function parseBotBarConfig(quickLinks: SiteSettings["quickLinks"]): {
     rawStyle === "dark" ||
     rawStyle === "dock" ||
     rawStyle === "minimal" ||
+    rawStyle === "neon" ||
+    rawStyle === "glass" ||
+    rawStyle === "custom" ||
     rawStyle === "hidden"
       ? rawStyle
       : "classic";
@@ -4756,10 +4896,10 @@ function SliderPart({ s, set, setMsg }: SettingsPartProps & { setMsg: (m: string
 
 function LinksPart({ s, set }: SettingsPartProps) {
   const internalLinks = (s.quickLinks ?? []).filter(
-    (l) => l.id === "tilelive" || l.id === "slidercfg" || l.id === "topbarcfg" || l.id === "botbarcfg" || l.id.startsWith("sec"),
+    (l) => l.id === "tilelive" || l.id === "slidercfg" || l.id === "topbarcfg" || l.id === "botbarcfg" || l.id === "botbarcss" || l.id.startsWith("sec"),
   );
   const userLinks = (s.quickLinks ?? []).filter(
-    (l) => l.id !== "tilelive" && l.id !== "slidercfg" && l.id !== "topbarcfg" && l.id !== "botbarcfg" && !l.id.startsWith("sec"),
+    (l) => l.id !== "tilelive" && l.id !== "slidercfg" && l.id !== "topbarcfg" && l.id !== "botbarcfg" && l.id !== "botbarcss" && !l.id.startsWith("sec"),
   );
 
   const setUserLinks = (nextUserLinks: SiteSettings["quickLinks"]) => {
@@ -5053,6 +5193,13 @@ const QUICK_PRESET_DESTINATIONS: BarBtnItem[] = [
 function MenusAndBarsPart({ s, set }: SettingsPartProps) {
   const topBtns = parseTopBarConfig(s.quickLinks);
   const botCfg = parseBotBarConfig(s.quickLinks);
+  const cssCfg = parseBotBarCssConfig(s.quickLinks);
+
+  const liveTileItem = (s.quickLinks ?? []).find((q) => q.id === "tilelive");
+  const liveTileVisible = liveTileItem ? !liveTileItem.subtitle?.includes("مَخفي") : true;
+  const liveTileGlow =
+    !liveTileItem?.subtitle?.includes("بدون توهج") && liveTileItem?.emoji !== "⚪";
+  const liveTileLabel = liveTileItem?.title?.trim() || "بث مباريات";
 
   const [newTopLabel, setNewTopLabel] = useState("");
   const [newTopIcon, setNewTopIcon] = useState("tv");
@@ -5070,8 +5217,87 @@ function MenusAndBarsPart({ s, set }: SettingsPartProps) {
     set({ quickLinks: encodeBotBarConfig(s.quickLinks, nextStyle, nextBtns) });
   };
 
+  const updateBotCss = (patch: Partial<CustomBotCssConfig>, autoSwitchToCustom = true) => {
+    const nextCss = { ...cssCfg, ...patch };
+    let nextLinks = encodeBotBarCssConfig(s.quickLinks, nextCss);
+    if (autoSwitchToCustom && botCfg.style !== "custom") {
+      nextLinks = encodeBotBarConfig(nextLinks, "custom", botCfg.btns);
+    }
+    set({ quickLinks: nextLinks });
+  };
+
+  const toggleLiveGlow = (nextGlow: boolean) => {
+    const others = (s.quickLinks ?? []).filter((q) => q.id !== "tilelive");
+    const subParts = [liveTileVisible ? "قسم في الشريط" : " مَخفي"];
+    if (!nextGlow) subParts.push("بدون توهج");
+    set({
+      quickLinks: [
+        {
+          id: "tilelive",
+          title: liveTileLabel,
+          subtitle: subParts.join("|"),
+          url: "/sports-news",
+          emoji: nextGlow ? "🔴" : "⚪",
+        },
+        ...others,
+      ],
+    });
+  };
+
   return (
     <div className="space-y-4">
+      {/* 0. Eye-Friendly Glow Toggle for "بث مباريات" Icon */}
+      <SettingsCard
+        title={tr("أيقونة «بث مباريات» — التحكم بالتوهج وراحة العين")}
+        hint={tr("يمكنك إطفاء التوهج والوميض الأحمر عن أيقونة «بث مباريات» لتظهر بهدوء مريح للعين متناسق مع باقي الأيقونات.")}
+      >
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-line bg-surface p-3.5">
+          <div className="flex items-center gap-3">
+            <span
+              className={`grid size-11 place-items-center rounded-2xl bg-paper shadow-2xs ${
+                liveTileGlow ? "ring-2 ring-[#DC2626]/50 text-[#DC2626]" : "text-ink"
+              }`}
+            >
+              <Tv className="size-5" />
+            </span>
+            <div>
+              <p className="text-sm font-extrabold text-ink">
+                {liveTileGlow
+                  ? tr("التوهج والوميض مفعّل حالياً على أيقونة «بث مباريات»")
+                  : tr("التوهج مطفأ حالياً — وضع مريح للعين ✓")}
+              </p>
+              <p className="text-xs font-semibold text-muted">
+                {tr("اضغط الزر المقابل لإطفاء أو تشغيل التوهج، ثم اضغط حفظ التغييرات بالأسفل.")}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => toggleLiveGlow(!liveTileGlow)}
+              className={`rounded-2xl px-4 py-2.5 text-xs font-extrabold shadow-xs transition ${
+                !liveTileGlow
+                  ? "bg-emerald-600 text-white"
+                  : "bg-ink text-paper hover:opacity-90"
+              }`}
+            >
+              {!liveTileGlow
+                ? tr("✓ التوهج مطفأ (مريح للعين)")
+                : tr("⚪ إطفاء التوهج لراحة العين")}
+            </button>
+            {!liveTileGlow ? (
+              <button
+                type="button"
+                onClick={() => toggleLiveGlow(true)}
+                className="rounded-2xl border border-line bg-paper px-3 py-2.5 text-xs font-bold text-muted hover:text-ink"
+              >
+                {tr("إعادة التوهج")}
+              </button>
+            ) : null}
+          </div>
+        </div>
+      </SettingsCard>
+
       {/* 1. Full Top Category Bar Control */}
       <SettingsCard
         title={tr("1. التحكم في القائمة العلوية وشريط الأقسام (إضافة وإزالة وترتيب)")}
@@ -5223,10 +5449,10 @@ function MenusAndBarsPart({ s, set }: SettingsPartProps) {
         </div>
       </SettingsCard>
 
-      {/* 2. Bottom Bar Styles / Shapes */}
+      {/* 2. Bottom Bar Styles / Shapes + Custom Code & Visual Builder */}
       <SettingsCard
-        title={tr("2. أشكال وتصاميم البار السفلي (اختر شكل البار السفلي)")}
-        hint={tr("يمكنك تغيير شكل وتصميم البار السفلي للهواتف بين 5 أشكال احترافية أو إخفاؤه.")}
+        title={tr("2. أشكال وتصاميم البار السفلي (على جميع صفحات الموقع) + إضافة شكل بالكود")}
+        hint={tr("يتطبق شكل وترتيب البار السفلي المختار على جميع صفحات الموقع، ويمكنك اختيار شكل جاهز أو تصميم شكل خاص بالكود والألوان.")}
       >
         <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
           {(
@@ -5257,9 +5483,24 @@ function MenusAndBarsPart({ s, set }: SettingsPartProps) {
                 desc: "شريط نحيف مع خط علوي ملون للزر النشط",
               },
               {
+                key: "neon",
+                label: "النيون العصري",
+                desc: "شريط متدرج داكن بإطار ذهبي مضيء",
+              },
+              {
+                key: "glass",
+                label: "الكريستال الشفاف",
+                desc: "شريط عائم زجاجي شفاف بتأثير الضباب",
+              },
+              {
+                key: "custom",
+                label: "🎨 شكل مخصّص (بالكود / الألوان)",
+                desc: "صمّم شكلك الخاص بالكود CSS أو أداة الألوان والحواف",
+              },
+              {
                 key: "hidden",
                 label: "إخفاء البار السفلي",
-                desc: "إلغاء إظهار البار السفلي في الموقع",
+                desc: "إلغاء إظهار البار السفلي في جميع الصفحات",
               },
             ] as { key: BottomBarStyleKey; label: string; desc: string }[]
           ).map((st) => (
@@ -5278,12 +5519,270 @@ function MenusAndBarsPart({ s, set }: SettingsPartProps) {
             </button>
           ))}
         </div>
+
+        {/* Custom Code & Visual Builder Box */}
+        <div className="mt-4 rounded-3xl border border-primary/50 bg-surface/70 p-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h3 className="text-sm font-extrabold text-ink">
+                {tr("🎨 إضافة وتخصيص شكل البار السفلي بالكود (CSS) أو الألوان المباشرة")}
+              </h3>
+              <p className="text-xs font-semibold text-muted">
+                {tr("اختر أحد القوالب البرمجية الجاهزة أو عدّل الألوان والاستدارة أو اكتب كود CSS خاصاً بك:")}
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {[
+                {
+                  name: "تدرج ذهبي ملكي",
+                  cfg: {
+                    bg: "#111827",
+                    fg: "#e5e7eb",
+                    ab: "#f2c94c",
+                    af: "#111827",
+                    r: 28,
+                    m: 10,
+                    rawCss:
+                      "background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); border: 1.5px solid rgba(242,201,76,0.55); box-shadow: 0 12px 32px rgba(0,0,0,0.35);",
+                  },
+                },
+                {
+                  name: "كبسولة ثلاثية الأبعاد",
+                  cfg: {
+                    bg: "#ffffff",
+                    fg: "#475569",
+                    ab: "#263238",
+                    af: "#ffffff",
+                    r: 36,
+                    m: 12,
+                    rawCss:
+                      "box-shadow: 0 14px 34px rgba(15,23,42,0.18), inset 0 1px 0 #ffffff; border: 1px solid #e2e8f0;",
+                  },
+                },
+                {
+                  name: "أزرق ليلي حديث",
+                  cfg: {
+                    bg: "#0f172a",
+                    fg: "#94a3b8",
+                    ab: "#38bdf8",
+                    af: "#0f172a",
+                    r: 22,
+                    m: 8,
+                    rawCss:
+                      "border: 1px solid rgba(56,189,248,0.35); box-shadow: 0 10px 25px rgba(15,23,42,0.45);",
+                  },
+                },
+                {
+                  name: "أصفر رهط بوست البارز",
+                  cfg: {
+                    bg: "#f2c94c",
+                    fg: "#263238",
+                    ab: "#263238",
+                    af: "#ffffff",
+                    r: 26,
+                    m: 10,
+                    rawCss:
+                      "border: 2px solid #263238; box-shadow: 0 8px 24px rgba(38,50,56,0.22);",
+                  },
+                },
+              ].map((preset) => (
+                <button
+                  key={preset.name}
+                  type="button"
+                  onClick={() => updateBotCss(preset.cfg, true)}
+                  className="rounded-xl border border-line bg-paper px-3 py-1.5 text-xs font-extrabold text-ink shadow-2xs transition hover:border-primary hover:bg-primary/20"
+                >
+                  ✨ {tr(preset.name)}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+            <label className="block text-xs font-bold">
+              {tr("لون خلفية البار")}
+              <div className="mt-1 flex items-center gap-1.5 rounded-xl border border-line bg-paper p-1.5">
+                <input
+                  type="color"
+                  value={cssCfg.bg}
+                  onChange={(e) => updateBotCss({ bg: e.target.value })}
+                  className="size-6 cursor-pointer rounded border-0 bg-transparent"
+                />
+                <input
+                  type="text"
+                  dir="ltr"
+                  value={cssCfg.bg}
+                  onChange={(e) => updateBotCss({ bg: e.target.value })}
+                  className="w-full bg-transparent text-xs font-bold outline-none"
+                />
+              </div>
+            </label>
+
+            <label className="block text-xs font-bold">
+              {tr("لون الأيقونات والنص")}
+              <div className="mt-1 flex items-center gap-1.5 rounded-xl border border-line bg-paper p-1.5">
+                <input
+                  type="color"
+                  value={cssCfg.fg}
+                  onChange={(e) => updateBotCss({ fg: e.target.value })}
+                  className="size-6 cursor-pointer rounded border-0 bg-transparent"
+                />
+                <input
+                  type="text"
+                  dir="ltr"
+                  value={cssCfg.fg}
+                  onChange={(e) => updateBotCss({ fg: e.target.value })}
+                  className="w-full bg-transparent text-xs font-bold outline-none"
+                />
+              </div>
+            </label>
+
+            <label className="block text-xs font-bold">
+              {tr("خلفية الزر النشط")}
+              <div className="mt-1 flex items-center gap-1.5 rounded-xl border border-line bg-paper p-1.5">
+                <input
+                  type="color"
+                  value={cssCfg.ab}
+                  onChange={(e) => updateBotCss({ ab: e.target.value })}
+                  className="size-6 cursor-pointer rounded border-0 bg-transparent"
+                />
+                <input
+                  type="text"
+                  dir="ltr"
+                  value={cssCfg.ab}
+                  onChange={(e) => updateBotCss({ ab: e.target.value })}
+                  className="w-full bg-transparent text-xs font-bold outline-none"
+                />
+              </div>
+            </label>
+
+            <label className="block text-xs font-bold">
+              {tr("نص الزر النشط")}
+              <div className="mt-1 flex items-center gap-1.5 rounded-xl border border-line bg-paper p-1.5">
+                <input
+                  type="color"
+                  value={cssCfg.af}
+                  onChange={(e) => updateBotCss({ af: e.target.value })}
+                  className="size-6 cursor-pointer rounded border-0 bg-transparent"
+                />
+                <input
+                  type="text"
+                  dir="ltr"
+                  value={cssCfg.af}
+                  onChange={(e) => updateBotCss({ af: e.target.value })}
+                  className="w-full bg-transparent text-xs font-bold outline-none"
+                />
+              </div>
+            </label>
+
+            <label className="block text-xs font-bold">
+              {tr("استدارة الحواف")} ({cssCfg.r}px)
+              <input
+                type="range"
+                min={0}
+                max={40}
+                value={cssCfg.r}
+                onChange={(e) => updateBotCss({ r: Number(e.target.value) })}
+                className="mt-2.5 w-full accent-primary"
+              />
+            </label>
+
+            <label className="block text-xs font-bold">
+              {tr("الارتفاع عن الأسفل")} ({cssCfg.m}px)
+              <input
+                type="range"
+                min={0}
+                max={20}
+                value={cssCfg.m}
+                onChange={(e) => updateBotCss({ m: Number(e.target.value) })}
+                className="mt-2.5 w-full accent-primary"
+              />
+            </label>
+          </div>
+
+          <div className="mt-3">
+            <label className="block text-xs font-extrabold text-ink">
+              {tr("كود CSS مخصّص للبار السفلي (اختياري — اكتب خصائص CSS مباشرة أو قواعد .custom-botbar):")}
+              <textarea
+                dir="ltr"
+                rows={3}
+                value={cssCfg.rawCss}
+                onChange={(e) => updateBotCss({ rawCss: e.target.value }, false)}
+                placeholder="background: linear-gradient(135deg, #111827, #1f2937); box-shadow: 0 10px 30px rgba(0,0,0,0.3); border: 1px solid #f2c94c;"
+                className="field mt-1.5 w-full font-mono text-xs"
+              />
+            </label>
+          </div>
+
+          {/* Live Interactive Preview inside Admin Panel */}
+          <div className="mt-4 rounded-2xl border border-dashed border-line bg-paper p-3">
+            <p className="mb-2 text-[11px] font-extrabold text-muted">
+              {tr("معاينة حية لشكل وترتيب البار السفلي:")} ({tr("الشكل الحالي:")} {botCfg.style})
+            </p>
+            <div
+              className="mx-auto flex max-w-md items-center justify-around px-2 py-2 shadow-md transition"
+              style={{
+                backgroundColor:
+                  botCfg.style === "dark" || botCfg.style === "neon"
+                    ? "#111827"
+                    : botCfg.style === "custom"
+                      ? cssCfg.bg
+                      : "#ffffff",
+                color:
+                  botCfg.style === "dark" || botCfg.style === "neon"
+                    ? "#ffffff"
+                    : botCfg.style === "custom"
+                      ? cssCfg.fg
+                      : "#263238",
+                borderRadius:
+                  botCfg.style === "floating"
+                    ? "9999px"
+                    : botCfg.style === "dock" || botCfg.style === "neon" || botCfg.style === "glass"
+                      ? "24px"
+                      : botCfg.style === "custom"
+                        ? `${cssCfg.r}px`
+                        : "12px",
+              }}
+            >
+              {botCfg.btns.map((b, i) => {
+                const active = i === 0;
+                return (
+                  <div
+                    key={`${b.to}-${i}`}
+                    className="flex flex-1 flex-col items-center justify-center gap-0.5 px-2 py-1.5 text-[11px] font-extrabold"
+                    style={
+                      active
+                        ? {
+                            backgroundColor:
+                              botCfg.style === "custom"
+                                ? cssCfg.ab
+                                : botCfg.style === "floating"
+                                  ? "#263238"
+                                  : "#f2c94c",
+                            color:
+                              botCfg.style === "custom"
+                                ? cssCfg.af
+                                : botCfg.style === "floating"
+                                  ? "#ffffff"
+                                  : "#263238",
+                            borderRadius: "14px",
+                          }
+                        : undefined
+                    }
+                  >
+                    <span className="truncate">{b.label}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
       </SettingsCard>
 
       {/* 3. Bottom Bar Buttons Add / Remove / Reorder */}
       <SettingsCard
-        title={tr("3. أزرار البار السفلي (إضافة أزرار، إلغاء أزرار، وترتيبها)")}
-        hint={tr("تحكّم في كل زر يظهر في البار السفلي: يمكنك إلغاء أي زر أو إضافة زر جديد أو تغيير اسمه وأيقونته.")}
+        title={tr("3. أزرار البار السفلي وترتيبها (على جميع صفحات الموقع)")}
+        hint={tr("الترتيب الذي تضبطه هنا يظهر بنفس الترتيب تماماً في البار السفلي على الصفحة الرئيسية وجميع صفحات الموقع.")}
       >
         <ul className="space-y-2">
           {botCfg.btns.map((btn, idx) => (
@@ -5291,6 +5790,9 @@ function MenusAndBarsPart({ s, set }: SettingsPartProps) {
               key={`${btn.to}-${idx}`}
               className="flex flex-wrap items-center gap-2 rounded-2xl border border-line bg-surface/60 p-2.5"
             >
+              <span className="grid size-7 shrink-0 place-items-center rounded-full bg-primary/30 text-xs font-extrabold text-ink">
+                {idx + 1}
+              </span>
               <select
                 value={btn.icon}
                 onChange={(e) =>
