@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Bus, ChevronDown, ChevronLeft, ChevronRight, Cpu, Globe, House, MapPin, Megaphone, Newspaper, Plus, RefreshCw, Search, Siren, Store, Trophy, Tv, type LucideIcon } from "lucide-react";
+import { Bus, ChevronDown, ChevronLeft, ChevronRight, Cpu, Globe, House, MapPin, Megaphone, Newspaper, Plus, RefreshCw, Search, Siren, Sparkles, Store, Trophy, Tv, type LucideIcon } from "lucide-react";
 import { Fragment, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useSiteSettings } from "@/lib/site-settings/context";
 import type { HomeSectionId } from "@/lib/site-settings/types";
@@ -20,7 +20,7 @@ import { NotifyPrompt } from "@/components/notify";
 import { NewsLead, NewsUnavailable, newestFirst } from "@/components/news";
 import { getApprovedEntries } from "@/lib/directory/api";
 import { osmEntries, type DirectoryEntry } from "@/lib/directory/types";
-import { getAutoSectionFlags, getNews, getSportsNews, getTechNews } from "@/lib/news/api";
+import { getAutoSectionFlags, getCustomSectionsNews, getNews, getSportsNews, getTechNews, type CustomSectionResult } from "@/lib/news/api";
 import { getMatchesBoard, type MatchesBoardData, type MatchItem } from "@/lib/news/matches";
 import { newsByline, relativeTimeAr, useNow } from "@/lib/news/format";
 import type { IsraelNewsItem, IsraelNewsResult, NewsItem } from "@/lib/news/types";
@@ -52,7 +52,7 @@ export const Route = createFileRoute("/")({
       jsonLd: [organizationLd, websiteLd],
     }),
   loader: async () => {
-    const [news, approved, ads, israel, weather, board, store, tech, flags, sports, matches] = await Promise.all([
+    const [news, approved, ads, israel, weather, board, store, tech, flags, sports, matches, customSecs] = await Promise.all([
       getNews(),
       getApprovedEntries(),
       getListings(),
@@ -64,6 +64,7 @@ export const Route = createFileRoute("/")({
       getAutoSectionFlags().catch(() => ({}) as Record<string, boolean>),
       getSportsNews().catch(() => null),
       matchesForHome(),
+      getCustomSectionsNews().catch(() => [] as CustomSectionResult[]),
     ]);
     const [lNews, lIsrael, lStore, lTech, lSports] = await Promise.all([
       localized(news, (d) => [{ items: d.items, fields: ["title", "summary", "body"] }], "auto"),
@@ -72,7 +73,7 @@ export const Route = createFileRoute("/")({
       tech ? localized(tech, (d) => [{ items: d.items.slice(0, 5), fields: ["title", "summary"] }], "auto") : null,
       sports ? localized(sports, (d) => [{ items: d.items.slice(0, 5), fields: ["title", "summary"] }], "auto") : null,
     ]);
-    return { news: lNews, approved: approved.entries, ads, israel: lIsrael, weather, board, store: lStore, tech: lTech, sports: lSports, flags, matches };
+    return { news: lNews, approved: approved.entries, ads, israel: lIsrael, weather, board, store: lStore, tech: lTech, sports: lSports, flags, matches, customSecs };
   },
   // New items must show up within a minute or two: short CDN cache, revalidated in the background.
   headers: () => ({ "Cache-Control": HOME_CACHE }),
@@ -200,25 +201,84 @@ function Home() {
     () => (sports?.home ? staggerSectionItems(sports.items.slice(0, 5), 5) : []),
     [sports],
   );
+  const [customSecsState, setCustomSecsState] = useState<CustomSectionResult[]>(loaderData.customSecs ?? []);
+  useEffect(() => {
+    setCustomSecsState(loaderData.customSecs ?? []);
+  }, [loaderData.customSecs]);
+
+  // Also refresh custom sections on a staggered 13-minute timer
+  useEffect(() => {
+    const id = setInterval(() => {
+      if (document.visibilityState === "visible") {
+        void getCustomSectionsNews()
+          .then((res) => {
+            if (Array.isArray(res)) setCustomSecsState(res);
+          })
+          .catch(() => {});
+      }
+    }, 13 * 60_000);
+    return () => clearInterval(id);
+  }, []);
+
   const settings = useSiteSettings();
   const visibleCustomSections = useMemo(() => {
-    return (settings.quickLinks ?? [])
-      .filter((q) => q.id.startsWith("sec") && q.subtitle !== " مَخفي")
-      .map((q) => {
-        const cat = q.url.includes("q=") ? decodeURIComponent(q.url.split("q=")[1] ?? "") : "";
-        const matched = news.items.filter(
-          (i) =>
-            (cat && (i.category === cat || i.title.includes(cat) || i.summary.includes(cat))) ||
-            i.category === q.title,
-        );
-        return {
-          id: q.id,
-          name: `${q.emoji ? q.emoji + " " : ""}${q.title}`,
-          home: true,
-          items: matched.length > 0 ? matched : news.items.slice(0, 5),
-        };
+    const out: { id: string; rawName: string; name: string; home: boolean; items: NewsItem[]; icon: string }[] = [];
+    const seenNames = new Set<string>();
+
+    const pickIconForName = (n: string) =>
+      /فن|موضة|ثقافة|مشاهير|جمال/.test(n)
+        ? "sparkles"
+        : /رياضة|مباريات|كرة/.test(n)
+          ? "trophy"
+          : /تقنية|تكنولوجيا/.test(n)
+            ? "cpu"
+            : "news";
+
+    // 1. Custom sections from database (created in SectionAdmin like "فن و موضة")
+    for (const cs of customSecsState) {
+      const cleanName = cs.name.trim();
+      if (!cleanName || seenNames.has(cleanName)) continue;
+      seenNames.add(cleanName);
+      const matchedFromNews = news.items.filter(
+        (i) =>
+          i.category === cleanName ||
+          i.title.includes(cleanName) ||
+          (/فن|موضة/.test(cleanName) && /فن|موضة|ثقافة|مهرجان|أزياء|سينما|مسرح|فنان/.test(`${i.title} ${i.summary} ${i.category}`)),
+      );
+      const mergedItems = cs.items.length > 0 ? cs.items : matchedFromNews.length > 0 ? matchedFromNews : news.items.slice(0, 4);
+      out.push({
+        id: cs.id,
+        rawName: cleanName,
+        name: cleanName,
+        home: cs.home !== false,
+        items: staggerSectionItems(mergedItems, 4),
+        icon: pickIconForName(cleanName),
       });
-  }, [settings.quickLinks, news.items]);
+    }
+
+    // 2. Quick custom sections from siteSettings.quickLinks
+    for (const q of settings.quickLinks ?? []) {
+      if (!q.id.startsWith("sec") || q.subtitle?.includes("مَخفي")) continue;
+      const cleanName = q.title.trim();
+      if (!cleanName || seenNames.has(cleanName)) continue;
+      seenNames.add(cleanName);
+      const cat = q.url.includes("q=") ? decodeURIComponent(q.url.split("q=")[1] ?? "") : "";
+      const matched = news.items.filter(
+        (i) =>
+          (cat && (i.category === cat || i.title.includes(cat) || i.summary.includes(cat))) ||
+          i.category === cleanName,
+      );
+      out.push({
+        id: q.id,
+        rawName: cleanName,
+        name: `${q.emoji ? q.emoji + " " : ""}${cleanName}`,
+        home: true,
+        items: matched.length > 0 ? matched : news.items.slice(0, 5),
+        icon: pickIconForName(cleanName),
+      });
+    }
+    return out;
+  }, [customSecsState, settings.quickLinks, news.items]);
   const israelItems = useMemo(
     () => staggerSectionItems(israel?.items ?? [], 2),
     [israel],
@@ -326,11 +386,18 @@ function Home() {
 
   const results = useMemo(() => {
     if (!query) return null;
+    const matchedCustomSec = visibleCustomSections.find(
+      (cs) => cs.rawName === query || cs.name === query || cs.id === query,
+    );
     const hay = (value: string) => value.includes(query);
+    const filteredNews = news.items.filter(
+      (item) => hay(item.title) || hay(item.category) || hay(item.source) || hay(item.summary),
+    );
     return {
-      news: news.items.filter(
-        (item) => hay(item.title) || hay(item.category) || hay(item.source) || hay(item.summary),
-      ),
+      news:
+        matchedCustomSec && matchedCustomSec.items.length > 0
+          ? matchedCustomSec.items
+          : filteredNews,
       places: places.filter(
         (item) =>
           hay(item.name) ||
@@ -406,7 +473,7 @@ function Home() {
         />
       </label>
     ),
-    tiles: <HomeTilesBar hasLiveMatch={Boolean(matches?.matches?.some((m) => m.status === "in" || (m as { streamUrl?: string }).streamUrl || (m.note && /https?:\/\//i.test(m.note))))} />,
+    tiles: <HomeTilesBar hasLiveMatch={Boolean(matches?.matches?.some((m) => m.status === "in" || (m as { streamUrl?: string }).streamUrl || (m.note && /https?:\/\//i.test(m.note))))} customSections={visibleCustomSections} />,
     quicklinks: <HomeQuickLinks />,
     news: !showSec("news") ? null : (
       <>
@@ -2087,6 +2154,7 @@ const ICON_MAP: Record<string, LucideIcon> = {
   store: Store,
   globe: Globe,
   cpu: Cpu,
+  sparkles: Sparkles,
   plus: Plus,
 };
 
@@ -2109,7 +2177,13 @@ const DEFAULT_BOT_TILES: { icon: string; label: string; to: string }[] = [
   { icon: "siren", label: "اليوم", to: "/today" },
 ];
 
-function HomeTilesBar({ hasLiveMatch }: { hasLiveMatch?: boolean }) {
+function HomeTilesBar({
+  hasLiveMatch,
+  customSections = [],
+}: {
+  hasLiveMatch?: boolean;
+  customSections?: { id: string; rawName: string; name: string; icon: string }[];
+}) {
   const st = useSiteSettings();
   const topCfgItem = (st.quickLinks ?? []).find((q) => q.id === "topbarcfg");
   const liveTileCfg = (st.quickLinks ?? []).find((q) => q.id === "tilelive");
@@ -2142,19 +2216,21 @@ function HomeTilesBar({ hasLiveMatch }: { hasLiveMatch?: boolean }) {
     }).map((t) => (t.to === "/sports-news" ? { ...t, label: liveTileLabel } : t));
   }, [topCfgItem, st.tiles, showLiveTile, liveTileLabel]);
 
-  // Also include any custom sections added in /admin
-  const customSecTiles = (st.quickLinks ?? [])
-    .filter((q) => q.id.startsWith("sec") && q.subtitle !== " مَخفي")
-    .map((q) => ({
-      icon: "news",
-      to: q.url || "/news",
-      label: q.title,
-    }));
-
+  // Include all custom sections from database (e.g. "فن و موضة") and quickLinks in the Top Menu!
   const combined = [...configuredList];
-  for (const ct of customSecTiles) {
-    if (!combined.some((c) => c.label === ct.label)) {
-      combined.push(ct);
+  for (const cs of customSections) {
+    const cleanLabel = cs.rawName.trim();
+    if (!cleanLabel) continue;
+    const hiddenByAdmin = (st.quickLinks ?? []).some(
+      (q) => q.title.trim() === cleanLabel && q.subtitle?.includes("مَخفي_علوي"),
+    );
+    if (hiddenByAdmin) continue;
+    if (!combined.some((c) => c.label.trim() === cleanLabel)) {
+      combined.push({
+        icon: cs.icon || (/فن|موضة|ثقافة/.test(cleanLabel) ? "sparkles" : "news"),
+        to: `/?q=${encodeURIComponent(cleanLabel)}`,
+        label: cleanLabel,
+      });
     }
   }
 
@@ -2171,7 +2247,12 @@ function HomeTilesBar({ hasLiveMatch }: { hasLiveMatch?: boolean }) {
         return (
           <Link
             key={`${t.to}-${idx}`}
-            to={t.to as "/"}
+            to={(t.to.includes("?q=") ? "/" : t.to) as "/"}
+            search={
+              t.to.includes("?q=")
+                ? { q: decodeURIComponent(t.to.split("?q=")[1] ?? "") }
+                : undefined
+            }
             className="tile relative sm:flex-1"
           >
             <span

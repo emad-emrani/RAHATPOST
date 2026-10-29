@@ -85,6 +85,7 @@ import type { BusinessSubmission } from "@/lib/directory/types";
 import { adminGate, adminWhoami } from "@/lib/team/api";
 import type { AdminLevel } from "@/lib/admin-auth";
 import { adminDecideNews, adminListNews } from "@/lib/reader-news/api";
+import { adminListSections, adminSaveSection, adminDeleteSection, type AdminSection } from "@/lib/news/auto-admin";
 import type { OwnReaderNews } from "@/lib/reader-news/types";
 import {
   adminGetMatchesSettings,
@@ -540,8 +541,43 @@ export const Route = createFileRoute("/admin")({
                   };
                 }
               } else if (rpcAction === "get-rss-schedule") {
-                const { loadFeedConfig } = await import("@/lib/news/feed-config.server");
-                const cfg = await loadFeedConfig();
+                const { loadFeedConfig, clearFeedConfigCache } = await import("@/lib/news/feed-config.server");
+                let cfg = await loadFeedConfig();
+                // Auto-seed Arabic Art & Fashion RSS feeds if a custom section like "فن و موضة" has 0 feeds
+                for (const s of cfg.sections) {
+                  if (/فن|موضة|ثقافة|مشاهير/.test(s.name)) {
+                    const existingFeeds = cfg.feeds.filter((f) => f.section === s.id);
+                    if (existingFeeds.length === 0) {
+                      const defaultArtFeeds = [
+                        {
+                          id: `${s.id}:rtculture:0`,
+                          sourceId: "rtculture",
+                          source: "ثقافة وفن",
+                          home: "https://arabic.rt.com/culture/",
+                          url: "https://arabic.rt.com/rss/culture/",
+                        },
+                        {
+                          id: `${s.id}:sonara:0`,
+                          sourceId: "sonarafashion",
+                          source: "فن وموضة",
+                          home: "https://www.sonara.net",
+                          url: "https://www.sonara.net/feed/",
+                        },
+                      ];
+                      for (let idx = 0; idx < defaultArtFeeds.length; idx++) {
+                        const df = defaultArtFeeds[idx];
+                        await sql.query(
+                          `insert into news_feeds (id, section, source_id, source, home, url, enabled, position)
+                           values ($1, $2, $3, $4, $5, $6, true, $7)
+                           on conflict (id) do nothing`,
+                          [df.id, s.id, df.sourceId, df.source, df.home, df.url, idx],
+                        );
+                      }
+                      clearFeedConfigCache();
+                      cfg = await loadFeedConfig();
+                    }
+                  }
+                }
                 const schedRows = await sql.query<{ value: unknown }>(
                   `select value from auth_settings where key = 'rss_stagger_schedule' limit 1`,
                 );
@@ -3843,6 +3879,7 @@ function QuickCustomSectionsBar({
   onSelectSection: (id: string) => void;
 }) {
   const [siteSettings, setSiteSettings] = useState<SiteSettings | null>(null);
+  const [dbCustomSecs, setDbCustomSecs] = useState<AdminSection[]>([]);
   const [name, setName] = useState("");
   const [category, setCategory] = useState("رهط");
   const [home, setHome] = useState(true);
@@ -3853,8 +3890,13 @@ function QuickCustomSectionsBar({
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
 
+  const BUILTIN_SEC_IDS = new Set(["news", "israel", "sports", "tech", "weather"]);
+
   const load = useCallback(async () => {
-    const res = await adminGetSiteSettings();
+    const [res, secRes] = await Promise.all([
+      adminGetSiteSettings(),
+      adminListSections().catch(() => ({ authed: false, sections: [] as AdminSection[] })),
+    ]);
     if (res.authed && res.settings) {
       setSiteSettings(res.settings);
       const cfg = (res.settings.quickLinks ?? []).find((q) => q.id === "tilelive");
@@ -3863,6 +3905,9 @@ function QuickCustomSectionsBar({
         setLiveTileVisible(!cfg.subtitle?.includes("مَخفي"));
         setLiveTileGlow(!cfg.subtitle?.includes("بدون توهج") && cfg.emoji !== "⚪");
       }
+    }
+    if (secRes.authed && secRes.sections) {
+      setDbCustomSecs(secRes.sections.filter((s) => !BUILTIN_SEC_IDS.has(s.id)));
     }
   }, []);
 
@@ -4182,36 +4227,176 @@ function QuickCustomSectionsBar({
           </div>
 
           <div className="mt-4">
-            <p className="mb-2 text-xs font-extrabold text-muted">{tr("الأقسام المضافة وحالة ظهورها في الصفحة الرئيسية:")}</p>
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-              {customSections.map((s) => (
-                <div
-                  key={s.id}
-                  className="flex items-center justify-between gap-2 rounded-2xl border border-line bg-surface px-3.5 py-2.5 text-xs font-bold"
-                >
-                  <span className="font-extrabold">{s.emoji} {s.name}</span>
-                  <div className="flex items-center gap-1.5">
-                    <button
-                      type="button"
-                      onClick={() => void toggleHome(s)}
-                      className={`rounded-xl px-2.5 py-1 text-[11px] font-extrabold text-white ${
-                        s.home ? "bg-[#16A34A]" : "bg-muted"
-                      }`}
+            <p className="mb-2 text-xs font-extrabold text-muted">
+              {tr("الأقسام المضافة وحالة ظهورها في القائمة العلوية والصفحة الرئيسية:")}
+            </p>
+            {dbCustomSecs.length === 0 && customSections.length === 0 ? (
+              <p className="rounded-2xl bg-surface p-3 text-xs font-semibold text-muted">
+                {tr("لا توجد أقسام مخصّصة مضافة بعد. يمكنك إضافة قسم من الزر الأخضر «+ إضافة قسم جديد» بالأسفل.")}
+              </p>
+            ) : (
+              <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+                {dbCustomSecs.map((dbSec) => {
+                  const cleanName = dbSec.name.trim();
+                  const topBtns = siteSettings ? parseTopBarConfig(siteSettings.quickLinks) : [];
+                  const hiddenMarker = (siteSettings?.quickLinks ?? []).find(
+                    (q) => q.title.trim() === cleanName && q.subtitle?.includes("مَخفي_علوي"),
+                  );
+                  const inTopMenu = !hiddenMarker || topBtns.some((b) => b.label.trim() === cleanName);
+
+                  return (
+                    <div
+                      key={dbSec.id}
+                      className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-primary/40 bg-surface px-3.5 py-3 text-xs font-bold"
                     >
-                      {s.home ? tr("في الرئيسية ✓") : tr("مخفي")}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => void removeSec(s.id)}
-                      className="grid size-7 place-items-center rounded-lg border border-line bg-paper text-[#DC2626] hover:opacity-80"
-                      title={tr("حذف القسم")}
+                      <div className="flex items-center gap-2">
+                        <span className="text-base">
+                          {/فن|موضة|ثقافة/.test(cleanName) ? "✨" : "📰"}
+                        </span>
+                        <div>
+                          <span className="block font-extrabold text-ink">{cleanName}</span>
+                          <span className="text-[10px] font-semibold text-muted">#{dbSec.id}</span>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        {/* Toggle visibility in Top Menu */}
+                        <button
+                          type="button"
+                          disabled={busy || !siteSettings}
+                          onClick={async () => {
+                            if (!siteSettings) return;
+                            const curTop = parseTopBarConfig(siteSettings.quickLinks);
+                            const iconKey = /فن|موضة|ثقافة/.test(cleanName) ? "sparkles" : "news";
+                            const targetUrl = `/?q=${encodeURIComponent(cleanName)}`;
+                            if (inTopMenu) {
+                              // Hide from top menu
+                              const filteredTop = curTop.filter((b) => b.label.trim() !== cleanName);
+                              const nextLinks = encodeTopBarConfig(siteSettings.quickLinks, filteredTop).filter(
+                                (q) => !(q.title.trim() === cleanName && q.id.startsWith("sec")),
+                              );
+                              nextLinks.push({
+                                id: `sec${dbSec.id.replace(/[^a-z0-9]/g, "").slice(0, 12) || "custom"}`,
+                                title: cleanName,
+                                subtitle: "مَخفي_علوي",
+                                url: targetUrl,
+                                emoji: "✨",
+                              });
+                              await saveQuickLinks(
+                                nextLinks,
+                                `تم إخفاء قسم «${cleanName}» من القائمة العلوية`,
+                              );
+                            } else {
+                              // Show in top menu
+                              const nextTop = curTop.some((b) => b.label.trim() === cleanName)
+                                ? curTop
+                                : [...curTop, { icon: iconKey, label: cleanName, to: targetUrl }];
+                              const nextLinks = encodeTopBarConfig(
+                                siteSettings.quickLinks.filter(
+                                  (q) => !(q.title.trim() === cleanName && q.subtitle?.includes("مَخفي_علوي")),
+                                ),
+                                nextTop,
+                              );
+                              await saveQuickLinks(
+                                nextLinks,
+                                `تم إظهار قسم «${cleanName}» في القائمة العلوية ✓`,
+                              );
+                            }
+                          }}
+                          className={`rounded-xl px-2.5 py-1.5 text-[11px] font-extrabold text-white transition ${
+                            inTopMenu ? "bg-[#16A34A]" : "bg-muted"
+                          }`}
+                        >
+                          {inTopMenu ? tr("في القائمة العلوية ✓") : tr("+ إظهار في القائمة العلوية")}
+                        </button>
+
+                        {/* Toggle visibility on Homepage */}
+                        <button
+                          type="button"
+                          disabled={busy}
+                          onClick={async () => {
+                            setBusy(true);
+                            try {
+                              await adminSaveSection({
+                                data: {
+                                  ...dbSec,
+                                  enabled: true,
+                                  home: !dbSec.home,
+                                },
+                              });
+                              await load();
+                              setMsg(
+                                !dbSec.home
+                                  ? `تم إظهار قسم «${cleanName}» في الصفحة الرئيسية ✓`
+                                  : `تم إخفاء قسم «${cleanName}» من الصفحة الرئيسية`,
+                              );
+                            } finally {
+                              setBusy(false);
+                            }
+                          }}
+                          className={`rounded-xl px-2.5 py-1.5 text-[11px] font-extrabold text-white transition ${
+                            dbSec.home ? "bg-ink" : "bg-muted"
+                          }`}
+                        >
+                          {dbSec.home ? tr("في الرئيسية ✓") : tr("مخفي بالرئيسية")}
+                        </button>
+
+                        {/* Delete custom section */}
+                        <button
+                          type="button"
+                          disabled={busy}
+                          onClick={async () => {
+                            if (!confirm(`حذف قسم «${cleanName}» نهائياً؟`)) return;
+                            setBusy(true);
+                            try {
+                              await adminDeleteSection({ data: { id: dbSec.id } });
+                              await load();
+                              setMsg(`تم حذف قسم «${cleanName}» ✓`);
+                            } finally {
+                              setBusy(false);
+                            }
+                          }}
+                          className="grid size-7 place-items-center rounded-lg border border-line bg-paper text-[#DC2626] hover:opacity-80"
+                          title={tr("حذف القسم")}
+                        >
+                          <Trash2 className="size-3.5" aria-hidden />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {customSections
+                  .filter((s) => !dbCustomSecs.some((d) => d.name.trim() === s.name.trim()))
+                  .map((s) => (
+                    <div
+                      key={s.id}
+                      className="flex items-center justify-between gap-2 rounded-2xl border border-line bg-surface px-3.5 py-2.5 text-xs font-bold"
                     >
-                      <Trash2 className="size-3.5" aria-hidden />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
+                      <span className="font-extrabold">{s.emoji} {s.name}</span>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => void toggleHome(s)}
+                          className={`rounded-xl px-2.5 py-1 text-[11px] font-extrabold text-white ${
+                            s.home ? "bg-[#16A34A]" : "bg-muted"
+                          }`}
+                        >
+                          {s.home ? tr("في الرئيسية والقائمة ✓") : tr("مخفي")}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void removeSec(s.id)}
+                          className="grid size-7 place-items-center rounded-lg border border-line bg-paper text-[#DC2626] hover:opacity-80"
+                          title={tr("حذف القسم")}
+                        >
+                          <Trash2 className="size-3.5" aria-hidden />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            )}
           </div>
 
           <div className="mt-4 border-t border-line pt-3">
@@ -4380,6 +4565,7 @@ function encodeBotBarCssConfig(
 const DEFAULT_TOP_BAR_BTNS: BarBtnItem[] = [
   { icon: "news", label: "الأخبار", to: "/news" },
   { icon: "tv", label: "بث مباريات", to: "/sports-news" },
+  { icon: "sparkles", label: "فن و موضة", to: "/?q=فن و موضة" },
   { icon: "siren", label: "اليوم", to: "/today" },
   { icon: "ad", label: "حراج", to: "/haraj" },
   { icon: "bus", label: "الباصات", to: "/buses" },
@@ -4407,6 +4593,7 @@ const BAR_ICON_OPTIONS: { key: string; label: string }[] = [
   { key: "pin", label: "📍 الدليل / موقع" },
   { key: "store", label: "🛍️ المتجر" },
   { key: "globe", label: "🌍 عالمي / إسرائيل" },
+  { key: "sparkles", label: "✨ فن وموضة / نجمة" },
   { key: "cpu", label: "💻 تقنية" },
   { key: "plus", label: "➕ إضافة" },
 ];
