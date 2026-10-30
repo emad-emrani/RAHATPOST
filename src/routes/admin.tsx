@@ -97,6 +97,11 @@ import { adminGate, adminWhoami } from "@/lib/team/api";
 import type { AdminLevel } from "@/lib/admin-auth";
 import { adminDecideNews, adminListNews } from "@/lib/reader-news/api";
 import {
+  adminListAutoNews,
+  adminSaveAutoNews,
+  adminSetNewsSource,
+  type AutoItem,
+  type AutoSource,
   adminCreateSection,
   adminDeleteFeed,
   adminDeleteSection,
@@ -118,7 +123,17 @@ import {
   type LeagueConfig,
   type MatchesSettings,
 } from "@/lib/news/matches";
-import { tr, trv } from "@/lib/i18n/core";
+import { getI18nState, tr, trv } from "@/lib/i18n/core";
+import {
+  adminClearLangCache,
+  adminGetGemini,
+  adminSaveGemini,
+  adminTestGemini,
+  type GeminiPublic,
+  type GeminiUsage,
+} from "@/lib/i18n/api";
+import { getCustomSectionsNews, getSportsNews, getTechNews, type CustomSectionResult } from "@/lib/news/api";
+import { newsCategories } from "@/lib/news/types";
 import { AdminSearch, CardBoundary, DashboardHome, ReviewQueue, Skeleton } from "@/components/admin/admin-v2";
 import type { SiteSettingsPart } from "@/components/admin/site-settings-admin";
 import { LangSwitcher } from "@/components/lang-switcher";
@@ -161,14 +176,12 @@ const DutyAdmin = lazy(() => import("@/components/admin/content-admin").then((m)
 const PushAdmin = lazy(() => import("@/components/admin/content-admin").then((m) => ({ default: m.PushAdmin })));
 const ReportsAdmin = lazy(() => import("@/components/admin/content-admin").then((m) => ({ default: m.ReportsAdmin })));
 const HarajCategoriesAdmin = lazy(() => import("@/components/admin/haraj-categories-admin").then((m) => ({ default: m.HarajCategoriesAdmin })));
-const AutoNewsAdmin = lazy(() => import("@/components/admin/auto-news-admin").then((m) => ({ default: m.AutoNewsAdmin })));
 const MembersAdmin = lazy(() => import("@/components/admin/members-admin").then((m) => ({ default: m.MembersAdmin })));
 const PopupsAdmin = lazy(() => import("@/components/admin/popups-admin").then((m) => ({ default: m.PopupsAdmin })));
 const EmailAdmin = lazy(() => import("@/components/admin/email-admin").then((m) => ({ default: m.EmailAdmin })));
 const PublishAdmin = lazy(() => import("@/components/admin/publish-admin").then((m) => ({ default: m.PublishAdmin })));
 const StatsAdmin = lazy(() => import("@/components/admin/stats-admin").then((m) => ({ default: m.StatsAdmin })));
 const LanguagesAdmin = lazy(() => import("@/components/admin/languages-admin").then((m) => ({ default: m.LanguagesAdmin })));
-const GeminiAdmin = lazy(() => import("@/components/admin/gemini-admin").then((m) => ({ default: m.GeminiAdmin })));
 const BusLinesAdmin = lazy(() => import("@/components/admin/bus-admin").then((m) => ({ default: m.BusLinesAdmin })));
 
 type QuickCustomSection = {
@@ -6664,7 +6677,7 @@ function encodeBotBarCssConfig(
   quickLinks: SiteSettings["quickLinks"],
   cfg: CustomBotCssConfig,
 ): SiteSettings["quickLinks"] {
-  const others = (quickLinks ?? []).filter((q) => q.id !== "botbarcss");
+  const others = (quickLinks ?? []).filter((q) => q.id !== "botbarcss" && q.id !== "txsecscfg");
   const title = `bg:${cfg.bg}|fg:${cfg.fg}|ab:${cfg.ab}|af:${cfg.af}|r:${cfg.r}|m:${cfg.m}`.slice(0, 60);
   const b64 = toAdminBase64Url(cfg.rawCss.trim().slice(0, 260));
   const url = `/__bcss?${b64.slice(0, 280)}`;
@@ -11216,6 +11229,962 @@ function StorePaySettingsAdmin() {
           {tr("اختبار بوابة الدفع")}
         </button>
       </div>
+    </div>
+  );
+}
+
+
+/* -------------------------------------------------------------------------- */
+/* Helper for Per-Section Homepage Translation ON/OFF stored in siteSettings  */
+/* -------------------------------------------------------------------------- */
+function parseAdminTxSecsMap(quickLinks: SiteSettings["quickLinks"]): Record<string, boolean> {
+  const item = (quickLinks ?? []).find((q) => q.id === "txsecscfg");
+  const map: Record<string, boolean> = {};
+  if (!item?.subtitle) return map;
+  for (const part of item.subtitle.split(",")) {
+    const [k, v] = part.split(":");
+    if (k) map[k.trim()] = v !== "0";
+  }
+  return map;
+}
+
+function encodeAdminTxSecsMap(
+  quickLinks: SiteSettings["quickLinks"],
+  map: Record<string, boolean>,
+): SiteSettings["quickLinks"] {
+  const others = (quickLinks ?? []).filter((q) => q.id !== "txsecscfg");
+  const pairs = Object.entries(map)
+    .map(([k, v]) => `${k}:${v ? "1" : "0"}`)
+    .join(",")
+    .slice(0, 100);
+  return [
+    ...others,
+    {
+      id: "txsecscfg",
+      title: "ترجمة الأقسام",
+      subtitle: pairs || "all:1",
+      url: "/",
+      emoji: "🌐",
+    },
+  ];
+}
+
+function isAdminSecTxOn(map: Record<string, boolean>, secId: string, secName?: string): boolean {
+  if (secName && secName in map) return map[secName];
+  if (secId in map) return map[secId];
+  if (secName && /فن|موضة/.test(secName) && "art-fashion" in map) return map["art-fashion"];
+  return true;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Upgraded AutoNewsAdmin («الجلب التلقائي والترجمة») — Old Panel + All Secs */
+/* -------------------------------------------------------------------------- */
+const AUTO_KIND_LABELS: Record<string, string> = {
+  news: "أخبار محلية",
+  israel: "أخبار إسرائيل",
+  sports: "رياضة",
+  tech: "أخبار تقنية",
+  "art-fashion": "فن و موضة",
+};
+
+function AutoNewsAdmin() {
+  const [items, setItems] = useState<AutoItem[] | null>(null);
+  const [sources, setSources] = useState<AutoSource[]>([]);
+  const [sections, setSections] = useState<AdminSection[]>([]);
+  const [siteSettings, setSiteSettings] = useState<SiteSettings | null>(null);
+  const [extraSecItems, setExtraSecItems] = useState<AutoItem[]>([]);
+  const [msg, setMsg] = useState("");
+  const [kind, setKind] = useState<string>("");
+  const [cat, setCat] = useState("");
+  const [src, setSrc] = useState("");
+  const [state, setState] = useState<"" | "hidden" | "pinned" | "edited">("");
+  const [q, setQ] = useState("");
+  const [busy, setBusy] = useState("");
+  const [editing, setEditing] = useState<{ slug: string; title: string } | null>(null);
+
+  const refresh = useCallback(async () => {
+    const [res, secRes, stRes, spRes, tcRes, csRes] = await Promise.all([
+      adminListAutoNews(),
+      adminListSections().catch(() => ({ authed: false, sections: [] as AdminSection[] })),
+      adminGetSiteSettings().catch(() => ({ authed: false, settings: null })),
+      getSportsNews().catch(() => null),
+      getTechNews().catch(() => null),
+      getCustomSectionsNews().catch(() => [] as CustomSectionResult[]),
+    ]);
+    setItems(res.items);
+    setSources(res.sources);
+    if (secRes.authed) {
+      const hasArt = secRes.sections.some((s) => /فن|موضة/.test(s.name));
+      const allSecs = hasArt
+        ? secRes.sections
+        : [
+            ...secRes.sections,
+            {
+              id: "art-fashion",
+              name: "فن و موضة",
+              enabled: true,
+              home: true,
+              position: 5,
+              refreshMin: 13,
+              maxItems: 40,
+              maxAgeDays: 30,
+              customFeeds: true,
+              isCustom: true,
+              feeds: [],
+            },
+          ];
+      setSections(allSecs);
+    }
+    if (stRes.authed && stRes.settings) setSiteSettings(stRes.settings);
+
+    const extra: AutoItem[] = [];
+    if (spRes?.items) {
+      for (const it of spRes.items) {
+        extra.push({
+          slug: it.slug,
+          kind: "news",
+          source: it.source,
+          title: it.title,
+          category: "رياضة",
+          publishedAt: it.publishedAt,
+          link: it.link,
+          breaking: it.breaking,
+          ov: null,
+        });
+      }
+    }
+    if (tcRes?.items) {
+      for (const it of tcRes.items) {
+        extra.push({
+          slug: it.slug,
+          kind: "news",
+          source: it.source,
+          title: it.title,
+          category: "تقنية",
+          publishedAt: it.publishedAt,
+          link: it.link,
+          breaking: it.breaking,
+          ov: null,
+        });
+      }
+    }
+    for (const cs of csRes) {
+      for (const it of cs.items) {
+        extra.push({
+          slug: it.slug,
+          kind: "news",
+          source: it.source,
+          title: it.title,
+          category: cs.name,
+          publishedAt: it.publishedAt,
+          link: it.link,
+          breaking: it.breaking,
+          ov: null,
+        });
+      }
+    }
+    setExtraSecItems(extra);
+
+    setMsg(
+      !res.authed ? tr("انتهت الجلسة. سجّل الدخول من جديد.") : res.ok ? "" : tr("تعذّر تحميل الأخبار."),
+    );
+  }, []);
+
+  useEffect(() => {
+    void refresh();
+  }, [refresh]);
+
+  const txSecsMap = useMemo(
+    () => parseAdminTxSecsMap(siteSettings?.quickLinks),
+    [siteSettings?.quickLinks],
+  );
+
+  const toggleSectionEnabled = async (sec: AdminSection) => {
+    setBusy(`sec-en:${sec.id}`);
+    const nextEnabled = !sec.enabled;
+    if (sec.id === "art-fashion" && !sections.some((s) => s.id === "art-fashion" && s.feeds.length > 0)) {
+      await adminCreateSection({ data: { id: "art-fashion", name: "فن و موضة", home: true } }).catch(() => null);
+    }
+    const r = await adminSaveSection({
+      data: {
+        id: sec.id,
+        name: sec.name,
+        enabled: nextEnabled,
+        home: sec.home,
+        position: sec.position,
+        refreshMin: sec.refreshMin,
+        maxItems: sec.maxItems,
+        maxAgeDays: sec.maxAgeDays,
+      },
+    });
+    if (r.ok) {
+      setSections((all) => all.map((x) => (x.id === sec.id ? { ...x, enabled: nextEnabled } : x)));
+      setMsg(nextEnabled ? `✓ تم تشغيل قسم «${sec.name}»` : `✕ تم إيقاف قسم «${sec.name}»`);
+    }
+    setBusy("");
+  };
+
+  const toggleSectionTranslation = async (secKey: string, secName: string) => {
+    if (!siteSettings) return;
+    setBusy(`sec-tx:${secKey}`);
+    const cur = isAdminSecTxOn(txSecsMap, secKey, secName);
+    const nextMap = { ...txSecsMap, [secKey]: !cur, [secName]: !cur };
+    const nextLinks = encodeAdminTxSecsMap(siteSettings.quickLinks, nextMap);
+    const r = await adminSaveSiteSettings({
+      data: { ...siteSettings, quickLinks: nextLinks },
+    });
+    if (r.ok && r.settings) {
+      setSiteSettings(r.settings);
+      setMsg(
+        !cur
+          ? `✓ تم تشغيل الترجمة التلقائية لقسم «${secName}» في الصفحة الرئيسية`
+          : `✕ تم إيقاف الترجمة التلقائية لقسم «${secName}» في الصفحة الرئيسية`,
+      );
+    }
+    setBusy("");
+  };
+
+  const toggleSectionFeed = async (secId: string, feed: AdminSection["feeds"][number]) => {
+    setBusy(`feed:${feed.id}`);
+    const r = await adminSaveFeed({
+      data: {
+        section: secId,
+        id: feed.id,
+        source: feed.source,
+        home: feed.home,
+        url: feed.url,
+        enabled: !feed.enabled,
+      },
+    });
+    if (r.ok) {
+      setSections((all) =>
+        all.map((s) =>
+          s.id === secId
+            ? {
+                ...s,
+                feeds: s.feeds.map((f) => (f.id === feed.id ? { ...f, enabled: !f.enabled } : f)),
+              }
+            : s,
+        ),
+      );
+    }
+    setBusy("");
+  };
+
+  const forceRefreshAll = async () => {
+    setBusy("force-all");
+    setMsg(tr("جاري جلب أحدث الأخبار من جميع مصادر RSS…"));
+    const r = await adminRefreshSectionNow({ data: { section: "all" } });
+    if (r.ok) {
+      await refresh();
+      setMsg(
+        r.failedSources.length
+          ? tr("✓ تم تحديث جميع المصادر في {0} مللي ثانية ({1} خبر) · تعذّر: {2}", r.ms, r.count, r.failedSources.join("، "))
+          : tr("✓ تم تحديث وجلب {0} خبر من جميع المصادر في {1} مللي ثانية", r.count, r.ms),
+      );
+    } else {
+      setMsg(trv(r.message ?? tr("تعذّر تحديث المصادر.")));
+    }
+    setBusy("");
+  };
+
+  const combinedItems = useMemo(() => {
+    const base = items ?? [];
+    const seen = new Set(base.map((i) => i.slug));
+    const merged = [...base];
+    for (const ex of extraSecItems) {
+      if (!seen.has(ex.slug)) {
+        seen.add(ex.slug);
+        merged.push(ex);
+      }
+    }
+    return merged;
+  }, [items, extraSecItems]);
+
+  const effCat = (i: AutoItem) => i.ov?.category ?? i.category;
+  const list = useMemo(() => {
+    const needle = q.trim();
+    return combinedItems.filter(
+      (i) =>
+        (!kind ||
+          (kind === "news" && i.kind === "news") ||
+          (kind === "israel" && i.kind === "israel") ||
+          effCat(i) === kind ||
+          (kind === "فن و موضة" && /فن|موضة|ثقافة/.test(`${effCat(i)} ${i.title}`))) &&
+        (!cat || effCat(i) === cat) &&
+        (!src || i.source === src) &&
+        (!state ||
+          (state === "hidden" && i.ov?.hidden) ||
+          (state === "pinned" && i.ov?.pinned) ||
+          (state === "edited" && i.ov)) &&
+        (!needle || `${i.ov?.title ?? ""} ${i.title} ${i.titleHe ?? ""}`.includes(needle)),
+    );
+  }, [combinedItems, kind, cat, src, state, q]);
+
+  const save = async (i: AutoItem, patch: Partial<NonNullable<AutoItem["ov"]>>) => {
+    setBusy(i.slug);
+    const base = i.ov ?? {
+      hidden: false,
+      pinned: false,
+      breaking: null,
+      category: null,
+      title: null,
+    };
+    const next = { ...base, ...patch };
+    const res = await adminSaveAutoNews({ data: { slug: i.slug, kind: i.kind, ...next } });
+    if (!res.ok) setMsg(res.message || tr("تعذّر الحفظ."));
+    else setItems((all) => (all ?? []).map((x) => (x.slug === i.slug ? { ...x, ov: next } : x)));
+    setBusy("");
+  };
+
+  const toggleSource = async (s: AutoSource) => {
+    setBusy(`src:${s.kind}:${s.name}`);
+    const res = await adminSetNewsSource({
+      data: { kind: s.kind, name: s.name, enabled: !s.enabled },
+    });
+    if (res.ok) setSources((all) => all.map((x) => (x === s ? { ...x, enabled: !s.enabled } : x)));
+    else setMsg(tr("تعذّر تغيير المصدر."));
+    setBusy("");
+  };
+
+  const allCategoryOptions = useMemo(() => {
+    const customNames = sections.map((s) => s.name.trim()).filter(Boolean);
+    return Array.from(new Set([...newsCategories, "إسرائيل", "فن و موضة", ...customNames]));
+  }, [sections]);
+
+  const sourceNames = [...new Set(combinedItems.map((i) => i.source))];
+
+  // Non-news/israel sections (sports, tech, فن و موضة, and any other custom sections)
+  const additionalSections = useMemo(
+    () => sections.filter((s) => s.id !== "news" && s.id !== "israel" && s.id !== "weather"),
+    [sections],
+  );
+
+  return (
+    <>
+      <div className="mb-4 rounded-3xl bg-paper p-4 shadow-[0_1px_3px_rgba(16,24,40,0.06)]">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h2 className="text-lg font-extrabold">{tr("المصادر التلقائية والجلب الفوري والترجمة")}</h2>
+            <p className="text-sm font-semibold text-muted">
+              {tr("تحكّم في تشغيل وإيقاف الجلب التلقائي والترجمة لجميع أقسام الصفحة الرئيسية (الأخبار المحلية، أخبار إسرائيل، الرياضة، التقنية، فن و موضة، وباقي الأقسام) ومصادرها.")}
+            </p>
+          </div>
+          <button
+            type="button"
+            disabled={busy === "force-all"}
+            onClick={forceRefreshAll}
+            className="btn flex items-center gap-2 px-4 py-2 text-sm"
+          >
+            <RefreshCw className={`size-4 ${busy === "force-all" ? "animate-spin" : ""}`} aria-hidden />
+            {busy === "force-all" ? tr("جاري الجلب…") : tr("تحديث جميع المصادر الآن")}
+          </button>
+        </div>
+
+        {/* 1. Built-in news & israel sources + translation toggle */}
+        {(["news", "israel"] as const).map((k) => {
+          const secObj = sections.find((s) => s.id === k);
+          const secEnabled = secObj ? secObj.enabled : true;
+          const secLabel = AUTO_KIND_LABELS[k];
+          const txOn = isAdminSecTxOn(txSecsMap, k, secLabel);
+          return (
+            <div key={k} className="mt-3 border-t border-line/60 pt-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="font-bold">{trv(secLabel)}</p>
+                  {secObj ? (
+                    <button
+                      type="button"
+                      disabled={busy === `sec-en:${k}`}
+                      onClick={() => void toggleSectionEnabled(secObj)}
+                      className={secEnabled ? "chip chip-ink text-xs" : "chip line-through opacity-60 text-xs"}
+                    >
+                      {secEnabled ? "✓ القسم شغّال" : "✕ القسم موقوف"}
+                    </button>
+                  ) : null}
+                  <button
+                    type="button"
+                    disabled={busy === `sec-tx:${k}` || !siteSettings}
+                    onClick={() => void toggleSectionTranslation(k, secLabel)}
+                    className={txOn ? "chip chip-ok text-xs" : "chip line-through opacity-60 text-xs"}
+                  >
+                    {txOn ? "✓ 🌐 الترجمة شغّالة" : "✕ 🌐 الترجمة موقوفة"}
+                  </button>
+                </div>
+              </div>
+              <div className="mt-1.5 flex flex-wrap gap-2">
+                {sources
+                  .filter((s) => s.kind === k)
+                  .map((s) => (
+                    <button
+                      key={s.name}
+                      type="button"
+                      className={s.enabled ? "chip chip-ink" : "chip line-through opacity-60"}
+                      disabled={busy === `src:${s.kind}:${s.name}`}
+                      onClick={() => void toggleSource(s)}
+                    >
+                      {s.enabled ? "✓ " : "✕ "}
+                      {trv(s.name)}
+                    </button>
+                  ))}
+              </div>
+            </div>
+          );
+        })}
+
+        {/* 2. Rest of the sections: فن و موضة, رياضة, أخبار تقنية, and all custom sections */}
+        {additionalSections.map((sec) => {
+          const txOn = isAdminSecTxOn(txSecsMap, sec.id, sec.name);
+          return (
+            <div key={sec.id} className="mt-3 border-t border-line/60 pt-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="font-bold">{trv(sec.name)}</p>
+                  <button
+                    type="button"
+                    disabled={busy === `sec-en:${sec.id}`}
+                    onClick={() => void toggleSectionEnabled(sec)}
+                    className={sec.enabled ? "chip chip-ink text-xs" : "chip line-through opacity-60 text-xs"}
+                  >
+                    {sec.enabled ? "✓ القسم شغّال" : "✕ القسم موقوف"}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={busy === `sec-tx:${sec.id}` || !siteSettings}
+                    onClick={() => void toggleSectionTranslation(sec.id, sec.name)}
+                    className={txOn ? "chip chip-ok text-xs" : "chip line-through opacity-60 text-xs"}
+                  >
+                    {txOn ? "✓ 🌐 الترجمة شغّالة" : "✕ 🌐 الترجمة موقوفة"}
+                  </button>
+                </div>
+              </div>
+              {sec.feeds.length > 0 ? (
+                <div className="mt-1.5 flex flex-wrap gap-2">
+                  {sec.feeds.map((f) => (
+                    <button
+                      key={f.id}
+                      type="button"
+                      className={f.enabled ? "chip chip-ink" : "chip line-through opacity-60"}
+                      disabled={busy === `feed:${f.id}`}
+                      onClick={() => void toggleSectionFeed(sec.id, f)}
+                    >
+                      {f.enabled ? "✓ " : "✕ "}
+                      {trv(f.source)}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="mb-4 grid grid-cols-2 gap-2 rounded-3xl bg-paper p-4 shadow-[0_1px_3px_rgba(16,24,40,0.06)]">
+        <input
+          className="field col-span-2"
+          placeholder={tr("ابحث في العناوين")}
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+        />
+        <select
+          className="field"
+          value={kind}
+          onChange={(e) => setKind(e.target.value)}
+        >
+          <option value="">{tr("كل الأقسام")}</option>
+          <option value="news">{tr("أخبار محلية")}</option>
+          <option value="israel">{tr("أخبار إسرائيل")}</option>
+          <option value="فن و موضة">{tr("فن و موضة")}</option>
+          <option value="رياضة">{tr("رياضة")}</option>
+          <option value="تقنية">{tr("أخبار تقنية")}</option>
+          {additionalSections
+            .filter((s) => !["sports", "tech", "art-fashion"].includes(s.id) && s.name !== "فن و موضة")
+            .map((s) => (
+              <option key={s.id} value={s.name}>
+                {trv(s.name)}
+              </option>
+            ))}
+        </select>
+        <select className="field" value={cat} onChange={(e) => setCat(e.target.value)}>
+          <option value="">{tr("كل التصنيفات")}</option>
+          {allCategoryOptions.map((c) => (
+            <option key={c}>{trv(c)}</option>
+          ))}
+        </select>
+        <select className="field" value={src} onChange={(e) => setSrc(e.target.value)}>
+          <option value="">{tr("كل المصادر")}</option>
+          {sourceNames.map((s) => (
+            <option key={s}>{trv(s)}</option>
+          ))}
+        </select>
+        <select
+          className="field"
+          value={state}
+          onChange={(e) => setState(e.target.value as typeof state)}
+        >
+          <option value="">{tr("كل الحالات")}</option>
+          <option value="hidden">{tr("المخفية")}</option>
+          <option value="pinned">{tr("المثبتة")}</option>
+          <option value="edited">{tr("المعدّلة")}</option>
+        </select>
+      </div>
+
+      {msg ? <p className="mb-3 rounded-3xl bg-paper p-3.5 font-bold shadow-[0_1px_3px_rgba(16,24,40,0.06)]">{trv(msg)}</p> : null}
+      {!items ? (
+        <p className="stamp p-4 font-semibold">{tr("جاري التحميل…")}</p>
+      ) : (
+        <>
+          <p className="mb-2 font-bold">
+            {trv(list.length)} {tr("من")} {trv(combinedItems.length)} {tr("خبر")}
+          </p>
+          <ul className="flex flex-col gap-3">
+            {list.slice(0, 150).map((i) => {
+              const ov = i.ov;
+              const breaking = ov?.breaking ?? i.breaking;
+              const href = i.kind === "news" ? `/news/${i.slug}` : `/israel-news/${i.slug}`;
+              return (
+                <li key={i.slug} className={`rounded-3xl bg-paper p-4 shadow-[0_1px_3px_rgba(16,24,40,0.06)] ${ov?.hidden ? "opacity-60" : ""}`}>
+                  <div className="flex flex-wrap gap-2">
+                    <span className="chip">{trv(effCat(i) || AUTO_KIND_LABELS[i.kind] || i.kind)}</span>
+                    <span className="chip">{trv(i.source)}</span>
+                    {ov?.hidden ? <span className="chip chip-ink">{tr("مخفي")}</span> : null}
+                    {ov?.pinned ? <span className="chip chip-ink">{tr("📌 مثبّت")}</span> : null}
+                    {breaking ? <span className="chip chip-alert">{tr("عاجل")}</span> : null}
+                  </div>
+                  {editing?.slug === i.slug ? (
+                    <form
+                      className="mt-2 flex flex-col gap-2"
+                      onSubmit={async (e) => {
+                        e.preventDefault();
+                        await save(i, { title: editing.title.trim() || null });
+                        setEditing(null);
+                      }}
+                    >
+                      <textarea
+                        className="field min-h-20"
+                        value={editing.title}
+                        maxLength={300}
+                        onChange={(e) => setEditing({ slug: i.slug, title: e.target.value })}
+                      />
+                      <div className="grid grid-cols-3 gap-2">
+                        <button type="submit" className="btn">
+                          {tr("حفظ")}
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-ghost"
+                          onClick={async () => {
+                            await save(i, { title: null });
+                            setEditing(null);
+                          }}
+                        >
+                          {tr("الأصلي")}
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-ghost"
+                          onClick={() => setEditing(null)}
+                        >
+                          {tr("إلغاء")}
+                        </button>
+                      </div>
+                    </form>
+                  ) : (
+                    <a
+                      href={href}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mt-2 block text-lg font-bold hover:underline"
+                    >
+                      {trv(ov?.title ?? i.title)}
+                    </a>
+                  )}
+                  {i.titleHe && i.titleHe !== (ov?.title ?? i.title) ? (
+                    <p className="mt-1 text-sm text-muted" dir="rtl" lang="he">
+                      {i.titleHe}
+                    </p>
+                  ) : null}
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      className={ov?.hidden ? "btn" : "btn btn-ghost"}
+                      disabled={busy === i.slug}
+                      onClick={() => void save(i, { hidden: !ov?.hidden })}
+                    >
+                      {ov?.hidden ? tr("إظهار") : tr("إخفاء")}
+                    </button>
+                    <button
+                      type="button"
+                      className={ov?.pinned ? "btn" : "btn btn-ghost"}
+                      disabled={busy === i.slug}
+                      onClick={() => void save(i, { pinned: !ov?.pinned })}
+                    >
+                      {ov?.pinned ? tr("إلغاء التثبيت") : tr("تثبيت بأعلى القائمة")}
+                    </button>
+                    {i.kind === "news" ? (
+                      <button
+                        type="button"
+                        className={breaking ? "btn" : "btn btn-ghost"}
+                        disabled={busy === i.slug}
+                        onClick={() => void save(i, { breaking: !breaking })}
+                      >
+                        {breaking ? tr("إلغاء عاجل") : tr("عاجل")}
+                      </button>
+                    ) : null}
+                    <button
+                      type="button"
+                      className="btn btn-ghost"
+                      onClick={() => setEditing({ slug: i.slug, title: ov?.title ?? i.title })}
+                    >
+                      {tr("تعديل العنوان")}
+                    </button>
+                    {i.kind === "news" ? (
+                      <select
+                        className="field w-auto"
+                        aria-label={tr("تصنيف الخبر")}
+                        value={effCat(i)}
+                        disabled={busy === i.slug}
+                        onChange={(e) =>
+                          void save(i, {
+                            category: e.target.value === i.category ? null : e.target.value,
+                          })
+                        }
+                      >
+                        {allCategoryOptions.map((c) => (
+                          <option key={c} value={c}>{trv(c)}</option>
+                        ))}
+                      </select>
+                    ) : null}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </>
+      )}
+    </>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* Upgraded GeminiAdmin («الذكاء الاصطناعي والترجمة») — Old Panel + All Secs  */
+/* -------------------------------------------------------------------------- */
+const GEMINI_USES = [
+  ["israel", "ترجمة أخبار إسرائيل (عبري ← عربي)"],
+  ["site", "ترجمة لغات الموقع (الواجهة والمحتوى)"],
+  ["auto", "ترجمة الأخبار التلقائية"],
+] as const;
+
+const GEMINI_PNAME = {
+  gemini: "Gemini",
+  grok: "Grok (xAI)",
+  microsoft: "Microsoft Translator",
+  mymemory: "MyMemory",
+} as const;
+
+function GeminiAdmin() {
+  const [s, setS] = useState<GeminiPublic | null>(null);
+  const [siteSettings, setSiteSettings] = useState<SiteSettings | null>(null);
+  const [dbSecs, setDbSecs] = useState<AdminSection[]>([]);
+  const [usage, setUsage] = useState<GeminiUsage | null>(null);
+  const [models, setModels] = useState<string[]>([]);
+  const [cache, setCache] = useState<{ lang: string; n: number }[]>([]);
+  const [key, setKey] = useState("");
+  const [grokKey, setGrokKey] = useState("");
+  const [azureKey, setAzureKey] = useState("");
+  const [grokModels, setGrokModels] = useState<string[]>([]);
+  const [testProv, setTestProv] = useState<"" | "gemini" | "grok" | "microsoft" | "mymemory">("");
+  const [msg, setMsg] = useState("");
+  const [testText, setTestText] = useState("مرحباً بكم في رهط بوست، أخبار رهط والنقب.");
+  const [testLang, setTestLang] = useState("en");
+  const [testOut, setTestOut] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const load = useCallback(async () => {
+    const [r, stRes, secRes] = await Promise.all([
+      adminGetGemini(),
+      adminGetSiteSettings().catch(() => ({ authed: false, settings: null })),
+      adminListSections().catch(() => ({ authed: false, sections: [] as AdminSection[] })),
+    ]);
+    if (!r.authed || !r.settings) return setMsg(tr("هذا القسم للمالك والمشرفين فقط."));
+    setS(r.settings);
+    setUsage(r.usage ?? null);
+    setModels(r.models ?? []);
+    setGrokModels(r.grokModels ?? []);
+    setCache(r.cache ?? []);
+    if (stRes.authed && stRes.settings) setSiteSettings(stRes.settings);
+    if (secRes.authed) setDbSecs(secRes.sections);
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const txSecsMap = useMemo(
+    () => parseAdminTxSecsMap(siteSettings?.quickLinks),
+    [siteSettings?.quickLinks],
+  );
+
+  const allHomeSectionsForTx = useMemo(() => {
+    const baseList = [
+      { id: "art-fashion", name: "فن و موضة", label: "ترجمة قسم فن و موضة (في الصفحة الرئيسية وداخل القسم)" },
+      { id: "news", name: "الأخبار المحلية", label: "ترجمة قسم الأخبار المحلية (في الصفحة الرئيسية)" },
+      { id: "sports", name: "رياضة", label: "ترجمة قسم الرياضة (في الصفحة الرئيسية)" },
+      { id: "tech", name: "أخبار تقنية", label: "ترجمة قسم أخبار التقنية (في الصفحة الرئيسية)" },
+      { id: "store", name: "المتجر والحراج", label: "ترجمة قسم المتجر والحراج (في الصفحة الرئيسية)" },
+    ];
+    for (const ds of dbSecs) {
+      if (
+        !["news", "israel", "sports", "tech", "weather", "art-fashion"].includes(ds.id) &&
+        !/فن|موضة/.test(ds.name)
+      ) {
+        baseList.push({
+          id: ds.id,
+          name: ds.name,
+          label: `ترجمة قسم ${ds.name} (في الصفحة الرئيسية)`,
+        });
+      }
+    }
+    return baseList;
+  }, [dbSecs]);
+
+  const toggleSecTx = async (secId: string, secName: string, nextVal: boolean) => {
+    if (!siteSettings) return;
+    const nextMap = { ...txSecsMap, [secId]: nextVal, [secName]: nextVal };
+    const nextLinks = encodeAdminTxSecsMap(siteSettings.quickLinks, nextMap);
+    const updatedSt = { ...siteSettings, quickLinks: nextLinks };
+    setSiteSettings(updatedSt);
+    await adminSaveSiteSettings({ data: updatedSt }).catch(() => null);
+  };
+
+  if (!s) return <p className="stamp p-4 font-semibold">{msg || tr("جاري التحميل…")}</p>;
+  const save = async (extra: { apiKey?: string; clearKey?: boolean; grokKey?: string; clearGrokKey?: boolean; azureKey?: string; clearAzureKey?: boolean } = {}) => {
+    setBusy(true);
+    const r = await adminSaveGemini({ data: { ...s, ...extra } });
+    setBusy(false);
+    setKey("");
+    setGrokKey("");
+    setAzureKey("");
+    setMsg(r.ok ? tr("تم الحفظ.") : trv(r.message ?? tr("تعذّر الحفظ.")));
+    if (r.ok) await load();
+  };
+  const test = async () => {
+    setTestOut(tr("جاري الاختبار…"));
+    const r = await adminTestGemini({ data: { text: testText, lang: testLang, provider: testProv } });
+    setTestOut(r.ok ? `${r.text}\n\n(${r.provider} · ${r.ms} ms)` : trv(r.message ?? tr("فشل الطلب.")));
+    await load();
+  };
+  const mv = (i: number, d: number) => {
+    const o = [...s.order];
+    [o[i], o[i + d]] = [o[i + d], o[i]];
+    setS({ ...s, order: o });
+  };
+  const langs = getI18nState().langs;
+  const modelList = models.includes(s.model) ? models : [s.model, ...models];
+  const totals = (usage?.today ?? []).reduce((a, u) => ({ calls: a.calls + u.calls, cached: a.cached + u.cached, errors: a.errors + u.errors }), { calls: 0, cached: 0, errors: 0 });
+
+  return (
+    <div className="flex flex-col gap-4">
+      <section className="stamp flex flex-col gap-3 p-4">
+        <h2 className="text-lg font-bold">{tr("الذكاء الاصطناعي والترجمة")}</h2>
+        <label className="flex items-center gap-2 font-bold">
+          <input type="checkbox" checked={s.enabled} onChange={(e) => setS({ ...s, enabled: e.target.checked })} />
+          {tr("تفعيل الترجمة بالذكاء الاصطناعي")}
+        </label>
+        <div className="flex flex-col gap-1.5 ps-6">
+          {GEMINI_USES.map(([k, label]) => (
+            <label key={k} className="flex items-center gap-2 text-sm font-semibold">
+              <input type="checkbox" disabled={!s.enabled} checked={s.uses[k]} onChange={(e) => setS({ ...s, uses: { ...s.uses, [k]: e.target.checked } })} />
+              {trv(label)}
+            </label>
+          ))}
+          {allHomeSectionsForTx.map((secItem) => {
+            const checked = isAdminSecTxOn(txSecsMap, secItem.id, secItem.name);
+            return (
+              <label key={secItem.id} className="flex items-center gap-2 text-sm font-semibold">
+                <input
+                  type="checkbox"
+                  disabled={!s.enabled}
+                  checked={checked}
+                  onChange={(e) => void toggleSecTx(secItem.id, secItem.name, e.target.checked)}
+                />
+                {trv(secItem.label)}
+              </label>
+            );
+          })}
+        </div>
+        <label className="flex flex-col gap-1 text-sm font-bold">
+          {tr("النموذج")}
+          <select className="field" value={s.model} dir="ltr" onChange={(e) => setS({ ...s, model: e.target.value })}>
+            {modelList.map((m) => (
+              <option key={m} value={m}>{m}</option>
+            ))}
+          </select>
+          {!models.length ? <span className="text-xs font-semibold text-muted">{tr("تعذّر جلب قائمة النماذج (تحقق من المفتاح).")}</span> : null}
+        </label>
+        <label className="flex flex-col gap-1 text-sm font-bold">
+          {tr("درجة الإبداع (Temperature): {0}", s.temperature)}
+          <input type="range" min={0} max={1} step={0.05} value={s.temperature} onChange={(e) => setS({ ...s, temperature: Number(e.target.value) })} />
+        </label>
+        <label className="flex flex-col gap-1 text-sm font-bold">
+          {tr("أسلوب الترجمة (تعليمات للنموذج)")}
+          <textarea className="field min-h-24" dir="auto" value={s.stylePrompt} onChange={(e) => setS({ ...s, stylePrompt: e.target.value })} />
+        </label>
+        <div className="flex flex-col gap-1 text-sm font-bold">
+          {tr("مفتاح API (اختياري)")}
+          <p className="text-xs font-semibold text-muted">
+            {s.hasOwnKey ? tr("يوجد مفتاح محفوظ ومشفّر.") : s.hasEnvKey ? tr("يُستخدم المفتاح من إعدادات الخادم (GEMINI_API_KEY).") : tr("لا يوجد مفتاح.")}
+          </p>
+          <div className="flex gap-2">
+            <input className="field flex-1" type="password" autoComplete="off" dir="ltr" placeholder="AIza…" value={key} onChange={(e) => setKey(e.target.value)} />
+            {s.hasOwnKey ? (
+              <button type="button" className="btn btn-ghost px-3" onClick={() => save({ clearKey: true })}>{tr("حذف المفتاح")}</button>
+            ) : null}
+          </div>
+        </div>
+        <div className="flex flex-col gap-2 text-sm font-bold">
+          {tr("ترتيب مزودي الترجمة (عند الفشل يُستخدم التالي)")}
+          {s.order.map((p, i) => (
+            <div key={p} className="flex items-center gap-2 rounded-xl bg-surface p-2">
+              <input type="checkbox" checked={s.providers[p]} onChange={(e) => setS({ ...s, providers: { ...s.providers, [p]: e.target.checked } })} />
+              <span className="flex-1" dir="ltr">{i + 1}. {GEMINI_PNAME[p]}</span>
+              <button type="button" className="btn btn-ghost px-2" disabled={i === 0} onClick={() => mv(i, -1)}>↑</button>
+              <button type="button" className="btn btn-ghost px-2" disabled={i === s.order.length - 1} onClick={() => mv(i, 1)}>↓</button>
+            </div>
+          ))}
+        </div>
+        <label className="flex flex-col gap-1 text-sm font-bold">
+          {tr("نموذج Grok")}
+          <select className="field" value={s.grokModel} dir="ltr" onChange={(e) => setS({ ...s, grokModel: e.target.value })}>
+            {(grokModels.includes(s.grokModel) ? grokModels : [s.grokModel, ...grokModels]).map((m) => (
+              <option key={m} value={m}>{m}</option>
+            ))}
+          </select>
+        </label>
+        <div className="flex flex-col gap-1 text-sm font-bold">
+          {tr("مفتاح xAI (اختياري)")}
+          <p className="text-xs font-semibold text-muted">
+            {s.hasGrokOwnKey ? tr("يوجد مفتاح محفوظ ومشفّر.") : s.hasGrokEnvKey ? tr("يُستخدم المفتاح من إعدادات الخادم (XAI_API_KEY).") : tr("لا يوجد مفتاح.")}
+          </p>
+          <div className="flex gap-2">
+            <input className="field flex-1" type="password" autoComplete="off" dir="ltr" placeholder="xai-…" value={grokKey} onChange={(e) => setGrokKey(e.target.value)} />
+            {s.hasGrokOwnKey ? (
+              <button type="button" className="btn btn-ghost px-3" onClick={() => save({ clearGrokKey: true })}>{tr("حذف المفتاح")}</button>
+            ) : null}
+          </div>
+        </div>
+        <div className="flex flex-col gap-1 text-sm font-bold">
+          {tr("مفتاح Microsoft Translator (اختياري)")}
+          <p className="text-xs font-semibold text-muted">
+            {s.hasAzureOwnKey ? tr("يوجد مفتاح محفوظ ومشفّر.") : s.hasAzureEnvKey ? tr("يُستخدم المفتاح من إعدادات الخادم (AZURE_TRANSLATOR_KEY).") : tr("لا يوجد مفتاح.")}
+          </p>
+          <div className="flex gap-2">
+            <input className="field flex-1" type="password" autoComplete="off" dir="ltr" placeholder="Azure key" value={azureKey} onChange={(e) => setAzureKey(e.target.value)} />
+            <input className="field w-36" dir="ltr" placeholder="region" value={s.azureRegion} onChange={(e) => setS({ ...s, azureRegion: e.target.value })} />
+            {s.hasAzureOwnKey ? (
+              <button type="button" className="btn btn-ghost px-3" onClick={() => save({ clearAzureKey: true })}>{tr("حذف المفتاح")}</button>
+            ) : null}
+          </div>
+        </div>
+        <label className="flex flex-col gap-1 text-sm font-bold">
+          {tr("بريد MyMemory (يرفع الحصة المجانية اليومية)")}
+          <input className="field" dir="ltr" type="email" value={s.myMemoryEmail} onChange={(e) => setS({ ...s, myMemoryEmail: e.target.value })} />
+        </label>
+        <div className="flex items-center gap-2">
+          <button type="button" className="btn" disabled={busy} onClick={() => save({ ...(key.trim() ? { apiKey: key } : {}), ...(grokKey.trim() ? { grokKey } : {}), ...(azureKey.trim() ? { azureKey } : {}) })}>{tr("حفظ")}</button>
+          {msg ? <p className="text-sm font-semibold" role="status">{trv(msg)}</p> : null}
+        </div>
+      </section>
+
+      <section className="stamp flex flex-col gap-3 p-4">
+        <h2 className="text-lg font-bold">{tr("صور الذكاء الاصطناعي للأخبار بلا صور")}</h2>
+        <p className="text-sm font-semibold text-muted">
+          {tr("الافتراضي: صورة بهوية رهط بوست (العنوان والشعار). عند التفعيل تُولَّد رسمة توضيحية عامة (بلا نصوص ولا وجوه حقيقية) في الخلفية، وعند أي خطأ تبقى الصورة الافتراضية.")}
+        </p>
+        <label className="flex items-center gap-2 font-bold">
+          <input type="checkbox" checked={s.aiImages.enabled} onChange={(e) => setS({ ...s, aiImages: { ...s.aiImages, enabled: e.target.checked } })} />
+          {tr("تفعيل صور الذكاء الاصطناعي")}
+        </label>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="flex flex-col gap-1 text-sm font-bold">
+            {tr("المزوّد")}
+            <select className="field" dir="ltr" value={s.aiImages.provider} onChange={(e) => setS({ ...s, aiImages: { ...s.aiImages, provider: e.target.value as "gemini" | "grok" } })}>
+              <option value="gemini">Gemini (image)</option>
+              <option value="grok">Grok (xAI image)</option>
+            </select>
+          </label>
+          <label className="flex flex-col gap-1 text-sm font-bold">
+            {tr("الحد اليومي للصور")}
+            <input className="field" type="number" min={0} max={500} value={s.aiImages.dailyCap} onChange={(e) => setS({ ...s, aiImages: { ...s.aiImages, dailyCap: Number(e.target.value) } })} />
+          </label>
+        </div>
+        <button type="button" className="btn self-start" disabled={busy} onClick={() => save()}>{tr("حفظ")}</button>
+      </section>
+
+      <section className="stamp flex flex-col gap-3 p-4">
+        <h2 className="text-lg font-bold">{tr("تجربة")}</h2>
+        <textarea className="field min-h-20" dir="auto" value={testText} onChange={(e) => setTestText(e.target.value)} />
+        <div className="flex gap-2">
+          <select className="field w-auto" value={testLang} onChange={(e) => setTestLang(e.target.value)}>
+            {[...langs.map((l) => [l.code, l.name]), ...(langs.some((l) => l.code === "fr") ? [] : [["fr", "Français"]])].map(([c, n]) => (
+              <option key={c} value={c}>{n}</option>
+            ))}
+          </select>
+          <select className="field w-auto" dir="ltr" value={testProv} onChange={(e) => setTestProv(e.target.value as typeof testProv)}>
+            <option value="">{tr("السلسلة")}</option>
+            {s.order.map((p) => <option key={p} value={p}>{GEMINI_PNAME[p]}</option>)}
+          </select>
+          <button type="button" className="btn" onClick={test}>{tr("ترجم")}</button>
+        </div>
+        {testOut ? <pre className="whitespace-pre-wrap rounded-xl bg-surface p-3 text-sm" dir="auto">{testOut}</pre> : null}
+      </section>
+
+      <section className="stamp flex flex-col gap-3 p-4">
+        <h2 className="text-lg font-bold">{tr("الاستخدام اليوم")}</h2>
+        <div className="grid grid-cols-3 gap-2 text-center">
+          <div className="rounded-xl bg-surface p-3"><p className="text-2xl font-bold">{totals.calls}</p><p className="text-xs font-semibold text-muted">{tr("طلبات")}</p></div>
+          <div className="rounded-xl bg-surface p-3"><p className="text-2xl font-bold">{totals.cached}</p><p className="text-xs font-semibold text-muted">{tr("من الذاكرة")}</p></div>
+          <div className="rounded-xl bg-surface p-3"><p className="text-2xl font-bold">{totals.errors}</p><p className="text-xs font-semibold text-muted">{tr("أخطاء")}</p></div>
+        </div>
+        {usage?.today.length ? (
+          <ul className="text-sm font-semibold">
+            {usage.today.map((u) => (
+              <li key={u.kind}>{u.kind}: {u.calls} / {u.cached} / {u.errors}</li>
+            ))}
+          </ul>
+        ) : null}
+        <h3 className="font-bold">{tr("آخر الأخطاء")}</h3>
+        {usage?.errors.length ? (
+          <ul className="flex flex-col gap-1 text-xs" dir="ltr">
+            {usage.errors.map((e, i) => (
+              <li key={i} className="rounded-lg bg-surface p-2"><b>{e.at.slice(0, 19)} · {e.kind}</b> {e.message}</li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-sm font-semibold text-muted">{tr("لا توجد أخطاء.")}</p>
+        )}
+      </section>
+
+      <section className="stamp flex flex-col gap-3 p-4">
+        <h2 className="text-lg font-bold">{tr("ذاكرة الترجمة")}</h2>
+        {langs.filter((l) => l.code !== "ar").map((l) => (
+          <div key={l.code} className="flex items-center gap-2 text-sm font-semibold">
+            <span className="flex-1">{l.name} · {tr("{0} نص محفوظ", cache.find((c) => c.lang === l.code)?.n ?? 0)}</span>
+            <button
+              type="button"
+              className="btn btn-ghost px-3"
+              onClick={async () => {
+                if (!confirm(tr("حذف الترجمات الآلية المحفوظة لهذه اللغة؟ (التعديلات اليدوية تبقى)"))) return;
+                const r = await adminClearLangCache({ data: l.code });
+                setMsg(tr("حُذف {0} ترجمة محفوظة.", r.n));
+                await load();
+              }}
+            >
+              {tr("مسح")}
+            </button>
+          </div>
+        ))}
+      </section>
     </div>
   );
 }

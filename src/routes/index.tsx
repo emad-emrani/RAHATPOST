@@ -33,7 +33,8 @@ import { getStore } from "@/lib/store/api";
 import { ProductCard } from "@/components/store-parts";
 import type { ListAd } from "@/lib/ads/display";
 import { organizationLd, seo, websiteLd } from "@/lib/seo";
-import { tr, trv } from "@/lib/i18n/core";
+import { getLang, tr, trv } from "@/lib/i18n/core";
+import { localizeTexts } from "@/lib/i18n/api";
 import { localized, localizedIsrael } from "@/lib/i18n/localize";
 
 const postGuide = getGuide("post");
@@ -66,14 +67,15 @@ export const Route = createFileRoute("/")({
       matchesForHome(),
       getCustomSectionsNews().catch(() => [] as CustomSectionResult[]),
     ]);
-    const [lNews, lIsrael, lStore, lTech, lSports] = await Promise.all([
+    const [lNews, lIsrael, lStore, lTech, lSports, lCustomSecs] = await Promise.all([
       localized(news, (d) => [{ items: d.items, fields: ["title", "summary", "body"] }], "auto"),
       localizedIsrael(israel, (d) => d?.items ?? []),
       localized(store, (d) => [{ items: d.products, fields: ["name", "shortDesc", "description"] }, { items: d.categories, fields: ["name", "description"] }]),
       tech ? localized(tech, (d) => [{ items: d.items.slice(0, 5), fields: ["title", "summary"] }], "auto") : null,
       sports ? localized(sports, (d) => [{ items: d.items.slice(0, 5), fields: ["title", "summary"] }], "auto") : null,
+      localized(customSecs, (secs) => secs.map((s) => ({ items: s.items.slice(0, 10), fields: ["title", "summary", "body"] })), "auto"),
     ]);
-    return { news: lNews, approved: approved.entries, ads, israel: lIsrael, weather, board, store: lStore, tech: lTech, sports: lSports, flags, matches, customSecs };
+    return { news: lNews, approved: approved.entries, ads, israel: lIsrael, weather, board, store: lStore, tech: lTech, sports: lSports, flags, matches, customSecs: lCustomSecs };
   },
   // New items must show up within a minute or two: short CDN cache, revalidated in the background.
   headers: () => ({ "Cache-Control": HOME_CACHE }),
@@ -418,8 +420,21 @@ function Home() {
   const ranked = useMemo(() => staggerSectionItems(newestFirst(news.items), 0), [news.items]);
   const breaking = news.items.find((item) => item.breaking);
   const israelBreaking = israelItems.find((item) => item.breaking);
-  const top = ranked[0];
-  const remaining = ranked.slice(1);
+  const txMapHome = useMemo(() => parseTxSecsMap(settings.quickLinks), [settings.quickLinks]);
+  const { resolvedItems: rankedTx } = useTranslatedNewsList(
+    ranked.slice(0, 10),
+    isSectionTxEnabled(txMapHome, "news", "الأخبار المحلية"),
+  );
+  const { resolvedItems: sportsTopTx } = useTranslatedNewsList(
+    sportsTop,
+    isSectionTxEnabled(txMapHome, "sports", "رياضة"),
+  );
+  const { resolvedItems: techTopTx } = useTranslatedNewsList(
+    techTop,
+    isSectionTxEnabled(txMapHome, "tech", "أخبار تقنية"),
+  );
+  const top = rankedTx[0] ?? ranked[0];
+  const remaining = rankedTx.slice(1);
   const lead = remaining[0] ?? top;
   const rest = remaining.slice(1, 7);
 
@@ -564,51 +579,11 @@ function Home() {
   const customSectionBlocks: Record<string, ReactNode> = {};
   for (const cs of visibleCustomSections) {
     const blockEl = (
-      <section key={cs.id}>
-        <SectionTitle
-          title={trv(cs.name)}
-          to="/news"
-          more={tr("كل الأخبار")}
-        />
-        {cs.items.length > 0 ? (
-          <div className="grid gap-4 lg:grid-cols-12">
-            <div className="lg:col-span-6">
-              <NewsLead item={cs.items[0]} now={now} />
-            </div>
-            {cs.items.length > 1 ? (
-              <ul className="stack-list lg:col-span-6">
-                {cs.items.slice(1, 6).map((item) => (
-                  <li key={item.slug}>
-                    <Link
-                      to="/news/$slug"
-                      params={{ slug: item.slug }}
-                      className="flex items-center gap-3 px-4 py-3 transition hover:bg-surface/60"
-                    >
-                      <NewsImage item={item} className="size-16 rounded-xl" />
-                      <span className="min-w-0 flex-1">
-                        <span className="block font-bold leading-snug">
-                          {trv(item.title)}
-                        </span>
-                        <span className="text-sm font-semibold text-muted">
-                          {trv(item.category)} ·{" "}
-                          {relativeTimeAr(item.publishedAt, now)} ·{" "}
-                          {newsByline(item)}
-                        </span>
-                      </span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            ) : null}
-          </div>
-        ) : (
-          <p className="stamp p-4 text-sm font-semibold text-muted">
-            {tr(
-              "قسم جديد — يمكنك نشر أخبار في هذا القسم من لوحة التحكم ← نشر خبر جديد.",
-            )}
-          </p>
-        )}
-      </section>
+      <CustomSectionTranslatedBlock
+        key={cs.id}
+        cs={cs}
+        now={now}
+      />
     );
     customSectionBlocks[`csec~${cs.rawName}`] = blockEl;
     customSectionBlocks[`csec~${cs.id}`] = blockEl;
@@ -684,15 +659,15 @@ function Home() {
     ),
     matches: <HomeMatchesWidget initial={matches} />,
     sports:
-      sportsTop.length > 0 ? (
+      sportsTopTx.length > 0 ? (
         <section>
           <SectionTitle title={tr("رياضة")} to="/sports-news" more={tr("عرض الكل")} />
           <div className="grid gap-4 lg:grid-cols-12">
             <div className="lg:col-span-6">
-              <NewsLead item={sportsTop[0]} now={now} />
+              <NewsLead item={sportsTopTx[0]} now={now} />
             </div>
             <ul className="stack-list lg:col-span-6">
-              {sportsTop.slice(1).map((item) => (
+              {sportsTopTx.slice(1).map((item) => (
                 <li key={item.slug}>
                   <Link to="/news/$slug" params={{ slug: item.slug }} className="flex items-center gap-3 px-4 py-3 transition hover:bg-surface/60">
                     <NewsImage item={item} className="size-16 rounded-xl" />
@@ -710,15 +685,15 @@ function Home() {
         </section>
       ) : null,
     tech:
-      techTop.length > 0 ? (
+      techTopTx.length > 0 ? (
         <section>
           <SectionTitle title={tr("أخبار تقنية")} to="/tech-news" more={tr("عرض الكل")} />
           <div className="grid gap-4 lg:grid-cols-12">
             <div className="lg:col-span-6">
-              <NewsLead item={techTop[0]} now={now} />
+              <NewsLead item={techTopTx[0]} now={now} />
             </div>
             <ul className="stack-list lg:col-span-6">
-              {techTop.slice(1).map((item) => (
+              {techTopTx.slice(1).map((item) => (
                 <li key={item.slug}>
                   <Link to="/news/$slug" params={{ slug: item.slug }} className="flex items-center gap-3 px-4 py-3 transition hover:bg-surface/60">
                     <NewsImage item={item} className="size-16 rounded-xl" />
@@ -1082,6 +1057,264 @@ function Home() {
   );
 }
 
+const CUSTOM_SECTION_DICT: Record<string, { ar: string; he: string; en: string }> = {
+  "فن و موضة": { ar: "فن و موضة", he: "אמנות ואופנה", en: "Art & Fashion" },
+  "فن وموضة": { ar: "فن وموضة", he: "אמנות ואופנה", en: "Art & Fashion" },
+  "ثقافة وفن": { ar: "ثقافة وفن", he: "תרבות ואמנות", en: "Culture & Art" },
+  "فن وثقافة": { ar: "فن وثقافة", he: "אמנות ותרבות", en: "Art & Culture" },
+  "موضة": { ar: "موضة", he: "אופנה", en: "Fashion" },
+  "فن": { ar: "فن", he: "אמנות", en: "Art" },
+  "مشاهير": { ar: "مشاهير", he: "סלבס ובידור", en: "Celebrities" },
+  "الذكاء": { ar: "الذكاء", he: "בינה מלאכותית", en: "AI" },
+  "ذكاء اصطناعي": { ar: "ذكاء اصطناعي", he: "בינה מלאכותית", en: "Artificial Intelligence" },
+  "نتفليكس": { ar: "نتفليكس", he: "נטפליקס", en: "Netflix" },
+  "أخبار محلية": { ar: "أخبار محلية", he: "חדשות מקומיות", en: "Local News" },
+};
+
+function trSecLabel(raw: string, overrideLang?: string): string {
+  if (!raw) return "";
+  const trimmed = raw.trim();
+  const emojiMatch = trimmed.match(/^([\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}\s]+)(.+)$/u);
+  const prefix = emojiMatch ? emojiMatch[1] : "";
+  const core = (emojiMatch ? emojiMatch[2] : trimmed).trim();
+  const lang = overrideLang || getLang() || "ar";
+  const entry = CUSTOM_SECTION_DICT[core];
+  if (entry && (lang === "ar" || lang === "he" || lang === "en")) {
+    return `${prefix}${entry[lang]}`;
+  }
+  if (lang === "ar") return trimmed;
+  const byDict = trv(core);
+  if (byDict !== core) return `${prefix}${byDict}`;
+  return trv(trimmed);
+}
+
+function detectSourceLang(text: string): "ar" | "he" | "en" {
+  if (/[\u0590-\u05FF]/.test(text)) return "he";
+  if (/[\u0600-\u06FF]/.test(text)) return "ar";
+  return "en";
+}
+
+const clientTxMemoryCache = new Map<string, string>();
+
+async function translateSingleTextClient(text: string, targetLang: "ar" | "he" | "en"): Promise<string> {
+  const clean = text.trim();
+  if (!clean) return "";
+  const srcLang = detectSourceLang(clean);
+  if (srcLang === targetLang) return clean;
+
+  const cacheKey = `rp_tx_${srcLang}_${targetLang}_${clean.slice(0, 120)}`;
+  const mem = clientTxMemoryCache.get(cacheKey);
+  if (mem) return mem;
+  if (typeof window !== "undefined") {
+    try {
+      const saved = window.localStorage.getItem(cacheKey);
+      if (saved) {
+        clientTxMemoryCache.set(cacheKey, saved);
+        return saved;
+      }
+    } catch {
+      // ignore storage errors
+    }
+  }
+
+  // 1. Try server localizeTexts first if source is Arabic and target is he/en
+  if (srcLang === "ar" && targetLang !== "ar") {
+    try {
+      const srvOut = await localizeTexts({ data: { lang: targetLang, texts: [clean], kind: "auto" } });
+      if (Array.isArray(srvOut) && srvOut[0] && srvOut[0].trim() !== clean) {
+        const resText = srvOut[0].trim();
+        clientTxMemoryCache.set(cacheKey, resText);
+        if (typeof window !== "undefined") {
+          try { window.localStorage.setItem(cacheKey, resText); } catch {}
+        }
+        return resText;
+      }
+    } catch {
+      // fallback to MyMemory below
+    }
+  }
+
+  // 2. Fallback to MyMemory free translation API (supports he->ar, en->ar, ar->he, ar->en)
+  try {
+    const params = new URLSearchParams({
+      q: clean.slice(0, 450),
+      langpair: `${srcLang}|${targetLang}`,
+    });
+    const res = await fetch(`https://api.mymemory.translated.net/get?${params.toString()}`);
+    if (res.ok) {
+      const json = (await res.json()) as { responseData?: { translatedText?: string } };
+      const out = json?.responseData?.translatedText?.trim();
+      if (out && !out.includes("MYMEMORY WARNING")) {
+        clientTxMemoryCache.set(cacheKey, out);
+        if (typeof window !== "undefined") {
+          try { window.localStorage.setItem(cacheKey, out); } catch {}
+        }
+        return out;
+      }
+    }
+  } catch {
+    // keep original on network error
+  }
+  return clean;
+}
+
+function parseTxSecsMap(quickLinks: { id: string; subtitle?: string }[] | undefined): Record<string, boolean> {
+  const item = (quickLinks ?? []).find((q) => q.id === "txsecscfg");
+  const map: Record<string, boolean> = {};
+  if (!item?.subtitle) return map;
+  for (const part of item.subtitle.split(",")) {
+    const [k, v] = part.split(":");
+    if (k) map[k.trim()] = v !== "0";
+  }
+  return map;
+}
+
+function isSectionTxEnabled(
+  map: Record<string, boolean>,
+  secKey: string,
+  rawName?: string,
+): boolean {
+  if (rawName && rawName in map) return map[rawName];
+  if (secKey in map) return map[secKey];
+  if (rawName && /فن|موضة/.test(rawName) && "art-fashion" in map) return map["art-fashion"];
+  return true; // enabled by default unless turned off in /admin
+}
+
+function useTranslatedNewsList(items: NewsItem[], enabled = true) {
+  const siteLang = getLang();
+  const targetLang: "ar" | "he" | "en" =
+    siteLang === "he" ? "he" : siteLang === "en" ? "en" : "ar";
+  const [translatedMap, setTranslatedMap] = useState<Record<string, { title: string; summary: string; category: string }>>({});
+
+  useEffect(() => {
+    if (!enabled || items.length === 0) return;
+    let active = true;
+    const toTranslate = items.slice(0, 10).filter((it) => {
+      const key = `${it.slug}_${targetLang}`;
+      if (translatedMap[key]) return false;
+      const detected = detectSourceLang(it.title);
+      return detected !== targetLang;
+    });
+
+    if (toTranslate.length === 0) return;
+
+    void (async () => {
+      const nextEntries: Record<string, { title: string; summary: string; category: string }> = {};
+      await Promise.all(
+        toTranslate.map(async (it) => {
+          const [tTitle, tSummary] = await Promise.all([
+            translateSingleTextClient(it.title, targetLang),
+            it.summary ? translateSingleTextClient(it.summary, targetLang) : Promise.resolve(""),
+          ]);
+          nextEntries[`${it.slug}_${targetLang}`] = {
+            title: tTitle || it.title,
+            summary: tSummary || it.summary,
+            category: trSecLabel(it.category, targetLang),
+          };
+        }),
+      );
+      if (active) {
+        setTranslatedMap((prev) => ({ ...prev, ...nextEntries }));
+      }
+    })();
+
+    return () => {
+      active = false;
+    };
+  }, [items, targetLang, enabled]);
+
+  const resolvedItems = useMemo(() => {
+    if (!enabled) return items;
+    return items.map((it) => {
+      const hit = translatedMap[`${it.slug}_${targetLang}`];
+      if (!hit) {
+        return {
+          ...it,
+          category: trSecLabel(it.category, targetLang),
+        };
+      }
+      return {
+        ...it,
+        title: hit.title,
+        summary: hit.summary,
+        category: hit.category,
+      };
+    });
+  }, [items, translatedMap, targetLang, enabled]);
+
+  return { resolvedItems };
+}
+
+function CustomSectionTranslatedBlock({
+  cs,
+  now,
+}: {
+  cs: {
+    id: string;
+    rawName: string;
+    name: string;
+    home: boolean;
+    items: NewsItem[];
+    icon: string;
+    url: string;
+  };
+  now: number;
+}) {
+  const settings = useSiteSettings();
+  const txMap = useMemo(() => parseTxSecsMap(settings.quickLinks), [settings.quickLinks]);
+  const txEnabled = isSectionTxEnabled(txMap, cs.id, cs.rawName);
+  const { resolvedItems } = useTranslatedNewsList(cs.items, txEnabled);
+  const displayTitle = txEnabled ? trSecLabel(cs.name) : cs.name;
+
+  return (
+    <section>
+      <SectionTitle
+        title={displayTitle}
+        to="/news"
+        more={tr("كل الأخبار")}
+      />
+      {resolvedItems.length > 0 ? (
+        <div className="grid gap-4 lg:grid-cols-12">
+          <div className="lg:col-span-6">
+            <NewsLead item={resolvedItems[0]} now={now} />
+          </div>
+          {resolvedItems.length > 1 ? (
+            <ul className="stack-list lg:col-span-6">
+              {resolvedItems.slice(1, 6).map((item) => (
+                <li key={item.slug}>
+                  <Link
+                    to="/news/$slug"
+                    params={{ slug: item.slug }}
+                    className="flex items-center gap-3 px-4 py-3 transition hover:bg-surface/60"
+                  >
+                    <NewsImage item={item} className="size-16 rounded-xl" />
+                    <span className="min-w-0 flex-1">
+                      <span dir="auto" className="block font-bold leading-snug">
+                        {trv(item.title)}
+                      </span>
+                      <span className="text-sm font-semibold text-muted">
+                        {txEnabled ? trSecLabel(item.category) : item.category} ·{" "}
+                        {relativeTimeAr(item.publishedAt, now)} ·{" "}
+                        {newsByline(item)}
+                      </span>
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
+      ) : (
+        <p className="stamp p-4 text-sm font-semibold text-muted">
+          {tr(
+            "قسم جديد — يمكنك نشر أخبار في هذا القسم من لوحة التحكم ← نشر خبر جديد.",
+          )}
+        </p>
+      )}
+    </section>
+  );
+}
+
 function SearchResults({
   query,
   results,
@@ -1094,23 +1327,30 @@ function SearchResults({
     israel: IsraelNewsItem[];
   };
 }) {
+  const settings = useSiteSettings();
+  const txMap = useMemo(() => parseTxSecsMap(settings.quickLinks), [settings.quickLinks]);
+  const txEnabled = isSectionTxEnabled(txMap, query, query);
+  const { resolvedItems: translatedNews } = useTranslatedNewsList(results.news, txEnabled);
+
   const empty =
-    results.news.length + results.places.length + results.ads.length + results.israel.length === 0;
+    translatedNews.length + results.places.length + results.ads.length + results.israel.length === 0;
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-2xl font-bold">{tr("نتائج «")}{trv(query)}»</h1>
+      <h1 className="text-2xl font-bold">
+        {tr("نتائج «")}{txEnabled ? trSecLabel(query) : query}»
+      </h1>
       {empty ? (
         <p className="stamp p-4 font-semibold">{tr("لا توجد نتيجة. جرّب اسماً أو حياً أو تصنيفاً.")}</p>
       ) : null}
-      {results.news.map((item) => (
+      {translatedNews.map((item) => (
         <Link
           key={item.slug}
           to="/news/$slug"
           params={{ slug: item.slug }}
           className="stamp press block p-4"
         >
-          <span className="chip chip-deep">{trv(item.category)}</span>
-          <span className="mt-2 block font-bold">{trv(item.title)}</span>
+          <span className="chip chip-deep">{txEnabled ? trSecLabel(item.category) : item.category}</span>
+          <span dir="auto" className="mt-2 block font-bold">{trv(item.title)}</span>
           <span className="text-sm font-semibold text-muted">{trv(item.source)}</span>
         </Link>
       ))}
@@ -3221,7 +3461,7 @@ function HomeTilesBar({
               ) : null}
             </span>
             <span className={isLiveTile && liveTileGlow ? "font-extrabold text-[#DC2626]" : ""}>
-              {t.to === "/haraj" ? trv(st.texts.harajNav) : trv(t.label)}
+              {t.to === "/haraj" ? trv(st.texts.harajNav) : trSecLabel(t.label)}
             </span>
           </Link>
         );
@@ -3238,6 +3478,7 @@ function HomeQuickLinks() {
       l.id !== "topbarcfg" &&
       l.id !== "botbarcfg" &&
       l.id !== "botbarcss" &&
+      l.id !== "txsecscfg" &&
       !l.id.startsWith("sec") &&
       l.subtitle !== " مَخفي",
   );
@@ -3591,7 +3832,7 @@ ${userExtraCss}`}</style>
                   }
                 >
                   <Icon className="size-5" aria-hidden />
-                  <span className="truncate">{trv(item.label)}</span>
+                  <span className="truncate">{trSecLabel(item.label)}</span>
                 </Link>
               );
             }
@@ -3609,7 +3850,7 @@ ${userExtraCss}`}</style>
                   }}
                 >
                   <Icon className="size-5" aria-hidden />
-                  <span className="truncate">{trv(item.label)}</span>
+                  <span className="truncate">{trSecLabel(item.label)}</span>
                 </Link>
               );
             }
@@ -3627,7 +3868,7 @@ ${userExtraCss}`}</style>
                   }}
                 >
                   <Icon className="size-4" aria-hidden />
-                  <span className="truncate">{trv(item.label)}</span>
+                  <span className="truncate">{trSecLabel(item.label)}</span>
                 </Link>
               );
             }
@@ -3647,7 +3888,7 @@ ${userExtraCss}`}</style>
                   <span className="grid size-8 place-items-center rounded-xl bg-surface/80">
                     <Icon className="size-5" aria-hidden />
                   </span>
-                  <span className="truncate">{trv(item.label)}</span>
+                  <span className="truncate">{trSecLabel(item.label)}</span>
                 </Link>
               );
             }
@@ -3665,7 +3906,7 @@ ${userExtraCss}`}</style>
                   }}
                 >
                   <Icon className="size-4" aria-hidden />
-                  <span className="truncate">{trv(item.label)}</span>
+                  <span className="truncate">{trSecLabel(item.label)}</span>
                 </Link>
               );
             }
@@ -3680,7 +3921,7 @@ ${userExtraCss}`}</style>
                 <span className="tab-icon">
                   <Icon className="size-5" aria-hidden />
                 </span>
-                {item.to === "/haraj" ? trv(st.texts.harajNav) : trv(item.label)}
+                {item.to === "/haraj" ? trv(st.texts.harajNav) : trSecLabel(item.label)}
               </Link>
             );
           })}
