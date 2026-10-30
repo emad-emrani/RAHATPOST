@@ -11,7 +11,8 @@ import {
   TranslationChip,
   imageItem,
 } from "@/components/israel-news";
-import { getIsraelNewsItem } from "@/lib/news/israel-api";
+import { getIsraelNews, getIsraelNewsItem } from "@/lib/news/israel-api";
+import type { IsraelNewsItem, IsraelNewsResult } from "@/lib/news/types";
 import { relativeTimeAr, useNow } from "@/lib/news/format";
 import { breadcrumbLd, newsArticleLd, seo, snippet } from "@/lib/seo";
 import { getLang, tr, trv } from "@/lib/i18n/core";
@@ -192,10 +193,36 @@ function IsraelImageLightbox({
 
 export const Route = createFileRoute("/israel-news/$slug")({
   loader: async ({ params }) => {
+    const fallbackRes = (): IsraelNewsResult => ({
+      items: [],
+      now: Date.now(),
+      fetchedAt: null,
+      failedSources: [],
+      mode: "mymemory",
+    });
+
+    let rawData: { result: IsraelNewsResult; item: IsraelNewsItem | null };
+    if (/^il-[a-z0-9]+-[a-z0-9]{4,20}$/.test(params.slug)) {
+      rawData = await getIsraelNewsItem({ data: params.slug }).catch(async () => {
+        const res = await getIsraelNews().catch(fallbackRes);
+        return {
+          result: res,
+          item: res.items.find((i) => i.slug === params.slug) ?? null,
+        };
+      });
+    } else {
+      const res = await getIsraelNews().catch(fallbackRes);
+      rawData = {
+        result: res,
+        item: res.items.find((i) => i.slug === params.slug) ?? null,
+      };
+    }
+
     const { result, item } = await localizedIsrael(
-      await getIsraelNewsItem({ data: params.slug }),
+      rawData,
       (d) => [d.item, ...d.result.items],
-    );
+    ).catch(() => rawData);
+
     return {
       now: result.now,
       empty: result.items.length === 0,
