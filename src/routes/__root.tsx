@@ -16,6 +16,7 @@ import {
   Newspaper,
   Plus,
   Siren,
+  Sparkles,
   Store,
   Trophy,
   Tv,
@@ -49,6 +50,7 @@ const BOT_ICON_MAP: Record<string, LucideIcon> = {
   store: Store,
   globe: Globe,
   cpu: Cpu,
+  sparkles: Sparkles,
   plus: Plus,
 };
 
@@ -75,7 +77,7 @@ function fromBase64Url(b64u: string): string {
   try {
     const b64 = b64u.replace(/-/g, "+").replace(/_/g, "/");
     const pad = b64.length % 4 === 0 ? "" : "=".repeat(4 - (b64.length % 4));
-    const bin = typeof atob === "function" ? atob(b64 + pad) : Buffer.from(b64 + pad, "base64").toString("binary");
+    const bin = typeof atob === "function" ? atob(b64 + pad) : "";
     const bytes = new Uint8Array(bin.length);
     for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
     return new TextDecoder().decode(bytes);
@@ -409,7 +411,8 @@ const NO_ADSENSE_PATHS = /^\/(admin|login|reset-password|app-auth|my-|cart|order
 
 function RootComponent() {
   const { settings, i18n } = Route.useLoaderData();
-  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const location = useLocation();
+  const pathname = location.pathname || "/";
   setI18nState(i18n);
   const css = themeCss(settings.theme);
   const defLang = i18n.langs.find((l) => l.isDefault)?.code ?? "ar";
