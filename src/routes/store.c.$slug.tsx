@@ -39,7 +39,8 @@ export const Route = createFileRoute("/store/c/$slug")({
 });
 
 function SectionPage() {
-  const { section, parent, children, products, settings } = Route.useLoaderData();
+  const { section, parent, children, products: rawProducts, settings } = Route.useLoaderData();
+  const products = (rawProducts ?? []).filter((p) => p.slug !== "hub-cfg-main" && !p.slug.startsWith("offer-"));
   if (!section) return null;
   return (
     <Shell>

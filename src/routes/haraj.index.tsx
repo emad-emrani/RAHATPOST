@@ -1,20 +1,18 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   BadgeCheck,
-  Crown,
-  Megaphone,
-  MessageCircle,
+  ExternalLink,
+  Flame,
+  LayoutGrid,
+  Package,
   Plus,
   Search,
   ShoppingBag,
-  ShoppingCart,
   Sparkles,
-  Store,
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { ListingCard, useHarajName } from "@/components/haraj";
 import { Shell } from "@/components/shell";
-import { ProductCard, SectionTile, StoreFooterLinks } from "@/components/store-parts";
 import { tr, trv } from "@/lib/i18n/core";
 import { localized } from "@/lib/i18n/localize";
 import { getHarajCategories, getListings } from "@/lib/market/api";
@@ -27,12 +25,11 @@ import {
   type HarajCategory,
   type SpecFilter,
 } from "@/lib/market/categories";
-import { CONDITIONS, type Listing } from "@/lib/market/types";
+import { CONDITIONS } from "@/lib/market/types";
+import { mediaUrl } from "@/lib/media/types";
 import { breadcrumbLd, seo } from "@/lib/seo";
 import { getStore } from "@/lib/store/api";
-import { waDigits } from "@/lib/store/types";
-
-type HubSectionMode = "all" | "store" | "merchants" | "individuals" | "packages";
+import { formatPrice, type Currency, type PublicProduct } from "@/lib/store/types";
 
 type S = {
   q?: string;
@@ -40,17 +37,73 @@ type S = {
   cond?: string;
   min?: number;
   max?: number;
-  sec?: HubSectionMode;
   f?: SpecFilter;
 };
 
-const VALID_SECS: readonly HubSectionMode[] = [
-  "all",
-  "store",
-  "merchants",
-  "individuals",
-  "packages",
-];
+export type MerchantPromoOffer = {
+  id: string;
+  title: string;
+  merchantName: string;
+  greenRibbonText: string;
+  priceLabelText: string;
+  targetUrl: string;
+  imageKey: string | null;
+};
+
+export function extractMerchantPromoOffers(
+  products: PublicProduct[],
+  currency: Currency = "ILS",
+  defaultRibbon = "عرض تاجر موثّق ✓",
+): MerchantPromoOffer[] {
+  return products
+    .filter((p) => p.slug.startsWith("offer-"))
+    .map((p) => {
+      const customUrl = p.shortDesc?.trim() || "/store";
+      const ribbon = p.badges?.[0]?.trim() || defaultRibbon;
+      const customPrice =
+        p.badges?.[1]?.trim() ||
+        (p.priceAgorot > 0
+          ? formatPrice(p.saleAgorot ?? p.priceAgorot, currency)
+          : "");
+      return {
+        id: p.id,
+        title: p.name,
+        merchantName: p.description?.trim() || "متجر معتمد في رهط",
+        greenRibbonText: ribbon,
+        priceLabelText: customPrice,
+        targetUrl: customUrl,
+        imageKey: p.imageKey,
+      };
+    });
+}
+
+export function extractHubConfig(products: PublicProduct[]): {
+  greenSectionTitle: string;
+  greenBadgeDefault: string;
+  merchantUsers: string[];
+} {
+  const cfgRow = products.find((p) => p.slug === "hub-cfg-main");
+  const fallback = {
+    greenSectionTitle: "عروض المتاجر وتجار رهط الموثّقين",
+    greenBadgeDefault: "عرض تاجر موثّق ✓",
+    merchantUsers: [] as string[],
+  };
+  if (!cfgRow?.description) return fallback;
+  try {
+    const parsed = JSON.parse(cfgRow.description) as Partial<typeof fallback>;
+    return {
+      greenSectionTitle:
+        parsed.greenSectionTitle?.trim() || fallback.greenSectionTitle,
+      greenBadgeDefault:
+        parsed.greenBadgeDefault?.trim() || fallback.greenBadgeDefault,
+      merchantUsers: Array.isArray(parsed.merchantUsers)
+        ? parsed.merchantUsers.map((x) => String(x).trim().toLowerCase())
+        : [],
+    };
+  } catch {
+    return fallback;
+  }
+}
 
 export const Route = createFileRoute("/haraj/")({
   validateSearch: (s: Record<string, unknown>): S => ({
@@ -61,9 +114,6 @@ export const Route = createFileRoute("/haraj/")({
       : undefined,
     min: Number(s.min) > 0 ? Number(s.min) : undefined,
     max: Number(s.max) > 0 ? Number(s.max) : undefined,
-    sec: VALID_SECS.includes(s.sec as HubSectionMode)
-      ? (s.sec as HubSectionMode)
-      : undefined,
     f: cleanFilter(s.f),
   }),
   loader: async () => {
@@ -80,688 +130,399 @@ export const Route = createFileRoute("/haraj/")({
   },
   head: () =>
     seo({
-      title: tr("سوق ومتجر رهط · عروض التجار الموثّقين وحراج الأهالي | رهط بوست"),
+      title: tr("حراج رهط · إعلانات الأفراد وسوق المستعمل وعروض المتاجر | رهط بوست"),
       description: tr(
-        "سوق ومتجر رهط بوست الموحّد: المتجر الرسمي، عروض المتاجر وتجار رهط الموثّقين، وحراج الأهالي لبيع وشراء السيارات والإلكترونيات والأثاث والعقارات في رهط والنقب.",
+        "بيع واشترِ أغراضاً مستعملة وجديدة في رهط والنقب: سيارات، هواتف، إلكترونيات، أثاث، أجهزة منزلية وعقارات مع عروض المتاجر الموثّقة.",
       ),
       path: "/haraj",
-      jsonLd: [breadcrumbLd([{ name: tr("سوق ومتجر رهط"), path: "/haraj" }])],
+      jsonLd: [breadcrumbLd([{ name: tr("حراج رهط"), path: "/haraj" }])],
     }),
-  component: HarajAndStoreHubPage,
+  component: HarajPage,
 });
 
-function isVerifiedMerchantListing(item: Listing): boolean {
-  if (item.seller?.badge && item.seller.badge.trim().length > 0) return true;
-  if (item.condition === "جديد") return true;
-  if (/متجر|معرض|محل|شركة|وكيل|جملة|توصيل|كفالة/.test(`${item.title} ${item.description} ${item.seller?.name ?? ""}`)) {
-    return true;
-  }
-  return false;
-}
-
-function HarajAndStoreHubPage() {
+function HarajPage() {
   const { items, ok, cats, store } = Route.useLoaderData();
   const s = Route.useSearch();
   const nav = Route.useNavigate();
   const name = useHarajName();
   const [q, setQ] = useState(s.q ?? "");
-  const activeSec: HubSectionMode = s.sec ?? "all";
 
   const set = (patch: Partial<S>) =>
     nav({ search: (p: S) => ({ ...p, ...patch }), replace: true });
 
-  const needle = (s.q ?? "").trim().toLowerCase();
+  const hubCfg = useMemo(
+    () => extractHubConfig(store?.products ?? []),
+    [store?.products],
+  );
+  const merchantOffers = useMemo(
+    () =>
+      extractMerchantPromoOffers(
+        store?.products ?? [],
+        store?.settings?.currency ?? "ILS",
+        hubCfg.greenBadgeDefault,
+      ),
+    [store?.products, store?.settings?.currency, hubCfg.greenBadgeDefault],
+  );
 
-  // Filter Haraj items according to search, category, condition, price, and specs
-  const filteredListings = useMemo(() => {
+  const hasActiveOffers = merchantOffers.length > 0;
+  const isOffersTab = s.cat === "__offers__";
+
+  const list = useMemo(() => {
+    const needle = (s.q ?? "").trim().toLowerCase();
     return items.filter(
       (i) =>
-        (!s.cat || i.category === s.cat) &&
+        (!s.cat || s.cat === "__offers__" || i.category === s.cat) &&
         (!s.cond || i.condition === s.cond) &&
         (!s.min || (i.price ?? 0) >= s.min) &&
         (!s.max || (i.priceMode === "free" ? 0 : i.price ?? 0) <= s.max) &&
-        (!s.cat || matchesSpecs(findCat(cats, s.cat), i.specs, s.f)) &&
+        (!s.cat ||
+          s.cat === "__offers__" ||
+          matchesSpecs(findCat(cats, s.cat), i.specs, s.f)) &&
         (!needle ||
-          `${i.title} ${i.description} ${i.area} ${i.seller?.name ?? ""}`
+          `${i.title} ${i.description} ${i.area}`
             .toLowerCase()
             .includes(needle)),
     );
-  }, [items, s, cats, needle]);
-
-  // Separate Haraj items into: Verified Merchant/New Offers vs Individual Community Ads
-  const merchantListings = useMemo(
-    () => filteredListings.filter((i) => isVerifiedMerchantListing(i)),
-    [filteredListings],
-  );
-  const individualListings = useMemo(() => {
-    const rest = filteredListings.filter((i) => !isVerifiedMerchantListing(i));
-    return rest.length > 0 ? rest : filteredListings;
-  }, [filteredListings]);
-
-  // Filter Store products by search query if present
-  const filteredStoreProducts = useMemo(() => {
-    const list = store?.products ?? [];
-    if (!needle) return list;
-    return list.filter((p) =>
-      `${p.name} ${p.shortDesc} ${p.description}`.toLowerCase().includes(needle),
-    );
-  }, [store?.products, needle]);
-
-  const topStoreCats = useMemo(
-    () => (store?.categories ?? []).filter((c) => !c.parentId && c.active),
-    [store?.categories],
-  );
-
-  const storeWaPhone = store?.settings?.whatsapp
-    ? waDigits(store.settings.whatsapp)
-    : "";
-
-  const makePackageWaUrl = (pkgTitle: string, priceText: string) => {
-    const text = `مرحباً إدارة رهط بوست، أرغب بالاشتراك في «${pkgTitle}» (${priceText}) في سوق ومتجر رهط بوست.`;
-    if (storeWaPhone) {
-      return `https://wa.me/${storeWaPhone}?text=${encodeURIComponent(text)}`;
-    }
-    return `/haraj/new`;
-  };
+  }, [items, s, cats]);
 
   return (
     <Shell wide>
-      {/* Top Unified Hub Banner */}
-      <div className="mb-5 rounded-3xl border border-line bg-paper p-4 shadow-2xs sm:p-5">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-primary text-ink shadow-xs">
-              <Store className="size-6" aria-hidden />
-            </span>
-            <div>
-              <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-xl font-extrabold sm:text-2xl">
-                  {trv(name)} {tr("ومتجر رهط الموحّد")}
-                </h1>
-                <span className="rounded-full bg-primary/30 px-2.5 py-0.5 text-xs font-extrabold text-ink">
-                  {tr("كل قسم مفصول بوضوح")}
-                </span>
-              </div>
-              <p className="mt-0.5 text-xs font-semibold text-muted sm:text-sm">
-                {tr(
-                  "بوابة موحّدة تجمع المتجر الرسمي، عروض المتاجر والتجار الموثّقين في رهط، وإعلانات الأهالي للمستعمل — كل قسم مستقل ومنظّم في الصفحة.",
-                )}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            <Link
-              to="/haraj/new"
-              className="btn flex items-center gap-1.5 px-4 py-2.5 text-xs font-extrabold"
-            >
-              <Plus className="size-4" aria-hidden />
-              {tr("أضف إعلانك في الحراج")}
-            </Link>
-            <Link
-              to="/cart"
-              className="btn btn-ghost flex items-center gap-1.5 px-3.5 py-2.5 text-xs font-extrabold"
-            >
-              <ShoppingCart className="size-4" aria-hidden />
-              {tr("سلة المتجر")}
-            </Link>
-            <Link
-              to="/haraj/mine"
-              className="rounded-xl border border-line bg-surface px-3 py-2.5 text-xs font-extrabold text-ink hover:bg-primary-soft"
-            >
-              {tr("إعلاناتي")}
-            </Link>
-          </div>
+      {/* Top Haraj Header */}
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-3xl border border-line bg-paper p-4 shadow-2xs">
+        <div>
+          <h1 className="text-xl font-extrabold sm:text-2xl">
+            {trv(name)} · {tr("إعلانات الأفراد وسوق المستعمل")}
+          </h1>
+          <p className="text-xs font-semibold text-muted sm:text-sm">
+            {tr("بيع واشترِ مباشرة في رهط والنقب — اختر القسم من القائمة الدائرية بالأسفل")}
+          </p>
         </div>
-
-        {/* Unified Search Bar */}
-        <form
-          className="relative mt-4"
-          role="search"
-          onSubmit={(e) => {
-            e.preventDefault();
-            set({ q: q.trim() || undefined });
-          }}
-        >
-          <Search
-            className="pointer-events-none absolute inset-y-0 start-3.5 my-auto size-5 text-muted"
-            aria-hidden
-          />
-          <input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            type="search"
-            className="field ps-11 pe-24"
-            placeholder={tr("ابحث في المتجر، عروض التجار الموثّقين، وإعلانات الحراج…")}
-            aria-label={tr("ابحث في المتجر والحراج")}
-          />
-          <button
-            type="submit"
-            className="absolute inset-y-1.5 end-1.5 rounded-xl bg-ink px-4 text-xs font-extrabold text-paper transition hover:opacity-90"
+        <div className="flex flex-wrap items-center gap-2">
+          <Link
+            to="/haraj/new"
+            className="btn flex items-center gap-1.5 px-4 py-2 text-xs font-extrabold"
           >
-            {tr("بحث")}
-          </button>
-        </form>
-
-        {/* Section Mode Switcher (Show All Separated Sections or Focus on One Section) */}
-        <div className="mt-3.5 flex flex-wrap items-center gap-1.5 border-t border-line pt-3">
-          <span className="me-1 text-xs font-extrabold text-muted">
-            {tr("أقسام الصفحة:")}
-          </span>
-          {(
-            [
-              {
-                key: "all",
-                label: "📋 عرض كل الأقسام (مفصولة)",
-                count:
-                  filteredStoreProducts.length +
-                  merchantListings.length +
-                  individualListings.length,
-              },
-              {
-                key: "store",
-                label: "🛍️ 1. المتجر الرسمي",
-                count: filteredStoreProducts.length,
-              },
-              {
-                key: "merchants",
-                label: "🏪 2. عروض المتاجر الموثّقة",
-                count: merchantListings.length,
-              },
-              {
-                key: "individuals",
-                label: "📢 3. حراج الأفراد والمستعمل",
-                count: individualListings.length,
-              },
-              {
-                key: "packages",
-                label: "👑 4. باقات التجار وتثبيت VIP",
-                count: 3,
-              },
-            ] as { key: HubSectionMode; label: string; count: number }[]
-          ).map((tab) => {
-            const active = activeSec === tab.key;
-            return (
-              <button
-                key={tab.key}
-                type="button"
-                onClick={() =>
-                  set({ sec: tab.key === "all" ? undefined : tab.key })
-                }
-                className={`inline-flex items-center gap-1.5 rounded-2xl px-3 py-2 text-xs font-extrabold transition ${
-                  active
-                    ? "bg-ink text-paper shadow-xs"
-                    : "border border-line bg-surface text-ink hover:bg-primary-soft"
-                }`}
-              >
-                <span>{tr(tab.label)}</span>
-                <span
-                  className={`rounded-full px-1.5 py-0.5 text-[10px] ${
-                    active ? "bg-primary text-ink" : "bg-paper text-muted"
-                  }`}
-                >
-                  {tab.count}
-                </span>
-              </button>
-            );
-          })}
+            <Plus className="size-4" aria-hidden />
+            {tr("أضف إعلان")}
+          </Link>
+          <Link
+            to="/store"
+            className="inline-flex items-center gap-1.5 rounded-2xl border border-line bg-surface px-3.5 py-2 text-xs font-extrabold text-ink hover:bg-primary-soft"
+          >
+            <ShoppingBag className="size-4 text-primary-ink" aria-hidden />
+            {tr("المتجر الرسمي")}
+          </Link>
+          <Link
+            to="/my-orders"
+            className="inline-flex items-center gap-1.5 rounded-2xl border border-line bg-surface px-3 py-2 text-xs font-extrabold text-ink hover:bg-primary-soft"
+          >
+            <Package className="size-4" aria-hidden />
+            {tr("طلباتي")}
+          </Link>
+          <Link
+            to="/haraj/mine"
+            className="rounded-2xl border border-line bg-surface px-3 py-2 text-xs font-extrabold text-ink hover:bg-primary-soft"
+          >
+            {tr("إعلاناتي")}
+          </Link>
         </div>
       </div>
 
-      {/* Category & Price Filters Bar */}
-      <div className="mb-5 rounded-3xl border border-line bg-paper p-3.5 shadow-2xs">
-        <div className="scroll-row -mx-2 mb-2.5 px-2">
+      {/* Circular Horizontal Category List (قائمة دائرية تحمل أيقونة واسم القسم + قسم عروض يتوهج بالأصفر) */}
+      <div className="mb-4 rounded-3xl border border-line bg-paper p-4 shadow-2xs">
+        <p className="mb-3 text-xs font-extrabold text-muted">
+          {tr("أقسام الحراج وعروض المتاجر:")}
+        </p>
+        <div className="scroll-row -mx-2 gap-3.5 px-2 pb-1">
+          {/* 1. "الكل" Circle */}
           <button
             type="button"
-            className={!s.cat ? "chip chip-ink" : "chip bg-surface"}
             onClick={() => set({ cat: undefined, f: undefined })}
+            className="group flex shrink-0 flex-col items-center gap-1.5"
           >
-            {tr("كل الفئات")}
-          </button>
-          {cats.map((c) => (
-            <button
-              key={c.key}
-              type="button"
-              className={
-                s.cat === c.key
-                  ? "chip chip-ink shrink-0"
-                  : "chip shrink-0 bg-surface"
-              }
-              onClick={() =>
-                set({ cat: s.cat === c.key ? undefined : c.key, f: undefined })
-              }
+            <span
+              className={`grid size-16 place-items-center rounded-full border-2 text-xl transition ${
+                !s.cat
+                  ? "border-ink bg-ink text-paper shadow-md scale-105"
+                  : "border-line bg-surface text-ink group-hover:border-primary group-hover:bg-primary/20"
+              }`}
             >
-              {c.icon} {catName(c)}
-            </button>
-          ))}
-        </div>
+              <LayoutGrid className="size-6" aria-hidden />
+            </span>
+            <span
+              className={`text-xs font-extrabold ${
+                !s.cat ? "text-ink" : "text-muted"
+              }`}
+            >
+              {tr("الكل")}
+            </span>
+          </button>
 
-        <div className="grid grid-cols-3 gap-2">
-          <select
-            className="field text-xs font-bold"
-            value={s.cond ?? ""}
-            onChange={(e) => set({ cond: e.target.value || undefined })}
-            aria-label={tr("الحالة")}
+          {/* 2. "عروض" Circle — Glows in Bright Yellow (#f2c94c) when Merchant Offers exist! */}
+          <button
+            type="button"
+            onClick={() =>
+              set({
+                cat: isOffersTab ? undefined : "__offers__",
+                f: undefined,
+              })
+            }
+            className="group relative flex shrink-0 flex-col items-center gap-1.5"
           >
-            <option value="">{tr("كل الحالات (جديد ومستعمل)")}</option>
-            {CONDITIONS.map((c) => (
-              <option key={c} value={c}>
-                {trv(c)}
-              </option>
-            ))}
-          </select>
-          <input
-            className="field text-xs"
-            inputMode="numeric"
-            placeholder={tr("السعر من ₪")}
-            defaultValue={s.min ?? ""}
-            onBlur={(e) => set({ min: Number(e.target.value) || undefined })}
-            aria-label={tr("أقل سعر")}
-          />
-          <input
-            className="field text-xs"
-            inputMode="numeric"
-            placeholder={tr("السعر إلى ₪")}
-            defaultValue={s.max ?? ""}
-            onBlur={(e) => set({ max: Number(e.target.value) || undefined })}
-            aria-label={tr("أعلى سعر")}
-          />
-        </div>
+            <span
+              className={`relative grid size-16 place-items-center rounded-full border-2 text-xl transition ${
+                isOffersTab
+                  ? "border-ink bg-[#f2c94c] text-ink shadow-[0_0_24px_rgba(242,201,76,0.95)] scale-105"
+                  : hasActiveOffers
+                    ? "border-[#f2c94c] bg-[#f2c94c]/30 text-ink ring-4 ring-[#f2c94c]/60 shadow-[0_0_20px_rgba(242,201,76,0.85)] animate-pulse"
+                    : "border-line bg-surface text-ink group-hover:border-primary"
+              }`}
+            >
+              <Flame
+                className={`size-6 ${
+                  hasActiveOffers ? "text-amber-600" : "text-muted"
+                }`}
+                aria-hidden
+              />
+              {hasActiveOffers ? (
+                <span className="absolute -top-1 -end-1 grid min-w-5 place-items-center rounded-full bg-[#16A34A] px-1.5 py-0.5 text-[10px] font-extrabold text-white shadow-2xs">
+                  {merchantOffers.length}
+                </span>
+              ) : null}
+            </span>
+            <span
+              className={`flex items-center gap-0.5 text-xs font-extrabold ${
+                hasActiveOffers || isOffersTab
+                  ? "text-amber-800"
+                  : "text-muted"
+              }`}
+            >
+              <Sparkles className="size-3 text-amber-500" aria-hidden />
+              {tr("عروض")}
+            </span>
+          </button>
 
-        {s.cat ? (
-          <div className="mt-2.5">
+          {/* 3. All Haraj Categories (سيارات، هواتف، أجهزة، أثاث...) as Circular Icons */}
+          {cats
+            .filter((c) => c.enabled)
+            .map((c) => {
+              const active = s.cat === c.key;
+              return (
+                <button
+                  key={c.key}
+                  type="button"
+                  onClick={() =>
+                    set({
+                      cat: active ? undefined : c.key,
+                      f: undefined,
+                    })
+                  }
+                  className="group flex shrink-0 flex-col items-center gap-1.5"
+                >
+                  <span
+                    className={`grid size-16 place-items-center rounded-full border-2 text-2xl transition ${
+                      active
+                        ? "border-ink bg-primary text-ink shadow-md scale-105"
+                        : "border-line bg-surface text-ink group-hover:border-primary group-hover:bg-primary/20"
+                    }`}
+                  >
+                    {c.icon}
+                  </span>
+                  <span
+                    className={`max-w-20 truncate text-xs font-extrabold ${
+                      active ? "text-ink" : "text-muted"
+                    }`}
+                  >
+                    {catName(c)}
+                  </span>
+                </button>
+              );
+            })}
+        </div>
+      </div>
+
+      {/* Promotional Merchant Offers Section (Shown at top or when "عروض" circle is clicked) */}
+      {(hasActiveOffers && (!s.cat || isOffersTab)) || isOffersTab ? (
+        <section
+          aria-label={trv(hubCfg.greenSectionTitle)}
+          className="mb-5 rounded-3xl border-2 border-[#16A34A]/50 bg-paper p-4 shadow-xs"
+        >
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-[#16A34A] px-4 py-2.5 text-white shadow-2xs">
+            <div className="flex items-center gap-2">
+              <BadgeCheck className="size-5 shrink-0" aria-hidden />
+              <h2 className="text-sm font-extrabold sm:text-base">
+                {trv(hubCfg.greenSectionTitle)}
+              </h2>
+            </div>
+            <span className="rounded-full bg-white/20 px-2.5 py-0.5 text-[11px] font-extrabold">
+              {tr("عرض إعلاني معتمد")}
+            </span>
+          </div>
+
+          {merchantOffers.length > 0 ? (
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {merchantOffers.map((offer) => {
+                const isExternal = /^https?:\/\//i.test(offer.targetUrl);
+                return (
+                  <a
+                    key={offer.id}
+                    href={offer.targetUrl}
+                    target={isExternal ? "_blank" : undefined}
+                    rel={isExternal ? "noopener noreferrer" : undefined}
+                    className="group relative flex flex-col overflow-hidden rounded-2xl border-2 border-[#16A34A]/35 bg-surface transition hover:-translate-y-0.5 hover:border-[#16A34A] hover:shadow-md"
+                  >
+                    {/* Customizable Green Ribbon */}
+                    <div className="flex items-center justify-between gap-2 bg-[#16A34A] px-3 py-1.5 text-xs font-extrabold text-white">
+                      <span className="inline-flex items-center gap-1 truncate">
+                        <BadgeCheck className="size-3.5 shrink-0" aria-hidden />
+                        <span>{trv(offer.greenRibbonText)}</span>
+                      </span>
+                      {offer.priceLabelText ? (
+                        <span className="shrink-0 rounded-lg bg-[#f2c94c] px-2 py-0.5 text-[11px] font-extrabold text-ink">
+                          {trv(offer.priceLabelText)}
+                        </span>
+                      ) : null}
+                    </div>
+
+                    <div className="relative aspect-[16/9] w-full bg-paper">
+                      {offer.imageKey ? (
+                        <img
+                          src={mediaUrl(offer.imageKey)}
+                          alt={trv(offer.title)}
+                          className="size-full object-cover"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div className="grid size-full place-items-center bg-gradient-to-br from-[#16A34A]/15 to-primary/25 p-4 text-center">
+                          <span className="text-lg font-extrabold text-ink">
+                            {trv(offer.title)}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex flex-1 items-center justify-between gap-2 p-3">
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-extrabold text-ink">
+                          {trv(offer.title)}
+                        </p>
+                        <p className="truncate text-xs font-bold text-muted">
+                          {trv(offer.merchantName)}
+                        </p>
+                      </div>
+                      <span className="inline-flex shrink-0 items-center gap-1 rounded-xl bg-[#16A34A]/10 px-2.5 py-1.5 text-xs font-extrabold text-[#16A34A] group-hover:bg-[#16A34A] group-hover:text-white">
+                        <span>{tr("فتح العرض")}</span>
+                        <ExternalLink className="size-3.5" aria-hidden />
+                      </span>
+                    </div>
+                  </a>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="rounded-2xl bg-surface p-4 text-center text-xs font-bold text-muted">
+              {tr("لا توجد عروض متاجر إعلانية مضافة حالياً.")}
+            </p>
+          )}
+        </section>
+      ) : null}
+
+      {/* Search & Filters for Individual Haraj Listings */}
+      {!isOffersTab ? (
+        <>
+          <form
+            className="relative mb-3"
+            role="search"
+            onSubmit={(e) => {
+              e.preventDefault();
+              set({ q: q.trim() || undefined });
+            }}
+          >
+            <Search
+              className="pointer-events-none absolute inset-y-0 start-3 my-auto size-5 text-muted"
+              aria-hidden
+            />
+            <input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              type="search"
+              className="field ps-10"
+              placeholder={tr("ابحث في الحراج…")}
+              aria-label={tr("ابحث في الحراج…")}
+            />
+          </form>
+
+          <div className="mb-4 grid grid-cols-3 gap-2">
+            <select
+              className="field"
+              value={s.cond ?? ""}
+              onChange={(e) => set({ cond: e.target.value || undefined })}
+              aria-label={tr("الحالة")}
+            >
+              <option value="">{tr("كل الحالات")}</option>
+              {CONDITIONS.map((c) => (
+                <option key={c} value={c}>
+                  {trv(c)}
+                </option>
+              ))}
+            </select>
+            <input
+              className="field"
+              inputMode="numeric"
+              placeholder={tr("من ₪")}
+              defaultValue={s.min ?? ""}
+              onBlur={(e) => set({ min: Number(e.target.value) || undefined })}
+              aria-label={tr("أقل سعر")}
+            />
+            <input
+              className="field"
+              inputMode="numeric"
+              placeholder={tr("إلى ₪")}
+              defaultValue={s.max ?? ""}
+              onBlur={(e) => set({ max: Number(e.target.value) || undefined })}
+              aria-label={tr("أعلى سعر")}
+            />
+          </div>
+
+          {s.cat ? (
             <SpecFilters
               key={s.cat}
               cat={findCat(cats, s.cat)}
               f={s.f ?? {}}
-              onChange={(f) => set({ f: Object.keys(f).length ? f : undefined })}
+              onChange={(f) =>
+                set({ f: Object.keys(f).length ? f : undefined })
+              }
             />
-          </div>
-        ) : null}
-      </div>
+          ) : null}
 
-      <div className="space-y-8">
-        {/* ===================================================================== */}
-        {/* SECTION 1 (SEPARATED): المتجر الرسمي والمنتجات الجاهزة               */}
-        {/* ===================================================================== */}
-        {activeSec === "all" || activeSec === "store" ? (
-          <section
-            id="section-official-store"
-            aria-label={tr("المتجر الرسمي والمنتجات الجاهزة")}
-            className="rounded-3xl border-2 border-primary/60 bg-paper p-4 shadow-xs sm:p-6"
-          >
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-line pb-3.5">
-              <div className="flex items-center gap-3">
-                <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-primary text-ink shadow-2xs">
-                  <ShoppingBag className="size-5" aria-hidden />
-                </span>
-                <div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="rounded-lg bg-ink px-2 py-0.5 text-[11px] font-extrabold text-paper">
-                      {tr("القسم 1")}
-                    </span>
-                    <h2 className="text-lg font-extrabold text-ink sm:text-xl">
-                      {tr("🛍️ المتجر الرسمي · منتجات واشتراكات فورية")}
-                    </h2>
-                  </div>
-                  <p className="mt-0.5 text-xs font-semibold text-muted">
-                    {tr(
-                      "منتجات رسمية واشتراكات رقمية مضمونة من إدارة رهط بوست — دفع آمن أو عبر واتساب وتسليم فوري في حسابك.",
-                    )}
-                  </p>
-                </div>
-              </div>
+          {!ok ? (
+            <p className="stamp mb-3 p-3 font-semibold">
+              {tr("تعذّر تحميل الإعلانات الآن.")}
+            </p>
+          ) : null}
 
-              <div className="flex items-center gap-2">
-                <Link
-                  to="/orders"
-                  className="rounded-xl border border-line bg-surface px-3 py-1.5 text-xs font-extrabold text-ink hover:bg-primary-soft"
-                >
-                  {tr("طلباتي")}
-                </Link>
-                <Link
-                  to="/cart"
-                  className="rounded-xl bg-ink px-3.5 py-1.5 text-xs font-extrabold text-paper hover:opacity-90"
-                >
-                  {tr("السلة 🛒")}
-                </Link>
-              </div>
-            </div>
-
-            {topStoreCats.length > 0 ? (
-              <div className="mb-4">
-                <p className="mb-2 text-xs font-extrabold text-muted">
-                  {tr("أقسام المتجر الرسمي:")}
-                </p>
-                <ul className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4">
-                  {topStoreCats.map((c) => (
-                    <li key={c.id}>
-                      <SectionTile c={c} />
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ) : null}
-
-            {filteredStoreProducts.length > 0 ? (
-              <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-                {filteredStoreProducts.map((p) => (
-                  <li key={p.id}>
-                    <ProductCard
-                      p={p}
-                      currency={store?.settings?.currency ?? "ILS"}
-                    />
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <div className="rounded-2xl bg-surface p-5 text-center">
-                <p className="text-sm font-bold text-ink">
-                  {needle
-                    ? tr("لا توجد منتجات في المتجر الرسمي تطابق بحثك الحالي.")
-                    : tr("تصفّح باقات التجار والخدمات الرقمية في القسم الرابع بالأسفل أو أضف منتجات من لوحة التحكم.")}
-                </p>
-              </div>
-            )}
-          </section>
-        ) : null}
-
-        {/* ===================================================================== */}
-        {/* SECTION 2 (SEPARATED): عروض المتاجر وتجار رهط الموثّقين              */}
-        {/* ===================================================================== */}
-        {activeSec === "all" || activeSec === "merchants" ? (
-          <section
-            id="section-verified-merchants"
-            aria-label={tr("عروض المتاجر وتجار رهط الموثّقين")}
-            className="rounded-3xl border-2 border-[#16A34A]/45 bg-paper p-4 shadow-xs sm:p-6"
-          >
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-line pb-3.5">
-              <div className="flex items-center gap-3">
-                <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-[#16A34A] text-white shadow-2xs">
-                  <BadgeCheck className="size-5" aria-hidden />
-                </span>
-                <div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="rounded-lg bg-[#16A34A] px-2 py-0.5 text-[11px] font-extrabold text-white">
-                      {tr("القسم 2")}
-                    </span>
-                    <h2 className="text-lg font-extrabold text-ink sm:text-xl">
-                      {tr("🏪 عروض المتاجر والمحلات الموثّقة في رهط والنقب")}
-                    </h2>
-                  </div>
-                  <p className="mt-0.5 text-xs font-semibold text-muted">
-                    {tr(
-                      "سلع جديدة وعروض تجارية مباشرة من محلات ومعارض رهط الموثّقة — تواصل مباشر مع المحل عبر واتساب.",
-                    )}
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => set({ sec: "packages" })}
-                  className="inline-flex items-center gap-1.5 rounded-xl border border-[#16A34A]/40 bg-[#16A34A]/10 px-3 py-1.5 text-xs font-extrabold text-[#16A34A] hover:bg-[#16A34A] hover:text-white"
-                >
-                  <Crown className="size-3.5" aria-hidden />
-                  {tr("وثّق متجرك هنا")}
-                </button>
-                <Link
-                  to="/directory"
-                  className="rounded-xl border border-line bg-surface px-3 py-1.5 text-xs font-extrabold text-ink hover:bg-primary-soft"
-                >
-                  {tr("دليل المحلات")}
-                </Link>
-              </div>
-            </div>
-
-            {merchantListings.length > 0 ? (
-              <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-                {merchantListings.map((item) => (
-                  <li key={item.id} className="relative">
-                    <span className="pointer-events-none absolute top-2 start-2 z-10 inline-flex items-center gap-1 rounded-full bg-[#16A34A] px-2.5 py-0.5 text-[10px] font-extrabold text-white shadow-xs">
-                      <BadgeCheck className="size-3" aria-hidden />
-                      {item.seller?.badge ? trv(item.seller.badge) : tr("عرض تاجر / جديد")}
-                    </span>
-                    <ListingCard item={item} />
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <div className="flex flex-col items-center justify-between gap-3 rounded-2xl bg-surface p-5 sm:flex-row">
-                <div>
-                  <p className="text-sm font-extrabold text-ink">
-                    {tr("هل تملك محلاً أو معرضاً في رهط والنقب؟")}
-                  </p>
-                  <p className="mt-0.5 text-xs font-semibold text-muted">
-                    {tr(
-                      "اعرض بضاعتك الجديدة في قسم «عروض المتاجر الموثّقة» بشارة التوثيق الخضراء ليراها آلاف الزوار يومياً.",
-                    )}
-                  </p>
-                </div>
-                <Link
-                  to="/haraj/new"
-                  className="btn shrink-0 bg-[#16A34A] text-xs text-white hover:opacity-95"
-                >
-                  <Plus className="size-4" aria-hidden />
-                  {tr("أضف عرض متجرك الآن")}
-                </Link>
-              </div>
-            )}
-          </section>
-        ) : null}
-
-        {/* ===================================================================== */}
-        {/* SECTION 3 (SEPARATED): حراج الأهالي · إعلانات الأفراد والمستعمل        */}
-        {/* ===================================================================== */}
-        {activeSec === "all" || activeSec === "individuals" ? (
-          <section
-            id="section-community-haraj"
-            aria-label={tr("حراج الأهالي وإعلانات الأفراد")}
-            className="rounded-3xl border border-line bg-paper p-4 shadow-xs sm:p-6"
-          >
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-line pb-3.5">
-              <div className="flex items-center gap-3">
-                <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-ink text-paper shadow-2xs">
-                  <Megaphone className="size-5" aria-hidden />
-                </span>
-                <div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="rounded-lg bg-surface px-2 py-0.5 text-[11px] font-extrabold text-ink">
-                      {tr("القسم 3")}
-                    </span>
-                    <h2 className="text-lg font-extrabold text-ink sm:text-xl">
-                      {tr("📢 حراج الأهالي · إعلانات الأفراد وسوق المستعمل")}
-                    </h2>
-                  </div>
-                  <p className="mt-0.5 text-xs font-semibold text-muted">
-                    {tr(
-                      "بيع واشترِ مباشرة من أهالي رهط والنقب بدون وسيط — سيارات، هواتف، أثاث، عقارات ومقتنيات.",
-                    )}
-                  </p>
-                </div>
-              </div>
-
-              <Link
-                to="/haraj/new"
-                className="btn flex items-center gap-1.5 px-4 py-2 text-xs font-extrabold"
-              >
-                <Plus className="size-4" aria-hidden />
-                {tr("أضف إعلان مجاني")}
+          {list.length ? (
+            <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+              {list.map((i) => (
+                <li key={i.id}>
+                  <ListingCard item={i} />
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <div className="stamp flex flex-col items-center gap-3 p-6 text-center">
+              <p className="font-bold">
+                {items.length
+                  ? tr("لا نتائج تطابق البحث.")
+                  : tr("لا إعلانات بعد. كن أول من يعرض غرضاً للبيع!")}
+              </p>
+              <Link to="/haraj/new" className="btn">
+                {tr("أضف إعلان")}
               </Link>
             </div>
-
-            {!ok ? (
-              <p className="stamp mb-3 p-3 font-semibold">
-                {tr("تعذّر تحميل الإعلانات الآن.")}
-              </p>
-            ) : null}
-
-            {individualListings.length > 0 ? (
-              <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-                {individualListings.map((i) => (
-                  <li key={i.id}>
-                    <ListingCard item={i} />
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <div className="rounded-2xl bg-surface p-6 text-center">
-                <p className="font-bold">
-                  {items.length
-                    ? tr("لا نتائج تطابق البحث في إعلانات الأفراد.")
-                    : tr("لا إعلانات بعد. كن أول من يعرض غرضاً للبيع!")}
-                </p>
-                <Link to="/haraj/new" className="btn mt-3 inline-flex">
-                  {tr("أضف إعلان")}
-                </Link>
-              </div>
-            )}
-          </section>
-        ) : null}
-
-        {/* ===================================================================== */}
-        {/* SECTION 4 (SEPARATED): باقات التجار الموثّقين وتثبيت الإعلانات VIP     */}
-        {/* ===================================================================== */}
-        {activeSec === "all" || activeSec === "packages" ? (
-          <section
-            id="section-merchant-vip-packages"
-            aria-label={tr("باقات التجار وتثبيت الإعلانات في المتجر والحراج")}
-            className="rounded-3xl border-2 border-ink/20 bg-gradient-to-br from-paper via-paper to-primary/10 p-4 shadow-xs sm:p-6"
-          >
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-line pb-3.5">
-              <div className="flex items-center gap-3">
-                <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-primary text-ink shadow-2xs">
-                  <Crown className="size-5" aria-hidden />
-                </span>
-                <div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="rounded-lg bg-primary px-2 py-0.5 text-[11px] font-extrabold text-ink">
-                      {tr("القسم 4")}
-                    </span>
-                    <h2 className="text-lg font-extrabold text-ink sm:text-xl">
-                      {tr("👑 باقات متاجر رهط وتثبيت الإعلانات (VIP)")}
-                    </h2>
-                  </div>
-                  <p className="mt-0.5 text-xs font-semibold text-muted">
-                    {tr(
-                      "ضاعف مبيعاتك في رهط والنقب: وثّق متجرك بشارة التاجر المعتمد أو ثبّت إعلانك في صدارة الحراج والصفحة الرئيسية.",
-                    )}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-              {[
-                {
-                  badge: "⭐ الأكثر طلباً للأفراد",
-                  title: "تثبيت إعلان VIP في الصدارة",
-                  price: "₪29 / أسبوع",
-                  desc: "يثبّت إعلانك (سيارة، عقار، أو جهاز) في أعلى قسم الحراج وفي الصفحة الرئيسية مع إطار ذهبي مميز.",
-                  perks: [
-                    "ظهور في أول الصفوف لمدة 7 أيام",
-                    "شارة «إعلان مميز VIP» تجذب المشترين",
-                    "أولوية الظهور في نتائج بحث الموقع",
-                  ],
-                },
-                {
-                  badge: "🏪 للمحلات والتجار",
-                  title: "عضوية «متجر / تاجر موثّق ✓»",
-                  price: "₪99 / شهرياً",
-                  desc: "خصّص لمحلك مكاناً دائماً في «القسم 2: عروض المتاجر الموثّقة» مع شارة التوثيق الخضراء.",
-                  perks: [
-                    "شارة «تاجر موثّق ✓» على جميع إعلاناتك",
-                    "ظهور مستقل في قسم المتاجر الموثّقة",
-                    "ربط مباشر مع صفحة محلك في دليل رهط",
-                  ],
-                  featured: true,
-                },
-                {
-                  badge: "🚀 للمعارض والشركات",
-                  title: "باقة المعارض والوكالات الذهبية",
-                  price: "₪199 / شهرياً",
-                  desc: "مخصّصة لمعارض السيارات، مكاتب العقارات، ومحلات الإلكترونيات والأثاث الكبرى في رهط والنقب.",
-                  perks: [
-                    "نشر إعلانات عروض غير محدودة شهرياً",
-                    "تثبيت 3 عروض VIP في نفس الوقت",
-                    "دعم مباشر وتصميم بطاقة المتجر",
-                  ],
-                },
-              ].map((pkg) => (
-                <div
-                  key={pkg.title}
-                  className={`flex flex-col justify-between rounded-2xl border p-4 transition ${
-                    pkg.featured
-                      ? "border-ink bg-ink text-paper shadow-md"
-                      : "border-line bg-surface text-ink"
-                  }`}
-                >
-                  <div>
-                    <span
-                      className={`inline-block rounded-full px-2.5 py-0.5 text-[11px] font-extrabold ${
-                        pkg.featured
-                          ? "bg-primary text-ink"
-                          : "bg-paper text-primary-ink"
-                      }`}
-                    >
-                      {tr(pkg.badge)}
-                    </span>
-                    <h3 className="mt-2 text-base font-extrabold">
-                      {tr(pkg.title)}
-                    </h3>
-                    <p
-                      className={`mt-1 text-xl font-extrabold ${
-                        pkg.featured ? "text-primary" : "text-ink"
-                      }`}
-                    >
-                      {pkg.price}
-                    </p>
-                    <p
-                      className={`mt-1.5 text-xs font-semibold leading-relaxed ${
-                        pkg.featured ? "text-white/80" : "text-muted"
-                      }`}
-                    >
-                      {tr(pkg.desc)}
-                    </p>
-                    <ul className="mt-3 space-y-1.5 text-xs font-bold">
-                      {pkg.perks.map((perk) => (
-                        <li key={perk} className="flex items-center gap-1.5">
-                          <Sparkles
-                            className={`size-3.5 shrink-0 ${
-                              pkg.featured ? "text-primary" : "text-[#16A34A]"
-                            }`}
-                            aria-hidden
-                          />
-                          <span>{tr(perk)}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  <a
-                    href={makePackageWaUrl(pkg.title, pkg.price)}
-                    target={storeWaPhone ? "_blank" : undefined}
-                    rel={storeWaPhone ? "noopener noreferrer" : undefined}
-                    className={`mt-4 flex w-full items-center justify-center gap-1.5 rounded-xl px-4 py-2.5 text-xs font-extrabold transition ${
-                      pkg.featured
-                        ? "bg-primary text-ink hover:brightness-95"
-                        : "bg-ink text-paper hover:opacity-90"
-                    }`}
-                  >
-                    <MessageCircle className="size-4" aria-hidden />
-                    {tr("تفعيل الباقة الآن")}
-                  </a>
-                </div>
-              ))}
-            </div>
-          </section>
-        ) : null}
-      </div>
-
-      <div className="mt-6">
-        <StoreFooterLinks />
-      </div>
+          )}
+        </>
+      ) : null}
     </Shell>
   );
 }
@@ -803,7 +564,7 @@ function SpecFilters({
   const num = (k: string, ph: string) => (
     <input
       key={k}
-      className="field text-xs"
+      className="field"
       inputMode="numeric"
       placeholder={ph}
       aria-label={ph}
@@ -813,7 +574,7 @@ function SpecFilters({
   );
   return (
     <div
-      className="grid grid-cols-2 gap-2 rounded-xl bg-surface p-2.5 sm:grid-cols-4"
+      className="mb-4 grid grid-cols-2 gap-2 rounded-xl bg-paper p-2 sm:grid-cols-4"
       aria-label={tr("فلاتر {0}", catName(cat))}
     >
       {fields.flatMap((x) =>
@@ -821,7 +582,7 @@ function SpecFilters({
           ? [
               <select
                 key={x.key}
-                className="field text-xs"
+                className="field"
                 value={f[x.key] ?? ""}
                 onChange={(e) => put(x.key, e.target.value)}
                 aria-label={fieldLabel(x)}

@@ -1,6 +1,15 @@
 import {
   Activity,
+  AlertTriangle,
   ArrowDown,
+  Copy,
+  Crown,
+  ExternalLink,
+  FileSearch,
+  Package,
+  PackageCheck,
+  Pencil,
+  ShoppingCart,
   ArrowRight,
   CheckCircle2,
   ArrowUp,
@@ -115,6 +124,36 @@ import type { SiteSettingsPart } from "@/components/admin/site-settings-admin";
 import { LangSwitcher } from "@/components/lang-switcher";
 import logoUrl from "@/assets/logo.jpg";
 import { useSiteSettings } from "@/lib/site-settings/context";
+import { SectionCover } from "@/components/store-parts";
+import {
+  adminCodes,
+  adminDeleteCategory,
+  adminDeleteProduct,
+  adminDeleteSamples,
+  adminGetPaySettings,
+  adminListOrders,
+  adminOrderAction,
+  adminSaveCategory,
+  adminSavePaySettings,
+  adminSaveProduct,
+  adminStoreData,
+  adminTestPayment,
+} from "@/lib/store/api";
+import {
+  CURRENCIES,
+  DURATIONS,
+  formatPrice,
+  ORDER_STATUS,
+  PROVIDERS,
+  SECTION_ICONS,
+  type Order,
+  type OrderStatus,
+  type StoreCategory,
+} from "@/lib/store/types";
+import type { AdminProductRow } from "@/lib/store/store.server";
+import type { AdminPaySettings } from "@/lib/store/settings.server";
+import { adminListAllMembers } from "@/lib/team/api";
+
 
 const CommentsAdmin = lazy(() => import("@/components/admin/comments-admin").then((m) => ({ default: m.CommentsAdmin })));
 const AlertsAdmin = lazy(() => import("@/components/admin/content-admin").then((m) => ({ default: m.AlertsAdmin })));
@@ -127,7 +166,6 @@ const MembersAdmin = lazy(() => import("@/components/admin/members-admin").then(
 const PopupsAdmin = lazy(() => import("@/components/admin/popups-admin").then((m) => ({ default: m.PopupsAdmin })));
 const EmailAdmin = lazy(() => import("@/components/admin/email-admin").then((m) => ({ default: m.EmailAdmin })));
 const PublishAdmin = lazy(() => import("@/components/admin/publish-admin").then((m) => ({ default: m.PublishAdmin })));
-const StoreAdmin = lazy(() => import("@/components/admin/store-admin").then((m) => ({ default: m.StoreAdmin })));
 const StatsAdmin = lazy(() => import("@/components/admin/stats-admin").then((m) => ({ default: m.StatsAdmin })));
 const LanguagesAdmin = lazy(() => import("@/components/admin/languages-admin").then((m) => ({ default: m.LanguagesAdmin })));
 const GeminiAdmin = lazy(() => import("@/components/admin/gemini-admin").then((m) => ({ default: m.GeminiAdmin })));
@@ -683,6 +721,11 @@ type Section =
   | "review"
   | "stats"
   | "store"
+  | "store-orders"
+  | "store-cats"
+  | "store-offers"
+  | "store-merchants"
+  | "store-pay"
   | "set-theme"
   | "set-home"
   | "set-slider"
@@ -741,9 +784,14 @@ const ALL_TABS: { key: Section; label: string; icon: LucideIcon }[] = [
   { key: "directory", label: "طلبات دليل المصالح", icon: Store },
   { key: "comments", label: "التعليقات", icon: MessageSquare },
   { key: "reports", label: "البلاغات", icon: Flag },
-  { key: "ads", label: "إعلانات الحراج", icon: Megaphone },
-  { key: "haraj-cats", label: "تصنيفات الحراج", icon: LayoutGrid },
-  { key: "store", label: "المتجر والمنتجات", icon: ShoppingBag },
+  { key: "ads", label: "إعلانات الحراج والمراجعة", icon: Megaphone },
+  { key: "haraj-cats", label: "أقسام الحراج الدائرية والفلاتر", icon: LayoutGrid },
+  { key: "store-orders", label: "طلباتي (متابعة الطلبات)", icon: Package },
+  { key: "store-cats", label: "أقسام المتجر (الذكاء ونتفليكس)", icon: LayoutGrid },
+  { key: "store", label: "منتجات المتجر والاشتراكات", icon: ShoppingBag },
+  { key: "store-offers", label: "عروض المتاجر والشريط الأخضر", icon: Store },
+  { key: "store-merchants", label: "صلاحية تاجر وباقات VIP", icon: Crown },
+  { key: "store-pay", label: "إعدادات الدفع وواتساب المتجر", icon: ShoppingCart },
   { key: "alerts", label: "شريط التنبيهات العاجلة", icon: Siren },
   { key: "push", label: "إشعارات الهواتف (Push)", icon: Bell },
   { key: "popups", label: "النوافذ الترويجية (Popups)", icon: MonitorUp },
@@ -780,11 +828,25 @@ const GROUPS: { id: string; label: string; desc: string; icon: LucideIcon; keys:
     keys: ["publish", "auto", "news", "sec-news", "sec-israel", "sec-sports", "sec-tech", "sec-weather"],
   },
   {
+    id: "store-hub",
+    label: "إدارة المتجر والمتاجر",
+    desc: "متابعة الطلبات (طلباتي)، أقسام المتجر (الذكاء ونتفليكس)، المنتجات، عروض المتاجر والشريط الأخضر، وصلاحية تاجر",
+    icon: ShoppingBag,
+    keys: ["store-orders", "store-cats", "store", "store-offers", "store-merchants", "store-pay"],
+  },
+  {
+    id: "haraj-hub",
+    label: "إدارة سوق الحراج (منفصل)",
+    desc: "مراجعة إعلانات الأفراد والتحكم بأقسام الحراج الدائرية والفلاتر",
+    icon: Megaphone,
+    keys: ["ads", "haraj-cats"],
+  },
+  {
     id: "community",
-    label: "الحراج والمتجر والدليل",
-    desc: "إعلانات السوق، المتجر، دليل رهط، والصيدلية",
+    label: "الخدمات المحلية والدليل",
+    desc: "الباصات، دليل مصالح رهط، صيدلية المناوبة، التعليقات والبلاغات",
     icon: Store,
-    keys: ["buses", "ads", "haraj-cats", "store", "directory", "duty", "comments", "reports"],
+    keys: ["buses", "directory", "duty", "comments", "reports"],
   },
   {
     id: "marketing",
@@ -2773,8 +2835,29 @@ function AdminPage() {
             <GeminiAdmin />
           ) : current === "stats" ? (
             <StatsAdmin />
-          ) : current === "store" ? (
-            <StoreAdmin isOwner={level === "owner"} />
+          ) : current === "store" ||
+            current === "store-orders" ||
+            current === "store-cats" ||
+            current === "store-offers" ||
+            current === "store-merchants" ||
+            current === "store-pay" ? (
+            <StoreAndMerchantsAdmin
+              key={current}
+              initialTab={
+                current === "store-orders"
+                  ? "orders"
+                  : current === "store-cats"
+                    ? "categories"
+                    : current === "store-offers"
+                      ? "offers"
+                      : current === "store-merchants"
+                        ? "merchants"
+                        : current === "store-pay"
+                          ? "pay"
+                          : "products"
+              }
+              isOwner={level === "owner"}
+            />
           ) : landing ? (
             <GroupLanding group={landing} tabs={tabs} go={go} />
           ) : current.startsWith("set-") ? (
@@ -8245,6 +8328,2324 @@ function MenusAndBarsPart({ s, set }: SettingsPartProps) {
           </div>
         </div>
       </SettingsCard>
+    </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* Unified Store, Merchant Offers, Green Ribbon, VIP Role & Orders Admin      */
+/* -------------------------------------------------------------------------- */
+
+type StoreHubTabKey =
+  | "orders"
+  | "categories"
+  | "products"
+  | "offers"
+  | "merchants"
+  | "pay";
+
+type ExtendedOrderStageAdmin =
+  | "pending"
+  | "reviewing"
+  | "paid"
+  | "delivered"
+  | "received"
+  | "cancelled";
+
+type VipPkgAdmin = {
+  badge: string;
+  title: string;
+  price: string;
+  desc: string;
+  perks: string[];
+  customUrl?: string;
+  featured?: boolean;
+};
+
+type HubMasterConfig = {
+  greenSectionTitle: string;
+  greenBadgeDefault: string;
+  merchantUsers: string[];
+  orderStages: Record<string, ExtendedOrderStageAdmin>;
+  vipPackages: VipPkgAdmin[];
+};
+
+const DEFAULT_HUB_MASTER_CFG: HubMasterConfig = {
+  greenSectionTitle: "عروض المتاجر وتجار رهط الموثّقين",
+  greenBadgeDefault: "عرض تاجر موثّق ✓",
+  merchantUsers: [],
+  orderStages: {},
+  vipPackages: [
+    {
+      badge: "⭐ للأفراد والتجار",
+      title: "تثبيت إعلان VIP في الصدارة",
+      price: "₪29 / أسبوع",
+      desc: "يثبّت إعلانك في أعلى الحراج وفي الصفحة الرئيسية مع إطار ذهبي مميز.",
+      perks: [
+        "ظهور في أول الصفوف لمدة 7 أيام",
+        "شارة «إعلان مميز VIP»",
+        "أولوية في نتائج البحث",
+      ],
+    },
+    {
+      badge: "🏪 للمحلات والتجار",
+      title: "عضوية «متجر / تاجر موثّق ✓»",
+      price: "₪99 / شهرياً",
+      desc: "ظهور دائم لعروض محلك في «قسم عروض المتاجر الموثّقة» في أعلى الصفحة مع شارة التوثيق الخضراء.",
+      perks: [
+        "شارة «تاجر موثّق ✓» قابلة للتخصيص",
+        "عرض إعلاني برابط مخصّص لمحلك أو واتسابك",
+        "توهّج قسم العروض بالأصفر في الحراج",
+      ],
+      featured: true,
+    },
+    {
+      badge: "🚀 للمعارض والشركات",
+      title: "باقة المعارض والوكالات الذهبية",
+      price: "₪199 / شهرياً",
+      desc: "لمعارض السيارات، مكاتب العقارات، ومحلات الإلكترونيات والأثاث الكبرى في رهط والنقب.",
+      perks: [
+        "نشر عروض إعلانية غير محدودة شهرياً",
+        "تثبيت 3 عروض VIP في نفس الوقت",
+        "دعم مباشر وتصميم بطاقة المتجر",
+      ],
+    },
+  ],
+};
+
+function parseHubMasterCfgFromProducts(
+  products: AdminProductRow[],
+): { rowId: string; cfg: HubMasterConfig } {
+  const row = products.find((p) => p.slug === "hub-cfg-main");
+  if (!row?.description) {
+    return { rowId: row?.id ?? "", cfg: DEFAULT_HUB_MASTER_CFG };
+  }
+  try {
+    const parsed = JSON.parse(row.description) as Partial<HubMasterConfig>;
+    return {
+      rowId: row.id,
+      cfg: {
+        greenSectionTitle:
+          parsed.greenSectionTitle?.trim() ||
+          DEFAULT_HUB_MASTER_CFG.greenSectionTitle,
+        greenBadgeDefault:
+          parsed.greenBadgeDefault?.trim() ||
+          DEFAULT_HUB_MASTER_CFG.greenBadgeDefault,
+        merchantUsers: Array.isArray(parsed.merchantUsers)
+          ? parsed.merchantUsers.map((x) => String(x).trim().toLowerCase())
+          : [],
+        orderStages:
+          parsed.orderStages && typeof parsed.orderStages === "object"
+            ? parsed.orderStages
+            : {},
+        vipPackages:
+          Array.isArray(parsed.vipPackages) && parsed.vipPackages.length > 0
+            ? parsed.vipPackages
+            : DEFAULT_HUB_MASTER_CFG.vipPackages,
+      },
+    };
+  } catch {
+    return { rowId: row.id, cfg: DEFAULT_HUB_MASTER_CFG };
+  }
+}
+
+const STORE_CATEGORY_PRESETS: {
+  name: string;
+  slug: string;
+  icon: StoreCategory["icon"];
+  color: string;
+  description: string;
+}[] = [
+  {
+    name: "الذكاء الاصطناعي (ChatGPT & AI)",
+    slug: "ai-tools",
+    icon: "bot",
+    color: "#10b981",
+    description: "اشتراكات ChatGPT Plus وClaude وأدوات الذكاء الاصطناعي والتصميم",
+  },
+  {
+    name: "نتفليكس وشاهد والبث (Netflix & TV)",
+    slug: "netflix-streaming",
+    icon: "tv",
+    color: "#ef4444",
+    description: "اشتراكات نتفليكس، شاهد VIP، يوتيوب بريميوم، والقنوات الرياضية",
+  },
+  {
+    name: "الألعاب وبطاقات الشحن",
+    slug: "gaming-cards",
+    icon: "gamepad",
+    color: "#8b5cf6",
+    description: "بطاقات بلايستيشن، إكس بوكس، ببجي، وشحن الألعاب الفوري",
+  },
+  {
+    name: "البرامج والأوفيس والحماية",
+    slug: "software-office",
+    icon: "briefcase",
+    color: "#3b82f6",
+    description: "تفعيل أوفيس، ويندوز، كانفا برو، وبرامج الحماية الأصلية",
+  },
+  {
+    name: "التخزين السحابي والخدمات الرقمية",
+    slug: "cloud-storage",
+    icon: "cloud",
+    color: "#06b6d4",
+    description: "مساحات Google One وiCloud والخدمات السحابية",
+  },
+  {
+    name: "الاتصالات والإنترنت",
+    slug: "telecom-internet",
+    icon: "phone",
+    color: "#f2c94c",
+    description: "حزم الإنترنت، الشرائح الإلكترونية eSIM، وبطاقات الاتصال",
+  },
+];
+
+function StoreAndMerchantsAdmin({
+  initialTab = "orders",
+  isOwner,
+}: {
+  initialTab?: StoreHubTabKey;
+  isOwner: boolean;
+}) {
+  const [tab, setTab] = useState<StoreHubTabKey>(initialTab);
+  const [storeData, setStoreData] = useState<{
+    products: AdminProductRow[];
+    categories: StoreCategory[];
+    low: { name: string; freeCodes: number }[];
+    lowThreshold: number;
+  } | null>(null);
+  const [msg, setMsg] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    setTab(initialTab);
+  }, [initialTab]);
+
+  const refreshStore = useCallback(async () => {
+    const r = await adminStoreData();
+    if (!r.authed) {
+      setMsg(tr("انتهت الجلسة. سجّل الدخول من جديد."));
+      return;
+    }
+    setStoreData(r);
+  }, []);
+
+  useEffect(() => {
+    void refreshStore();
+  }, [refreshStore]);
+
+  const { rowId: cfgRowId, cfg: hubCfg } = useMemo(
+    () => parseHubMasterCfgFromProducts(storeData?.products ?? []),
+    [storeData?.products],
+  );
+
+  const saveHubMasterCfg = async (
+    nextCfg: HubMasterConfig,
+    successMessage: string,
+  ) => {
+    setBusy(true);
+    setMsg("");
+    try {
+      const jsonStr = JSON.stringify(nextCfg);
+      const r = await adminSaveProduct({
+        data: {
+          id: cfgRowId || "",
+          name: "إعدادات بوابة المتجر والمتاجر",
+          slug: "hub-cfg-main",
+          categoryId: "",
+          price: "0",
+          sale: "",
+          imageKey: "",
+          shortDesc: "system-config",
+          description: jsonStr,
+          duration: "none",
+          badges: ["system"],
+          stock: "0",
+          active: true,
+          sort: "9999",
+          deliveryType: "fixed",
+          delivery: "system",
+          isSample: true,
+        },
+      });
+      if (r.ok) {
+        await refreshStore();
+        setMsg(successMessage);
+      } else {
+        setMsg(r.message ?? tr("تعذّر حفظ الإعدادات."));
+      }
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const tabs: { key: StoreHubTabKey; label: string; icon: string }[] = [
+    { key: "orders", label: "طلباتي (متابعة الطلبات)", icon: "📦" },
+    { key: "categories", label: "أقسام المتجر (الذكاء ونتفليكس)", icon: "🗂️" },
+    { key: "products", label: "منتجات المتجر والاشتراكات", icon: "🛍️" },
+    { key: "offers", label: "عروض المتاجر والشريط الأخضر", icon: "🏪" },
+    { key: "merchants", label: "صلاحية «تاجر» وباقات VIP", icon: "👑" },
+    ...(isOwner
+      ? ([
+          {
+            key: "pay",
+            label: "إعدادات الدفع وواتساب المتجر",
+            icon: "💳",
+          },
+        ] as const)
+      : []),
+  ];
+
+  return (
+    <div className="space-y-4">
+      {/* Top Unified Store & Merchants Control Header */}
+      <div className="rounded-3xl bg-paper p-5 shadow-[0_1px_3px_rgba(16,24,40,0.06)]">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-brand text-ink shadow-xs">
+              <ShoppingBag className="size-6" aria-hidden />
+            </span>
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="text-xl font-extrabold">
+                  {tr("إدارة المتجر والمتاجر والطلبات (قسم مستقل وشامل)")}
+                </h2>
+                <span className="rounded-full bg-[#16A34A]/15 px-2.5 py-0.5 text-xs font-extrabold text-[#16A34A]">
+                  {tr("بدون إعلانات AdSense لحماية القبول ✓")}
+                </span>
+              </div>
+              <p className="mt-0.5 text-xs font-semibold text-muted">
+                {tr(
+                  "تحكّم كامل في طلباتي (قيد المراجعة وتم الاستلام)، أقسام المتجر (الذكاء ونتفليكس)، المنتجات، عروض المتاجر الإعلانية والشريط الأخضر، وصلاحية «تاجر» لباقات VIP.",
+                )}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Link
+              to="/store"
+              className="rounded-2xl border border-line bg-surface px-3.5 py-2 text-xs font-extrabold text-ink hover:bg-primary-soft"
+            >
+              {tr("معاينة المتجر ↗")}
+            </Link>
+            <Link
+              to="/my-orders"
+              className="rounded-2xl border border-line bg-surface px-3.5 py-2 text-xs font-extrabold text-ink hover:bg-primary-soft"
+            >
+              {tr("معاينة طلباتي ↗")}
+            </Link>
+          </div>
+        </div>
+
+        <div className="mt-4 grid grid-cols-2 gap-2 border-t border-line pt-4 sm:grid-cols-3 lg:grid-cols-6">
+          {tabs.map((t) => (
+            <button
+              key={t.key}
+              type="button"
+              onClick={() => {
+                setTab(t.key);
+                setMsg("");
+              }}
+              className={`flex items-center justify-center gap-1.5 rounded-2xl px-3 py-2.5 text-xs font-extrabold transition ${
+                tab === t.key
+                  ? "bg-ink text-paper shadow-xs"
+                  : "border border-line bg-surface text-ink hover:bg-primary-soft"
+              }`}
+            >
+              <span>{t.icon}</span>
+              <span className="truncate">{tr(t.label)}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {msg ? (
+        <div className="rounded-2xl bg-primary-soft/75 px-4 py-3 text-xs font-extrabold text-ink">
+          {trv(msg)}
+        </div>
+      ) : null}
+
+      {!storeData ? (
+        <p className="stamp p-4 font-semibold">{tr("جاري تحميل بيانات المتجر…")}</p>
+      ) : tab === "orders" ? (
+        <ProfessionalOrdersAdmin
+          hubCfg={hubCfg}
+          onSaveHubCfg={saveHubMasterCfg}
+          busy={busy}
+        />
+      ) : tab === "categories" ? (
+        <StoreCategoriesManager
+          cats={storeData.categories}
+          refresh={refreshStore}
+          setParentMsg={setMsg}
+        />
+      ) : tab === "products" ? (
+        <StoreProductsManager
+          data={storeData}
+          refresh={refreshStore}
+          setParentMsg={setMsg}
+        />
+      ) : tab === "offers" ? (
+        <MerchantPromoOffersAdmin
+          allProducts={storeData.products}
+          hubCfg={hubCfg}
+          onSaveHubCfg={saveHubMasterCfg}
+          refreshStore={refreshStore}
+          busy={busy}
+          setParentMsg={setMsg}
+        />
+      ) : tab === "merchants" ? (
+        <MerchantRoleAndVipAdmin
+          hubCfg={hubCfg}
+          onSaveHubCfg={saveHubMasterCfg}
+          busy={busy}
+        />
+      ) : (
+        <StorePaySettingsAdmin />
+      )}
+    </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* 1. Professional Orders Admin (قيد المراجعة + تم الاستلام + نسخ رقم الطلب)  */
+/* -------------------------------------------------------------------------- */
+
+type AdminOrderWithLog = Order & {
+  log: { action: string; detail: string; at: string }[];
+  items: (Order["items"][number] & { revoked?: boolean })[];
+};
+
+const ADMIN_ORDER_STAGE_LABELS: Record<ExtendedOrderStageAdmin, string> = {
+  pending: "⏳ بانتظار الدفع",
+  reviewing: "🔍 قيد المراجعة",
+  paid: "💳 تم الدفع",
+  delivered: "📦 تم التسليم",
+  received: "✅ تم الاستلام",
+  cancelled: "✕ ملغى",
+};
+
+function resolveAdminOrderStage(
+  o: AdminOrderWithLog,
+  stageMap: Record<string, ExtendedOrderStageAdmin>,
+): ExtendedOrderStageAdmin {
+  if (o.status === "cancelled") return "cancelled";
+  const custom = stageMap[o.id];
+  if (custom === "received") return "received";
+  if (custom === "reviewing") return "reviewing";
+  if (o.status === "delivered") return "delivered";
+  if (o.status === "paid") return "paid";
+  return custom || "pending";
+}
+
+function ProfessionalOrdersAdmin({
+  hubCfg,
+  onSaveHubCfg,
+  busy: parentBusy,
+}: {
+  hubCfg: HubMasterConfig;
+  onSaveHubCfg: (cfg: HubMasterConfig, msg: string) => Promise<void>;
+  busy: boolean;
+}) {
+  const [filter, setFilter] = useState<ExtendedOrderStageAdmin | "all">("all");
+  const [searchCode, setSearchCode] = useState("");
+  const [orders, setOrders] = useState<AdminOrderWithLog[] | null>(null);
+  const [busyId, setBusyId] = useState("");
+  const [copiedId, setCopiedId] = useState("");
+  const [localMsg, setLocalMsg] = useState("");
+
+  const refreshOrders = useCallback(async () => {
+    const r = await adminListOrders({ data: {} });
+    setOrders((r.orders ?? []) as AdminOrderWithLog[]);
+  }, []);
+
+  useEffect(() => {
+    void refreshOrders();
+  }, [refreshOrders]);
+
+  const setOrderStage = async (
+    order: AdminOrderWithLog,
+    targetStage: ExtendedOrderStageAdmin,
+  ) => {
+    setBusyId(order.id);
+    setLocalMsg("");
+    try {
+      const nextStages: Record<string, ExtendedOrderStageAdmin> = {
+        ...hubCfg.orderStages,
+      };
+      if (targetStage === "reviewing" || targetStage === "received") {
+        nextStages[order.id] = targetStage;
+        if (targetStage === "received" && order.status === "pending") {
+          await adminOrderAction({
+            data: { id: order.id, action: "paid" },
+          }).catch(() => null);
+        }
+        await onSaveHubCfg(
+          { ...hubCfg, orderStages: nextStages },
+          `تم تحديث حالة الطلب #${order.id.slice(0, 8).toUpperCase()} إلى «${ADMIN_ORDER_STAGE_LABELS[targetStage]}» ✓`,
+        );
+      } else {
+        delete nextStages[order.id];
+        if (targetStage === "paid") {
+          const r = await adminOrderAction({
+            data: { id: order.id, action: "paid" },
+          });
+          if (!r.ok) setLocalMsg(r.message ?? "تعذّر تحديث الحالة");
+        } else if (targetStage === "delivered") {
+          const r = await adminOrderAction({
+            data: { id: order.id, action: "deliver" },
+          });
+          if (!r.ok) setLocalMsg(r.message ?? "تعذّر التسليم");
+        } else if (targetStage === "cancelled") {
+          await adminOrderAction({
+            data: { id: order.id, action: "cancelled" },
+          });
+        } else if (targetStage === "pending") {
+          await adminOrderAction({
+            data: { id: order.id, action: "pending" },
+          }).catch(() => null);
+        }
+        await onSaveHubCfg(
+          { ...hubCfg, orderStages: nextStages },
+          `تم تحديث حالة الطلب #${order.id.slice(0, 8).toUpperCase()} إلى «${ADMIN_ORDER_STAGE_LABELS[targetStage]}» ✓`,
+        );
+      }
+      await refreshOrders();
+    } finally {
+      setBusyId("");
+    }
+  };
+
+  const copyCode = (code: string, id: string) => {
+    void navigator.clipboard?.writeText(code);
+    setCopiedId(id);
+    setTimeout(() => {
+      setCopiedId((p) => (p === id ? "" : p));
+    }, 2000);
+  };
+
+  const filteredList = useMemo(() => {
+    if (!orders) return [];
+    const q = searchCode.trim().replace(/^#/, "").toLowerCase();
+    return orders.filter((o) => {
+      const st = resolveAdminOrderStage(o, hubCfg.orderStages);
+      if (filter !== "all" && st !== filter) return false;
+      if (!q) return true;
+      return (
+        o.id.toLowerCase().includes(q) ||
+        (o.userName ?? "").toLowerCase().includes(q) ||
+        (o.userEmail ?? "").toLowerCase().includes(q)
+      );
+    });
+  }, [orders, filter, searchCode, hubCfg.orderStages]);
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-3xl bg-paper p-5 shadow-[0_1px_3px_rgba(16,24,40,0.06)]">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h3 className="text-base font-extrabold">
+              {tr("📦 متابعة الطلبات الاحترافية (التحكم بحالات: قيد المراجعة، تم الدفع، تم الاستلام)")}
+            </h3>
+            <p className="text-xs font-semibold text-muted">
+              {tr(
+                "كل طلب يحمل رقم طلب مرجعي بارز ومنفصل يمكن نسخه بضغطة واحدة للتواصل السريع مع المشتري، مع تحكم فوري بجميع مراحل الطلب.",
+              )}
+            </p>
+          </div>
+
+          <input
+            type="search"
+            value={searchCode}
+            onChange={(e) => setSearchCode(e.target.value)}
+            placeholder={tr("ابحث برقم الطلب (#...) أو اسم المشترك أو البريد…")}
+            className="field max-w-xs text-xs"
+          />
+        </div>
+
+        {/* Status Filter Pills */}
+        <div className="scroll-row mt-3.5 gap-1.5">
+          {(
+            [
+              { key: "all", label: "الكل" },
+              { key: "pending", label: "⏳ بانتظار الدفع" },
+              { key: "reviewing", label: "🔍 قيد المراجعة" },
+              { key: "paid", label: "💳 تم الدفع" },
+              { key: "delivered", label: "📦 تم التسليم" },
+              { key: "received", label: "✅ تم الاستلام" },
+              { key: "cancelled", label: "✕ ملغى" },
+            ] as { key: ExtendedOrderStageAdmin | "all"; label: string }[]
+          ).map((fTab) => (
+            <button
+              key={fTab.key}
+              type="button"
+              onClick={() => setFilter(fTab.key)}
+              className={`shrink-0 rounded-2xl px-3 py-1.5 text-xs font-extrabold transition ${
+                filter === fTab.key
+                  ? "bg-ink text-paper"
+                  : "border border-line bg-surface text-ink hover:bg-primary-soft"
+              }`}
+            >
+              {tr(fTab.label)}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {localMsg ? (
+        <p className="stamp p-3 text-xs font-extrabold text-alert">{trv(localMsg)}</p>
+      ) : null}
+
+      {!orders ? (
+        <p className="stamp p-4 font-semibold">{tr("جاري تحميل الطلبات…")}</p>
+      ) : filteredList.length === 0 ? (
+        <p className="stamp p-6 text-center font-bold text-muted">
+          {tr("لا توجد طلبات مطابقة للفلتر الحالي.")}
+        </p>
+      ) : (
+        <ul className="space-y-3">
+          {filteredList.map((o) => {
+            const stage = resolveAdminOrderStage(o, hubCfg.orderStages);
+            const shortCode = o.id.slice(0, 8).toUpperCase();
+            const isCopied = copiedId === o.id;
+
+            return (
+              <li
+                key={o.id}
+                className="rounded-3xl border border-line bg-paper p-4 shadow-2xs sm:p-5"
+              >
+                {/* Standalone Prominent Order Number Header */}
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-2xl border-2 border-primary/60 bg-primary/15 px-3.5 py-2.5">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-xs font-extrabold text-muted">
+                      {tr("رقم الطلب المنفصل:")}
+                    </span>
+                    <code
+                      dir="ltr"
+                      className="rounded-xl bg-paper px-3 py-1 font-mono text-base font-extrabold tracking-wider text-ink shadow-2xs"
+                    >
+                      #{shortCode}
+                    </code>
+                    <button
+                      type="button"
+                      onClick={() => copyCode(shortCode, o.id)}
+                      className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-extrabold transition ${
+                        isCopied
+                          ? "bg-[#16A34A] text-white"
+                          : "bg-ink text-paper hover:opacity-90"
+                      }`}
+                    >
+                      {isCopied ? (
+                        <>
+                          <Check className="size-3.5" aria-hidden />
+                          <span>{tr("تم النسخ ✓")}</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="size-3.5" aria-hidden />
+                          <span>{tr("نسخ رقم الطلب")}</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <span className="rounded-full bg-ink px-3 py-1 text-xs font-extrabold text-paper">
+                      {trv(ADMIN_ORDER_STAGE_LABELS[stage])}
+                    </span>
+                    <span className="text-base font-extrabold text-ink" dir="ltr">
+                      {formatPrice(o.totalAgorot, o.currency)}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Buyer Info & Items */}
+                <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                  <p className="font-extrabold text-ink">
+                    👤 {trv(o.userName || "مشترك")}{" "}
+                    {o.userEmail ? (
+                      <span className="font-semibold text-muted" dir="ltr">
+                        ({o.userEmail})
+                      </span>
+                    ) : null}
+                  </p>
+                  <p className="font-semibold text-muted">
+                    {new Date(o.createdAt).toLocaleString("ar-u-nu-latn", {
+                      timeZone: "Asia/Jerusalem",
+                    })}{" "}
+                    · {PROVIDERS[o.provider] ?? o.provider}
+                  </p>
+                </div>
+
+                <ul className="mt-2.5 space-y-1 rounded-2xl bg-surface p-3 text-xs">
+                  {o.items.map((it) => (
+                    <li key={it.productId} className="font-bold">
+                      • {trv(it.name)} × {it.qty}
+                      {it.delivery ? (
+                        <span
+                          className="mt-1 block whitespace-pre-wrap break-all rounded-lg bg-paper p-2 font-mono text-[11px] text-muted"
+                          dir="auto"
+                        >
+                          {it.revoked ? "[مسحوب] " : ""}
+                          {it.delivery}
+                        </span>
+                      ) : null}
+                    </li>
+                  ))}
+                </ul>
+
+                {/* Direct Status Control Buttons */}
+                <div className="mt-3 border-t border-line pt-3">
+                  <p className="mb-2 text-[11px] font-extrabold text-muted">
+                    {tr("تغيير حالة الطلب مباشرة:")}
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      disabled={busyId === o.id || parentBusy}
+                      onClick={() => void setOrderStage(o, "reviewing")}
+                      className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-extrabold transition ${
+                        stage === "reviewing"
+                          ? "bg-sky-600 text-white shadow-xs"
+                          : "border border-sky-300 bg-sky-50 text-sky-900 hover:bg-sky-100"
+                      }`}
+                    >
+                      <FileSearch className="size-3.5" aria-hidden />
+                      {tr("🔍 الطلب قيد المراجعة")}
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={busyId === o.id || parentBusy}
+                      onClick={() => void setOrderStage(o, "paid")}
+                      className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-extrabold transition ${
+                        stage === "paid"
+                          ? "bg-emerald-600 text-white shadow-xs"
+                          : "border border-emerald-300 bg-emerald-50 text-emerald-900 hover:bg-emerald-100"
+                      }`}
+                    >
+                      <CheckCircle2 className="size-3.5" aria-hidden />
+                      {tr("💳 تم الدفع والتسليم التلقائي")}
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={busyId === o.id || parentBusy}
+                      onClick={() => void setOrderStage(o, "delivered")}
+                      className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-extrabold transition ${
+                        stage === "delivered"
+                          ? "bg-ink text-paper shadow-xs"
+                          : "border border-line bg-surface text-ink hover:bg-primary-soft"
+                      }`}
+                    >
+                      <Package className="size-3.5" aria-hidden />
+                      {tr("📦 تم الإرسال / التسليم")}
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={busyId === o.id || parentBusy}
+                      onClick={() => void setOrderStage(o, "received")}
+                      className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-extrabold transition ${
+                        stage === "received"
+                          ? "bg-[#16A34A] text-white shadow-xs"
+                          : "border border-[#16A34A]/40 bg-[#16A34A]/10 text-[#16A34A] hover:bg-[#16A34A] hover:text-white"
+                      }`}
+                    >
+                      <PackageCheck className="size-3.5" aria-hidden />
+                      {tr("✅ تم الاستلام (مكتمل)")}
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={busyId === o.id || parentBusy}
+                      onClick={() => void setOrderStage(o, "cancelled")}
+                      className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-extrabold transition ${
+                        stage === "cancelled"
+                          ? "bg-[#DC2626] text-white"
+                          : "border border-line bg-surface text-[#DC2626] hover:bg-[#DC2626]/10"
+                      }`}
+                    >
+                      {tr("✕ إلغاء الطلب")}
+                    </button>
+                  </div>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* 2. Store Categories Manager (الذكاء، نتفليكس + ضمان الظهور على الصفحات)    */
+/* -------------------------------------------------------------------------- */
+
+function StoreCategoriesManager({
+  cats,
+  refresh,
+  setParentMsg,
+}: {
+  cats: StoreCategory[];
+  refresh: () => Promise<void>;
+  setParentMsg: (m: string) => void;
+}) {
+  const [editing, setEditing] = useState<Partial<StoreCategory> | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const quickAddPresetCategory = async (
+    preset: (typeof STORE_CATEGORY_PRESETS)[number],
+  ) => {
+    setBusy(true);
+    setParentMsg("");
+    try {
+      const existing = cats.find(
+        (c) => c.slug === preset.slug || c.name.trim() === preset.name.trim(),
+      );
+      const r = await adminSaveCategory({
+        data: {
+          id: existing?.id ?? "",
+          name: preset.name,
+          slug: preset.slug,
+          description: preset.description,
+          icon: preset.icon,
+          color: preset.color,
+          imageKey: existing?.imageKey ?? "",
+          sort: String(existing?.sort ?? cats.length + 1),
+          active: true,
+          // Always set showSoon=true so the category is IMMEDIATELY visible on /store even when it has 0 products!
+          showSoon: true,
+          parentId: "",
+        },
+      });
+      if (r.ok) {
+        await refresh();
+        setParentMsg(
+          `تم تفعيل وإظهار قسم «${preset.name}» على صفحات المتجر بنجاح ✓`,
+        );
+      } else {
+        setParentMsg(r.message ?? "تعذّر حفظ القسم.");
+      }
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const ensureAllCategoriesVisible = async () => {
+    setBusy(true);
+    try {
+      for (const c of cats) {
+        if (!c.showSoon || !c.active) {
+          await adminSaveCategory({
+            data: {
+              id: c.id,
+              name: c.name,
+              slug: c.slug,
+              description: c.description,
+              icon: c.icon,
+              color: c.color,
+              imageKey: c.imageKey ?? "",
+              sort: String(c.sort),
+              active: true,
+              showSoon: true,
+              parentId: c.parentId ?? "",
+            },
+          });
+        }
+      }
+      await refresh();
+      setParentMsg(
+        "تم تفعيل وإظهار جميع أقسام المتجر على الصفحات فوراً (حتى الأقسام الجديدة الفارغة) ✓",
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (editing) {
+    return (
+      <StoreCategoryEditor
+        c={editing}
+        cats={cats}
+        onDone={async () => {
+          setEditing(null);
+          await refresh();
+        }}
+      />
+    );
+  }
+
+  const top = cats.filter((c) => !c.parentId);
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-3xl bg-paper p-5 shadow-[0_1px_3px_rgba(16,24,40,0.06)]">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h3 className="text-base font-extrabold">
+              {tr("🗂️ أقسام المتجر الرسمي (الذكاء الاصطناعي، نتفليكس، الألعاب، وغيرها)")}
+            </h3>
+            <p className="text-xs font-semibold text-muted">
+              {tr(
+                "أي قسم تضيفه هنا يظهر تلقائياً في أعلى صفحة المتجر وتُنشأ له لوحة منتجات مستقلة أسفل الصفحة فوراً.",
+              )}
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => void ensureAllCategoriesVisible()}
+              className="rounded-2xl border border-[#16A34A]/40 bg-[#16A34A]/10 px-3.5 py-2 text-xs font-extrabold text-[#16A34A] hover:bg-[#16A34A] hover:text-white"
+            >
+              {tr("تأكيد ظهور جميع الأقسام على الصفحات ✓")}
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                setEditing({
+                  active: true,
+                  showSoon: true,
+                  icon: "sparkles",
+                  color: "#f2c94c",
+                  sort: cats.length + 1,
+                })
+              }
+              className="btn flex items-center gap-1.5 px-4 py-2 text-xs font-extrabold"
+            >
+              <Plus className="size-4" aria-hidden />
+              {tr("إضافة قسم متجر جديد")}
+            </button>
+          </div>
+        </div>
+
+        {/* 1-Click Presets for AI, Netflix, Gaming, etc. */}
+        <div className="mt-4 border-t border-line pt-3.5">
+          <p className="mb-2 text-xs font-extrabold text-muted">
+            {tr("+ إضافة سريعة بضغطة واحدة لأشهر أقسام المتجر:")}
+          </p>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {STORE_CATEGORY_PRESETS.map((preset) => {
+              const exists = cats.some(
+                (c) =>
+                  c.slug === preset.slug ||
+                  c.name.trim() === preset.name.trim(),
+              );
+              return (
+                <button
+                  key={preset.slug}
+                  type="button"
+                  disabled={busy}
+                  onClick={() => void quickAddPresetCategory(preset)}
+                  className={`flex items-center justify-between gap-2 rounded-2xl border px-3.5 py-2.5 text-start text-xs font-extrabold transition ${
+                    exists
+                      ? "border-[#16A34A] bg-[#16A34A]/10 text-[#16A34A]"
+                      : "border-line bg-surface text-ink hover:bg-primary-soft"
+                  }`}
+                >
+                  <span className="truncate">{preset.name}</span>
+                  <span className="shrink-0 rounded-lg bg-paper px-2 py-0.5 text-[10px]">
+                    {exists ? "مفعّل ✓" : "+ إضافة"}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {top.length === 0 ? (
+        <p className="stamp p-6 text-center font-bold text-muted">
+          {tr("لا توجد أقسام في المتجر بعد. اضغط على «الذكاء الاصطناعي» أو «نتفليكس» بالأعلى لإضافتها فوراً.")}
+        </p>
+      ) : (
+        <ul className="space-y-2.5">
+          {top.map((c) => (
+            <li
+              key={c.id}
+              className="flex flex-wrap items-center justify-between gap-3 rounded-3xl border border-line bg-paper p-3.5 shadow-2xs"
+            >
+              <div className="flex items-center gap-3">
+                <SectionCover c={c} className="size-14 shrink-0 rounded-2xl" />
+                <div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="font-extrabold text-ink">{trv(c.name)}</p>
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-[10px] font-extrabold ${
+                        c.active && (c.productCount > 0 || c.showSoon)
+                          ? "bg-[#16A34A]/15 text-[#16A34A]"
+                          : "bg-amber-100 text-amber-900"
+                      }`}
+                    >
+                      {c.active && (c.productCount > 0 || c.showSoon)
+                        ? tr("ظاهر على الصفحات ✓")
+                        : tr("مخفي — اضغط تعديل وفعّل إظهار القسم")}
+                    </span>
+                  </div>
+                  <p className="text-xs font-semibold text-muted">
+                    <span dir="ltr">/store/c/{trv(c.slug)}</span> ·{" "}
+                    {trv(c.productCount)} {tr("منتج")}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  className="btn btn-ghost px-3 py-1.5 text-xs"
+                  onClick={() => setEditing(c)}
+                >
+                  <Pencil className="size-4" aria-hidden />
+                  {tr("تعديل")}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-ghost px-3 py-1.5 text-xs text-[#DC2626]"
+                  onClick={async () => {
+                    if (!confirm(tr("حذف قسم «{0}»؟", c.name))) return;
+                    await adminDeleteCategory({ data: { id: c.id } });
+                    await refresh();
+                  }}
+                >
+                  <Trash2 className="size-4" aria-hidden />
+                  {tr("حذف")}
+                </button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function StoreCategoryEditor({
+  c,
+  cats,
+  onDone,
+}: {
+  c: Partial<StoreCategory>;
+  cats: StoreCategory[];
+  onDone: () => void;
+}) {
+  const [f, setF] = useState({
+    id: c.id ?? "",
+    name: c.name ?? "",
+    slug: c.slug ?? "",
+    description: c.description ?? "",
+    icon: c.icon ?? "sparkles",
+    color: c.color ?? "#f2c94c",
+    imageKey: c.imageKey ?? "",
+    sort: String(c.sort ?? 0),
+    active: c.active ?? true,
+    // Default showSoon to TRUE so newly added categories ALWAYS appear on /store immediately!
+    showSoon: c.showSoon ?? true,
+    parentId: c.parentId ?? "",
+  });
+  const [msg, setMsg] = useState("");
+  const [busy, setBusy] = useState(false);
+  const set = (x: Partial<typeof f>) => setF((o) => ({ ...o, ...x }));
+
+  const preview: StoreCategory = {
+    id: f.id || "new",
+    name: f.name,
+    slug: f.slug,
+    sort: 0,
+    imageKey: f.imageKey || null,
+    icon: f.icon as StoreCategory["icon"],
+    description: f.description,
+    color: f.color,
+    active: f.active,
+    showSoon: f.showSoon,
+    parentId: f.parentId || null,
+    productCount: 0,
+  };
+
+  return (
+    <div className="stamp flex flex-col gap-3 p-5">
+      <h3 className="text-lg font-extrabold">
+        {f.id ? tr("تعديل قسم في المتجر") : tr("إضافة قسم جديد في المتجر")}
+      </h3>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <label className="font-bold text-xs">
+          {tr("اسم القسم (مثلاً: الذكاء الاصطناعي أو نتفليكس)")}
+          <input
+            className="field mt-1"
+            maxLength={60}
+            value={f.name}
+            onChange={(e) => set({ name: e.target.value })}
+          />
+        </label>
+        <label className="font-bold text-xs">
+          {tr("الرابط بالإنجليزية (slug — اختياري)")}
+          <input
+            className="field mt-1"
+            dir="ltr"
+            value={f.slug}
+            placeholder="ai-tools أو netflix"
+            onChange={(e) => set({ slug: e.target.value })}
+          />
+        </label>
+      </div>
+
+      <label className="font-bold text-xs">
+        {tr("وصف القسم (يظهر تحت اسم القسم في لوحة القسم)")}
+        <textarea
+          className="field mt-1 min-h-16"
+          maxLength={500}
+          value={f.description}
+          onChange={(e) => set({ description: e.target.value })}
+        />
+      </label>
+
+      <div className="flex items-center gap-3">
+        <SectionCover c={preview} className="size-20 shrink-0 rounded-2xl" />
+        <div className="flex flex-col gap-2">
+          <label className="btn btn-ghost px-3 text-xs">
+            {busy ? tr("جاري الرفع…") : tr("رفع صورة / أيقونة القسم")}
+            <input
+              type="file"
+              accept="image/*"
+              className="sr-only"
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                setBusy(true);
+                try {
+                  set({ imageKey: await uploadSettingImage(file) });
+                } catch (err) {
+                  setMsg(err instanceof Error ? err.message : tr("تعذّر الرفع."));
+                }
+                setBusy(false);
+              }}
+            />
+          </label>
+          {f.imageKey ? (
+            <button
+              type="button"
+              className="btn btn-ghost px-3 text-xs"
+              onClick={() => set({ imageKey: "" })}
+            >
+              {tr("إزالة الصورة")}
+            </button>
+          ) : null}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <label className="font-bold text-xs">
+          {tr("الأيقونة")}
+          <select
+            className="field mt-1"
+            value={f.icon}
+            onChange={(e) => set({ icon: e.target.value as typeof f.icon })}
+          >
+            {Object.entries(SECTION_ICONS).map(([k, v]) => (
+              <option key={k} value={k}>
+                {trv(v)}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="font-bold text-xs">
+          {tr("لون خلفية المربع")}
+          <input
+            type="color"
+            className="mt-1 h-11 w-full rounded-xl border border-line"
+            value={f.color}
+            onChange={(e) => set({ color: e.target.value })}
+          />
+        </label>
+        <label className="font-bold text-xs">
+          {tr("الترتيب")}
+          <input
+            className="field mt-1"
+            inputMode="numeric"
+            dir="ltr"
+            value={f.sort}
+            onChange={(e) => set({ sort: e.target.value })}
+          />
+        </label>
+      </div>
+
+      <div className="flex flex-wrap gap-4 pt-1">
+        <label className="flex items-center gap-2 text-xs font-extrabold">
+          <input
+            type="checkbox"
+            className="size-4 accent-[#16A34A]"
+            checked={f.active}
+            onChange={(e) => set({ active: e.target.checked })}
+          />
+          {tr("القسم مفعّل")}
+        </label>
+        <label className="flex items-center gap-2 text-xs font-extrabold">
+          <input
+            type="checkbox"
+            className="size-4 accent-[#16A34A]"
+            checked={f.showSoon}
+            onChange={(e) => set({ showSoon: e.target.checked })}
+          />
+          {tr("إظهار القسم فوراً على صفحات المتجر حتى قبل إضافة منتجات بداخله (موصى به ✓)")}
+        </label>
+      </div>
+
+      {msg ? <p className="text-xs font-bold text-alert">{trv(msg)}</p> : null}
+
+      <div className="grid grid-cols-2 gap-2 pt-2">
+        <button
+          type="button"
+          className="btn"
+          disabled={busy}
+          onClick={async () => {
+            setBusy(true);
+            const r = await adminSaveCategory({ data: f });
+            setBusy(false);
+            if (!r.ok) return setMsg(r.message ?? tr("تعذّر الحفظ."));
+            onDone();
+          }}
+        >
+          {tr("حفظ القسم وإظهاره ✓")}
+        </button>
+        <button type="button" className="btn btn-ghost" onClick={onDone}>
+          {tr("إلغاء")}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* 3. Store Products Manager                                                  */
+/* -------------------------------------------------------------------------- */
+
+const toShekelStr = (a: number | null | undefined) =>
+  a == null ? "" : String(a / 100);
+
+function StoreProductsManager({
+  data,
+  refresh,
+  setParentMsg,
+}: {
+  data: {
+    products: AdminProductRow[];
+    categories: StoreCategory[];
+    low: { name: string; freeCodes: number }[];
+    lowThreshold: number;
+  };
+  refresh: () => Promise<void>;
+  setParentMsg: (m: string) => void;
+}) {
+  const [editing, setEditing] = useState<Partial<AdminProductRow> | null>(null);
+
+  const visibleStoreProducts = useMemo(
+    () =>
+      data.products.filter(
+        (p) =>
+          p.slug !== "hub-cfg-main" &&
+          !p.slug.startsWith("offer-") &&
+          !p.slug.startsWith("vip-pkg-"),
+      ),
+    [data.products],
+  );
+
+  if (editing) {
+    return (
+      <StoreProductForm
+        p={editing}
+        cats={data.categories}
+        onDone={async () => {
+          setEditing(null);
+          await refresh();
+        }}
+      />
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      {data.low.length ? (
+        <div className="stamp flex gap-2 border-red-300 p-3 text-xs font-bold">
+          <AlertTriangle className="size-5 shrink-0 text-red-700" aria-hidden />
+          <span>
+            {tr("تنبيه: أكواد قليلة متبقية:")}{" "}
+            {data.low.map((l) => `${l.name} (${l.freeCodes})`).join("، ")}
+          </span>
+        </div>
+      ) : null}
+
+      <div className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          className="btn flex-1"
+          onClick={() =>
+            setEditing({
+              active: true,
+              duration: "monthly",
+              deliveryType: "fixed",
+              badges: [],
+            })
+          }
+        >
+          <Plus className="size-4" aria-hidden />
+          {tr("إضافة منتج أو اشتراك جديد (نتفليكس / ذكاء اصطناعي / بطاقة)")}
+        </button>
+
+        {visibleStoreProducts.some((p) => p.isSample) ? (
+          <button
+            type="button"
+            className="btn btn-ghost"
+            onClick={async () => {
+              if (!confirm(tr("حذف كل المنتجات التجريبية «مثال»؟"))) return;
+              const r = await adminDeleteSamples();
+              setParentMsg(
+                r.ok ? tr("حُذف {0} منتج تجريبي.", r.n) : tr("تعذّر الحذف."),
+              );
+              await refresh();
+            }}
+          >
+            <Trash2 className="size-4" aria-hidden />
+            {tr("حذف الأمثلة التجريبية")}
+          </button>
+        ) : null}
+      </div>
+
+      {visibleStoreProducts.length === 0 ? (
+        <p className="stamp p-6 text-center font-semibold text-muted">
+          {tr("لا توجد منتجات مضافة بعد. اضغط «إضافة منتج أو اشتراك جديد» بالأعلى واختر القسم المناسب.")}
+        </p>
+      ) : (
+        <ul className="space-y-2.5">
+          {visibleStoreProducts.map((p) => {
+            const catObj = data.categories.find((c) => c.id === p.categoryId);
+            return (
+              <li
+                key={p.id}
+                className="flex flex-wrap items-center justify-between gap-3 rounded-3xl border border-line bg-paper p-3.5 shadow-2xs"
+              >
+                <div className="flex items-center gap-3">
+                  {p.imageKey ? (
+                    <img
+                      src={mediaUrl(p.imageKey)}
+                      alt=""
+                      className="size-16 shrink-0 rounded-2xl object-cover"
+                    />
+                  ) : (
+                    <span className="grid size-16 shrink-0 place-items-center rounded-2xl bg-primary-soft text-primary-ink">
+                      <ShoppingBag className="size-6" />
+                    </span>
+                  )}
+                  <div>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-[10px] font-extrabold ${
+                          p.active
+                            ? "bg-[#16A34A]/15 text-[#16A34A]"
+                            : "bg-surface text-muted"
+                        }`}
+                      >
+                        {p.active ? tr("مفعّل في المتجر ✓") : tr("مخفي")}
+                      </span>
+                      {catObj ? (
+                        <span className="rounded-full bg-primary/25 px-2 py-0.5 text-[10px] font-extrabold text-ink">
+                          {trv(catObj.name)}
+                        </span>
+                      ) : null}
+                    </div>
+                    <p className="mt-1 font-extrabold text-ink">{trv(p.name)}</p>
+                    <p className="text-xs font-semibold text-muted" dir="ltr">
+                      {formatPrice(p.saleAgorot ?? p.priceAgorot)} · /store/
+                      {trv(p.slug)}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    className="btn btn-ghost px-3 py-1.5 text-xs"
+                    onClick={() => setEditing(p)}
+                  >
+                    <Pencil className="size-4" aria-hidden />
+                    {tr("تعديل")}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-ghost px-3 py-1.5 text-xs text-[#DC2626]"
+                    onClick={async () => {
+                      if (!confirm(tr("حذف «{0}»؟", p.name))) return;
+                      await adminDeleteProduct({ data: { id: p.id } });
+                      await refresh();
+                    }}
+                  >
+                    <Trash2 className="size-4" aria-hidden />
+                    {tr("حذف")}
+                  </button>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function StoreProductForm({
+  p,
+  cats,
+  onDone,
+}: {
+  p: Partial<AdminProductRow>;
+  cats: StoreCategory[];
+  onDone: () => void;
+}) {
+  const [f, setF] = useState({
+    id: p.id ?? "",
+    name: p.name ?? "",
+    slug: p.slug ?? "",
+    categoryId: p.categoryId ?? (cats[0]?.id ?? ""),
+    price: toShekelStr(p.priceAgorot) || "29",
+    sale: toShekelStr(p.saleAgorot),
+    imageKey: p.imageKey ?? "",
+    shortDesc: p.shortDesc ?? "",
+    description: p.description ?? "",
+    duration: p.duration ?? "monthly",
+    badges: (p.badges ?? []).join("، "),
+    stock: p.stock == null ? "" : String(p.stock),
+    active: p.active ?? true,
+    sort: String(p.sort ?? 0),
+    deliveryType: p.deliveryType ?? "fixed",
+    delivery: p.delivery ?? "",
+    isSample: false,
+  });
+  const [codes, setCodes] = useState("");
+  const [msg, setMsg] = useState("");
+  const [busy, setBusy] = useState(false);
+  const set = (x: Partial<typeof f>) => setF((o) => ({ ...o, ...x }));
+
+  const save = async () => {
+    setBusy(true);
+    setMsg("");
+    const r = await adminSaveProduct({
+      data: { ...f, badges: f.badges.split(/[،,]/) },
+    });
+    if (r.ok && codes.trim() && r.id) {
+      await adminCodes({ data: { productId: r.id, text: codes } });
+    }
+    setBusy(false);
+    if (!r.ok) return setMsg(r.message ?? tr("تعذّر الحفظ."));
+    onDone();
+  };
+
+  return (
+    <div className="stamp flex flex-col gap-3 p-5">
+      <h3 className="text-lg font-extrabold">
+        {f.id ? tr("تعديل المنتج") : tr("إضافة منتج جديد للمتجر الرسمي")}
+      </h3>
+      <div className="grid gap-3 sm:grid-cols-3">
+        <label className="font-bold text-xs">
+          {tr("اسم المنتج أو الاشتراك")}
+          <input
+            className="field mt-1"
+            value={f.name}
+            maxLength={120}
+            placeholder="مثال: اشتراك نتفليكس بريميوم 4K"
+            onChange={(e) => set({ name: e.target.value })}
+          />
+        </label>
+        <label className="font-bold text-xs">
+          {tr("القسم في المتجر (يظهر في لوحة هذا القسم)")}
+          <select
+            className="field mt-1"
+            value={f.categoryId}
+            onChange={(e) => set({ categoryId: e.target.value })}
+          >
+            <option value="">{tr("— اختر قسم المنتج —")}</option>
+            {cats.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="font-bold text-xs">
+          {tr("الرابط بالإنجليزية (slug — اختياري)")}
+          <input
+            className="field mt-1"
+            dir="ltr"
+            value={f.slug}
+            placeholder="netflix-4k"
+            onChange={(e) => set({ slug: e.target.value })}
+          />
+        </label>
+      </div>
+
+      <div className="grid grid-cols-3 gap-3">
+        <label className="font-bold text-xs">
+          {tr("السعر (₪)")}
+          <input
+            className="field mt-1"
+            inputMode="decimal"
+            dir="ltr"
+            value={f.price}
+            onChange={(e) => set({ price: e.target.value })}
+          />
+        </label>
+        <label className="font-bold text-xs">
+          {tr("سعر التخفيض (اختياري ₪)")}
+          <input
+            className="field mt-1"
+            inputMode="decimal"
+            dir="ltr"
+            value={f.sale}
+            onChange={(e) => set({ sale: e.target.value })}
+          />
+        </label>
+        <label className="font-bold text-xs">
+          {tr("مدة الاشتراك")}
+          <select
+            className="field mt-1"
+            value={f.duration}
+            onChange={(e) =>
+              set({ duration: e.target.value as typeof f.duration })
+            }
+          >
+            {Object.entries(DURATIONS).map(([k, v]) => (
+              <option key={k} value={k}>
+                {trv(v)}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+
+      <div className="flex items-center gap-3">
+        {f.imageKey ? (
+          <img
+            src={mediaUrl(f.imageKey)}
+            alt=""
+            className="size-16 rounded-2xl object-cover"
+          />
+        ) : (
+          <span className="size-16 rounded-2xl bg-primary-soft" />
+        )}
+        <label className="btn btn-ghost px-3 text-xs">
+          {busy ? "…" : tr("رفع صورة المنتج")}
+          <input
+            type="file"
+            accept="image/*"
+            className="sr-only"
+            onChange={async (e) => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+              setBusy(true);
+              try {
+                set({ imageKey: await uploadSettingImage(file) });
+              } catch (err) {
+                setMsg(err instanceof Error ? err.message : tr("تعذّر الرفع."));
+              }
+              setBusy(false);
+            }}
+          />
+        </label>
+      </div>
+
+      <label className="font-bold text-xs">
+        {tr("وصف قصير (يظهر على بطاقة المنتج في السلايدر)")}
+        <input
+          className="field mt-1"
+          maxLength={200}
+          value={f.shortDesc}
+          onChange={(e) => set({ shortDesc: e.target.value })}
+        />
+      </label>
+
+      <label className="font-bold text-xs">
+        {tr("تفاصيل المنتج الكاملة")}
+        <textarea
+          className="field mt-1 min-h-20"
+          maxLength={4000}
+          value={f.description}
+          onChange={(e) => set({ description: e.target.value })}
+        />
+      </label>
+
+      <label className="font-bold text-xs">
+        {tr("محتوى التسليم التلقائي للمشتري بعد الدفع (كود / حساب / رابط)")}
+        <textarea
+          className="field mt-1 min-h-16"
+          value={f.delivery}
+          onChange={(e) => set({ delivery: e.target.value })}
+        />
+      </label>
+
+      <label className="flex items-center gap-2 text-xs font-extrabold">
+        <input
+          type="checkbox"
+          className="size-4 accent-[#16A34A]"
+          checked={f.active}
+          onChange={(e) => set({ active: e.target.checked })}
+        />
+        {tr("ظاهر ومفعّل في المتجر الرسمي")}
+      </label>
+
+      {msg ? <p className="text-xs font-bold text-alert">{trv(msg)}</p> : null}
+
+      <div className="grid grid-cols-2 gap-2 pt-2">
+        <button type="button" className="btn" disabled={busy} onClick={save}>
+          {tr("حفظ المنتج ✓")}
+        </button>
+        <button type="button" className="btn btn-ghost" onClick={onDone}>
+          {tr("إلغاء")}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* 4. Promotional Merchant Offers & Custom Green Ribbon Admin                 */
+/* -------------------------------------------------------------------------- */
+
+function MerchantPromoOffersAdmin({
+  allProducts,
+  hubCfg,
+  onSaveHubCfg,
+  refreshStore,
+  busy: parentBusy,
+  setParentMsg,
+}: {
+  allProducts: AdminProductRow[];
+  hubCfg: HubMasterConfig;
+  onSaveHubCfg: (cfg: HubMasterConfig, msg: string) => Promise<void>;
+  refreshStore: () => Promise<void>;
+  busy: boolean;
+  setParentMsg: (m: string) => void;
+}) {
+  const [greenTitle, setGreenTitle] = useState(hubCfg.greenSectionTitle);
+  const [greenBadge, setGreenBadge] = useState(hubCfg.greenBadgeDefault);
+
+  const [editId, setEditId] = useState("");
+  const [offerTitle, setOfferTitle] = useState("");
+  const [merchantName, setMerchantName] = useState("");
+  const [ribbonText, setRibbonText] = useState(hubCfg.greenBadgeDefault);
+  const [priceText, setPriceText] = useState("");
+  const [targetUrl, setTargetUrl] = useState("");
+  const [imageKey, setImageKey] = useState("");
+  const [savingOffer, setSavingOffer] = useState(false);
+
+  useEffect(() => {
+    setGreenTitle(hubCfg.greenSectionTitle);
+    setGreenBadge(hubCfg.greenBadgeDefault);
+  }, [hubCfg.greenSectionTitle, hubCfg.greenBadgeDefault]);
+
+  const promoOffers = useMemo(
+    () => allProducts.filter((p) => p.slug.startsWith("offer-")),
+    [allProducts],
+  );
+
+  const handleSaveOffer = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!offerTitle.trim()) {
+      setParentMsg("الرجاء إدخال عنوان العرض الإعلاني.");
+      return;
+    }
+    setSavingOffer(true);
+    try {
+      const slug = editId
+        ? (promoOffers.find((o) => o.id === editId)?.slug ??
+          `offer-${Date.now().toString(36)}`)
+        : `offer-${Date.now().toString(36)}`;
+      const r = await adminSaveProduct({
+        data: {
+          id: editId,
+          name: offerTitle.trim(),
+          slug,
+          categoryId: "",
+          price: "0",
+          sale: "",
+          imageKey,
+          shortDesc: targetUrl.trim() || "/store",
+          description: merchantName.trim() || "متجر موثّق في رهط",
+          duration: "none",
+          badges: [
+            ribbonText.trim() || greenBadge || "عرض تاجر موثّق ✓",
+            priceText.trim(),
+          ].filter(Boolean),
+          stock: "",
+          active: true,
+          sort: "1",
+          deliveryType: "fixed",
+          delivery: "promo-offer",
+          isSample: false,
+        },
+      });
+      if (r.ok) {
+        setEditId("");
+        setOfferTitle("");
+        setMerchantName("");
+        setPriceText("");
+        setTargetUrl("");
+        setImageKey("");
+        await refreshStore();
+        setParentMsg(
+          "تم حفظ العرض الإعلاني في قسم «عروض المتاجر» وتفعيل توهّج قسم العروض بالأصفر في الحراج ✓",
+        );
+      } else {
+        setParentMsg(r.message ?? "تعذّر حفظ العرض الإعلاني.");
+      }
+    } finally {
+      setSavingOffer(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Custom Green Ribbon Title & Badge Name */}
+      <div className="rounded-3xl border-2 border-[#16A34A]/45 bg-paper p-5 shadow-2xs">
+        <h3 className="text-base font-extrabold text-[#16A34A]">
+          {tr("🟢 تخصيص اسم الشريط الأخضر لعروض المتاجر")}
+        </h3>
+        <p className="mt-0.5 text-xs font-semibold text-muted">
+          {tr(
+            "يمكنك تغيير عنوان الشريط الأخضر الرئيسي للقسم ونص الشارة الخضراء الافتراضية التي تظهر أعلى كل إعلان تاجر.",
+          )}
+        </p>
+
+        <div className="mt-3 grid gap-3 sm:grid-cols-3">
+          <label className="text-xs font-bold">
+            {tr("عنوان الشريط الأخضر للقسم في أول الصفحة")}
+            <input
+              type="text"
+              value={greenTitle}
+              onChange={(e) => setGreenTitle(e.target.value)}
+              placeholder="عروض المتاجر وتجار رهط الموثّقين"
+              className="field mt-1 text-xs"
+            />
+          </label>
+          <label className="text-xs font-bold">
+            {tr("الاسم المخصّص الافتراضي للشريط الأخضر على البطاقات")}
+            <input
+              type="text"
+              value={greenBadge}
+              onChange={(e) => setGreenBadge(e.target.value)}
+              placeholder="عرض تاجر موثّق ✓"
+              className="field mt-1 text-xs"
+            />
+          </label>
+          <div className="flex items-end">
+            <button
+              type="button"
+              disabled={parentBusy}
+              onClick={() =>
+                void onSaveHubCfg(
+                  {
+                    ...hubCfg,
+                    greenSectionTitle:
+                      greenTitle.trim() || "عروض المتاجر وتجار رهط الموثّقين",
+                    greenBadgeDefault:
+                      greenBadge.trim() || "عرض تاجر موثّق ✓",
+                  },
+                  "تم حفظ الاسم المخصّص للشريط الأخضر بنجاح ✓",
+                )
+              }
+              className="btn w-full bg-[#16A34A] py-2.5 text-xs text-white hover:opacity-95"
+            >
+              {tr("حفظ اسم الشريط الأخضر ✓")}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Add / Edit Promotional Merchant Ad Offer */}
+      <form
+        onSubmit={handleSaveOffer}
+        className="rounded-3xl bg-paper p-5 shadow-[0_1px_3px_rgba(16,24,40,0.06)]"
+      >
+        <h3 className="text-base font-extrabold">
+          {editId
+            ? tr("تعديل العرض الإعلاني للتاجر")
+            : tr("🏪 إضافة عرض إعلاني جديد في «عروض المتاجر الموثّقة» (أول الصفحة + قسم العروض المتوهج بالأصفر)")}
+        </h3>
+        <p className="mt-0.5 text-xs font-semibold text-muted">
+          {tr(
+            "العرض الإعلاني يظهر في أول الصفحة، وعند الضغط عليه ينتقل الزائر مباشرة إلى الرابط المخصّص الذي تحدده هنا.",
+          )}
+        </p>
+
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <label className="text-xs font-bold">
+            {tr("1. عنوان العرض الإعلاني")}
+            <input
+              type="text"
+              required
+              value={offerTitle}
+              onChange={(e) => setOfferTitle(e.target.value)}
+              placeholder="مثال: تنزيلات نهاية الأسبوع على الشاشات"
+              className="field mt-1 text-xs"
+            />
+          </label>
+
+          <label className="text-xs font-bold">
+            {tr("2. اسم المتجر / المحل المعلن")}
+            <input
+              type="text"
+              value={merchantName}
+              onChange={(e) => setMerchantName(e.target.value)}
+              placeholder="مثال: معرض النقب للإلكترونيات · رهط"
+              className="field mt-1 text-xs"
+            />
+          </label>
+
+          <label className="text-xs font-bold">
+            {tr("3. نص الشريط الأخضر المخصّص لهذا الإعلان")}
+            <input
+              type="text"
+              value={ribbonText}
+              onChange={(e) => setRibbonText(e.target.value)}
+              placeholder="عرض تاجر موثّق ✓"
+              className="field mt-1 text-xs"
+            />
+          </label>
+
+          <label className="text-xs font-bold">
+            {tr("4. شارة السعر أو الخصم (اختياري)")}
+            <input
+              type="text"
+              value={priceText}
+              onChange={(e) => setPriceText(e.target.value)}
+              placeholder="مثال: خصم 30% أو ₪199"
+              className="field mt-1 text-xs"
+            />
+          </label>
+
+          <label className="text-xs font-bold sm:col-span-2">
+            {tr("5. الرابط المخصّص عند الضغط على الإعلان (واتساب / صفحة متجر / موقع خارجي)")}
+            <input
+              type="text"
+              dir="ltr"
+              value={targetUrl}
+              onChange={(e) => setTargetUrl(e.target.value)}
+              placeholder="https://wa.me/972501234567 أو /directory/... أو https://..."
+              className="field mt-1 font-mono text-xs"
+            />
+          </label>
+        </div>
+
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            {imageKey ? (
+              <img
+                src={mediaUrl(imageKey)}
+                alt=""
+                className="h-14 w-24 rounded-xl object-cover"
+              />
+            ) : (
+              <span className="grid h-14 w-24 place-items-center rounded-xl bg-surface text-[11px] font-bold text-muted">
+                {tr("بدون صورة")}
+              </span>
+            )}
+            <label className="btn btn-ghost px-3 py-2 text-xs">
+              {savingOffer ? "…" : tr("رفع صورة البنر / الإعلان")}
+              <input
+                type="file"
+                accept="image/*"
+                className="sr-only"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  setSavingOffer(true);
+                  try {
+                    setImageKey(await uploadSettingImage(file));
+                  } catch (err) {
+                    setParentMsg(
+                      err instanceof Error ? err.message : tr("تعذّر رفع الصورة."),
+                    );
+                  }
+                  setSavingOffer(false);
+                }}
+              />
+            </label>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {editId ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setEditId("");
+                  setOfferTitle("");
+                  setMerchantName("");
+                  setPriceText("");
+                  setTargetUrl("");
+                  setImageKey("");
+                }}
+                className="btn btn-ghost text-xs"
+              >
+                {tr("إلغاء التعديل")}
+              </button>
+            ) : null}
+            <button
+              type="submit"
+              disabled={savingOffer}
+              className="btn px-6 py-2.5 text-xs font-extrabold"
+            >
+              <Plus className="size-4" aria-hidden />
+              {editId ? tr("حفظ تعديل الإعلان ✓") : tr("نشر العرض الإعلاني الآن ✓")}
+            </button>
+          </div>
+        </div>
+      </form>
+
+      {/* Active Promotional Offers List */}
+      <div className="rounded-3xl bg-paper p-5 shadow-[0_1px_3px_rgba(16,24,40,0.06)]">
+        <h3 className="mb-3 text-sm font-extrabold">
+          {tr("العروض الإعلانية النشطة حالياً")} ({promoOffers.length})
+        </h3>
+        {promoOffers.length === 0 ? (
+          <p className="rounded-2xl bg-surface p-4 text-center text-xs font-bold text-muted">
+            {tr("لا توجد عروض متاجر إعلانية مضافة حالياً.")}
+          </p>
+        ) : (
+          <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {promoOffers.map((p) => (
+              <li
+                key={p.id}
+                className="flex flex-col justify-between gap-2 rounded-2xl border border-[#16A34A]/40 bg-surface p-3"
+              >
+                <div className="flex items-center justify-between gap-2 rounded-xl bg-[#16A34A] px-3 py-1 text-xs font-extrabold text-white">
+                  <span>{p.badges?.[0] || hubCfg.greenBadgeDefault}</span>
+                  {p.badges?.[1] ? (
+                    <span className="rounded bg-[#f2c94c] px-1.5 py-0.5 text-[10px] text-ink">
+                      {p.badges[1]}
+                    </span>
+                  ) : null}
+                </div>
+                <div className="flex items-center gap-3">
+                  {p.imageKey ? (
+                    <img
+                      src={mediaUrl(p.imageKey)}
+                      alt=""
+                      className="h-14 w-20 shrink-0 rounded-xl object-cover"
+                    />
+                  ) : null}
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-extrabold text-ink">{p.name}</p>
+                    <p className="truncate text-xs font-bold text-muted">
+                      {p.description}
+                    </p>
+                    <p
+                      className="truncate font-mono text-[11px] text-primary-ink"
+                      dir="ltr"
+                    >
+                      {p.shortDesc}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex justify-end gap-2 border-t border-line pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditId(p.id);
+                      setOfferTitle(p.name);
+                      setMerchantName(p.description);
+                      setRibbonText(p.badges?.[0] || hubCfg.greenBadgeDefault);
+                      setPriceText(p.badges?.[1] || "");
+                      setTargetUrl(p.shortDesc);
+                      setImageKey(p.imageKey ?? "");
+                    }}
+                    className="btn btn-ghost px-3 py-1 text-xs"
+                  >
+                    <Pencil className="size-3.5" aria-hidden />
+                    {tr("تعديل")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (!confirm(tr("حذف هذا العرض الإعلاني؟"))) return;
+                      await adminDeleteProduct({ data: { id: p.id } });
+                      await refreshStore();
+                    }}
+                    className="btn btn-ghost px-3 py-1 text-xs text-[#DC2626]"
+                  >
+                    <Trash2 className="size-3.5" aria-hidden />
+                    {tr("حذف")}
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* 5. Merchant Role («صلاحية تاجر») & VIP Packages Admin                      */
+/* -------------------------------------------------------------------------- */
+
+function MerchantRoleAndVipAdmin({
+  hubCfg,
+  onSaveHubCfg,
+  busy,
+}: {
+  hubCfg: HubMasterConfig;
+  onSaveHubCfg: (cfg: HubMasterConfig, msg: string) => Promise<void>;
+  busy: boolean;
+}) {
+  const [members, setMembers] = useState<
+    { id: string; name: string; email: string }[]
+  >([]);
+  const [q, setQ] = useState("");
+  const [manualInput, setManualInput] = useState("");
+  const [pkgs, setPkgs] = useState<VipPkgAdmin[]>(hubCfg.vipPackages);
+
+  useEffect(() => {
+    setPkgs(hubCfg.vipPackages);
+  }, [hubCfg.vipPackages]);
+
+  const loadMembers = useCallback(async (query: string) => {
+    const r = await adminListAllMembers({ data: { q: query } }).catch(() => ({
+      items: [],
+    }));
+    setMembers(
+      (r.items ?? []).map((m) => ({
+        id: m.id,
+        name: m.name,
+        email: m.email,
+      })),
+    );
+  }, []);
+
+  useEffect(() => {
+    void loadMembers("");
+  }, [loadMembers]);
+
+  const toggleMerchantUser = async (identifier: string, labelName: string) => {
+    const clean = identifier.trim().toLowerCase();
+    if (!clean) return;
+    const exists = hubCfg.merchantUsers.includes(clean);
+    const nextUsers = exists
+      ? hubCfg.merchantUsers.filter((u) => u !== clean)
+      : [...hubCfg.merchantUsers, clean];
+    await onSaveHubCfg(
+      { ...hubCfg, merchantUsers: nextUsers },
+      exists
+        ? `تم سحب صلاحية «تاجر» من المشترك «${labelName}»`
+        : `تم منح صلاحية «تاجر 🏪» للمشترك «${labelName}» — ستظهر له الآن باقات متاجر رهط وتثبيت الإعلانات (VIP) ✓`,
+    );
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-3xl bg-paper p-5 shadow-[0_1px_3px_rgba(16,24,40,0.06)]">
+        <h3 className="text-base font-extrabold">
+          {tr("👑 منح صلاحية «تاجر» للمشتركين (لإظهار باقات متاجر رهط وتثبيت الإعلانات VIP لهم فقط)")}
+        </h3>
+        <p className="mt-0.5 text-xs font-semibold text-muted">
+          {tr(
+            "قسم «باقات متاجر رهط وتثبيت الإعلانات (VIP)» مخفي عن الزوار العاديين، ولا يظهر إلا للمشترك المسجّل الذي تمنحه هنا «صلاحية تاجر».",
+          )}
+        </p>
+
+        {/* Manual Email / User ID Grant */}
+        <div className="mt-3 flex flex-wrap gap-2">
+          <input
+            type="text"
+            dir="ltr"
+            value={manualInput}
+            onChange={(e) => setManualInput(e.target.value)}
+            placeholder="أدخل البريد الإلكتروني للمشترك لمنحه صلاحية تاجر..."
+            className="field max-w-md flex-1 text-xs"
+          />
+          <button
+            type="button"
+            disabled={busy || !manualInput.trim()}
+            onClick={async () => {
+              await toggleMerchantUser(manualInput, manualInput);
+              setManualInput("");
+            }}
+            className="btn px-4 py-2 text-xs font-extrabold"
+          >
+            + {tr("منح صلاحية تاجر بالبريد")}
+          </button>
+        </div>
+
+        {/* Search & Toggle Members List */}
+        <div className="mt-4 border-t border-line pt-3.5">
+          <form
+            className="mb-3 flex gap-2"
+            onSubmit={(e) => {
+              e.preventDefault();
+              void loadMembers(q);
+            }}
+          >
+            <input
+              type="search"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder={tr("ابحث في المشتركين بالاسم أو البريد الإلكتروني…")}
+              className="field flex-1 text-xs"
+            />
+            <button type="submit" className="btn btn-ghost px-4 text-xs">
+              {tr("بحث")}
+            </button>
+          </form>
+
+          <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            {members.slice(0, 20).map((m) => {
+              const emailKey = (m.email || m.id).trim().toLowerCase();
+              const isMerchant =
+                hubCfg.merchantUsers.includes(emailKey) ||
+                hubCfg.merchantUsers.includes(m.id.toLowerCase());
+              return (
+                <li
+                  key={m.id}
+                  className={`flex items-center justify-between gap-2 rounded-2xl border p-3 text-xs ${
+                    isMerchant
+                      ? "border-[#16A34A] bg-[#16A34A]/10"
+                      : "border-line bg-surface"
+                  }`}
+                >
+                  <div className="min-w-0">
+                    <p className="truncate font-extrabold text-ink">{m.name}</p>
+                    <p
+                      className="truncate text-[11px] font-semibold text-muted"
+                      dir="ltr"
+                    >
+                      {m.email}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => void toggleMerchantUser(emailKey, m.name)}
+                    className={`shrink-0 rounded-xl px-3 py-1.5 text-xs font-extrabold transition ${
+                      isMerchant
+                        ? "bg-[#16A34A] text-white"
+                        : "bg-ink text-paper hover:opacity-90"
+                    }`}
+                  >
+                    {isMerchant
+                      ? tr("✓ لديه صلاحية تاجر")
+                      : tr("+ منح صلاحية تاجر")}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      </div>
+
+      {/* Customize the 3 VIP Packages */}
+      <div className="rounded-3xl bg-paper p-5 shadow-[0_1px_3px_rgba(16,24,40,0.06)]">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h3 className="text-base font-extrabold">
+              {tr("تعديل تفاصيل وأسعار وروابط باقات التجار وتثبيت الإعلانات (VIP)")}
+            </h3>
+            <p className="text-xs font-semibold text-muted">
+              {tr("عدّل عنوان وسعر ورابط كل باقة تظهر للمشتركين الحاصلين على صلاحية تاجر.")}
+            </p>
+          </div>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() =>
+              void onSaveHubCfg(
+                { ...hubCfg, vipPackages: pkgs },
+                "تم حفظ تعديلات باقات التجار وتثبيت VIP ✓",
+              )
+            }
+            className="btn px-5 py-2 text-xs font-extrabold"
+          >
+            {tr("حفظ تعديلات الباقات ✓")}
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          {pkgs.map((pkg, idx) => (
+            <div
+              key={idx}
+              className="flex flex-col gap-2 rounded-2xl border border-line bg-surface p-3.5 text-xs"
+            >
+              <label className="font-bold">
+                {tr("الشارة العلوية")}
+                <input
+                  className="field mt-1 text-xs"
+                  value={pkg.badge}
+                  onChange={(e) =>
+                    setPkgs(
+                      pkgs.map((p, i) =>
+                        i === idx ? { ...p, badge: e.target.value } : p,
+                      ),
+                    )
+                  }
+                />
+              </label>
+              <label className="font-bold">
+                {tr("اسم الباقة")}
+                <input
+                  className="field mt-1 text-xs"
+                  value={pkg.title}
+                  onChange={(e) =>
+                    setPkgs(
+                      pkgs.map((p, i) =>
+                        i === idx ? { ...p, title: e.target.value } : p,
+                      ),
+                    )
+                  }
+                />
+              </label>
+              <label className="font-bold">
+                {tr("السعر والمدة")}
+                <input
+                  className="field mt-1 text-xs"
+                  value={pkg.price}
+                  onChange={(e) =>
+                    setPkgs(
+                      pkgs.map((p, i) =>
+                        i === idx ? { ...p, price: e.target.value } : p,
+                      ),
+                    )
+                  }
+                />
+              </label>
+              <label className="font-bold">
+                {tr("الوصف")}
+                <textarea
+                  className="field mt-1 min-h-14 text-xs"
+                  value={pkg.desc}
+                  onChange={(e) =>
+                    setPkgs(
+                      pkgs.map((p, i) =>
+                        i === idx ? { ...p, desc: e.target.value } : p,
+                      ),
+                    )
+                  }
+                />
+              </label>
+              <label className="font-bold">
+                {tr("رابط مخصّص عند الضغط (اختياري — فارغ = واتساب المتجر)")}
+                <input
+                  className="field mt-1 font-mono text-xs"
+                  dir="ltr"
+                  value={pkg.customUrl ?? ""}
+                  placeholder="https://wa.me/..."
+                  onChange={(e) =>
+                    setPkgs(
+                      pkgs.map((p, i) =>
+                        i === idx ? { ...p, customUrl: e.target.value } : p,
+                      ),
+                    )
+                  }
+                />
+              </label>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* 6. Store Payment & WhatsApp Settings                                       */
+/* -------------------------------------------------------------------------- */
+
+function StorePaySettingsAdmin() {
+  const [s, setS] = useState<AdminPaySettings | null>(null);
+  const [msg, setMsg] = useState("");
+
+  const load = useCallback(async () => {
+    const r = await adminGetPaySettings();
+    if (!r.authed) return setMsg(tr("هذا القسم لمالك الموقع فقط."));
+    setS(r.settings);
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  if (!s)
+    return (
+      <p className="stamp p-4 font-semibold">{msg || tr("جاري التحميل…")}</p>
+    );
+
+  const save = async () => {
+    setMsg("");
+    const r = await adminSavePaySettings({
+      data: { ...s, secrets: {}, clear: [] },
+    });
+    setMsg(r.ok ? tr("تم حفظ إعدادات الدفع وواتساب المتجر ✓") : (r.message ?? tr("تعذّر الحفظ.")));
+    if (r.ok) await load();
+  };
+
+  return (
+    <div className="stamp flex flex-col gap-3 p-5">
+      <h3 className="text-base font-extrabold">
+        {tr("💳 إعدادات العملة، رقم واتساب الطلبات، وبوابة الدفع")}
+      </h3>
+      <div className="grid gap-3 sm:grid-cols-3">
+        <label className="font-bold text-xs">
+          {tr("العملة")}
+          <select
+            className="field mt-1"
+            value={s.currency}
+            onChange={(e) =>
+              setS({ ...s, currency: e.target.value as AdminPaySettings["currency"] })
+            }
+          >
+            {Object.entries(CURRENCIES).map(([k, v]) => (
+              <option key={k} value={k}>
+                {trv(k)} {trv(v)}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="font-bold text-xs">
+          {tr("رقم واتساب المتجر (لاستقبال الطلبات وتفعيل باقات التجار)")}
+          <input
+            className="field mt-1"
+            dir="ltr"
+            inputMode="tel"
+            value={s.whatsapp}
+            placeholder="0501234567"
+            onChange={(e) => setS({ ...s, whatsapp: e.target.value })}
+          />
+        </label>
+        <label className="font-bold text-xs">
+          {tr("بريد التواصل للمتجر")}
+          <input
+            className="field mt-1"
+            dir="ltr"
+            type="email"
+            value={s.email}
+            onChange={(e) => setS({ ...s, email: e.target.value })}
+          />
+        </label>
+      </div>
+      {msg ? <p className="text-xs font-extrabold text-primary-ink">{trv(msg)}</p> : null}
+      <div className="flex gap-2 pt-2">
+        <button type="button" className="btn px-6" onClick={save}>
+          {tr("حفظ إعدادات المتجر ✓")}
+        </button>
+        <button
+          type="button"
+          className="btn btn-ghost"
+          onClick={async () => {
+            setMsg(tr("جاري الاختبار…"));
+            const r = await adminTestPayment();
+            setMsg(r.message);
+          }}
+        >
+          {tr("اختبار بوابة الدفع")}
+        </button>
+      </div>
     </div>
   );
 }

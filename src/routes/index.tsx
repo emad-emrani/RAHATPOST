@@ -690,15 +690,18 @@ function Home() {
     ),
     directory: (
       <>
-        {store.products.length ? (
+        {store.products.filter((p) => p.slug !== "hub-cfg-main" && !p.slug.startsWith("offer-")).length ? (
           <section>
-            <SectionTitle title={tr("من المتجر")} to="/store" more={tr("كل المتجر")} />
+            <SectionTitle title={tr("من المتجر الرسمي")} to="/store" more={tr("كل المتجر")} />
             <ul className="scroll-row -mx-4 px-4 pb-2 sm:mx-0 sm:px-0">
-              {store.products.slice(0, 8).map((p) => (
-                <li key={p.id} className="w-48 shrink-0">
-                  <ProductCard p={p} currency={store.settings.currency} />
-                </li>
-              ))}
+              {store.products
+                .filter((p) => p.slug !== "hub-cfg-main" && !p.slug.startsWith("offer-"))
+                .slice(0, 8)
+                .map((p) => (
+                  <li key={p.id} className="w-48 shrink-0">
+                    <ProductCard p={p} currency={store.settings.currency} />
+                  </li>
+                ))}
             </ul>
           </section>
         ) : null}
@@ -732,7 +735,6 @@ function Home() {
                 ) : null}
                 <span className="min-w-0 flex-1">
                   <span className={item.quiet ? "chip" : "chip chip-deep"}>{trv(item.type)}</span>
-                  {item.sample ? <span className="chip ms-1">{tr("نموذج")}</span> : null}
                   <span className="mt-1 block font-bold">{trv(item.title)}</span>
                   <span className="text-sm font-semibold text-muted">{trv(item.neighborhood)}</span>
                 </span>

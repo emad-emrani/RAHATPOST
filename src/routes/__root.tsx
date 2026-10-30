@@ -405,21 +405,29 @@ export const Route = createRootRoute({
   component: RootComponent,
 });
 
+const NO_ADSENSE_PATHS = /^\/(admin|login|reset-password|app-auth|my-|cart|orders|store|haraj|ads|submit)/;
+
 function RootComponent() {
   const { settings, i18n } = Route.useLoaderData();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
   setI18nState(i18n);
   const css = themeCss(settings.theme);
   const defLang = i18n.langs.find((l) => l.isDefault)?.code ?? "ar";
   const adsensePub = settings.google.adsensePub || DEFAULT_ADSENSE_PUB;
+  const allowAdsOnPage = !NO_ADSENSE_PATHS.test(pathname);
   return (
     <html lang={i18n.lang} dir={i18n.dir} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: langRedirectScript(i18n.lang, defLang, i18n.langs.map((l) => l.code)) }} />
-        <script
-          async
-          src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adsensePub}`}
-          crossOrigin="anonymous"
-        />
+        {allowAdsOnPage ? (
+          <script
+            async
+            src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adsensePub}`}
+            crossOrigin="anonymous"
+          />
+        ) : (
+          <style id="no-adsense-on-route">{`.adsbygoogle, ins.adsbygoogle, amp-auto-ads, [aria-label="إعلان"] { display: none !important; }`}</style>
+        )}
         <HeadContent />
         {css ? <style id="site-theme" dangerouslySetInnerHTML={{ __html: css }} /> : null}
       </head>
@@ -432,7 +440,7 @@ function RootComponent() {
             <GlobalCustomBottomBar />
           </AuthProvider>
           <SiteAnalytics />
-          <GoogleServices />
+          {allowAdsOnPage ? <GoogleServices /> : null}
         </SiteSettingsProvider>
         <Scripts />
       </body>
