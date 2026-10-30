@@ -295,26 +295,100 @@ function Home() {
 
     // 2. Quick custom sections from siteSettings.quickLinks
     for (const q of settings.quickLinks ?? []) {
-      if (!q.id.startsWith("sec") || q.subtitle?.includes("مَخفي")) continue;
+      if (!q.id.startsWith("sec")) continue;
       const cleanName = q.title.trim();
       if (!cleanName || seenNames.has(cleanName)) continue;
       seenNames.add(cleanName);
-      const cat = q.url.includes("q=") ? decodeURIComponent(q.url.split("q=")[1] ?? "") : "";
+      const isHiddenHome =
+        q.subtitle?.includes("مَخفي_رئيسية") || q.subtitle === " مَخفي";
+      const cat = q.url.includes("q=")
+        ? decodeURIComponent(q.url.split("q=")[1] ?? "")
+        : "";
       const matched = news.items.filter(
         (i) =>
-          (cat && (i.category === cat || i.title.includes(cat) || i.summary.includes(cat))) ||
-          i.category === cleanName,
+          (cat &&
+            (i.category === cat ||
+              i.title.includes(cat) ||
+              i.summary.includes(cat))) ||
+          i.category === cleanName ||
+          i.title.includes(cleanName) ||
+          (/فن|موضة/.test(cleanName) &&
+            /فن|موضة|ثقافة|مهرجان|أزياء|سينما|مسرح|فنان/.test(
+              `${i.title} ${i.summary} ${i.category}`,
+            )),
       );
       out.push({
         id: q.id,
         rawName: cleanName,
         name: `${q.emoji ? q.emoji + " " : ""}${cleanName}`,
-        home: !q.subtitle?.includes("مَخفي_رئيسية"),
-        items: matched.length > 0 ? matched : news.items.slice(0, 5),
+        home: !isHiddenHome,
+        items: staggerSectionItems(
+          matched.length > 0 ? matched : news.items.slice(0, 4),
+          5,
+        ),
         icon: pickIconForName(cleanName, q.emoji),
         url: q.url?.trim() || `/?q=${cleanName}`,
       });
     }
+
+    // 3. Also discover any custom section present in topbarcfg or slidercfg (/csec~.../) or default "فن و موضة"
+    const extraCustomNames = new Set<string>(["فن و موضة"]);
+    const topCfg = (settings.quickLinks ?? []).find((q) => q.id === "topbarcfg");
+    if (topCfg && topCfg.url.startsWith("/__top?")) {
+      const labels = (topCfg.subtitle ?? "").split("|");
+      const pairs = topCfg.url.slice(7).split("|").filter(Boolean);
+      pairs.forEach((p, idx) => {
+        const colon = p.indexOf(":");
+        const rawTo = (colon > 0 ? p.slice(colon + 1) : p).replace(/%20/g, " ");
+        const lbl = (labels[idx] ?? "").trim();
+        if (lbl && (rawTo.includes("?q=") || p.startsWith("sparkles:"))) {
+          extraCustomNames.add(lbl);
+        }
+      });
+    }
+    const sliderCfgItem = (settings.quickLinks ?? []).find(
+      (q) => q.id === "slidercfg",
+    );
+    if (sliderCfgItem?.url?.startsWith("/__hord?")) {
+      for (const token of sliderCfgItem.url.slice(8).split("|").filter(Boolean)) {
+        const colon = token.lastIndexOf(":");
+        const rawKey = (colon > 0 ? token.slice(0, colon) : token).replace(
+          /%20/g,
+          " ",
+        );
+        if (rawKey.startsWith("csec~")) {
+          const cName = rawKey.slice(5).trim();
+          if (cName) extraCustomNames.add(cName);
+        }
+      }
+    }
+
+    for (const cName of extraCustomNames) {
+      if (!cName || seenNames.has(cName)) continue;
+      seenNames.add(cName);
+      const matched = news.items.filter(
+        (i) =>
+          i.category === cName ||
+          i.title.includes(cName) ||
+          (/فن|موضة/.test(cName) &&
+            /فن|موضة|ثقافة|مهرجان|أزياء|سينما|مسرح|فنان/.test(
+              `${i.title} ${i.summary} ${i.category}`,
+            )),
+      );
+      out.push({
+        id: `csec-${cName}`,
+        rawName: cName,
+        name: `${/فن|موضة|ثقافة/.test(cName) ? "✨ " : ""}${cName}`,
+        home: true,
+        items: staggerSectionItems(
+          matched.length > 0 ? matched : news.items.slice(0, 4),
+          6,
+        ),
+        icon: pickIconForName(cName),
+        url: `/?q=${cName}`,
+      });
+    }
+
     return out;
   }, [customSecsState, settings.quickLinks, news.items]);
   const israelItems = useMemo(
@@ -486,8 +560,62 @@ function Home() {
     </section>
   ) : null;
 
-  type ExtendedHomeSectionId = HomeSectionId | "matches";
-  const blocks: Record<ExtendedHomeSectionId, ReactNode> = {
+  type ExtendedHomeSectionId = HomeSectionId | "matches" | `csec~${string}`;
+  const customSectionBlocks: Record<string, ReactNode> = {};
+  for (const cs of visibleCustomSections) {
+    const blockEl = (
+      <section key={cs.id}>
+        <SectionTitle
+          title={trv(cs.name)}
+          to="/news"
+          more={tr("كل الأخبار")}
+        />
+        {cs.items.length > 0 ? (
+          <div className="grid gap-4 lg:grid-cols-12">
+            <div className="lg:col-span-6">
+              <NewsLead item={cs.items[0]} now={now} />
+            </div>
+            {cs.items.length > 1 ? (
+              <ul className="stack-list lg:col-span-6">
+                {cs.items.slice(1, 6).map((item) => (
+                  <li key={item.slug}>
+                    <Link
+                      to="/news/$slug"
+                      params={{ slug: item.slug }}
+                      className="flex items-center gap-3 px-4 py-3 transition hover:bg-surface/60"
+                    >
+                      <NewsImage item={item} className="size-16 rounded-xl" />
+                      <span className="min-w-0 flex-1">
+                        <span className="block font-bold leading-snug">
+                          {trv(item.title)}
+                        </span>
+                        <span className="text-sm font-semibold text-muted">
+                          {trv(item.category)} ·{" "}
+                          {relativeTimeAr(item.publishedAt, now)} ·{" "}
+                          {newsByline(item)}
+                        </span>
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </div>
+        ) : (
+          <p className="stamp p-4 text-sm font-semibold text-muted">
+            {tr(
+              "قسم جديد — يمكنك نشر أخبار في هذا القسم من لوحة التحكم ← نشر خبر جديد.",
+            )}
+          </p>
+        )}
+      </section>
+    );
+    customSectionBlocks[`csec~${cs.rawName}`] = blockEl;
+    customSectionBlocks[`csec~${cs.id}`] = blockEl;
+  }
+
+  const blocks: Record<string, ReactNode> = {
+    ...customSectionBlocks,
     weather: !showSec("weather") ? null : <HomeTodayChips weather={weather} serverNow={news.now} />,
     slider: (
       <div className="home-slider-sized" style={{ ["--slider-custom-h" as string]: sliderCfg.heightPx }}>
@@ -551,39 +679,6 @@ function Home() {
             <NewsUnavailable />
           )}
         </section>
-        {visibleCustomSections.filter((cs) => cs.home).map((cs) => (
-          <section key={cs.id} className="mt-6">
-            <SectionTitle title={trv(cs.name)} to="/news" more={tr("كل الأخبار")} />
-            {cs.items.length > 0 ? (
-              <div className="grid gap-4 lg:grid-cols-12">
-                <div className="lg:col-span-6">
-                  <NewsLead item={cs.items[0]} now={now} />
-                </div>
-                {cs.items.length > 1 ? (
-                  <ul className="stack-list lg:col-span-6">
-                    {cs.items.slice(1, 6).map((item) => (
-                      <li key={item.slug}>
-                        <Link to="/news/$slug" params={{ slug: item.slug }} className="flex items-center gap-3 px-4 py-3 transition hover:bg-surface/60">
-                          <NewsImage item={item} className="size-16 rounded-xl" />
-                          <span className="min-w-0 flex-1">
-                            <span className="block font-bold leading-snug">{trv(item.title)}</span>
-                            <span className="text-sm font-semibold text-muted">
-                              {trv(item.category)} · {relativeTimeAr(item.publishedAt, now)} · {newsByline(item)}
-                            </span>
-                          </span>
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                ) : null}
-              </div>
-            ) : (
-              <p className="stamp p-4 text-sm font-semibold text-muted">
-                {tr("قسم جديد — يمكنك نشر أخبار في هذا القسم من لوحة التحكم ← نشر خبر جديد.")}
-              </p>
-            )}
-          </section>
-        ))}
         <AdSlots placement="home" />
       </>
     ),
@@ -765,23 +860,87 @@ function Home() {
     ),
   };
 
-  // Ensure the install banner never blocks above-the-fold news even if an older DB order had it at #2
-  const rawOrder = settings.home.filter((h) => h.visible).map((h) => h.id);
-  const baseOrder: ExtendedHomeSectionId[] = [
-    ...rawOrder.filter((id) => id !== "install"),
-    ...(rawOrder.includes("install") ? (["install"] as HomeSectionId[]) : []),
-  ];
+  // Build the homepage section order from slidercfg (/hord) + settings.home + all visibleCustomSections
   const order: ExtendedHomeSectionId[] = (() => {
-    if (baseOrder.includes("matches")) return baseOrder;
-    const newsIdx = baseOrder.indexOf("news");
-    if (newsIdx !== -1) {
-      const copy = [...baseOrder];
-      // Place matches right above news when a live match is active, or right after news
-      const hasLive = Boolean(matches?.matches?.some((m) => m.status === "in" || (m as { streamUrl?: string }).streamUrl || (m.note && /https?:\/\//i.test(m.note))));
-      copy.splice(hasLive ? newsIdx : newsIdx + 1, 0, "matches");
-      return copy;
+    const sliderItem = (settings.quickLinks ?? []).find(
+      (q) => q.id === "slidercfg",
+    );
+    const hordRaw = sliderItem?.url?.startsWith("/__hord?")
+      ? sliderItem.url.slice(8)
+      : "";
+
+    const hiddenByHord = new Set<string>();
+    const customConfiguredOrder: ExtendedHomeSectionId[] = [];
+
+    if (hordRaw) {
+      for (const token of hordRaw.split("|").filter(Boolean)) {
+        const colon = token.lastIndexOf(":");
+        const rawKey = (colon > 0 ? token.slice(0, colon) : token).replace(
+          /%20/g,
+          " ",
+        );
+        const vis = colon > 0 ? token.slice(colon + 1) !== "0" : true;
+        if (!vis) {
+          hiddenByHord.add(rawKey);
+        } else {
+          customConfiguredOrder.push(rawKey as ExtendedHomeSectionId);
+        }
+      }
     }
-    return ["matches", ...baseOrder];
+
+    const rawOrder = settings.home
+      .filter((h) => h.visible && !hiddenByHord.has(h.id))
+      .map((h) => h.id as ExtendedHomeSectionId);
+
+    let working: ExtendedHomeSectionId[] =
+      customConfiguredOrder.length > 0 ? [...customConfiguredOrder] : [...rawOrder];
+
+    // Append any visible built-in sections that were not in customConfiguredOrder
+    for (const bId of rawOrder) {
+      if (!working.includes(bId)) working.push(bId);
+    }
+
+    // Automatically inject any visible custom section (like "فن و موضة" or newly added sections) if not yet placed in working
+    for (const cs of visibleCustomSections) {
+      const cKey = `csec~${cs.rawName}` as ExtendedHomeSectionId;
+      if (!cs.home || hiddenByHord.has(cKey)) continue;
+      if (!working.includes(cKey)) {
+        const newsIdx = working.indexOf("news");
+        if (newsIdx !== -1) {
+          working.splice(newsIdx + 1, 0, cKey);
+        } else {
+          working.push(cKey);
+        }
+      }
+    }
+
+    // Ensure matches widget is included
+    if (!working.includes("matches") && !hiddenByHord.has("matches")) {
+      const newsIdx = working.indexOf("news");
+      const hasLive = Boolean(
+        matches?.matches?.some(
+          (m) =>
+            m.status === "in" ||
+            (m as { streamUrl?: string }).streamUrl ||
+            (m.note && /https?:\/\//i.test(m.note)),
+        ),
+      );
+      if (newsIdx !== -1) {
+        working.splice(hasLive ? newsIdx : newsIdx + 1, 0, "matches");
+      } else {
+        working.unshift("matches");
+      }
+    }
+
+    // Keep install banner at bottom
+    if (working.includes("install")) {
+      working = [
+        ...working.filter((id) => id !== "install"),
+        "install",
+      ];
+    }
+
+    return working;
   })();
   const TOP: ExtendedHomeSectionId[] = ["weather", "slider", "search"];
 

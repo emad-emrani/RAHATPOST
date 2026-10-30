@@ -5479,7 +5479,10 @@ function QuickCustomSectionsBar({
         nextLinks = encodeBotBarConfig(nextLinks, curBot.style, updatedBot);
       }
 
-      const res = await adminSaveSiteSettings({ data: { ...siteSettings, quickLinks: nextLinks } });
+      const tempSettings: SiteSettings = { ...siteSettings, quickLinks: nextLinks };
+      const combinedHome = buildCombinedHomeOrder(tempSettings, [targetName]);
+      const homePatch = applyCombinedHomeOrderToSettings(tempSettings, combinedHome);
+      const res = await adminSaveSiteSettings({ data: { ...tempSettings, ...homePatch } });
       if (res.ok && res.settings) {
         setSiteSettings(res.settings);
       }
@@ -6128,6 +6131,85 @@ function QuickCustomSectionsBar({
                           {secItem.inHome ? tr("في الرئيسية ✓") : tr("مخفي بالرئيسية")}
                         </button>
 
+                        {/* Reorder custom section up/down on Homepage directly from here */}
+                        <button
+                          type="button"
+                          disabled={busy || !siteSettings}
+                          onClick={async () => {
+                            if (!siteSettings) return;
+                            const list = buildCombinedHomeOrder(
+                              siteSettings,
+                              unifiedSections.map((u) => u.name),
+                            );
+                            const idx = list.findIndex(
+                              (x) => x.id === `csec~${secItem.name}`,
+                            );
+                            if (idx <= 0) return;
+                            const moved = moveItem(list, idx, -1);
+                            const patch = applyCombinedHomeOrderToSettings(
+                              siteSettings,
+                              moved,
+                            );
+                            setBusy(true);
+                            try {
+                              const r = await adminSaveSiteSettings({
+                                data: { ...siteSettings, ...patch },
+                              });
+                              if (r.ok && r.settings) {
+                                setSiteSettings(r.settings);
+                                setMsg(
+                                  `تم تقديم ترتيب قسم «${secItem.name}» للأعلى في الصفحة الرئيسية ✓`,
+                                );
+                              }
+                            } finally {
+                              setBusy(false);
+                            }
+                          }}
+                          className="rounded-xl border border-line bg-paper px-2 py-1.5 text-[11px] font-extrabold text-ink hover:bg-primary-soft"
+                          title={tr("تقديم ترتيب القسم لأعلى في الصفحة الرئيسية")}
+                        >
+                          ⬆️ {tr("أعلى بالرئيسية")}
+                        </button>
+
+                        <button
+                          type="button"
+                          disabled={busy || !siteSettings}
+                          onClick={async () => {
+                            if (!siteSettings) return;
+                            const list = buildCombinedHomeOrder(
+                              siteSettings,
+                              unifiedSections.map((u) => u.name),
+                            );
+                            const idx = list.findIndex(
+                              (x) => x.id === `csec~${secItem.name}`,
+                            );
+                            if (idx === -1 || idx >= list.length - 1) return;
+                            const moved = moveItem(list, idx, 1);
+                            const patch = applyCombinedHomeOrderToSettings(
+                              siteSettings,
+                              moved,
+                            );
+                            setBusy(true);
+                            try {
+                              const r = await adminSaveSiteSettings({
+                                data: { ...siteSettings, ...patch },
+                              });
+                              if (r.ok && r.settings) {
+                                setSiteSettings(r.settings);
+                                setMsg(
+                                  `تم تأخير ترتيب قسم «${secItem.name}» لأسفل في الصفحة الرئيسية ✓`,
+                                );
+                              }
+                            } finally {
+                              setBusy(false);
+                            }
+                          }}
+                          className="rounded-xl border border-line bg-paper px-2 py-1.5 text-[11px] font-extrabold text-ink hover:bg-primary-soft"
+                          title={tr("تأخير ترتيب القسم لأسفل في الصفحة الرئيسية")}
+                        >
+                          ⬇️ {tr("أسفل بالرئيسية")}
+                        </button>
+
                         {secItem.dbSec ? (
                           <button
                             type="button"
@@ -6442,10 +6524,12 @@ function parseSliderConfig(quickLinks: SiteSettings["quickLinks"]): {
   size: SliderSizeKey;
   sections: string[];
   ampAds: boolean;
+  homeOrderUrl: string;
 } {
   const item = (quickLinks ?? []).find((q) => q.id === "slidercfg");
   const raw = item?.subtitle ?? "";
   const titleFlags = item?.title ?? "";
+  const homeOrderUrl = item?.url?.startsWith("/__hord?") ? item.url : "/";
   let size: SliderSizeKey = "md";
   let sections: string[] = ["news", "israel", "sports", "tech", "reader"];
   const ampAds = !titleFlags.includes("amp:0");
@@ -6462,7 +6546,7 @@ function parseSliderConfig(quickLinks: SiteSettings["quickLinks"]): {
       if (list.length > 0) sections = list;
     }
   }
-  return { size, sections, ampAds };
+  return { size, sections, ampAds, homeOrderUrl };
 }
 
 function encodeSliderConfig(
@@ -6470,9 +6554,11 @@ function encodeSliderConfig(
   size: SliderSizeKey,
   sections: string[],
   ampAds?: boolean,
+  customHomeOrderUrl?: string,
 ): SiteSettings["quickLinks"] {
   const current = parseSliderConfig(quickLinks);
   const nextAmp = ampAds !== undefined ? ampAds : current.ampAds;
+  const nextUrl = (customHomeOrderUrl ?? current.homeOrderUrl ?? "/").slice(0, 300);
   const others = (quickLinks ?? []).filter((q) => q.id !== "slidercfg");
   const sub = `size:${size}|secs:${sections.join(",")}`.slice(0, 100);
   return [
@@ -6481,10 +6567,190 @@ function encodeSliderConfig(
       id: "slidercfg",
       title: `amp:${nextAmp ? "1" : "0"}`,
       subtitle: sub,
-      url: "/",
+      url: nextUrl || "/",
       emoji: "🎞️",
     },
   ];
+}
+
+type CombinedHomeOrderItem = {
+  id: string;
+  label: string;
+  visible: boolean;
+  isCustom: boolean;
+  rawCustomName?: string;
+};
+
+function buildCombinedHomeOrder(
+  s: SiteSettings,
+  extraCustomNames: string[],
+): CombinedHomeOrderItem[] {
+  const sliderItem = (s.quickLinks ?? []).find((q) => q.id === "slidercfg");
+  const hordRaw = sliderItem?.url?.startsWith("/__hord?")
+    ? sliderItem.url.slice(8)
+    : "";
+
+  // Collect all custom section names from DB, quickLinks (sec*), topbarcfg (/?q=), and "فن و موضة"
+  const customNamesSet = new Set<string>();
+  customNamesSet.add("فن و موضة");
+  for (const n of extraCustomNames) {
+    if (n.trim()) customNamesSet.add(n.trim());
+  }
+  for (const q of s.quickLinks ?? []) {
+    if (q.id.startsWith("sec") && q.title.trim()) {
+      customNamesSet.add(q.title.trim());
+    }
+  }
+  for (const b of parseTopBarConfig(s.quickLinks)) {
+    if ((b.to.includes("?q=") || b.icon === "sparkles") && b.label.trim()) {
+      customNamesSet.add(b.label.trim());
+    }
+  }
+
+  const builtinMap = new Map<string, { label: string; visible: boolean }>();
+  for (const h of s.home) {
+    builtinMap.set(h.id, {
+      label: HOME_SECTIONS[h.id] ?? h.id,
+      visible: h.visible,
+    });
+  }
+  for (const [k, lbl] of Object.entries(HOME_SECTIONS)) {
+    if (!builtinMap.has(k)) {
+      builtinMap.set(k, { label: lbl, visible: true });
+    }
+  }
+
+  const customVisMap = new Map<string, boolean>();
+  for (const cName of customNamesSet) {
+    const ql = (s.quickLinks ?? []).find(
+      (q) => q.id.startsWith("sec") && q.title.trim() === cName,
+    );
+    const hidden = ql?.subtitle?.includes("مَخفي_رئيسية") || ql?.subtitle === " مَخفي";
+    customVisMap.set(cName, !hidden);
+  }
+
+  const out: CombinedHomeOrderItem[] = [];
+  const seenIds = new Set<string>();
+
+  if (hordRaw) {
+    for (const token of hordRaw.split("|").filter(Boolean)) {
+      const colon = token.lastIndexOf(":");
+      const rawKey = (colon > 0 ? token.slice(0, colon) : token).replace(/%20/g, " ");
+      const visFlag = colon > 0 ? token.slice(colon + 1) !== "0" : true;
+      if (rawKey.startsWith("csec~")) {
+        const cName = rawKey.slice(5).trim();
+        if (!cName || seenIds.has(`csec~${cName}`)) continue;
+        seenIds.add(`csec~${cName}`);
+        customNamesSet.add(cName);
+        out.push({
+          id: `csec~${cName}`,
+          label: `✨ قسم مخصّص: ${cName}`,
+          visible: visFlag,
+          isCustom: true,
+          rawCustomName: cName,
+        });
+      } else if (builtinMap.has(rawKey) && !seenIds.has(rawKey)) {
+        seenIds.add(rawKey);
+        const b = builtinMap.get(rawKey)!;
+        out.push({
+          id: rawKey,
+          label: b.label,
+          visible: visFlag,
+          isCustom: false,
+        });
+      }
+    }
+  }
+
+  // Append any built-in sections not yet in out (preserving s.home order)
+  for (const h of s.home) {
+    if (!seenIds.has(h.id)) {
+      seenIds.add(h.id);
+      out.push({
+        id: h.id,
+        label: HOME_SECTIONS[h.id] ?? h.id,
+        visible: h.visible,
+        isCustom: false,
+      });
+    }
+  }
+
+  // Insert any custom sections not yet in out right after "news" (آخر الأخبار)
+  for (const cName of customNamesSet) {
+    const cid = `csec~${cName}`;
+    if (seenIds.has(cid)) continue;
+    seenIds.add(cid);
+    const item: CombinedHomeOrderItem = {
+      id: cid,
+      label: `✨ قسم مخصّص: ${cName}`,
+      visible: customVisMap.get(cName) ?? true,
+      isCustom: true,
+      rawCustomName: cName,
+    };
+    const newsIdx = out.findIndex((x) => x.id === "news");
+    if (newsIdx !== -1) {
+      out.splice(newsIdx + 1, 0, item);
+    } else {
+      out.push(item);
+    }
+  }
+
+  return out;
+}
+
+function applyCombinedHomeOrderToSettings(
+  s: SiteSettings,
+  nextList: CombinedHomeOrderItem[],
+): Partial<SiteSettings> {
+  const nextHome: SiteSettings["home"] = nextList
+    .filter((x) => !x.isCustom && x.id in HOME_SECTIONS)
+    .map((x) => ({
+      id: x.id as keyof typeof HOME_SECTIONS,
+      visible: x.visible,
+    }));
+
+  const hordTokens = nextList.map((x) => {
+    const safeKey = x.id.trim().replace(/\s+/g, "%20");
+    return `${safeKey}:${x.visible ? "1" : "0"}`;
+  });
+  const hordUrl = ("/__hord?" + hordTokens.join("|")).slice(0, 300);
+
+  const curSlider = parseSliderConfig(s.quickLinks);
+  let nextQuickLinks = encodeSliderConfig(
+    s.quickLinks,
+    curSlider.size,
+    curSlider.sections,
+    curSlider.ampAds,
+    hordUrl,
+  );
+
+  // Also sync custom section home visibility flags in sec* quickLinks
+  for (const item of nextList) {
+    if (!item.isCustom || !item.rawCustomName) continue;
+    const cName = item.rawCustomName;
+    const existingQl = nextQuickLinks.find(
+      (q) => q.id.startsWith("sec") && q.title.trim() === cName,
+    );
+    if (existingQl) {
+      nextQuickLinks = nextQuickLinks.map((q) =>
+        q.id === existingQl.id
+          ? {
+              ...q,
+              subtitle: q.subtitle?.includes("مَخفي_علوي")
+                ? "مَخفي_علوي"
+                : item.visible
+                  ? "قسم في الرئيسية"
+                  : "مَخفي_رئيسية",
+            }
+          : q,
+      );
+    }
+  }
+
+  return {
+    home: nextHome.length > 0 ? nextHome : s.home,
+    quickLinks: nextQuickLinks,
+  };
 }
 
 function parseTopBarConfig(quickLinks: SiteSettings["quickLinks"]): BarBtnItem[] {
@@ -6671,11 +6937,7 @@ function SiteSettingsAdmin({ only }: { only?: SettingsPartKey } = {}) {
       ) : null}
 
       {part === "theme" ? <ThemePart s={s} set={set} /> : null}
-      {part === "home" ? (
-        <SettingsCard title={tr("أقسام الصفحة الرئيسية")} hint={tr("أظهر أو أخفِ الأقسام ورتّبها بالأسهم.")}>
-          <ToggleList list={s.home} labels={HOME_SECTIONS} onChange={(home) => set({ home })} />
-        </SettingsCard>
-      ) : null}
+      {part === "home" ? <HomeSectionsOrderPart s={s} set={set} /> : null}
       {part === "slider" ? <SliderPart s={s} set={set} setMsg={setMsg} /> : null}
       {part === "texts" ? <TextsPart s={s} set={set} setMsg={setMsg} /> : null}
       {part === "menus" ? <MenusAndBarsPart s={s} set={set} /> : null}
@@ -6808,6 +7070,117 @@ function SettingsIconBtn({
     >
       {children}
     </button>
+  );
+}
+
+function HomeSectionsOrderPart({ s, set }: SettingsPartProps) {
+  const [dbCustomNames, setDbCustomNames] = useState<string[]>(["فن و موضة"]);
+
+  useEffect(() => {
+    const BUILTIN = new Set(["news", "israel", "sports", "tech", "weather"]);
+    void adminListSections()
+      .then((r) => {
+        if (r.authed && r.sections) {
+          const names = r.sections
+            .filter((sec) => !BUILTIN.has(sec.id))
+            .map((sec) => sec.name.trim())
+            .filter(Boolean);
+          setDbCustomNames(Array.from(new Set(["فن و موضة", ...names])));
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const combinedList = useMemo(
+    () => buildCombinedHomeOrder(s, dbCustomNames),
+    [s, dbCustomNames],
+  );
+
+  const updateOrder = (next: CombinedHomeOrderItem[]) => {
+    set(applyCombinedHomeOrderToSettings(s, next));
+  };
+
+  const moveDirectlyAfter = (fromIdx: number, targetId: string) => {
+    const copy = [...combinedList];
+    const [picked] = copy.splice(fromIdx, 1);
+    const targetIdx = copy.findIndex((x) => x.id === targetId);
+    if (targetIdx !== -1) {
+      copy.splice(targetIdx + 1, 0, picked);
+    } else {
+      copy.unshift(picked);
+    }
+    updateOrder(copy);
+  };
+
+  return (
+    <SettingsCard
+      title={tr("أقسام الصفحة الرئيسية (تشمل الأقسام الأساسية والأقسام المخصّصة مثل «فن و موضة»)")}
+      hint={tr(
+        "رتّب جميع أقسام الصفحة الرئيسية بالأسهم (أعلى / أسفل) أو أخفِ وأظهر أي قسم. أي قسم جديد تضيفه يظهر هنا تلقائياً ويمكنك وضعه في أي مكان في الصفحة الرئيسية.",
+      )}
+    >
+      <ul className="flex flex-col gap-2">
+        {combinedList.map((item, i) => (
+          <li
+            key={item.id}
+            className={`flex flex-wrap items-center gap-2 rounded-2xl border px-3 py-2.5 transition ${
+              item.isCustom
+                ? "border-primary/60 bg-primary/10"
+                : "border-line bg-paper"
+            } ${item.visible ? "" : "opacity-50"}`}
+          >
+            <span className="grid size-6 shrink-0 place-items-center rounded-full bg-surface text-xs font-extrabold text-muted">
+              {i + 1}
+            </span>
+            <span className="min-w-0 flex-1 font-extrabold text-ink">
+              {trv(item.label)}
+            </span>
+
+            {item.isCustom ? (
+              <button
+                type="button"
+                onClick={() => moveDirectlyAfter(i, "tiles")}
+                className="rounded-xl border border-primary bg-paper px-2.5 py-1 text-[11px] font-extrabold text-ink hover:bg-primary"
+                title={tr("نقل إلى أعلى الصفحة مباشرة تحت شريط الأيقونات")}
+              >
+                {tr("⏫ نقل لأعلى الرئيسية")}
+              </button>
+            ) : null}
+
+            <SettingsIconBtn
+              label={tr("أعلى")}
+              onClick={() => updateOrder(moveItem(combinedList, i, -1))}
+              disabled={i === 0}
+            >
+              <ArrowUp className="size-4" />
+            </SettingsIconBtn>
+            <SettingsIconBtn
+              label={tr("أسفل")}
+              onClick={() => updateOrder(moveItem(combinedList, i, 1))}
+              disabled={i === combinedList.length - 1}
+            >
+              <ArrowDown className="size-4" />
+            </SettingsIconBtn>
+            <SettingsIconBtn
+              label={item.visible ? tr("إخفاء") : tr("إظهار")}
+              onClick={() =>
+                updateOrder(
+                  combinedList.map((x, idx) =>
+                    idx === i ? { ...x, visible: !x.visible } : x,
+                  ),
+                )
+              }
+            >
+              {item.visible ? (
+                <Eye className="size-4 text-[#16A34A]" />
+              ) : (
+                <EyeOff className="size-4" />
+              )}
+            </SettingsIconBtn>
+          </li>
+        ))}
+      </ul>
+    </SettingsCard>
   );
 }
 
