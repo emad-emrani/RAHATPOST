@@ -86,6 +86,38 @@ function fromBase64Url(b64u: string): string {
   }
 }
 
+
+const SECTION_DICT_ROOT: Record<string, { he: string; en: string }> = {
+  "فن و موضة": { he: "אמנות ואופנה", en: "Art & Fashion" },
+  "فن وموضة": { he: "אמנות ואופנה", en: "Art & Fashion" },
+  "ثقافة وفن": { he: "תרבות ואמנות", en: "Culture & Art" },
+  "فن وثقافة": { he: "אמנות ותרבות", en: "Art & Culture" },
+  "موضة": { he: "אופנה", en: "Fashion" },
+  "فن": { he: "אמנות", en: "Art" },
+  "مشاهير": { he: "סלבס ובידור", en: "Celebrities" },
+  "الذكاء": { he: "בינה מלאכותית", en: "AI" },
+  "ذكاء اصطناعي": { he: "בינה מלאכותית", en: "Artificial Intelligence" },
+  "نتفليكس": { he: "נטפליקס", en: "Netflix" },
+  "أخبار محلية": { he: "חדשות מקומיות", en: "Local News" },
+};
+
+function trSecLabel(raw: string): string {
+  if (!raw) return "";
+  const trimmed = raw.trim();
+  const emojiMatch = trimmed.match(/^([\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}\s]+)(.+)$/u);
+  const prefix = emojiMatch ? emojiMatch[1] : "";
+  const core = (emojiMatch ? emojiMatch[2] : trimmed).trim();
+  const lang = getI18nState().lang;
+  if (lang === "ar") return trimmed;
+  const entry = SECTION_DICT_ROOT[core];
+  if (entry && (lang === "he" || lang === "en")) {
+    return `${prefix}${entry[lang]}`;
+  }
+  const byDict = trv(core);
+  if (byDict !== core) return `${prefix}${byDict}`;
+  return trv(trimmed);
+}
+
 function GlobalCustomBottomBar() {
   const st = useSiteSettings();
   const location = useLocation();
@@ -257,7 +289,7 @@ function GlobalCustomBottomBar() {
                 >
                   <Icon className="size-5" aria-hidden />
                   <span className="truncate">
-                    {item.to === "/haraj" ? trv(st.texts.harajNav) : trv(item.label)}
+                    {item.to === "/haraj" ? trv(st.texts.harajNav) : trSecLabel(item.label)}
                   </span>
                 </Link>
               );
@@ -277,7 +309,7 @@ function GlobalCustomBottomBar() {
                 >
                   <Icon className="size-5" aria-hidden />
                   <span className="truncate">
-                    {item.to === "/haraj" ? trv(st.texts.harajNav) : trv(item.label)}
+                    {item.to === "/haraj" ? trv(st.texts.harajNav) : trSecLabel(item.label)}
                   </span>
                 </Link>
               );
@@ -297,7 +329,7 @@ function GlobalCustomBottomBar() {
                 >
                   <Icon className="size-4" aria-hidden />
                   <span className="truncate">
-                    {item.to === "/haraj" ? trv(st.texts.harajNav) : trv(item.label)}
+                    {item.to === "/haraj" ? trv(st.texts.harajNav) : trSecLabel(item.label)}
                   </span>
                 </Link>
               );
@@ -319,7 +351,7 @@ function GlobalCustomBottomBar() {
                     <Icon className="size-5" aria-hidden />
                   </span>
                   <span className="truncate">
-                    {item.to === "/haraj" ? trv(st.texts.harajNav) : trv(item.label)}
+                    {item.to === "/haraj" ? trv(st.texts.harajNav) : trSecLabel(item.label)}
                   </span>
                 </Link>
               );
@@ -339,7 +371,7 @@ function GlobalCustomBottomBar() {
                 >
                   <Icon className="size-4" aria-hidden />
                   <span className="truncate">
-                    {item.to === "/haraj" ? trv(st.texts.harajNav) : trv(item.label)}
+                    {item.to === "/haraj" ? trv(st.texts.harajNav) : trSecLabel(item.label)}
                   </span>
                 </Link>
               );
@@ -355,7 +387,7 @@ function GlobalCustomBottomBar() {
                 <span className="tab-icon">
                   <Icon className="size-5" aria-hidden />
                 </span>
-                {item.to === "/haraj" ? trv(st.texts.harajNav) : trv(item.label)}
+                {item.to === "/haraj" ? trv(st.texts.harajNav) : trSecLabel(item.label)}
               </Link>
             );
           })}

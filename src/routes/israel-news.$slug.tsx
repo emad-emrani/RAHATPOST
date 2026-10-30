@@ -255,6 +255,7 @@ function IsraelArticlePage() {
 
   const [fullParagraphs, setFullParagraphs] = useState<string[]>([]);
   const [extraImages, setExtraImages] = useState<string[]>([]);
+  const [extraVideos, setExtraVideos] = useState<{ type: "video" | "iframe"; src: string; poster?: string }[]>([]);
   const [loadingFull, setLoadingFull] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIdx, setLightboxIdx] = useState(0);
@@ -262,6 +263,7 @@ function IsraelArticlePage() {
   useEffect(() => {
     setFullParagraphs([]);
     setExtraImages([]);
+    setExtraVideos([]);
     setLightboxOpen(false);
     setLightboxIdx(0);
   }, [article?.slug]);
@@ -280,6 +282,7 @@ function IsraelArticlePage() {
           ok?: boolean;
           paragraphs?: string[];
           images?: string[];
+          videos?: { type: "video" | "iframe"; src: string; poster?: string }[];
         };
         if (!active) return;
         if (Array.isArray(data.paragraphs) && data.paragraphs.length > 0) {
@@ -287,6 +290,9 @@ function IsraelArticlePage() {
         }
         if (Array.isArray(data.images) && data.images.length > 0) {
           setExtraImages(data.images);
+        }
+        if (Array.isArray(data.videos) && data.videos.length > 0) {
+          setExtraVideos(data.videos);
         }
       } catch {
         // fallback to summary
@@ -354,7 +360,56 @@ function IsraelArticlePage() {
               <span className="pointer-events-none absolute bottom-3 left-3 inline-flex items-center gap-1.5 rounded-full bg-black/70 px-3 py-1 text-xs font-extrabold text-white shadow-md backdrop-blur-xs transition group-hover:bg-black/85">
                 <ZoomIn className="size-3.5" aria-hidden />
                 <span>{tr("تكبير الصورة بالحجم الأصلي")}</span>
-                {allGalleryImages.length > 1 ? (
+                              {/* Extracted Article Videos from Feed / Publisher Page */}
+              {extraVideos.length > 0 ? (
+                <div className="mt-6 space-y-4">
+                  <p className="flex items-center gap-1.5 text-sm font-extrabold text-ink">
+                    <span>🎬</span>
+                    <span>{tr("فيديو مرفق بالخبر")}</span>
+                  </p>
+                  {extraVideos.map((vid, vIdx) => (
+                    <div
+                      key={`vid-${vIdx}-${vid.src}`}
+                      className="overflow-hidden rounded-2xl border border-line bg-black shadow-md"
+                    >
+                      <div className="relative aspect-video w-full bg-black">
+                        {vid.type === "video" ? (
+                          <video
+                            src={vid.src}
+                            poster={vid.poster || heroImageUrl}
+                            controls
+                            playsInline
+                            preload="metadata"
+                            className="h-full w-full object-contain"
+                          />
+                        ) : (
+                          <iframe
+                            src={vid.src}
+                            title={`video-${vIdx + 1}`}
+                            className="h-full w-full border-0"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+                            allowFullScreen
+                          />
+                        )}
+                      </div>
+                      <div className="flex items-center justify-between bg-ink px-3 py-2 text-[11px] font-bold text-paper">
+                        <span>🎬 {tr("مشغّل الفيديو المباشر")}</span>
+                        <a
+                          href={vid.src}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 rounded-lg bg-white/15 px-2.5 py-1 text-white hover:bg-white/25"
+                        >
+                          <span>{tr("فتح الفيديو في نافذة مستقلة")}</span>
+                          <ExternalLink className="size-3" />
+                        </a>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+
+              {allGalleryImages.length > 1 ? (
                   <span className="opacity-80">({allGalleryImages.length})</span>
                 ) : null}
               </span>
