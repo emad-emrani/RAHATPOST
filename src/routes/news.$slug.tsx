@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ChevronLeft, ChevronRight, ExternalLink, Maximize2, Minimize2, RefreshCw, X, ZoomIn } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, ExternalLink, Maximize2, Minimize2, RefreshCw, X, ZoomIn } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Comments } from "@/components/comments";
 import { Shell } from "@/components/shell";
@@ -394,6 +394,7 @@ function ArticlePage() {
   const [extraImages, setExtraImages] = useState<string[]>([]);
   const [extraVideos, setExtraVideos] = useState<{ type: "video" | "iframe"; src: string; poster?: string }[]>([]);
   const [loadingFull, setLoadingFull] = useState(false);
+  const [showFull, setShowFull] = useState(false);
 
   // Lightbox state for viewing original-size images
   const [lightboxOpen, setLightboxOpen] = useState(false);
@@ -404,6 +405,7 @@ function ArticlePage() {
     setFullParagraphs([]);
     setExtraImages([]);
     setExtraVideos([]);
+    setShowFull(false);
     setLightboxOpen(false);
     setLightboxIdx(0);
   }, [article?.slug]);
@@ -485,7 +487,46 @@ function ArticlePage() {
     };
   }, [article, targetLang]);
 
-  if (!article) {
+  const shownArticle: NewsItem | null = article
+    ? txArticle
+      ? {
+          ...article,
+          title: txArticle.title,
+          summary: txArticle.summary,
+          body: txArticle.body || article.body,
+        }
+      : article
+    : null;
+
+  // Combine hero image + any additional article images for the full-size lightbox
+  const allGalleryImages = useMemo(() => {
+    const list: string[] = [];
+    const add = (u?: string) => {
+      if (u && !list.includes(u)) list.push(u);
+    };
+    add(shownArticle?.image);
+    for (const im of extraImages) add(im);
+    return list;
+  }, [shownArticle?.image, extraImages]);
+
+  // Build full paragraphs list (merge summary + extracted full paragraphs without duplication)
+  const displayParagraphs = useMemo(() => {
+    if (fullParagraphs.length > 0) {
+      return fullParagraphs;
+    }
+    if (shownArticle?.body) {
+      return shownArticle.body
+        .split(/\n{2,}/)
+        .map((p) => p.trim())
+        .filter(Boolean);
+    }
+    if (shownArticle?.summary) {
+      return [shownArticle.summary];
+    }
+    return [];
+  }, [fullParagraphs, shownArticle?.body, shownArticle?.summary]);
+
+  if (!article || !shownArticle) {
     return (
       <Shell>
         {empty ? (
@@ -500,44 +541,7 @@ function ArticlePage() {
     );
   }
 
-  const shownArticle: NewsItem = txArticle
-    ? {
-        ...article,
-        title: txArticle.title,
-        summary: txArticle.summary,
-        body: txArticle.body || article.body,
-      }
-    : article;
-
-  // Combine hero image + any additional article images for the full-size lightbox
-  const allGalleryImages = useMemo(() => {
-    const list: string[] = [];
-    const add = (u?: string) => {
-      if (u && !list.includes(u)) list.push(u);
-    };
-    add(shownArticle.image);
-    for (const im of extraImages) add(im);
-    return list;
-  }, [shownArticle.image, extraImages]);
-
   const heroImageUrl = allGalleryImages[0] ?? shownArticle.image;
-
-  // Build full paragraphs list (merge summary + extracted full paragraphs without duplication)
-  const displayParagraphs = useMemo(() => {
-    if (fullParagraphs.length > 0) {
-      return fullParagraphs;
-    }
-    if (shownArticle.body) {
-      return shownArticle.body
-        .split(/\n{2,}/)
-        .map((p) => p.trim())
-        .filter(Boolean);
-    }
-    if (shownArticle.summary) {
-      return [shownArticle.summary];
-    }
-    return [];
-  }, [fullParagraphs, shownArticle.body, shownArticle.summary]);
 
   const sameCategory = items.filter(
     (item) => item.slug !== article.slug && item.category === article.category,
@@ -575,56 +579,7 @@ function ArticlePage() {
               <span className="pointer-events-none absolute bottom-3 left-3 inline-flex items-center gap-1.5 rounded-full bg-black/70 px-3 py-1 text-xs font-extrabold text-white shadow-md backdrop-blur-xs transition group-hover:bg-black/85">
                 <ZoomIn className="size-3.5" aria-hidden />
                 <span>{tr("تكبير الصورة بالحجم الأصلي")}</span>
-                              {/* Extracted Article Videos from Feed / Publisher Page */}
-              {extraVideos.length > 0 ? (
-                <div className="mt-6 space-y-4">
-                  <p className="flex items-center gap-1.5 text-sm font-extrabold text-ink">
-                    <span>🎬</span>
-                    <span>{tr("فيديو مرفق بالخبر")}</span>
-                  </p>
-                  {extraVideos.map((vid, vIdx) => (
-                    <div
-                      key={`vid-${vIdx}-${vid.src}`}
-                      className="overflow-hidden rounded-2xl border border-line bg-black shadow-md"
-                    >
-                      <div className="relative aspect-video w-full bg-black">
-                        {vid.type === "video" ? (
-                          <video
-                            src={vid.src}
-                            poster={vid.poster || heroImageUrl}
-                            controls
-                            playsInline
-                            preload="metadata"
-                            className="h-full w-full object-contain"
-                          />
-                        ) : (
-                          <iframe
-                            src={vid.src}
-                            title={`video-${vIdx + 1}`}
-                            className="h-full w-full border-0"
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
-                            allowFullScreen
-                          />
-                        )}
-                      </div>
-                      <div className="flex items-center justify-between bg-ink px-3 py-2 text-[11px] font-bold text-paper">
-                        <span>🎬 {tr("مشغّل الفيديو المباشر")}</span>
-                        <a
-                          href={vid.src}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 rounded-lg bg-white/15 px-2.5 py-1 text-white hover:bg-white/25"
-                        >
-                          <span>{tr("فتح الفيديو في نافذة مستقلة")}</span>
-                          <ExternalLink className="size-3" />
-                        </a>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : null}
-
-              {allGalleryImages.length > 1 ? (
+                {allGalleryImages.length > 1 ? (
                   <span className="opacity-80">({allGalleryImages.length})</span>
                 ) : null}
               </span>
@@ -676,9 +631,15 @@ function ArticlePage() {
             <ReaderBody article={shownArticle} />
           ) : (
             <>
-              {/* Full Multi-Paragraph Article Content */}
-              {displayParagraphs.length > 0 ? (
-                <div dir="auto" className="mt-5 space-y-4 text-base leading-relaxed font-medium text-ink sm:text-lg">
+              {/* Initial Summary + Interactive "الخبر كامل" Button to Expand Full Story */}
+              {shownArticle.summary && (!showFull || fullParagraphs.length === 0) ? (
+                <p dir="auto" className="mt-4 text-base leading-8 font-medium text-ink sm:text-lg">
+                  {trv(shownArticle.summary)}
+                </p>
+              ) : null}
+
+              {showFull && displayParagraphs.length > 0 ? (
+                <div dir="auto" className="mt-5 space-y-4 rounded-2xl border border-line/70 bg-surface/40 p-4 text-base leading-relaxed font-medium text-ink sm:text-lg">
                   {displayParagraphs.map((para, idx) => (
                     <p key={idx} className="whitespace-pre-line leading-8">
                       {trv(para)}
@@ -687,10 +648,77 @@ function ArticlePage() {
                 </div>
               ) : null}
 
-              {loadingFull && fullParagraphs.length === 0 ? (
-                <div className="mt-4 inline-flex items-center gap-2 rounded-xl bg-surface px-3 py-2 text-xs font-bold text-muted">
-                  <RefreshCw className="size-3.5 animate-spin text-primary-ink" />
-                  <span>{tr("جاري جلب تفاصيل الخبر الكامل…")}</span>
+              {/* Interactive Button: "الخبر كامل" */}
+              <div className="mt-4">
+                <button
+                  type="button"
+                  onClick={() => setShowFull((v) => !v)}
+                  className={`inline-flex w-full items-center justify-center gap-2 rounded-2xl border-2 px-5 py-3 text-sm font-extrabold shadow-xs transition sm:w-auto ${
+                    showFull
+                      ? "border-line bg-surface text-ink hover:bg-paper"
+                      : "border-ink bg-ink text-paper hover:opacity-90"
+                  }`}
+                >
+                  {showFull && loadingFull && fullParagraphs.length === 0 ? (
+                    <>
+                      <RefreshCw className="size-4 animate-spin text-primary" />
+                      <span>{tr("جاري فتح الخبر كامل…")}</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>📖 {showFull ? tr("إخفاء التفاصيل") : tr("الخبر كامل")}</span>
+                      <ChevronDown className={`size-4 transition-transform ${showFull ? "rotate-180" : ""}`} />
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {/* Extracted Article Videos from Feed / Publisher Page */}
+              {extraVideos.length > 0 ? (
+                <div className="mt-6 space-y-4">
+                  <p className="flex items-center gap-1.5 text-sm font-extrabold text-ink">
+                    <span>🎬</span>
+                    <span>{tr("فيديو مرفق بالخبر")}</span>
+                  </p>
+                  {extraVideos.map((vid, vIdx) => (
+                    <div
+                      key={`vid-${vIdx}-${vid.src}`}
+                      className="overflow-hidden rounded-2xl border border-line bg-black shadow-md"
+                    >
+                      <div className="relative aspect-video w-full bg-black">
+                        {vid.type === "video" ? (
+                          <video
+                            src={vid.src}
+                            poster={vid.poster || heroImageUrl}
+                            controls
+                            playsInline
+                            preload="metadata"
+                            className="h-full w-full object-contain"
+                          />
+                        ) : (
+                          <iframe
+                            src={vid.src}
+                            title={`video-${vIdx + 1}`}
+                            className="h-full w-full border-0"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+                            allowFullScreen
+                          />
+                        )}
+                      </div>
+                      <div className="flex items-center justify-between bg-ink px-3 py-2 text-[11px] font-bold text-paper">
+                        <span>🎬 {tr("مشغّل الفيديو المباشر")}</span>
+                        <a
+                          href={vid.src}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 rounded-lg bg-white/15 px-2.5 py-1 text-white hover:bg-white/25"
+                        >
+                          <span>{tr("فتح الفيديو في نافذة مستقلة")}</span>
+                          <ExternalLink className="size-3" />
+                        </a>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               ) : null}
 
