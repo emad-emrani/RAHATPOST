@@ -1,5 +1,4 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { PushCta, ShareWhatsApp } from "@/components/growth";
 import { ExternalLink, Globe, MapPin } from "lucide-react";
 import { OsmCredit } from "@/components/osm-credit";
 import { RevealPhone } from "@/components/phone";
@@ -98,7 +97,6 @@ function BusinessPage() {
         {place.verified ? <span className="chip chip-ink ms-2">{tr("موثّق")}</span> : null}
         <h1 className="mt-3 text-2xl font-bold">{trv(place.name)}</h1>
         {place.altName ? <p className="font-semibold text-muted">{trv(place.altName)}</p> : null}
-        <ShareWhatsApp className="mt-3" title={place.name} path={`/directory/${place.slug}`} />
         {place.address || place.area ? (
           <p className="mt-1 font-semibold">{place.address || place.area}</p>
         ) : null}

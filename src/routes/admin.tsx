@@ -1,6 +1,8 @@
 import {
+  Activity,
   ArrowDown,
   ArrowRight,
+  CheckCircle2,
   ArrowUp,
   BadgeCheck,
   BarChart3,
@@ -75,7 +77,7 @@ import {
 } from "@/lib/site-settings/types";
 import { mediaUrl } from "@/lib/media/types";
 import { compress, PhotoStrip } from "@/components/photo-picker";
-import { lazy, Suspense, useCallback, useEffect, useState, type CSSProperties, type ReactNode } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import { Shell } from "@/components/shell";
 import { AuthLayout } from "@/components/auth-layout";
 import { adminDecideListing, adminListListings, adminSamples } from "@/lib/market/api";
@@ -85,7 +87,18 @@ import type { BusinessSubmission } from "@/lib/directory/types";
 import { adminGate, adminWhoami } from "@/lib/team/api";
 import type { AdminLevel } from "@/lib/admin-auth";
 import { adminDecideNews, adminListNews } from "@/lib/reader-news/api";
-import { adminListSections, adminSaveSection, adminDeleteSection, type AdminSection } from "@/lib/news/auto-admin";
+import {
+  adminCreateSection,
+  adminDeleteFeed,
+  adminDeleteSection,
+  adminListSections,
+  adminRefreshSectionNow,
+  adminResetFeeds,
+  adminSaveFeed,
+  adminSaveSection,
+  adminTestFeed,
+  type AdminSection,
+} from "@/lib/news/auto-admin";
 import type { OwnReaderNews } from "@/lib/reader-news/types";
 import {
   adminGetMatchesSettings,
@@ -110,7 +123,6 @@ const PushAdmin = lazy(() => import("@/components/admin/content-admin").then((m)
 const ReportsAdmin = lazy(() => import("@/components/admin/content-admin").then((m) => ({ default: m.ReportsAdmin })));
 const HarajCategoriesAdmin = lazy(() => import("@/components/admin/haraj-categories-admin").then((m) => ({ default: m.HarajCategoriesAdmin })));
 const AutoNewsAdmin = lazy(() => import("@/components/admin/auto-news-admin").then((m) => ({ default: m.AutoNewsAdmin })));
-const SectionAdmin = lazy(() => import("@/components/admin/section-admin").then((m) => ({ default: m.SectionAdmin })));
 const MembersAdmin = lazy(() => import("@/components/admin/members-admin").then((m) => ({ default: m.MembersAdmin })));
 const PopupsAdmin = lazy(() => import("@/components/admin/popups-admin").then((m) => ({ default: m.PopupsAdmin })));
 const EmailAdmin = lazy(() => import("@/components/admin/email-admin").then((m) => ({ default: m.EmailAdmin })));
@@ -2441,6 +2453,7 @@ function AdminPage() {
   const [busyId, setBusyId] = useState("");
   const [tab, setTab] = useState<BusinessSubmission["status"]>("pending");
   const [section, setSection] = useState<Section>("home");
+  const [activeSecId, setActiveSecId] = useState<string>("news");
   const [reviewCount, setReviewCount] = useState<number | null>(null);
   const [level, setLevel] = useState<AdminLevel | null>(null);
   const [perms, setPerms] = useState<string[]>([]);
@@ -2767,16 +2780,35 @@ function AdminPage() {
           ) : current.startsWith("set-") ? (
             <SiteSettingsAdmin key={current} only={current.slice(4) as SiteSettingsPart} />
           ) : current === "sec-add" ? (
-            <QuickCustomSectionsBar mode="add" currentId="news" onSelectSection={(id) => go(`sec-${id}`)} />
+            <QuickCustomSectionsBar
+              mode="add"
+              currentId={activeSecId}
+              onSelectSection={(id) => {
+                setActiveSecId(id);
+                go("sec-manage");
+              }}
+            />
           ) : current === "sec-manage" ? (
             <div className="space-y-4">
               <StaggeredRssScheduleCard />
-              <QuickCustomSectionsBar mode="manage" currentId="news" onSelectSection={(id) => go(`sec-${id}`)} />
-              <SectionAdmin key="sec-news" id="news" />
+              <QuickCustomSectionsBar
+                mode="manage"
+                currentId={activeSecId}
+                onSelectSection={(id) => setActiveSecId(id)}
+              />
+              <SectionAdmin key={`sec-mng-${activeSecId}`} id={activeSecId as "news"} />
             </div>
           ) : current.startsWith("sec-") ? (
             <div className="space-y-4">
               <StaggeredRssScheduleCard />
+              <QuickCustomSectionsBar
+                mode="manage"
+                currentId={current.slice(4)}
+                onSelectSection={(id) => {
+                  setActiveSecId(id);
+                  go("sec-manage");
+                }}
+              />
               <SectionAdmin key={current} id={current.slice(4) as "news"} />
             </div>
           ) : current === "auto" ? (
@@ -3860,14 +3892,1247 @@ function MatchesAdmin() {
 }
 
 
-const QUICK_SECTION_PRESETS: { id: string; name: string; category: string; emoji: string }[] = [
-  { id: "seclocal", name: "أخبار محلية", category: "رهط", emoji: "📰" },
-  { id: "secrahat", name: "أخبار رهط والنقب", category: "النقب", emoji: "📍" },
-  { id: "seclive", name: "بث مباشر المباريات", category: "رياضة", emoji: "🔴" },
-  { id: "seccomm", name: "بلدية ومجتمع", category: "بلدية", emoji: "🏛️" },
-  { id: "seceduc", name: "تعليم ومدارس", category: "تعليم", emoji: "🎓" },
-  { id: "sececon", name: "اقتصاد وأعمال", category: "أعمال", emoji: "💼" },
+const QUICK_SECTION_PRESETS: { id: string; name: string; category: string; emoji: string; iconKey: string; defaultUrl: string }[] = [
+  { id: "secart", name: "فن و موضة", category: "فن و موضة", emoji: "✨", iconKey: "sparkles", defaultUrl: "/?q=فن و موضة" },
+  { id: "seclocal", name: "أخبار محلية", category: "رهط", emoji: "📰", iconKey: "news", defaultUrl: "/news?q=رهط" },
+  { id: "secrahat", name: "أخبار رهط والنقب", category: "النقب", emoji: "📍", iconKey: "pin", defaultUrl: "/news?q=النقب" },
+  { id: "seclive", name: "بث مباشر المباريات", category: "رياضة", emoji: "🔴", iconKey: "tv", defaultUrl: "/sports-news" },
+  { id: "seccomm", name: "بلدية ومجتمع", category: "بلدية", emoji: "🏛️", iconKey: "news", defaultUrl: "/news?q=بلدية" },
+  { id: "seceduc", name: "تعليم ومدارس", category: "تعليم", emoji: "🎓", iconKey: "news", defaultUrl: "/news?q=تعليم" },
+  { id: "sececon", name: "اقتصاد وأعمال", category: "أعمال", emoji: "💼", iconKey: "store", defaultUrl: "/news?q=أعمال" },
 ];
+
+const SECTION_PATH_PRESETS: { label: string; value: string }[] = [
+  { label: "تلقائي: صفحة القسم المخصّص (/?q=اسم القسم)", value: "__auto__" },
+  { label: "صفحة الأخبار مع فلتر القسم (/news?q=اسم القسم)", value: "__news_q__" },
+  { label: "الأخبار المحلية (/news)", value: "/news" },
+  { label: "الرياضة وبث المباريات (/sports-news)", value: "/sports-news" },
+  { label: "أخبار إسرائيل (/israel-news)", value: "/israel-news" },
+  { label: "أخبار التقنية (/tech-news)", value: "/tech-news" },
+  { label: "سوق الحراج (/haraj)", value: "/haraj" },
+  { label: "دليل المحلات والخدمات (/directory)", value: "/directory" },
+  { label: "الباصات والخريطة المباشرة (/buses)", value: "/buses" },
+  { label: "لوحة اليوم والطوارئ (/today)", value: "/today" },
+  { label: "المتجر (/store)", value: "/store" },
+  { label: "الصفحة الرئيسية (/)", value: "/" },
+];
+
+const EMOJI_TO_ICON_KEY: Record<string, string> = {
+  "✨": "sparkles",
+  "📰": "news",
+  "📺": "tv",
+  "🔴": "tv",
+  "⚽": "trophy",
+  "🚌": "bus",
+  "📢": "ad",
+  "🚨": "siren",
+  "📍": "pin",
+  "🛍️": "store",
+  "💼": "store",
+  "🌍": "globe",
+  "💻": "cpu",
+  "🏛️": "news",
+  "🎓": "news",
+};
+
+const ICON_KEY_TO_EMOJI: Record<string, string> = {
+  sparkles: "✨",
+  news: "📰",
+  tv: "📺",
+  trophy: "⚽",
+  bus: "🚌",
+  ad: "📢",
+  siren: "🚨",
+  pin: "📍",
+  store: "🛍️",
+  globe: "🌍",
+  cpu: "💻",
+  home: "🏠",
+  plus: "➕",
+};
+
+
+type SectionFeedItem = AdminSection["feeds"][number];
+const BUILTIN_SECTION_IDS = new Set(["news", "israel", "sports", "tech", "weather"]);
+const PRESET_NEW_SECTIONS: { name: string; slug: string; url: string; icon: string }[] = [
+  { name: "فن و موضة", slug: "art-fashion", url: "/?q=فن و موضة", icon: "sparkles" },
+  { name: "أخبار محلية", slug: "local-news", url: "/news?q=رهط", icon: "news" },
+  { name: "أخبار رهط والنقب", slug: "rahat-negev", url: "/news?q=النقب", icon: "pin" },
+  { name: "بلدية ومجتمع", slug: "municipality", url: "/news?q=بلدية", icon: "news" },
+  { name: "تعليم ومدارس", slug: "education", url: "/news?q=تعليم", icon: "news" },
+  { name: "اقتصاد وأعمال", slug: "business", url: "/news?q=أعمال", icon: "store" },
+  { name: "ثقافة وفعاليات", slug: "events", url: "/?q=ثقافة وفعاليات", icon: "sparkles" },
+];
+
+const fmtFeedDate = (iso: string | null) =>
+  iso
+    ? new Date(iso).toLocaleString("ar-u-nu-latn", {
+        timeZone: "Asia/Jerusalem",
+        dateStyle: "short",
+        timeStyle: "short",
+      })
+    : "—";
+
+function SectionAdmin({ id }: { id: AdminSection["id"] }) {
+  const [sections, setSections] = useState<AdminSection[]>([]);
+  const [siteSettings, setSiteSettings] = useState<SiteSettings | null>(null);
+  const [activeId, setActiveId] = useState<string>(id || "news");
+  const [sec, setSec] = useState<AdminSection | null>(null);
+  const [secUrl, setSecUrl] = useState<string>("");
+  const [secIcon, setSecIcon] = useState<string>("sparkles");
+  const [msg, setMsg] = useState("");
+  const [refreshMsg, setRefreshMsg] = useState("");
+  const [busy, setBusy] = useState("");
+  const [edit, setEdit] = useState<Partial<SectionFeedItem> | null>(null);
+  const [tests, setTests] = useState<Record<string, string>>({});
+
+  const [showCreate, setShowCreate] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [newSlug, setNewSlug] = useState("");
+  const [newUrl, setNewUrl] = useState("");
+  const [newIcon, setNewIcon] = useState("sparkles");
+  const [newHome, setNewHome] = useState(true);
+  const [newInTop, setNewInTop] = useState(true);
+  const [newInBot, setNewInBot] = useState(false);
+
+  useEffect(() => {
+    if (id) setActiveId(id);
+  }, [id]);
+
+  const syncSecMetaFromSettings = useCallback(
+    (foundSec: AdminSection, st: SiteSettings | null) => {
+      const cleanName = foundSec.name.trim();
+      const defaultPath =
+        foundSec.id === "news"
+          ? "/news"
+          : foundSec.id === "israel"
+            ? "/israel-news"
+            : foundSec.id === "sports"
+              ? "/sports-news"
+              : foundSec.id === "tech"
+                ? "/tech-news"
+                : `/?q=${cleanName}`;
+      const defaultIc = /فن|موضة|ثقافة/.test(cleanName)
+        ? "sparkles"
+        : foundSec.id === "sports"
+          ? "trophy"
+          : foundSec.id === "tech"
+            ? "cpu"
+            : foundSec.id === "israel"
+              ? "globe"
+              : "news";
+      if (!st) {
+        setSecUrl(defaultPath);
+        setSecIcon(defaultIc);
+        return;
+      }
+      const ql = (st.quickLinks ?? []).find(
+        (q) => q.id.startsWith("sec") && q.title.trim() === cleanName,
+      );
+      const topMatch = parseTopBarConfig(st.quickLinks).find(
+        (b) => b.label.trim() === cleanName,
+      );
+      const botMatch = parseBotBarConfig(st.quickLinks).btns.find(
+        (b) => b.label.trim() === cleanName,
+      );
+      setSecUrl(ql?.url || topMatch?.to || botMatch?.to || defaultPath);
+      setSecIcon(
+        topMatch?.icon ||
+          botMatch?.icon ||
+          (ql?.emoji ? EMOJI_TO_ICON_KEY[ql.emoji] : undefined) ||
+          defaultIc,
+      );
+    },
+    [],
+  );
+
+  const load = useCallback(
+    async (preferId?: string) => {
+      const [r, stRes] = await Promise.all([
+        adminListSections(),
+        adminGetSiteSettings().catch(() => ({ authed: false, settings: null })),
+      ]);
+      if (!r.authed) return setMsg(tr("هذا القسم للمالك والمشرفين فقط."));
+      const st = stRes.authed && stRes.settings ? stRes.settings : null;
+      if (st) setSiteSettings(st);
+      setSections(r.sections);
+      const targetId = preferId ?? activeId;
+      const found =
+        r.sections.find((s) => s.id === targetId) ?? r.sections[0] ?? null;
+      if (found) {
+        setActiveId(found.id);
+        setSec(found);
+        syncSecMetaFromSettings(found, st);
+      }
+    },
+    [activeId, syncSecMetaFromSettings],
+  );
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const selectSection = (nextId: string) => {
+    setActiveId(nextId);
+    const found = sections.find((s) => s.id === nextId) ?? null;
+    setSec(found);
+    if (found) syncSecMetaFromSettings(found, siteSettings);
+    setEdit(null);
+    setMsg("");
+    setRefreshMsg("");
+  };
+
+  const handleCreateSection = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleanName = newName.trim();
+    if (!cleanName) return setMsg(tr("أدخل اسم القسم الجديد (مثل: فن و موضة)."));
+    setBusy("create-sec");
+    setMsg("");
+    const targetUrl = (newUrl.trim() || `/?q=${cleanName}`).trim();
+    const targetEmoji = ICON_KEY_TO_EMOJI[newIcon] ?? "✨";
+
+    const r = await adminCreateSection({
+      data: {
+        name: cleanName,
+        id: newSlug.trim() || undefined,
+        home: newHome,
+      },
+    });
+
+    if (siteSettings) {
+      const secId = `sec${(r.id || Date.now().toString(36)).replace(/[^a-z0-9]/gi, "").slice(0, 10)}`;
+      let nextLinks = siteSettings.quickLinks.filter(
+        (q) => !(q.id.startsWith("sec") && q.title.trim() === cleanName),
+      );
+      nextLinks.push({
+        id: secId,
+        title: cleanName,
+        subtitle: newInTop
+          ? newHome
+            ? "قسم في الرئيسية"
+            : "مَخفي_رئيسية"
+          : "مَخفي_علوي",
+        url: targetUrl,
+        emoji: targetEmoji,
+      });
+
+      if (newInTop) {
+        const curTop = parseTopBarConfig(nextLinks);
+        const updatedTop = curTop.some((b) => b.label.trim() === cleanName)
+          ? curTop.map((b) =>
+              b.label.trim() === cleanName
+                ? { icon: newIcon, label: cleanName, to: targetUrl }
+                : b,
+            )
+          : [...curTop, { icon: newIcon, label: cleanName, to: targetUrl }];
+        nextLinks = encodeTopBarConfig(nextLinks, updatedTop);
+      }
+
+      if (newInBot) {
+        const curBot = parseBotBarConfig(nextLinks);
+        const updatedBot = curBot.btns.some((b) => b.label.trim() === cleanName)
+          ? curBot.btns.map((b) =>
+              b.label.trim() === cleanName
+                ? { icon: newIcon, label: cleanName, to: targetUrl }
+                : b,
+            )
+          : [...curBot.btns, { icon: newIcon, label: cleanName, to: targetUrl }];
+        nextLinks = encodeBotBarConfig(nextLinks, curBot.style, updatedBot);
+      }
+
+      const savedSt = await adminSaveSiteSettings({
+        data: { ...siteSettings, quickLinks: nextLinks },
+      });
+      if (savedSt.ok && savedSt.settings) setSiteSettings(savedSt.settings);
+    }
+
+    setBusy("");
+    if (!r.ok) {
+      setMsg(trv(r.message ?? tr("تعذّر إنشاء القسم.")));
+      return;
+    }
+    setNewName("");
+    setNewSlug("");
+    setNewUrl("");
+    setShowCreate(false);
+    setMsg(`تم إنشاء وربط القسم «${cleanName}» بالمسار (${targetUrl}) بنجاح ✓`);
+    await load(r.id);
+  };
+
+  const handleDeleteSection = async () => {
+    if (!sec || BUILTIN_SECTION_IDS.has(sec.id)) return;
+    if (!confirm(tr("هل أنت متأكد من حذف قسم «{0}» وجميع مصادره؟", sec.name)))
+      return;
+    setBusy("del-sec");
+    const cleanName = sec.name.trim();
+    const r = await adminDeleteSection({ data: { id: sec.id } });
+    if (siteSettings) {
+      let nextLinks = siteSettings.quickLinks.filter(
+        (q) => !(q.id.startsWith("sec") && q.title.trim() === cleanName),
+      );
+      const curTop = parseTopBarConfig(nextLinks);
+      nextLinks = encodeTopBarConfig(
+        nextLinks,
+        curTop.filter((b) => b.label.trim() !== cleanName),
+      );
+      const curBot = parseBotBarConfig(nextLinks);
+      nextLinks = encodeBotBarConfig(
+        nextLinks,
+        curBot.style,
+        curBot.btns.filter((b) => b.label.trim() !== cleanName),
+      );
+      await adminSaveSiteSettings({
+        data: { ...siteSettings, quickLinks: nextLinks },
+      }).catch(() => null);
+    }
+    setBusy("");
+    if (!r.ok) {
+      setMsg(trv(r.message ?? tr("تعذّر حذف القسم.")));
+      return;
+    }
+    setMsg(tr("تم حذف القسم."));
+    await load("news");
+  };
+
+  if (!sec)
+    return (
+      <p className="stamp p-4 font-semibold">{msg || tr("جاري التحميل…")}</p>
+    );
+
+  const hasFeeds = sec.id !== "weather";
+  const isCustom = !BUILTIN_SECTION_IDS.has(sec.id);
+  const cleanSecName = sec.name.trim();
+  const curTopBtns = siteSettings ? parseTopBarConfig(siteSettings.quickLinks) : [];
+  const curBotCfg = siteSettings
+    ? parseBotBarConfig(siteSettings.quickLinks)
+    : { style: "classic" as BottomBarStyleKey, btns: [] };
+  const hiddenInTop = (siteSettings?.quickLinks ?? []).some(
+    (q) => q.title.trim() === cleanSecName && q.subtitle?.includes("مَخفي_علوي"),
+  );
+  const inTopMenu =
+    !hiddenInTop &&
+    (isCustom || curTopBtns.some((b) => b.label.trim() === cleanSecName));
+  const inBotBar = curBotCfg.btns.some((b) => b.label.trim() === cleanSecName);
+
+  const saveSec = async () => {
+    setBusy("sec");
+    const targetUrl = (secUrl.trim() || `/?q=${cleanSecName}`).trim();
+    const targetEmoji = ICON_KEY_TO_EMOJI[secIcon] ?? "✨";
+
+    const r = await adminSaveSection({ data: sec });
+    if (siteSettings) {
+      const secId = `sec${sec.id.replace(/[^a-z0-9]/gi, "").slice(0, 10) || "custom"}`;
+      let nextLinks = siteSettings.quickLinks.filter(
+        (q) => q.id !== secId && !(q.id.startsWith("sec") && q.title.trim() === cleanSecName),
+      );
+      nextLinks.push({
+        id: secId,
+        title: cleanSecName,
+        subtitle: inTopMenu
+          ? sec.home
+            ? "قسم في الرئيسية"
+            : "مَخفي_رئيسية"
+          : "مَخفي_علوي",
+        url: targetUrl,
+        emoji: targetEmoji,
+      });
+
+      if (curTopBtns.some((b) => b.label.trim() === cleanSecName)) {
+        nextLinks = encodeTopBarConfig(
+          nextLinks,
+          curTopBtns.map((b) =>
+            b.label.trim() === cleanSecName
+              ? { ...b, icon: secIcon, to: targetUrl }
+              : b,
+          ),
+        );
+      }
+      if (curBotCfg.btns.some((b) => b.label.trim() === cleanSecName)) {
+        nextLinks = encodeBotBarConfig(
+          nextLinks,
+          curBotCfg.style,
+          curBotCfg.btns.map((b) =>
+            b.label.trim() === cleanSecName
+              ? { ...b, icon: secIcon, to: targetUrl }
+              : b,
+          ),
+        );
+      }
+
+      const savedSt = await adminSaveSiteSettings({
+        data: { ...siteSettings, quickLinks: nextLinks },
+      });
+      if (savedSt.ok && savedSt.settings) setSiteSettings(savedSt.settings);
+    }
+
+    setBusy("");
+    setMsg(
+      r.ok
+        ? `تم حفظ إعدادات قسم «${cleanSecName}» ومسار التوجه (${targetUrl}) ✓`
+        : trv(r.message ?? tr("تعذّر الحفظ.")),
+    );
+    if (r.ok) await load(sec.id);
+  };
+
+  const toggleSecInTopBar = async () => {
+    if (!siteSettings) return;
+    setBusy("sec");
+    const targetUrl = (secUrl.trim() || `/?q=${cleanSecName}`).trim();
+    const secId = `sec${sec.id.replace(/[^a-z0-9]/gi, "").slice(0, 10) || "custom"}`;
+    let nextLinks = siteSettings.quickLinks.filter(
+      (q) => q.id !== secId && !(q.id.startsWith("sec") && q.title.trim() === cleanSecName),
+    );
+
+    if (inTopMenu) {
+      nextLinks.push({
+        id: secId,
+        title: cleanSecName,
+        subtitle: "مَخفي_علوي",
+        url: targetUrl,
+        emoji: ICON_KEY_TO_EMOJI[secIcon] ?? "✨",
+      });
+      nextLinks = encodeTopBarConfig(
+        nextLinks,
+        curTopBtns.filter((b) => b.label.trim() !== cleanSecName),
+      );
+    } else {
+      nextLinks.push({
+        id: secId,
+        title: cleanSecName,
+        subtitle: sec.home ? "قسم في الرئيسية" : "مَخفي_رئيسية",
+        url: targetUrl,
+        emoji: ICON_KEY_TO_EMOJI[secIcon] ?? "✨",
+      });
+      const updatedTop = curTopBtns.some((b) => b.label.trim() === cleanSecName)
+        ? curTopBtns.map((b) =>
+            b.label.trim() === cleanSecName
+              ? { icon: secIcon, label: cleanSecName, to: targetUrl }
+              : b,
+          )
+        : [...curTopBtns, { icon: secIcon, label: cleanSecName, to: targetUrl }];
+      nextLinks = encodeTopBarConfig(nextLinks, updatedTop);
+    }
+
+    const res = await adminSaveSiteSettings({
+      data: { ...siteSettings, quickLinks: nextLinks },
+    });
+    setBusy("");
+    if (res.ok && res.settings) {
+      setSiteSettings(res.settings);
+      setMsg(
+        inTopMenu
+          ? `تم إخفاء «${cleanSecName}» من القائمة العلوية`
+          : `تم إظهار «${cleanSecName}» في القائمة العلوية ✓`,
+      );
+    }
+  };
+
+  const toggleSecInBotBar = async () => {
+    if (!siteSettings) return;
+    setBusy("sec");
+    const targetUrl = (secUrl.trim() || `/?q=${cleanSecName}`).trim();
+    const nextBtns = inBotBar
+      ? curBotCfg.btns.filter((b) => b.label.trim() !== cleanSecName)
+      : [...curBotCfg.btns, { icon: secIcon, label: cleanSecName, to: targetUrl }];
+    const nextLinks = encodeBotBarConfig(
+      siteSettings.quickLinks,
+      curBotCfg.style,
+      nextBtns,
+    );
+    const res = await adminSaveSiteSettings({
+      data: { ...siteSettings, quickLinks: nextLinks },
+    });
+    setBusy("");
+    if (res.ok && res.settings) {
+      setSiteSettings(res.settings);
+      setMsg(
+        inBotBar
+          ? `تمت إزالة «${cleanSecName}» من البار السفلي`
+          : `تمت إضافة «${cleanSecName}» إلى البار السفلي في جميع صفحات الموقع ✓`,
+      );
+    }
+  };
+
+  const saveFeed = async (f: Partial<SectionFeedItem>) => {
+    setBusy(f.id ?? "new");
+    const r = await adminSaveFeed({
+      data: {
+        section: sec.id,
+        id: f.id,
+        source: f.source ?? "",
+        home: f.home ?? "",
+        url: f.url ?? "",
+        enabled: f.enabled !== false,
+      },
+    });
+    setBusy("");
+    setMsg(r.ok ? tr("تم حفظ المصدر ✓") : trv(r.message ?? tr("تعذّر الحفظ.")));
+    if (r.ok) {
+      setEdit(null);
+      await load(sec.id);
+    }
+  };
+
+  const del = async (f: SectionFeedItem) => {
+    if (!confirm(tr("حذف هذا المصدر؟"))) return;
+    setBusy(f.id);
+    await adminDeleteFeed({ data: { section: sec.id, id: f.id } });
+    setBusy("");
+    await load(sec.id);
+  };
+
+  const test = async (url: string, key: string) => {
+    setTests((t) => ({ ...t, [key]: tr("جاري الاختبار…") }));
+    const r = await adminTestFeed({ data: { section: sec.id, url } });
+    setTests((t) => ({
+      ...t,
+      [key]: r.ok
+        ? tr(
+            "✓ يعمل ({0} مللي ثانية): {1} خبر، {2} بصورة، الأحدث {3}",
+            r.ms,
+            r.count,
+            r.images,
+            fmtFeedDate(r.latest ?? null),
+          )
+        : tr("✕ خطأ ({0} مللي ثانية): {1}", r.ms, r.error ?? ""),
+    }));
+    void load(sec.id);
+  };
+
+  const testAllFeeds = async () => {
+    if (!sec.feeds.length) return;
+    setBusy("test-all");
+    const nextTests: Record<string, string> = {};
+    sec.feeds.forEach((f) => {
+      nextTests[f.id] = tr("جاري الفحص…");
+    });
+    setTests((prev) => ({ ...prev, ...nextTests }));
+    await Promise.all(
+      sec.feeds.map(async (f) => {
+        const r = await adminTestFeed({ data: { section: sec.id, url: f.url } });
+        setTests((prev) => ({
+          ...prev,
+          [f.id]: r.ok
+            ? tr("✓ يعمل ({0}ms) · {1} خبر ({2} بصورة)", r.ms, r.count, r.images)
+            : tr("✕ خطأ ({0}ms): {1}", r.ms, r.error ?? ""),
+        }));
+      }),
+    );
+    setBusy("");
+    await load(sec.id);
+  };
+
+  const refreshSectionNow = async () => {
+    setBusy("refresh-now");
+    setRefreshMsg(tr("جاري الجلب الفوري من المصادر…"));
+    const r = await adminRefreshSectionNow({ data: { section: sec.id } });
+    setBusy("");
+    if (r.ok) {
+      setRefreshMsg(
+        r.failedSources.length
+          ? tr(
+              "✓ تم التحديث في {0} مللي ثانية ({1} خبر) · تعذّر: {2}",
+              r.ms,
+              r.count,
+              r.failedSources.join("، "),
+            )
+          : tr("✓ تم جلب وتحديث {0} خبر بنجاح في {1} مللي ثانية", r.count, r.ms),
+      );
+      await load(sec.id);
+    } else {
+      setRefreshMsg(trv(r.message ?? tr("تعذّر التحديث الفوري.")));
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-4">
+      {/* Top Bar: All Sections + "Add New Section" Button */}
+      <section className="rounded-3xl bg-paper p-4 shadow-[0_1px_3px_rgba(16,24,40,0.06)]">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-base font-extrabold">
+              {tr("إدارة أقسام الموقع ومصادر RSS ومسار التوجه")}
+            </h2>
+            <p className="text-xs font-semibold text-muted">
+              {tr(
+                "اختر أي قسم (مثل: فن و موضة) لتعديل مسار توجه الصفحة، إضافته للقائمة العلوية أو البار السفلي، وإدارة مصادر RSS الخاصة به.",
+              )}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowCreate((v) => !v)}
+            className="flex items-center gap-2 rounded-2xl bg-[#16A34A] px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-[#15803D]"
+          >
+            <Plus className="size-4" aria-hidden />
+            {tr("إضافة قسم جديد")}
+          </button>
+        </div>
+
+        {/* Create New Section Modal/Drawer Card (Connected with TopBar, BotBar & Destination Path) */}
+        {showCreate ? (
+          <form
+            onSubmit={handleCreateSection}
+            className="mt-4 flex flex-col gap-3 rounded-2xl border border-line bg-surface p-4"
+          >
+            <div className="flex items-center justify-between">
+              <h3 className="flex items-center gap-2 text-sm font-extrabold">
+                <FolderPlus className="size-4 text-primary-ink" aria-hidden />
+                {tr("إنشاء قسم جديد في الموقع (متصل مع القائمة العلوية والبار السفلي)")}
+              </h3>
+              <button
+                type="button"
+                className="text-xs font-bold text-muted underline"
+                onClick={() => setShowCreate(false)}
+              >
+                {tr("إغلاق")}
+              </button>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-xs font-bold text-muted">
+                {tr("أقسام مقترحة جاهزة:")}
+              </span>
+              {PRESET_NEW_SECTIONS.map((p) => (
+                <button
+                  key={p.slug}
+                  type="button"
+                  onClick={() => {
+                    setNewName(p.name);
+                    setNewSlug(p.slug);
+                    setNewUrl(p.url);
+                    setNewIcon(p.icon);
+                  }}
+                  className="rounded-full bg-paper px-3 py-1 text-xs font-bold shadow-xs transition hover:bg-brand hover:text-ink"
+                >
+                  + {trv(p.name)}
+                </button>
+              ))}
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <label className="flex flex-col gap-1 text-xs font-bold">
+                {tr("اسم القسم (بالعربية)")}
+                <input
+                  className="field text-xs"
+                  required
+                  placeholder={tr("مثال: فن و موضة")}
+                  value={newName}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setNewName(v);
+                    if (!newUrl || newUrl.startsWith("/?q=")) {
+                      setNewUrl(v.trim() ? `/?q=${v.trim()}` : "");
+                    }
+                  }}
+                />
+              </label>
+              <label className="flex flex-col gap-1 text-xs font-bold">
+                {tr("المعرّف الإنجليزي (اختياري)")}
+                <input
+                  className="field text-xs"
+                  dir="ltr"
+                  placeholder="art-fashion"
+                  value={newSlug}
+                  onChange={(e) => setNewSlug(e.target.value)}
+                />
+              </label>
+              <label className="flex flex-col gap-1 text-xs font-bold">
+                {tr("أيقونة القسم")}
+                <select
+                  className="field text-xs"
+                  value={newIcon}
+                  onChange={(e) => setNewIcon(e.target.value)}
+                >
+                  {BAR_ICON_OPTIONS.map((o) => (
+                    <option key={o.key} value={o.key}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="flex flex-col gap-1 text-xs font-bold">
+                {tr("مسار توجه الصفحة (الرابط URL)")}
+                <input
+                  className="field font-mono text-xs"
+                  dir="ltr"
+                  placeholder="/?q=فن و موضة أو /news"
+                  value={newUrl}
+                  onChange={(e) => setNewUrl(e.target.value)}
+                />
+              </label>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-4 pt-1">
+              <label className="flex items-center gap-2 text-xs font-extrabold">
+                <input
+                  type="checkbox"
+                  checked={newInTop}
+                  onChange={(e) => setNewInTop(e.target.checked)}
+                  className="size-4 accent-[#16A34A]"
+                />
+                {tr("إظهار في القائمة العلوية")}
+              </label>
+              <label className="flex items-center gap-2 text-xs font-extrabold">
+                <input
+                  type="checkbox"
+                  checked={newInBot}
+                  onChange={(e) => setNewInBot(e.target.checked)}
+                  className="size-4 accent-[#16A34A]"
+                />
+                {tr("إضافة إلى البار السفلي")}
+              </label>
+              <label className="flex items-center gap-2 text-xs font-extrabold">
+                <input
+                  type="checkbox"
+                  checked={newHome}
+                  onChange={(e) => setNewHome(e.target.checked)}
+                  className="size-4 accent-[#16A34A]"
+                />
+                {tr("إظهار في الصفحة الرئيسية")}
+              </label>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="submit"
+                className="btn text-xs"
+                disabled={busy === "create-sec"}
+              >
+                {busy === "create-sec"
+                  ? tr("جاري الإنشاء…")
+                  : tr("حفظ وإضافة القسم الآن ✓")}
+              </button>
+              <button
+                type="button"
+                className="btn btn-ghost text-xs"
+                onClick={() => setShowCreate(false)}
+              >
+                {tr("إلغاء")}
+              </button>
+            </div>
+          </form>
+        ) : null}
+
+        {/* Section Selector Chips */}
+        <div className="mt-4 flex flex-wrap gap-2">
+          {sections.map((s) => {
+            const active = s.id === sec.id;
+            const custom = !BUILTIN_SECTION_IDS.has(s.id);
+            return (
+              <button
+                key={s.id}
+                type="button"
+                onClick={() => selectSection(s.id)}
+                className={`flex items-center gap-2 rounded-2xl px-3.5 py-2 text-sm font-bold transition ${
+                  active
+                    ? "bg-ink text-paper shadow-xs"
+                    : "bg-surface text-ink hover:bg-primary-soft"
+                }`}
+              >
+                <span>{trv(s.name)}</span>
+                {custom ? (
+                  <span
+                    className={`rounded-full px-1.5 py-0.5 text-[10px] font-extrabold ${
+                      active ? "bg-brand text-ink" : "bg-paper text-muted"
+                    }`}
+                  >
+                    {tr("مخصص")}
+                  </span>
+                ) : null}
+                {!s.enabled ? (
+                  <span className="rounded-full bg-alert/20 px-1.5 py-0.5 text-[10px] text-alert">
+                    {tr("موقوف")}
+                  </span>
+                ) : null}
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* Active Section Settings + Destination Path + Top/Bottom Bar Controls */}
+      <section className="flex flex-col gap-3 rounded-3xl bg-paper p-4 shadow-[0_1px_3px_rgba(16,24,40,0.06)]">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg font-extrabold">{trv(sec.name)}</h2>
+            <span
+              className="rounded-full bg-surface px-2.5 py-0.5 text-xs font-bold text-muted"
+              dir="ltr"
+            >
+              #{sec.id}
+            </span>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Direct 1-click toggles for Top Bar and Bottom Bar right inside SectionAdmin! */}
+            <button
+              type="button"
+              disabled={busy === "sec" || !siteSettings}
+              onClick={toggleSecInTopBar}
+              className={`rounded-xl px-3 py-1.5 text-xs font-extrabold text-white transition ${
+                inTopMenu ? "bg-[#16A34A]" : "bg-muted hover:opacity-90"
+              }`}
+            >
+              {inTopMenu ? tr("في القائمة العلوية ✓") : tr("+ القائمة العلوية")}
+            </button>
+            <button
+              type="button"
+              disabled={busy === "sec" || !siteSettings}
+              onClick={toggleSecInBotBar}
+              className={`rounded-xl px-3 py-1.5 text-xs font-extrabold text-white transition ${
+                inBotBar ? "bg-[#0284C7]" : "bg-muted hover:opacity-90"
+              }`}
+            >
+              {inBotBar ? tr("في البار السفلي ✓") : tr("+ البار السفلي")}
+            </button>
+            {hasFeeds ? (
+              <button
+                type="button"
+                disabled={busy === "refresh-now"}
+                onClick={refreshSectionNow}
+                className="flex items-center gap-1.5 rounded-xl bg-primary-soft px-3 py-1.5 text-xs font-extrabold text-primary-ink transition hover:bg-brand hover:text-ink"
+              >
+                <RefreshCw
+                  className={`size-3.5 ${busy === "refresh-now" ? "animate-spin" : ""}`}
+                  aria-hidden
+                />
+                {busy === "refresh-now"
+                  ? tr("جاري الجلب…")
+                  : tr("تحديث وجلب الأخبار الآن")}
+              </button>
+            ) : null}
+            {isCustom ? (
+              <button
+                type="button"
+                disabled={busy === "del-sec"}
+                onClick={handleDeleteSection}
+                className="flex items-center gap-1.5 rounded-xl bg-surface px-3 py-1.5 text-xs font-bold text-alert hover:bg-alert/10"
+              >
+                <Trash2 className="size-4" aria-hidden />
+                {tr("حذف هذا القسم")}
+              </button>
+            ) : null}
+          </div>
+        </div>
+
+        {refreshMsg ? (
+          <p
+            className="rounded-2xl bg-surface px-3 py-2 text-xs font-bold text-ink"
+            role="status"
+          >
+            {refreshMsg}
+          </p>
+        ) : null}
+
+        {/* Destination Route / URL & Icon Control Box inside SectionAdmin */}
+        <div className="rounded-2xl border border-primary/40 bg-surface p-3.5">
+          <p className="mb-2 text-xs font-extrabold text-ink">
+            {tr("🧭 التحكم في مسار توجه الصفحة وأيقونة القسم (للبار السفلي والقائمة العلوية):")}
+          </p>
+          <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
+            <label className="flex flex-col gap-1 text-xs font-bold">
+              {tr("أيقونة القسم")}
+              <select
+                className="field text-xs"
+                value={secIcon}
+                onChange={(e) => setSecIcon(e.target.value)}
+              >
+                {BAR_ICON_OPTIONS.map((o) => (
+                  <option key={o.key} value={o.key}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="flex flex-col gap-1 text-xs font-bold">
+              {tr("اختيار مسار جاهز")}
+              <select
+                className="field text-xs"
+                value=""
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (!val) return;
+                  if (val === "__auto__") setSecUrl(`/?q=${cleanSecName}`);
+                  else if (val === "__news_q__") setSecUrl(`/news?q=${cleanSecName}`);
+                  else setSecUrl(val);
+                }}
+              >
+                <option value="">{tr("اختر مسار توجه سريع...")}</option>
+                {SECTION_PATH_PRESETS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="flex flex-col gap-1 text-xs font-bold">
+              {tr("مسار توجه الصفحة (الرابط URL)")}
+              <input
+                className="field font-mono text-xs"
+                dir="ltr"
+                value={secUrl}
+                onChange={(e) => setSecUrl(e.target.value)}
+                placeholder={`/?q=${cleanSecName}`}
+              />
+            </label>
+          </div>
+        </div>
+
+        <div className="grid gap-2 sm:grid-cols-2">
+          <label className="flex items-center gap-2 rounded-2xl bg-surface p-3 font-bold">
+            <input
+              type="checkbox"
+              checked={sec.enabled}
+              onChange={(e) => setSec({ ...sec, enabled: e.target.checked })}
+            />
+            {tr("القسم مفعّل (عند الإيقاف يختفي من الموقع)")}
+          </label>
+          <label className="flex items-center gap-2 rounded-2xl bg-surface p-3 font-bold">
+            <input
+              type="checkbox"
+              checked={sec.home}
+              onChange={(e) => setSec({ ...sec, home: e.target.checked })}
+            />
+            {tr("يظهر في الصفحة الرئيسية")}
+          </label>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-3">
+          <label className="flex flex-col gap-1 text-sm font-bold">
+            {tr("اسم القسم")}
+            <input
+              className="field"
+              value={sec.name}
+              onChange={(e) => setSec({ ...sec, name: e.target.value })}
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-sm font-bold">
+            {tr("الترتيب في العرض")}
+            <input
+              className="field"
+              type="number"
+              min={0}
+              max={99}
+              value={sec.position}
+              onChange={(e) =>
+                setSec({ ...sec, position: Number(e.target.value) })
+              }
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-sm font-bold">
+            {tr("التحديث التلقائي كل (دقائق)")}
+            <input
+              className="field"
+              type="number"
+              min={1}
+              max={1440}
+              value={sec.refreshMin}
+              onChange={(e) =>
+                setSec({ ...sec, refreshMin: Number(e.target.value) })
+              }
+            />
+          </label>
+          {hasFeeds ? (
+            <>
+              <label className="flex flex-col gap-1 text-sm font-bold">
+                {tr("أقصى عدد للأخبار")}
+                <input
+                  className="field"
+                  type="number"
+                  min={5}
+                  max={300}
+                  value={sec.maxItems}
+                  onChange={(e) =>
+                    setSec({ ...sec, maxItems: Number(e.target.value) })
+                  }
+                />
+              </label>
+              <label className="flex flex-col gap-1 text-sm font-bold">
+                {tr("أقصى عمر للخبر (أيام، 0 = بلا حد)")}
+                <input
+                  className="field"
+                  type="number"
+                  min={0}
+                  max={365}
+                  value={sec.maxAgeDays}
+                  onChange={(e) =>
+                    setSec({ ...sec, maxAgeDays: Number(e.target.value) })
+                  }
+                />
+              </label>
+            </>
+          ) : null}
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3 pt-1">
+          <button
+            type="button"
+            className="btn flex items-center gap-2"
+            disabled={busy === "sec"}
+            onClick={saveSec}
+          >
+            <CheckCircle2 className="size-4" aria-hidden />
+            {tr("حفظ إعدادات القسم ومسار التوجه ✓")}
+          </button>
+          {msg ? (
+            <p className="text-sm font-bold text-primary-ink" role="status">
+              {trv(msg)}
+            </p>
+          ) : null}
+        </div>
+        {isCustom ? (
+          <p className="text-xs font-semibold text-muted">
+            {tr(
+              "ملاحظة: يمكنك نشر أخبار مباشرة داخل هذا القسم من زر «نشر خبر» واختيار تصنيف «{0}»، أو ربطه بمصادر RSS بالأسفل.",
+              sec.name,
+            )}
+          </p>
+        ) : null}
+      </section>
+
+      {/* Feeds (RSS) for Active Section */}
+      {hasFeeds ? (
+        <section className="flex flex-col gap-3 rounded-3xl bg-paper p-4 shadow-[0_1px_3px_rgba(16,24,40,0.06)]">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h2 className="flex items-center gap-2 text-base font-extrabold">
+                <Rss className="size-4 text-primary-ink" aria-hidden />
+                {tr("مصادر التغذية (RSS) لقسم")} «{trv(sec.name)}» (
+                {sec.feeds.length})
+              </h2>
+              <p className="text-xs font-semibold text-muted">
+                {tr(
+                  "الجلب يعمل بتقنية التخزين الشرطي السريع (ETag/304) مع مهلة قصوى 4.5 ثانية لضمان سرعة استجابة الموقع.",
+                )}
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {sec.feeds.length > 0 ? (
+                <button
+                  type="button"
+                  disabled={busy === "test-all"}
+                  className="btn btn-ghost px-3 text-sm"
+                  onClick={testAllFeeds}
+                >
+                  <Activity className="size-4" aria-hidden />
+                  {busy === "test-all"
+                    ? tr("جاري الفحص…")
+                    : tr("فحص جميع المصادر")}
+                </button>
+              ) : null}
+              <button
+                type="button"
+                className="btn px-3 text-sm"
+                onClick={() => setEdit({ enabled: true })}
+              >
+                + {tr("إضافة مصدر RSS")}
+              </button>
+              {sec.customFeeds && !isCustom ? (
+                <button
+                  type="button"
+                  className="btn btn-ghost px-3 text-sm"
+                  onClick={async () => {
+                    if (confirm(tr("استعادة المصادر الافتراضية؟"))) {
+                      await adminResetFeeds({ data: { section: sec.id } });
+                      await load(sec.id);
+                    }
+                  }}
+                >
+                  {tr("استعادة الافتراضي")}
+                </button>
+              ) : null}
+            </div>
+          </div>
+          {edit ? (
+            <SectionFeedForm
+              feed={edit}
+              busy={busy !== ""}
+              onCancel={() => setEdit(null)}
+              onSave={saveFeed}
+              onTest={(u) => test(u, "form")}
+              testMsg={tests.form}
+            />
+          ) : null}
+          <ul className="flex flex-col gap-2">
+            {sec.feeds.map((f) => {
+              const hasErr = Boolean(f.stat?.lastError);
+              const isHealthy = Boolean(f.stat?.lastOk && !hasErr);
+              return (
+                <li key={f.id} className="rounded-2xl border border-line p-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <input
+                      type="checkbox"
+                      aria-label={tr("تفعيل")}
+                      checked={f.enabled}
+                      disabled={busy === f.id}
+                      onChange={(e) =>
+                        saveFeed({ ...f, enabled: e.target.checked })
+                      }
+                    />
+                    <span className="font-bold">{trv(f.source)}</span>
+                    {!f.enabled ? (
+                      <span className="chip">{tr("موقوف")}</span>
+                    ) : isHealthy ? (
+                      <span className="chip chip-ok">
+                        {tr("متصل")} · {f.stat?.lastCount ?? 0} {tr("خبر")}
+                      </span>
+                    ) : hasErr ? (
+                      <span className="chip chip-alert">
+                        {tr("تنبيه اتصال")}
+                      </span>
+                    ) : null}
+                    <span className="ms-auto flex gap-1">
+                      <button
+                        type="button"
+                        className="btn btn-ghost px-2 text-sm"
+                        onClick={() => test(f.url, f.id)}
+                      >
+                        {tr("اختبار السرعة")}
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-ghost px-2 text-sm"
+                        onClick={() => setEdit(f)}
+                      >
+                        {tr("تعديل")}
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-ghost px-2 text-sm"
+                        onClick={() => del(f)}
+                      >
+                        {tr("حذف")}
+                      </button>
+                    </span>
+                  </div>
+                  <p
+                    className="mt-1 break-all text-xs font-semibold text-muted"
+                    dir="ltr"
+                  >
+                    {f.url}
+                  </p>
+                  <p className="mt-1 text-xs font-semibold text-muted">
+                    {f.stat
+                      ? tr(
+                          "آخر جلب: {0} · العناصر: {1} · آخر نجاح: {2}",
+                          fmtFeedDate(f.stat.lastFetch),
+                          f.stat.lastCount,
+                          fmtFeedDate(f.stat.lastOk),
+                        )
+                      : tr("لم يُجلب بعد.")}
+                    {f.stat?.lastError ? (
+                      <span className="block text-alert">
+                        {tr("آخر خطأ: {0}", f.stat.lastError)}
+                      </span>
+                    ) : null}
+                  </p>
+                  {tests[f.id] ? (
+                    <p
+                      className="mt-1 text-sm font-bold text-primary-ink"
+                      role="status"
+                    >
+                      {tests[f.id]}
+                    </p>
+                  ) : null}
+                </li>
+              );
+            })}
+            {sec.feeds.length === 0 ? (
+              <li className="rounded-2xl bg-surface p-4 text-center text-sm font-semibold text-muted">
+                {tr(
+                  "لا توجد مصادر RSS مضافة لهذا القسم حالياً. يمكنك إضافة مصدر RSS أو الاكتفاء بنشر الأخبار يدوياً من «نشر خبر».",
+                )}
+              </li>
+            ) : null}
+          </ul>
+        </section>
+      ) : null}
+    </div>
+  );
+}
+
+function SectionFeedForm({
+  feed,
+  busy,
+  onSave,
+  onCancel,
+  onTest,
+  testMsg,
+}: {
+  feed: Partial<SectionFeedItem>;
+  busy: boolean;
+  onSave: (f: Partial<SectionFeedItem>) => void;
+  onCancel: () => void;
+  onTest: (url: string) => void;
+  testMsg?: string;
+}) {
+  const [f, setF] = useState(feed);
+  return (
+    <div className="flex flex-col gap-2 rounded-2xl bg-surface p-3">
+      <label className="flex flex-col gap-1 text-sm font-bold">
+        {tr("اسم المصدر")}
+        <input
+          className="field"
+          value={f.source ?? ""}
+          onChange={(e) => setF({ ...f, source: e.target.value })}
+        />
+      </label>
+      <label className="flex flex-col gap-1 text-sm font-bold">
+        {tr("رابط RSS")}
+        <input
+          className="field"
+          dir="ltr"
+          value={f.url ?? ""}
+          onChange={(e) => setF({ ...f, url: e.target.value })}
+          placeholder="https://example.com/feed/"
+        />
+      </label>
+      <label className="flex flex-col gap-1 text-sm font-bold">
+        {tr("رابط الموقع (اختياري)")}
+        <input
+          className="field"
+          dir="ltr"
+          value={f.home ?? ""}
+          onChange={(e) => setF({ ...f, home: e.target.value })}
+        />
+      </label>
+      <label className="flex items-center gap-2 text-sm font-bold">
+        <input
+          type="checkbox"
+          checked={f.enabled !== false}
+          onChange={(e) => setF({ ...f, enabled: e.target.checked })}
+        />
+        {tr("مفعّل")}
+      </label>
+      <div className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          className="btn"
+          disabled={busy}
+          onClick={() => onSave(f)}
+        >
+          {tr("حفظ")}
+        </button>
+        <button
+          type="button"
+          className="btn btn-ghost"
+          disabled={!f.url}
+          onClick={() => onTest(f.url ?? "")}
+        >
+          {tr("اختبار السرعة")}
+        </button>
+        <button type="button" className="btn btn-ghost" onClick={onCancel}>
+          {tr("إلغاء")}
+        </button>
+      </div>
+      {testMsg ? (
+        <p className="text-sm font-semibold" role="status">
+          {testMsg}
+        </p>
+      ) : null}
+    </div>
+  );
+}
 
 function QuickCustomSectionsBar({
   mode = "all",
@@ -3881,8 +5146,17 @@ function QuickCustomSectionsBar({
   const [siteSettings, setSiteSettings] = useState<SiteSettings | null>(null);
   const [dbCustomSecs, setDbCustomSecs] = useState<AdminSection[]>([]);
   const [name, setName] = useState("");
-  const [category, setCategory] = useState("رهط");
+  const [category, setCategory] = useState("فن و موضة");
+  const [iconKey, setIconKey] = useState("sparkles");
+  const [pathPreset, setPathPreset] = useState("__auto__");
+  const [customPath, setCustomPath] = useState("/?q=فن و موضة");
   const [home, setHome] = useState(true);
+  const [addToTopBar, setAddToTopBar] = useState(true);
+  const [addToBotBar, setAddToBotBar] = useState(false);
+
+  const [pathDrafts, setPathDrafts] = useState<Record<string, string>>({});
+  const [iconDrafts, setIconDrafts] = useState<Record<string, string>>({});
+
   const [liveTileLabel, setLiveTileLabel] = useState("بث مباريات");
   const [liveTileVisible, setLiveTileVisible] = useState(true);
   const [liveTileGlow, setLiveTileGlow] = useState(true);
@@ -3915,15 +5189,106 @@ function QuickCustomSectionsBar({
     void load();
   }, [load]);
 
-  const customSections: QuickCustomSection[] = (siteSettings?.quickLinks ?? [])
-    .filter((q) => q.id.startsWith("sec"))
-    .map((q) => ({
-      id: q.id,
-      name: q.title,
-      category: q.url.includes("q=") ? decodeURIComponent(q.url.split("q=")[1] ?? "رهط") : "رهط",
-      home: q.subtitle !== " مَخفي",
-      emoji: q.emoji || "📰",
-    }));
+  // Update default customPath when name or pathPreset changes
+  useEffect(() => {
+    const clean = name.trim() || category.trim() || "قسم";
+    if (pathPreset === "__auto__") {
+      setCustomPath(`/?q=${clean}`);
+    } else if (pathPreset === "__news_q__") {
+      setCustomPath(`/news?q=${clean}`);
+    } else if (pathPreset !== "__custom__") {
+      setCustomPath(pathPreset);
+    }
+  }, [name, category, pathPreset]);
+
+  // Merge sections from BOTH database (SectionAdmin Image 2) AND quickLinks (Image 1) so both screens are 100% connected
+  const unifiedSections = useMemo(() => {
+    const qLinks = siteSettings?.quickLinks ?? [];
+    const topBtns = siteSettings ? parseTopBarConfig(qLinks) : [];
+    const botCfg = siteSettings ? parseBotBarConfig(qLinks) : { style: "classic" as BottomBarStyleKey, btns: [] };
+
+    const map = new Map<
+      string,
+      {
+        key: string;
+        dbSec?: AdminSection;
+        qlItem?: SiteSettings["quickLinks"][number];
+        name: string;
+        url: string;
+        iconKey: string;
+        emoji: string;
+        inHome: boolean;
+        inTopBar: boolean;
+        inBotBar: boolean;
+      }
+    >();
+
+    for (const dbSec of dbCustomSecs) {
+      const cleanName = dbSec.name.trim();
+      if (!cleanName) continue;
+      const matchingQl = qLinks.find(
+        (q) => q.id.startsWith("sec") && q.title.trim() === cleanName,
+      );
+      const matchedTop = topBtns.find((b) => b.label.trim() === cleanName);
+      const matchedBot = botCfg.btns.find((b) => b.label.trim() === cleanName);
+      const hiddenTop = qLinks.some(
+        (q) => q.title.trim() === cleanName && q.subtitle?.includes("مَخفي_علوي"),
+      );
+      const defaultIcon = /فن|موضة|ثقافة/.test(cleanName) ? "sparkles" : "news";
+      const resolvedIcon =
+        matchedTop?.icon ||
+        matchedBot?.icon ||
+        (matchingQl?.emoji ? EMOJI_TO_ICON_KEY[matchingQl.emoji] : undefined) ||
+        defaultIcon;
+      const resolvedUrl =
+        matchingQl?.url ||
+        matchedTop?.to ||
+        matchedBot?.to ||
+        `/?q=${cleanName}`;
+
+      map.set(cleanName, {
+        key: dbSec.id,
+        dbSec,
+        qlItem: matchingQl,
+        name: cleanName,
+        url: resolvedUrl,
+        iconKey: resolvedIcon,
+        emoji: ICON_KEY_TO_EMOJI[resolvedIcon] || matchingQl?.emoji || "✨",
+        inHome: dbSec.home !== false && !matchingQl?.subtitle?.includes("مَخفي_رئيسية"),
+        inTopBar: !hiddenTop || Boolean(matchedTop),
+        inBotBar: Boolean(matchedBot),
+      });
+    }
+
+    for (const q of qLinks) {
+      if (!q.id.startsWith("sec")) continue;
+      const cleanName = q.title.trim();
+      if (!cleanName || map.has(cleanName)) continue;
+      const matchedTop = topBtns.find((b) => b.label.trim() === cleanName);
+      const matchedBot = botCfg.btns.find((b) => b.label.trim() === cleanName);
+      const hiddenTop = q.subtitle?.includes("مَخفي_علوي") && !matchedTop;
+      const resolvedIcon =
+        matchedTop?.icon ||
+        matchedBot?.icon ||
+        (q.emoji ? EMOJI_TO_ICON_KEY[q.emoji] : undefined) ||
+        (/فن|موضة|ثقافة/.test(cleanName) ? "sparkles" : "news");
+      const resolvedUrl = q.url || matchedTop?.to || matchedBot?.to || `/?q=${cleanName}`;
+
+      map.set(cleanName, {
+        key: q.id,
+        qlItem: q,
+        name: cleanName,
+        url: resolvedUrl,
+        iconKey: resolvedIcon,
+        emoji: q.emoji || ICON_KEY_TO_EMOJI[resolvedIcon] || "📰",
+        inHome: !q.subtitle?.includes("مَخفي"),
+        inTopBar: !hiddenTop,
+        inBotBar: Boolean(matchedBot),
+      });
+    }
+
+    return Array.from(map.values());
+  }, [dbCustomSecs, siteSettings]);
 
   const saveQuickLinks = async (nextLinks: SiteSettings["quickLinks"], successMsg: string) => {
     if (!siteSettings) return;
@@ -3943,45 +5308,320 @@ function QuickCustomSectionsBar({
     }
   };
 
-  const handleAdd = async (preset?: { id: string; name: string; category: string; emoji: string }) => {
+  // Unified Add Handler: saves to BOTH news_sections (Image 2) AND siteSettings.quickLinks / TopBar / BotBar (Image 1)
+  const handleAdd = async (preset?: {
+    id: string;
+    name: string;
+    category: string;
+    emoji: string;
+    iconKey?: string;
+    defaultUrl?: string;
+  }) => {
     if (!siteSettings) return;
     const targetName = (preset?.name ?? name).trim();
-    const targetCat = (preset?.category ?? category).trim() || "رهط";
-    const targetEmoji = preset?.emoji ?? "📰";
-    const targetId = preset?.id ?? `sec${Date.now().toString(36).replace(/[^a-z0-9]/g, "").slice(-10)}`;
     if (!targetName) {
-      setMsg("الرجاء كتابة اسم القسم (مثلاً: أخبار محلية)");
+      setMsg("الرجاء كتابة اسم القسم (مثلاً: فن و موضة أو أخبار محلية)");
       return;
     }
-    const existing = siteSettings.quickLinks.filter((q) => q.id !== targetId);
-    const nextLinks: SiteSettings["quickLinks"] = [
-      ...existing,
-      {
+    const targetIconKey =
+      preset?.iconKey ??
+      iconKey ??
+      (/فن|موضة|ثقافة/.test(targetName) ? "sparkles" : "news");
+    const targetEmoji = preset?.emoji ?? ICON_KEY_TO_EMOJI[targetIconKey] ?? "✨";
+    const targetUrl = (
+      preset?.defaultUrl ??
+      (customPath.trim() || `/?q=${targetName}`)
+    ).trim();
+    const targetId =
+      preset?.id ??
+      `sec${Date.now().toString(36).replace(/[^a-z0-9]/g, "").slice(-10)}`;
+
+    setBusy(true);
+    setMsg("");
+    try {
+      // 1. Ensure section exists in news_sections database table (so it is connected with Image 2 SectionAdmin!)
+      const existingDb = dbCustomSecs.find((d) => d.name.trim() === targetName);
+      if (!existingDb) {
+        await adminCreateSection({
+          data: {
+            name: targetName,
+            home,
+          },
+        }).catch(() => null);
+      } else if (existingDb.home !== home) {
+        await adminSaveSection({
+          data: {
+            ...existingDb,
+            enabled: true,
+            home,
+          },
+        }).catch(() => null);
+      }
+
+      // 2. Save section config + destination URL in siteSettings.quickLinks
+      let nextLinks = siteSettings.quickLinks.filter(
+        (q) => q.id !== targetId && !(q.id.startsWith("sec") && q.title.trim() === targetName),
+      );
+      nextLinks.push({
         id: targetId,
         title: targetName,
         subtitle: home ? "قسم في الرئيسية" : " مَخفي",
-        url: targetCat === "رياضة" ? "/sports-news" : `/news?q=${encodeURIComponent(targetCat)}`,
+        url: targetUrl,
         emoji: targetEmoji,
-      },
-    ];
-    await saveQuickLinks(nextLinks, `تمت إضافة القسم «${targetName}» بنجاح ✓`);
-    if (!preset) setName("");
+      });
+
+      // 3. Sync Top Menu (topbarcfg) if addToTopBar is checked (or preset clicked)
+      if (addToTopBar || preset) {
+        const curTop = parseTopBarConfig(nextLinks);
+        const updatedTop = curTop.some((b) => b.label.trim() === targetName)
+          ? curTop.map((b) =>
+              b.label.trim() === targetName
+                ? { icon: targetIconKey, label: targetName, to: targetUrl }
+                : b,
+            )
+          : [...curTop, { icon: targetIconKey, label: targetName, to: targetUrl }];
+        nextLinks = encodeTopBarConfig(nextLinks, updatedTop);
+      }
+
+      // 4. Sync Bottom Bar (botbarcfg) if addToBotBar is checked
+      if (addToBotBar) {
+        const curBot = parseBotBarConfig(nextLinks);
+        const updatedBot = curBot.btns.some((b) => b.label.trim() === targetName)
+          ? curBot.btns.map((b) =>
+              b.label.trim() === targetName
+                ? { icon: targetIconKey, label: targetName, to: targetUrl }
+                : b,
+            )
+          : [...curBot.btns, { icon: targetIconKey, label: targetName, to: targetUrl }];
+        nextLinks = encodeBotBarConfig(nextLinks, curBot.style, updatedBot);
+      }
+
+      const res = await adminSaveSiteSettings({ data: { ...siteSettings, quickLinks: nextLinks } });
+      if (res.ok && res.settings) {
+        setSiteSettings(res.settings);
+      }
+      await load();
+      setMsg(
+        `تم حفظ وربط قسم «${targetName}» بنجاح بالمسار (${targetUrl}) ${addToBotBar ? "+ إضافته للبار السفلي " : ""}✓`,
+      );
+      if (!preset) setName("");
+    } finally {
+      setBusy(false);
+    }
   };
 
-  const toggleHome = async (s: QuickCustomSection) => {
+  // Save updated destination URL & icon for any existing section (like "فن و موضة") across QuickLinks, TopBar, and BottomBar
+  const handleSaveSectionPath = async (secItem: (typeof unifiedSections)[number]) => {
     if (!siteSettings) return;
-    const nextLinks = siteSettings.quickLinks.map((q) =>
-      q.id === s.id
-        ? { ...q, subtitle: s.home ? " مَخفي" : "قسم في الرئيسية" }
-        : q,
+    const nextUrl = (pathDrafts[secItem.name] ?? secItem.url).trim() || `/?q=${secItem.name}`;
+    const nextIconKey = iconDrafts[secItem.name] ?? secItem.iconKey;
+    const nextEmoji = ICON_KEY_TO_EMOJI[nextIconKey] ?? secItem.emoji;
+    const secId =
+      secItem.qlItem?.id ??
+      `sec${secItem.key.replace(/[^a-z0-9]/gi, "").slice(0, 10) || "custom"}`;
+
+    let nextLinks = siteSettings.quickLinks.filter(
+      (q) => q.id !== secId && !(q.id.startsWith("sec") && q.title.trim() === secItem.name),
     );
-    await saveQuickLinks(nextLinks, s.home ? `تم إخفاء «${s.name}» من الرئيسية` : `تم إظهار «${s.name}» في الصفحة الرئيسية ✓`);
+    nextLinks.push({
+      id: secId,
+      title: secItem.name,
+      subtitle: secItem.inTopBar
+        ? secItem.inHome
+          ? "قسم في الرئيسية"
+          : "مَخفي_رئيسية"
+        : "مَخفي_علوي",
+      url: nextUrl,
+      emoji: nextEmoji,
+    });
+
+    // Also update path & icon in Top Bar if present
+    const curTop = parseTopBarConfig(nextLinks);
+    if (curTop.some((b) => b.label.trim() === secItem.name)) {
+      nextLinks = encodeTopBarConfig(
+        nextLinks,
+        curTop.map((b) =>
+          b.label.trim() === secItem.name
+            ? { ...b, icon: nextIconKey, to: nextUrl }
+            : b,
+        ),
+      );
+    }
+
+    // Also update path & icon in Bottom Bar if present
+    const curBot = parseBotBarConfig(nextLinks);
+    if (curBot.btns.some((b) => b.label.trim() === secItem.name)) {
+      nextLinks = encodeBotBarConfig(
+        nextLinks,
+        curBot.style,
+        curBot.btns.map((b) =>
+          b.label.trim() === secItem.name
+            ? { ...b, icon: nextIconKey, to: nextUrl }
+            : b,
+        ),
+      );
+    }
+
+    await saveQuickLinks(
+      nextLinks,
+      `تم تحديث مسار توجه قسم «${secItem.name}» إلى (${nextUrl}) ✓`,
+    );
   };
 
-  const removeSec = async (secId: string) => {
-    if (!siteSettings || !confirm("حذف هذا القسم؟")) return;
-    const nextLinks = siteSettings.quickLinks.filter((q) => q.id !== secId);
-    await saveQuickLinks(nextLinks, "تم حذف القسم ✓");
+  // Toggle Section in Top Bar
+  const handleToggleTopBar = async (secItem: (typeof unifiedSections)[number]) => {
+    if (!siteSettings) return;
+    const curTop = parseTopBarConfig(siteSettings.quickLinks);
+    const targetUrl = (pathDrafts[secItem.name] ?? secItem.url).trim() || `/?q=${secItem.name}`;
+    const targetIcon = iconDrafts[secItem.name] ?? secItem.iconKey;
+    const secId =
+      secItem.qlItem?.id ??
+      `sec${secItem.key.replace(/[^a-z0-9]/gi, "").slice(0, 10) || "custom"}`;
+
+    if (secItem.inTopBar) {
+      const filteredTop = curTop.filter((b) => b.label.trim() !== secItem.name);
+      let nextLinks = encodeTopBarConfig(siteSettings.quickLinks, filteredTop).filter(
+        (q) => !(q.title.trim() === secItem.name && q.id.startsWith("sec")),
+      );
+      nextLinks.push({
+        id: secId,
+        title: secItem.name,
+        subtitle: "مَخفي_علوي",
+        url: targetUrl,
+        emoji: ICON_KEY_TO_EMOJI[targetIcon] ?? "✨",
+      });
+      await saveQuickLinks(nextLinks, `تم إخفاء قسم «${secItem.name}» من القائمة العلوية`);
+    } else {
+      const nextTop = curTop.some((b) => b.label.trim() === secItem.name)
+        ? curTop.map((b) =>
+            b.label.trim() === secItem.name
+              ? { icon: targetIcon, label: secItem.name, to: targetUrl }
+              : b,
+          )
+        : [...curTop, { icon: targetIcon, label: secItem.name, to: targetUrl }];
+      let nextLinks = siteSettings.quickLinks.filter(
+        (q) => !(q.title.trim() === secItem.name && q.id.startsWith("sec")),
+      );
+      nextLinks.push({
+        id: secId,
+        title: secItem.name,
+        subtitle: secItem.inHome ? "قسم في الرئيسية" : "مَخفي_رئيسية",
+        url: targetUrl,
+        emoji: ICON_KEY_TO_EMOJI[targetIcon] ?? "✨",
+      });
+      nextLinks = encodeTopBarConfig(nextLinks, nextTop);
+      await saveQuickLinks(nextLinks, `تم إظهار قسم «${secItem.name}» في القائمة العلوية ✓`);
+    }
+  };
+
+  // Toggle Section in Global Bottom Bar
+  const handleToggleBotBar = async (secItem: (typeof unifiedSections)[number]) => {
+    if (!siteSettings) return;
+    const curBot = parseBotBarConfig(siteSettings.quickLinks);
+    const targetUrl = (pathDrafts[secItem.name] ?? secItem.url).trim() || `/?q=${secItem.name}`;
+    const targetIcon = iconDrafts[secItem.name] ?? secItem.iconKey;
+
+    if (secItem.inBotBar) {
+      const nextBtns = curBot.btns.filter((b) => b.label.trim() !== secItem.name);
+      const nextLinks = encodeBotBarConfig(siteSettings.quickLinks, curBot.style, nextBtns);
+      await saveQuickLinks(nextLinks, `تمت إزالة قسم «${secItem.name}» من البار السفلي`);
+    } else {
+      const nextBtns = curBot.btns.some((b) => b.label.trim() === secItem.name)
+        ? curBot.btns
+        : [...curBot.btns, { icon: targetIcon, label: secItem.name, to: targetUrl }];
+      const nextLinks = encodeBotBarConfig(siteSettings.quickLinks, curBot.style, nextBtns);
+      await saveQuickLinks(
+        nextLinks,
+        `تمت إضافة قسم «${secItem.name}» إلى البار السفلي في جميع صفحات الموقع ✓`,
+      );
+    }
+  };
+
+  // Toggle Section on Homepage
+  const handleToggleHome = async (secItem: (typeof unifiedSections)[number]) => {
+    if (!siteSettings) return;
+    const nextHome = !secItem.inHome;
+    setBusy(true);
+    try {
+      if (secItem.dbSec) {
+        await adminSaveSection({
+          data: {
+            ...secItem.dbSec,
+            enabled: true,
+            home: nextHome,
+          },
+        }).catch(() => null);
+      } else {
+        await adminCreateSection({
+          data: {
+            name: secItem.name,
+            home: nextHome,
+          },
+        }).catch(() => null);
+      }
+      const secId =
+        secItem.qlItem?.id ??
+        `sec${secItem.key.replace(/[^a-z0-9]/gi, "").slice(0, 10) || "custom"}`;
+      const nextLinks = siteSettings.quickLinks.filter(
+        (q) => q.id !== secId && !(q.id.startsWith("sec") && q.title.trim() === secItem.name),
+      );
+      nextLinks.push({
+        id: secId,
+        title: secItem.name,
+        subtitle: !secItem.inTopBar
+          ? "مَخفي_علوي"
+          : nextHome
+            ? "قسم في الرئيسية"
+            : "مَخفي_رئيسية",
+        url: (pathDrafts[secItem.name] ?? secItem.url).trim() || `/?q=${secItem.name}`,
+        emoji: secItem.emoji,
+      });
+      const res = await adminSaveSiteSettings({ data: { ...siteSettings, quickLinks: nextLinks } });
+      if (res.ok && res.settings) setSiteSettings(res.settings);
+      await load();
+      setMsg(
+        nextHome
+          ? `تم إظهار قسم «${secItem.name}» في الصفحة الرئيسية ✓`
+          : `تم إخفاء قسم «${secItem.name}» من الصفحة الرئيسية`,
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // Delete Section from both DB and QuickLinks/Bars
+  const handleDeleteUnified = async (secItem: (typeof unifiedSections)[number]) => {
+    if (!siteSettings || !confirm(`حذف قسم «${secItem.name}» نهائياً؟`)) return;
+    setBusy(true);
+    try {
+      if (secItem.dbSec) {
+        await adminDeleteSection({ data: { id: secItem.dbSec.id } }).catch(() => null);
+      }
+      let nextLinks = siteSettings.quickLinks.filter(
+        (q) => !(q.id.startsWith("sec") && q.title.trim() === secItem.name) && q.id !== secItem.key,
+      );
+      const curTop = parseTopBarConfig(nextLinks);
+      if (curTop.some((b) => b.label.trim() === secItem.name)) {
+        nextLinks = encodeTopBarConfig(
+          nextLinks,
+          curTop.filter((b) => b.label.trim() !== secItem.name),
+        );
+      }
+      const curBot = parseBotBarConfig(nextLinks);
+      if (curBot.btns.some((b) => b.label.trim() === secItem.name)) {
+        nextLinks = encodeBotBarConfig(
+          nextLinks,
+          curBot.style,
+          curBot.btns.filter((b) => b.label.trim() !== secItem.name),
+        );
+      }
+      const res = await adminSaveSiteSettings({ data: { ...siteSettings, quickLinks: nextLinks } });
+      if (res.ok && res.settings) setSiteSettings(res.settings);
+      await load();
+      setMsg(`تم حذف قسم «${secItem.name}» ✓`);
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
@@ -3992,25 +5632,40 @@ function QuickCustomSectionsBar({
         </div>
       ) : null}
 
+      {/* Card 1: Add New Section (Connected to both SectionAdmin DB & QuickLinks + Full Path & Bar Control) */}
       {mode === "add" || mode === "all" ? (
         <div className="rounded-3xl bg-paper p-5 shadow-[0_1px_3px_rgba(16,24,40,0.06)]">
-          <div className="flex items-center gap-2.5">
-            <span className="grid size-10 place-items-center rounded-2xl bg-brand text-ink">
-              <FolderPlus className="size-5" aria-hidden />
-            </span>
-            <div>
-              <h2 className="text-lg font-extrabold">{tr("إضافة قسم جديد للموقع والصفحة الرئيسية")}</h2>
-              <p className="text-xs font-semibold text-muted">
-                {tr("أضف قسماً جديداً (مثل: أخبار محلية، أخبار رهط والنقب، بث مباشر) ليظهر في شريط الأقسام والصفحة الرئيسية والسلايدر.")}
-              </p>
+          <div className="flex flex-wrap items-center justify-between gap-2.5">
+            <div className="flex items-center gap-2.5">
+              <span className="grid size-10 place-items-center rounded-2xl bg-brand text-ink">
+                <FolderPlus className="size-5" aria-hidden />
+              </span>
+              <div>
+                <h2 className="text-lg font-extrabold">
+                  {tr("إضافة قسم جديد للموقع والصفحة الرئيسية (متصل مع إدارة الأقسام والبار السفلي)")}
+                </h2>
+                <p className="text-xs font-semibold text-muted">
+                  {tr("أي قسم تضيفه هنا أو في «إدارة الأقسام» (مثل: فن و موضة) يتزامن تلقائياً في المكانين مع تحكم كامل بمسار التوجه والبار السفلي والقائمة العلوية.")}
+                </p>
+              </div>
             </div>
+            <button
+              type="button"
+              onClick={() => void load()}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-line bg-surface px-3 py-1.5 text-xs font-extrabold text-ink hover:bg-primary-soft"
+            >
+              <RefreshCw className="size-3.5" />
+              {tr("مزامنة الأقسام")}
+            </button>
           </div>
 
           <div className="mt-4">
-            <p className="mb-2 text-xs font-extrabold text-muted">{tr("إضافة سريعة بضغطة واحدة:")}</p>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            <p className="mb-2 text-xs font-extrabold text-muted">
+              {tr("إضافة سريعة بضغطة واحدة (أو تفعيل قسم مضاف من إدارة الأقسام):")}
+            </p>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
               {QUICK_SECTION_PRESETS.map((p) => {
-                const exists = customSections.some((s) => s.id === p.id && s.home);
+                const exists = unifiedSections.some((s) => s.name === p.name && (s.inHome || s.inTopBar));
                 return (
                   <button
                     key={p.id}
@@ -4018,7 +5673,9 @@ function QuickCustomSectionsBar({
                     disabled={busy}
                     onClick={() => void handleAdd(p)}
                     className={`flex items-center justify-center gap-1.5 rounded-2xl px-3 py-2.5 text-xs font-extrabold transition ${
-                      exists ? "bg-[#16A34A] text-white" : "border border-line bg-surface hover:bg-primary-soft"
+                      exists
+                        ? "bg-[#16A34A] text-white"
+                        : "border border-line bg-surface hover:bg-primary-soft"
                     }`}
                   >
                     {exists ? <Check className="size-3.5" aria-hidden /> : <Plus className="size-3.5" aria-hidden />}
@@ -4026,404 +5683,504 @@ function QuickCustomSectionsBar({
                   </button>
                 );
               })}
+              {/* Also show any custom section created in SectionAdmin (Image 2) that is not in QUICK_SECTION_PRESETS */}
+              {unifiedSections
+                .filter((u) => !QUICK_SECTION_PRESETS.some((p) => p.name === u.name))
+                .map((u) => (
+                  <button
+                    key={u.key}
+                    type="button"
+                    disabled={busy}
+                    onClick={() =>
+                      void handleAdd({
+                        id: u.qlItem?.id ?? `sec${u.key}`,
+                        name: u.name,
+                        category: u.name,
+                        emoji: u.emoji,
+                        iconKey: u.iconKey,
+                        defaultUrl: u.url,
+                      })
+                    }
+                    className="flex items-center justify-center gap-1.5 rounded-2xl bg-[#16A34A] px-3 py-2.5 text-xs font-extrabold text-white transition hover:opacity-95"
+                  >
+                    <Check className="size-3.5" aria-hidden />
+                    <span>{u.emoji} {u.name}</span>
+                  </button>
+                ))}
             </div>
           </div>
 
-          <div className="mt-4 grid grid-cols-1 gap-2.5 rounded-2xl bg-surface p-4 sm:grid-cols-3">
+          <div className="mt-4 grid grid-cols-1 gap-3 rounded-2xl bg-surface p-4 sm:grid-cols-2 lg:grid-cols-4">
             <label className="text-xs font-bold">
-              {tr("اسم القسم الجديد")}
+              {tr("1. اسم القسم الجديد")}
               <input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="مثال: أخبار محلية"
+                placeholder="مثال: فن و موضة"
                 className="field mt-1 text-xs"
               />
             </label>
+
             <label className="text-xs font-bold">
-              {tr("تصنيف الأخبار المرتبط")}
+              {tr("2. أيقونة القسم (للعلوي والسفلي)")}
               <select
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
+                value={iconKey}
+                onChange={(e) => setIconKey(e.target.value)}
                 className="field mt-1 text-xs"
               >
-                <option value="رهط">رهط</option>
-                <option value="النقب">النقب</option>
-                <option value="بلدية">بلدية</option>
-                <option value="تعليم">تعليم</option>
-                <option value="صحة">صحة</option>
-                <option value="رياضة">رياضة ومباريات</option>
-                <option value="مجتمع">مجتمع</option>
-                <option value="أعمال">أعمال واقتصاد</option>
+                {BAR_ICON_OPTIONS.map((o) => (
+                  <option key={o.key} value={o.key}>
+                    {o.label}
+                  </option>
+                ))}
               </select>
             </label>
-            <label className="flex items-center gap-2 rounded-xl bg-paper px-3 py-2 text-xs font-extrabold sm:mt-5">
+
+            <label className="text-xs font-bold">
+              {tr("3. نوع مسار التوجه السريع")}
+              <select
+                value={pathPreset}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setPathPreset(val);
+                  if (val !== "__auto__" && val !== "__news_q__" && val !== "__custom__") {
+                    setCustomPath(val);
+                  }
+                }}
+                className="field mt-1 text-xs"
+              >
+                {SECTION_PATH_PRESETS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+                <option value="__custom__">مسار أو رابط مخصّص يدوياً...</option>
+              </select>
+            </label>
+
+            <label className="text-xs font-bold">
+              {tr("4. مسار توجه الصفحة (الرابط URL)")}
               <input
-                type="checkbox"
-                checked={home}
-                onChange={(e) => setHome(e.target.checked)}
-                className="size-4 accent-[#16A34A]"
+                type="text"
+                dir="ltr"
+                value={customPath}
+                onChange={(e) => {
+                  setPathPreset("__custom__");
+                  setCustomPath(e.target.value);
+                }}
+                placeholder="/?q=فن و موضة أو /news"
+                className="field mt-1 text-xs font-mono"
               />
-              {tr("إظهار القسم في الصفحة الرئيسية")}
             </label>
           </div>
 
-          {name.trim().length > 0 ? (
-            <div className="mt-3 flex justify-end">
-              <button
-                type="button"
-                disabled={busy}
-                onClick={() => void handleAdd()}
-                className="btn flex items-center justify-center gap-1.5 px-6 py-2.5 text-xs"
-              >
-                <Plus className="size-4" aria-hidden />
-                {tr("حفظ وإضافة القسم الآن ✓")}
-              </button>
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-line bg-surface/60 px-4 py-3">
+            <div className="flex flex-wrap items-center gap-4">
+              <label className="flex cursor-pointer items-center gap-2 text-xs font-extrabold">
+                <input
+                  type="checkbox"
+                  checked={addToTopBar}
+                  onChange={(e) => setAddToTopBar(e.target.checked)}
+                  className="size-4 accent-[#16A34A]"
+                />
+                {tr("إظهار في القائمة العلوية")}
+              </label>
+              <label className="flex cursor-pointer items-center gap-2 text-xs font-extrabold">
+                <input
+                  type="checkbox"
+                  checked={addToBotBar}
+                  onChange={(e) => setAddToBotBar(e.target.checked)}
+                  className="size-4 accent-[#16A34A]"
+                />
+                {tr("إضافة إلى البار السفلي الآن")}
+              </label>
+              <label className="flex cursor-pointer items-center gap-2 text-xs font-extrabold">
+                <input
+                  type="checkbox"
+                  checked={home}
+                  onChange={(e) => setHome(e.target.checked)}
+                  className="size-4 accent-[#16A34A]"
+                />
+                {tr("إظهار القسم في الصفحة الرئيسية")}
+              </label>
             </div>
-          ) : null}
+
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => void handleAdd()}
+              className="btn flex items-center justify-center gap-1.5 px-6 py-2.5 text-xs"
+            >
+              <Plus className="size-4" aria-hidden />
+              {tr("حفظ وإضافة القسم الآن ✓")}
+            </button>
+          </div>
         </div>
       ) : null}
 
-      {mode === "manage" || mode === "all" ? (
-        <div className="rounded-3xl bg-paper p-5 shadow-[0_1px_3px_rgba(16,24,40,0.06)]">
+      {/* Card 2: Unified Connected Sections Manager — ALWAYS visible in BOTH Image 1 (sec-add) AND Image 2 (sec-manage)! */}
+      <div className="rounded-3xl bg-paper p-5 shadow-[0_1px_3px_rgba(16,24,40,0.06)]">
+        <div className="flex flex-wrap items-center justify-between gap-2.5">
           <div className="flex items-center gap-2.5">
             <span className="grid size-10 place-items-center rounded-2xl bg-primary-soft text-primary-ink">
               <LayoutGrid className="size-5" aria-hidden />
             </span>
             <div>
-              <h2 className="text-lg font-extrabold">{tr("إدارة الأقسام الحالية وأيقونة «بث مباريات»")}</h2>
+              <h2 className="text-lg font-extrabold">
+                {tr("الأقسام المضافة حالياً — التحكم بمسار التوجه، القائمة العلوية، والبار السفلي")}
+              </h2>
               <p className="text-xs font-semibold text-muted">
-                {tr("تحكم في إظهار أو إخفاء الأقسام في الصفحة الرئيسية وفي شريط الأيقونات العلوي.")}
+                {tr("جميع الأقسام المضافة في «إدارة الأقسام» (مثل: فن و موضة) أو «إضافة قسم» متصلة هنا: غيّر مسار توجه أي قسم أو أضفه للقائمة العلوية أو البار السفلي بضغطة واحدة.")}
               </p>
-            </div>
-          </div>
-
-          {/* Dedicated control for the "بث مباريات" icon tile in the Homepage top tiles row */}
-          <div className={`mt-4 rounded-2xl border p-3.5 transition ${liveTileGlow ? "border-[#DC2626]/30 bg-[#DC2626]/5" : "border-line bg-surface"}`}>
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <span className={`size-2.5 rounded-full ${liveTileGlow ? "animate-ping bg-[#DC2626]" : "bg-emerald-600"}`} />
-                <div>
-                  <p className="text-sm font-extrabold text-ink">
-                    {tr("أيقونة قسم «بث مباريات» في شريط الأيقونات العلوي بالرئيسية")}
-                  </p>
-                  <p className="text-[11px] font-semibold text-muted">
-                    {liveTileGlow
-                      ? tr("التوهج الأحمر مفعّل حالياً — يمكنك إطفاؤه ليكون مريحاً للعين")
-                      : tr("التوهج مطفأ حالياً (وضع مريح للعين بهدوء باقي الأيقونات)")}
-                  </p>
-                </div>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  disabled={busy || !siteSettings}
-                  onClick={async () => {
-                    if (!siteSettings) return;
-                    const nextGlow = !liveTileGlow;
-                    setLiveTileGlow(nextGlow);
-                    const subParts = [liveTileVisible ? "قسم في الشريط" : " مَخفي"];
-                    if (!nextGlow) subParts.push("بدون توهج");
-                    const others = siteSettings.quickLinks.filter((q) => q.id !== "tilelive");
-                    await saveQuickLinks(
-                      [
-                        {
-                          id: "tilelive",
-                          title: liveTileLabel.trim() || "بث مباريات",
-                          subtitle: subParts.join("|"),
-                          url: "/sports-news",
-                          emoji: nextGlow ? "🔴" : "⚪",
-                        },
-                        ...others,
-                      ],
-                      nextGlow
-                        ? "تم تشغيل توهج أيقونة «بث مباريات» ✓"
-                        : "تم إطفاء توهج أيقونة «بث مباريات» ليكون مريحاً للعين ✓",
-                    );
-                  }}
-                  className={`rounded-xl px-3 py-1.5 text-xs font-extrabold transition ${
-                    liveTileGlow
-                      ? "border border-[#DC2626]/40 bg-paper text-[#DC2626] hover:bg-[#DC2626]/10"
-                      : "bg-ink text-paper"
-                  }`}
-                >
-                  {liveTileGlow ? tr("⚪ إطفاء التوهج (مريح للعين)") : tr("🔴 التوهج مطفأ (اضغط لتشغيله)")}
-                </button>
-                <button
-                  type="button"
-                  disabled={busy || !siteSettings}
-                  onClick={async () => {
-                    if (!siteSettings) return;
-                    const nextVis = !liveTileVisible;
-                    setLiveTileVisible(nextVis);
-                    const subParts = [nextVis ? "قسم في الشريط" : " مَخفي"];
-                    if (!liveTileGlow) subParts.push("بدون توهج");
-                    const others = siteSettings.quickLinks.filter((q) => q.id !== "tilelive");
-                    await saveQuickLinks(
-                      [
-                        {
-                          id: "tilelive",
-                          title: liveTileLabel.trim() || "بث مباريات",
-                          subtitle: subParts.join("|"),
-                          url: "/sports-news",
-                          emoji: liveTileGlow ? "🔴" : "⚪",
-                        },
-                        ...others,
-                      ],
-                      nextVis
-                        ? "تم إظهار أيقونة «بث مباريات» في شريط الأقسام العلوي ✓"
-                        : "تم إخفاء أيقونة «بث مباريات» من شريط الأقسام",
-                    );
-                  }}
-                  className={`rounded-xl px-3 py-1.5 text-xs font-extrabold text-white transition ${
-                    liveTileVisible ? "bg-[#16A34A]" : "bg-muted"
-                  }`}
-                >
-                  {liveTileVisible ? tr("ظاهر في شريط الأيقونات ✓") : tr("مخفي من الشريط")}
-                </button>
-              </div>
-            </div>
-            <div className="mt-2.5 flex flex-wrap items-center gap-2">
-              <input
-                type="text"
-                value={liveTileLabel}
-                onChange={(e) => {
-                  setLiveTileLabel(e.target.value);
-                  setDirtyLiveTile(true);
-                }}
-                placeholder="بث مباريات"
-                className="field max-w-xs text-xs"
-              />
-              {dirtyLiveTile ? (
-                <button
-                  type="button"
-                  disabled={busy || !siteSettings}
-                  onClick={async () => {
-                    if (!siteSettings) return;
-                    const subParts = [liveTileVisible ? "قسم في الشريط" : " مَخفي"];
-                    if (!liveTileGlow) subParts.push("بدون توهج");
-                    const others = siteSettings.quickLinks.filter((q) => q.id !== "tilelive");
-                    await saveQuickLinks(
-                      [
-                        {
-                          id: "tilelive",
-                          title: liveTileLabel.trim() || "بث مباريات",
-                          subtitle: subParts.join("|"),
-                          url: "/sports-news",
-                          emoji: liveTileGlow ? "🔴" : "⚪",
-                        },
-                        ...others,
-                      ],
-                      `تم حفظ اسم الأيقونة «${liveTileLabel.trim() || "بث مباريات"}» ✓`,
-                    );
-                    setDirtyLiveTile(false);
-                  }}
-                  className="btn py-2 text-xs"
-                >
-                  {tr("حفظ التغيير ✓")}
-                </button>
-              ) : null}
-            </div>
-          </div>
-
-          <div className="mt-4">
-            <p className="mb-2 text-xs font-extrabold text-muted">
-              {tr("الأقسام المضافة وحالة ظهورها في القائمة العلوية والصفحة الرئيسية:")}
-            </p>
-            {dbCustomSecs.length === 0 && customSections.length === 0 ? (
-              <p className="rounded-2xl bg-surface p-3 text-xs font-semibold text-muted">
-                {tr("لا توجد أقسام مخصّصة مضافة بعد. يمكنك إضافة قسم من الزر الأخضر «+ إضافة قسم جديد» بالأسفل.")}
-              </p>
-            ) : (
-              <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-                {dbCustomSecs.map((dbSec) => {
-                  const cleanName = dbSec.name.trim();
-                  const topBtns = siteSettings ? parseTopBarConfig(siteSettings.quickLinks) : [];
-                  const hiddenMarker = (siteSettings?.quickLinks ?? []).find(
-                    (q) => q.title.trim() === cleanName && q.subtitle?.includes("مَخفي_علوي"),
-                  );
-                  const inTopMenu = !hiddenMarker || topBtns.some((b) => b.label.trim() === cleanName);
-
-                  return (
-                    <div
-                      key={dbSec.id}
-                      className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-primary/40 bg-surface px-3.5 py-3 text-xs font-bold"
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className="text-base">
-                          {/فن|موضة|ثقافة/.test(cleanName) ? "✨" : "📰"}
-                        </span>
-                        <div>
-                          <span className="block font-extrabold text-ink">{cleanName}</span>
-                          <span className="text-[10px] font-semibold text-muted">#{dbSec.id}</span>
-                        </div>
-                      </div>
-
-                      <div className="flex flex-wrap items-center gap-1.5">
-                        {/* Toggle visibility in Top Menu */}
-                        <button
-                          type="button"
-                          disabled={busy || !siteSettings}
-                          onClick={async () => {
-                            if (!siteSettings) return;
-                            const curTop = parseTopBarConfig(siteSettings.quickLinks);
-                            const iconKey = /فن|موضة|ثقافة/.test(cleanName) ? "sparkles" : "news";
-                            const targetUrl = `/?q=${encodeURIComponent(cleanName)}`;
-                            if (inTopMenu) {
-                              // Hide from top menu
-                              const filteredTop = curTop.filter((b) => b.label.trim() !== cleanName);
-                              const nextLinks = encodeTopBarConfig(siteSettings.quickLinks, filteredTop).filter(
-                                (q) => !(q.title.trim() === cleanName && q.id.startsWith("sec")),
-                              );
-                              nextLinks.push({
-                                id: `sec${dbSec.id.replace(/[^a-z0-9]/g, "").slice(0, 12) || "custom"}`,
-                                title: cleanName,
-                                subtitle: "مَخفي_علوي",
-                                url: targetUrl,
-                                emoji: "✨",
-                              });
-                              await saveQuickLinks(
-                                nextLinks,
-                                `تم إخفاء قسم «${cleanName}» من القائمة العلوية`,
-                              );
-                            } else {
-                              // Show in top menu
-                              const nextTop = curTop.some((b) => b.label.trim() === cleanName)
-                                ? curTop
-                                : [...curTop, { icon: iconKey, label: cleanName, to: targetUrl }];
-                              const nextLinks = encodeTopBarConfig(
-                                siteSettings.quickLinks.filter(
-                                  (q) => !(q.title.trim() === cleanName && q.subtitle?.includes("مَخفي_علوي")),
-                                ),
-                                nextTop,
-                              );
-                              await saveQuickLinks(
-                                nextLinks,
-                                `تم إظهار قسم «${cleanName}» في القائمة العلوية ✓`,
-                              );
-                            }
-                          }}
-                          className={`rounded-xl px-2.5 py-1.5 text-[11px] font-extrabold text-white transition ${
-                            inTopMenu ? "bg-[#16A34A]" : "bg-muted"
-                          }`}
-                        >
-                          {inTopMenu ? tr("في القائمة العلوية ✓") : tr("+ إظهار في القائمة العلوية")}
-                        </button>
-
-                        {/* Toggle visibility on Homepage */}
-                        <button
-                          type="button"
-                          disabled={busy}
-                          onClick={async () => {
-                            setBusy(true);
-                            try {
-                              await adminSaveSection({
-                                data: {
-                                  ...dbSec,
-                                  enabled: true,
-                                  home: !dbSec.home,
-                                },
-                              });
-                              await load();
-                              setMsg(
-                                !dbSec.home
-                                  ? `تم إظهار قسم «${cleanName}» في الصفحة الرئيسية ✓`
-                                  : `تم إخفاء قسم «${cleanName}» من الصفحة الرئيسية`,
-                              );
-                            } finally {
-                              setBusy(false);
-                            }
-                          }}
-                          className={`rounded-xl px-2.5 py-1.5 text-[11px] font-extrabold text-white transition ${
-                            dbSec.home ? "bg-ink" : "bg-muted"
-                          }`}
-                        >
-                          {dbSec.home ? tr("في الرئيسية ✓") : tr("مخفي بالرئيسية")}
-                        </button>
-
-                        {/* Delete custom section */}
-                        <button
-                          type="button"
-                          disabled={busy}
-                          onClick={async () => {
-                            if (!confirm(`حذف قسم «${cleanName}» نهائياً؟`)) return;
-                            setBusy(true);
-                            try {
-                              await adminDeleteSection({ data: { id: dbSec.id } });
-                              await load();
-                              setMsg(`تم حذف قسم «${cleanName}» ✓`);
-                            } finally {
-                              setBusy(false);
-                            }
-                          }}
-                          className="grid size-7 place-items-center rounded-lg border border-line bg-paper text-[#DC2626] hover:opacity-80"
-                          title={tr("حذف القسم")}
-                        >
-                          <Trash2 className="size-3.5" aria-hidden />
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-
-                {customSections
-                  .filter((s) => !dbCustomSecs.some((d) => d.name.trim() === s.name.trim()))
-                  .map((s) => (
-                    <div
-                      key={s.id}
-                      className="flex items-center justify-between gap-2 rounded-2xl border border-line bg-surface px-3.5 py-2.5 text-xs font-bold"
-                    >
-                      <span className="font-extrabold">{s.emoji} {s.name}</span>
-                      <div className="flex items-center gap-1.5">
-                        <button
-                          type="button"
-                          onClick={() => void toggleHome(s)}
-                          className={`rounded-xl px-2.5 py-1 text-[11px] font-extrabold text-white ${
-                            s.home ? "bg-[#16A34A]" : "bg-muted"
-                          }`}
-                        >
-                          {s.home ? tr("في الرئيسية والقائمة ✓") : tr("مخفي")}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => void removeSec(s.id)}
-                          className="grid size-7 place-items-center rounded-lg border border-line bg-paper text-[#DC2626] hover:opacity-80"
-                          title={tr("حذف القسم")}
-                        >
-                          <Trash2 className="size-3.5" aria-hidden />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-              </div>
-            )}
-          </div>
-
-          <div className="mt-4 border-t border-line pt-3">
-            <p className="mb-2 text-xs font-extrabold text-muted">{tr("إدارة مصادر الأقسام الأساسية:")}</p>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
-              {[
-                { id: "news", label: "الأخبار المحلية" },
-                { id: "israel", label: "أخبار إسرائيل" },
-                { id: "sports", label: "الرياضة" },
-                { id: "tech", label: "التقنية" },
-                { id: "weather", label: "الطقس" },
-              ].map((b) => (
-                <button
-                  key={b.id}
-                  type="button"
-                  onClick={() => onSelectSection(b.id)}
-                  className={`rounded-2xl border px-3 py-2.5 text-xs font-extrabold transition ${
-                    currentId === b.id ? "border-ink bg-ink text-paper" : "border-line bg-surface hover:bg-primary-soft"
-                  }`}
-                >
-                  {b.label}
-                </button>
-              ))}
             </div>
           </div>
         </div>
-      ) : null}
+
+        {/* Dedicated control for the "بث مباريات" icon tile in the Homepage top tiles row */}
+        <div className={`mt-4 rounded-2xl border p-3.5 transition ${liveTileGlow ? "border-[#DC2626]/30 bg-[#DC2626]/5" : "border-line bg-surface"}`}>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <span className={`size-2.5 rounded-full ${liveTileGlow ? "animate-ping bg-[#DC2626]" : "bg-emerald-600"}`} />
+              <div>
+                <p className="text-sm font-extrabold text-ink">
+                  {tr("أيقونة قسم «بث مباريات» في شريط الأيقونات العلوي بالرئيسية")}
+                </p>
+                <p className="text-[11px] font-semibold text-muted">
+                  {liveTileGlow
+                    ? tr("التوهج الأحمر مفعّل حالياً — يمكنك إطفاؤه ليكون مريحاً للعين")
+                    : tr("التوهج مطفأ حالياً (وضع مريح للعين بهدوء باقي الأيقونات)")}
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                disabled={busy || !siteSettings}
+                onClick={async () => {
+                  if (!siteSettings) return;
+                  const nextGlow = !liveTileGlow;
+                  setLiveTileGlow(nextGlow);
+                  const subParts = [liveTileVisible ? "قسم في الشريط" : " مَخفي"];
+                  if (!nextGlow) subParts.push("بدون توهج");
+                  const others = siteSettings.quickLinks.filter((q) => q.id !== "tilelive");
+                  await saveQuickLinks(
+                    [
+                      {
+                        id: "tilelive",
+                        title: liveTileLabel.trim() || "بث مباريات",
+                        subtitle: subParts.join("|"),
+                        url: "/sports-news",
+                        emoji: nextGlow ? "🔴" : "⚪",
+                      },
+                      ...others,
+                    ],
+                    nextGlow
+                      ? "تم تشغيل توهج أيقونة «بث مباريات» ✓"
+                      : "تم إطفاء توهج أيقونة «بث مباريات» ليكون مريحاً للعين ✓",
+                  );
+                }}
+                className={`rounded-xl px-3 py-1.5 text-xs font-extrabold transition ${
+                  liveTileGlow
+                    ? "border border-[#DC2626]/40 bg-paper text-[#DC2626] hover:bg-[#DC2626]/10"
+                    : "bg-ink text-paper"
+                }`}
+              >
+                {liveTileGlow ? tr("⚪ إطفاء التوهج (مريح للعين)") : tr("🔴 التوهج مطفأ (اضغط لتشغيله)")}
+              </button>
+              <button
+                type="button"
+                disabled={busy || !siteSettings}
+                onClick={async () => {
+                  if (!siteSettings) return;
+                  const nextVis = !liveTileVisible;
+                  setLiveTileVisible(nextVis);
+                  const subParts = [nextVis ? "قسم في الشريط" : " مَخفي"];
+                  if (!liveTileGlow) subParts.push("بدون توهج");
+                  const others = siteSettings.quickLinks.filter((q) => q.id !== "tilelive");
+                  await saveQuickLinks(
+                    [
+                      {
+                        id: "tilelive",
+                        title: liveTileLabel.trim() || "بث مباريات",
+                        subtitle: subParts.join("|"),
+                        url: "/sports-news",
+                        emoji: liveTileGlow ? "🔴" : "⚪",
+                      },
+                      ...others,
+                    ],
+                    nextVis
+                      ? "تم إظهار أيقونة «بث مباريات» في شريط الأقسام العلوي ✓"
+                      : "تم إخفاء أيقونة «بث مباريات» من شريط الأقسام",
+                  );
+                }}
+                className={`rounded-xl px-3 py-1.5 text-xs font-extrabold text-white transition ${
+                  liveTileVisible ? "bg-[#16A34A]" : "bg-muted"
+                }`}
+              >
+                {liveTileVisible ? tr("ظاهر في شريط الأيقونات ✓") : tr("مخفي من الشريط")}
+              </button>
+            </div>
+          </div>
+          <div className="mt-2.5 flex flex-wrap items-center gap-2">
+            <input
+              type="text"
+              value={liveTileLabel}
+              onChange={(e) => {
+                setLiveTileLabel(e.target.value);
+                setDirtyLiveTile(true);
+              }}
+              placeholder="بث مباريات"
+              className="field max-w-xs text-xs"
+            />
+            {dirtyLiveTile ? (
+              <button
+                type="button"
+                disabled={busy || !siteSettings}
+                onClick={async () => {
+                  if (!siteSettings) return;
+                  const subParts = [liveTileVisible ? "قسم في الشريط" : " مَخفي"];
+                  if (!liveTileGlow) subParts.push("بدون توهج");
+                  const others = siteSettings.quickLinks.filter((q) => q.id !== "tilelive");
+                  await saveQuickLinks(
+                    [
+                      {
+                        id: "tilelive",
+                        title: liveTileLabel.trim() || "بث مباريات",
+                        subtitle: subParts.join("|"),
+                        url: "/sports-news",
+                        emoji: liveTileGlow ? "🔴" : "⚪",
+                      },
+                      ...others,
+                    ],
+                    `تم حفظ اسم الأيقونة «${liveTileLabel.trim() || "بث مباريات"}» ✓`,
+                  );
+                  setDirtyLiveTile(false);
+                }}
+                className="btn py-2 text-xs"
+              >
+                {tr("حفظ التغيير ✓")}
+              </button>
+            ) : null}
+          </div>
+        </div>
+
+        {/* Unified List of All Custom Sections (including "فن و موضة" from Image 2!) */}
+        <div className="mt-4">
+          <p className="mb-2.5 text-xs font-extrabold text-muted">
+            {tr("الأقسام المخصّصة المضافة (تحكّم كامل بمسار التوجه، القائمة العلوية، البار السفلي، والصفحة الرئيسية):")}
+          </p>
+          {unifiedSections.length === 0 ? (
+            <p className="rounded-2xl bg-surface p-3 text-xs font-semibold text-muted">
+              {tr("لا توجد أقسام مخصّصة مضافة بعد. اضغط على «✨ فن و موضة» أو أضف قسماً من الأعلى.")}
+            </p>
+          ) : (
+            <div className="grid grid-cols-1 gap-3">
+              {unifiedSections.map((secItem) => {
+                const draftUrl = pathDrafts[secItem.name] ?? secItem.url;
+                const draftIcon = iconDrafts[secItem.name] ?? secItem.iconKey;
+                const isPathDirty =
+                  draftUrl.trim() !== secItem.url.trim() || draftIcon !== secItem.iconKey;
+
+                return (
+                  <div
+                    key={secItem.key}
+                    className="flex flex-col gap-3 rounded-2xl border border-primary/40 bg-surface p-3.5 text-xs font-bold shadow-2xs"
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex items-center gap-2.5">
+                        <span className="grid size-9 place-items-center rounded-xl bg-paper text-base shadow-2xs">
+                          {ICON_KEY_TO_EMOJI[draftIcon] ?? secItem.emoji}
+                        </span>
+                        <div>
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <span className="text-sm font-extrabold text-ink">{secItem.name}</span>
+                            <span className="rounded-full bg-brand/40 px-2 py-0.5 text-[10px] font-extrabold text-ink">
+                              {tr("مخصص · متصل")}
+                            </span>
+                            {secItem.dbSec ? (
+                              <span className="text-[10px] font-semibold text-muted" dir="ltr">
+                                #{secItem.dbSec.id}
+                              </span>
+                            ) : null}
+                          </div>
+                          <p className="mt-0.5 text-[11px] font-semibold text-muted" dir="ltr">
+                            {tr("المسار الحالي:")} {secItem.url}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* 1-Click Placement Toggles: Top Bar, Bottom Bar, Homepage, RSS Manager, Delete */}
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <button
+                          type="button"
+                          disabled={busy || !siteSettings}
+                          onClick={() => void handleToggleTopBar(secItem)}
+                          className={`rounded-xl px-2.5 py-1.5 text-[11px] font-extrabold text-white transition ${
+                            secItem.inTopBar ? "bg-[#16A34A]" : "bg-muted hover:opacity-90"
+                          }`}
+                        >
+                          {secItem.inTopBar ? tr("في القائمة العلوية ✓") : tr("+ القائمة العلوية")}
+                        </button>
+
+                        <button
+                          type="button"
+                          disabled={busy || !siteSettings}
+                          onClick={() => void handleToggleBotBar(secItem)}
+                          className={`rounded-xl px-2.5 py-1.5 text-[11px] font-extrabold text-white transition ${
+                            secItem.inBotBar ? "bg-[#0284C7]" : "bg-muted hover:opacity-90"
+                          }`}
+                        >
+                          {secItem.inBotBar ? tr("في البار السفلي ✓") : tr("+ البار السفلي")}
+                        </button>
+
+                        <button
+                          type="button"
+                          disabled={busy}
+                          onClick={() => void handleToggleHome(secItem)}
+                          className={`rounded-xl px-2.5 py-1.5 text-[11px] font-extrabold text-white transition ${
+                            secItem.inHome ? "bg-ink" : "bg-muted hover:opacity-90"
+                          }`}
+                        >
+                          {secItem.inHome ? tr("في الرئيسية ✓") : tr("مخفي بالرئيسية")}
+                        </button>
+
+                        {secItem.dbSec ? (
+                          <button
+                            type="button"
+                            onClick={() => onSelectSection(secItem.dbSec!.id)}
+                            className="rounded-xl border border-line bg-paper px-2.5 py-1.5 text-[11px] font-extrabold text-ink hover:bg-primary-soft"
+                          >
+                            {tr("مصادر RSS ⚙")}
+                          </button>
+                        ) : null}
+
+                        <button
+                          type="button"
+                          disabled={busy}
+                          onClick={() => void handleDeleteUnified(secItem)}
+                          className="grid size-7 place-items-center rounded-lg border border-line bg-paper text-[#DC2626] hover:opacity-80"
+                          title={tr("حذف القسم")}
+                        >
+                          <Trash2 className="size-3.5" aria-hidden />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Row 2: Destination Path (مسار توجه الصفحة) & Icon Control */}
+                    <div className="grid grid-cols-1 gap-2 rounded-xl border border-line bg-paper p-2.5 sm:grid-cols-12">
+                      <div className="sm:col-span-3">
+                        <label className="block text-[10px] font-extrabold text-muted">
+                          {tr("أيقونة القسم")}
+                        </label>
+                        <select
+                          value={draftIcon}
+                          onChange={(e) =>
+                            setIconDrafts((prev) => ({ ...prev, [secItem.name]: e.target.value }))
+                          }
+                          className="field mt-0.5 py-1 text-xs"
+                        >
+                          {BAR_ICON_OPTIONS.map((o) => (
+                            <option key={o.key} value={o.key}>
+                              {o.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="sm:col-span-3">
+                        <label className="block text-[10px] font-extrabold text-muted">
+                          {tr("اختيار مسار جاهز")}
+                        </label>
+                        <select
+                          value=""
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            if (!val) return;
+                            const nextPath =
+                              val === "__auto__"
+                                ? `/?q=${secItem.name}`
+                                : val === "__news_q__"
+                                  ? `/news?q=${secItem.name}`
+                                  : val;
+                            setPathDrafts((prev) => ({ ...prev, [secItem.name]: nextPath }));
+                          }}
+                          className="field mt-0.5 py-1 text-xs"
+                        >
+                          <option value="">{tr("اختر مسار توجه سريع...")}</option>
+                          {SECTION_PATH_PRESETS.map((opt) => (
+                            <option key={opt.value} value={opt.value}>
+                              {opt.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="sm:col-span-4">
+                        <label className="block text-[10px] font-extrabold text-muted">
+                          {tr("مسار توجه الصفحة (الرابط عند الضغط على القسم)")}
+                        </label>
+                        <input
+                          type="text"
+                          dir="ltr"
+                          value={draftUrl}
+                          onChange={(e) =>
+                            setPathDrafts((prev) => ({ ...prev, [secItem.name]: e.target.value }))
+                          }
+                          placeholder={`/?q=${secItem.name}`}
+                          className="field mt-0.5 py-1 font-mono text-xs"
+                        />
+                      </div>
+
+                      <div className="flex items-end sm:col-span-2">
+                        <button
+                          type="button"
+                          disabled={busy || !siteSettings}
+                          onClick={() => void handleSaveSectionPath(secItem)}
+                          className={`w-full rounded-xl px-3 py-2 text-xs font-extrabold transition ${
+                            isPathDirty
+                              ? "bg-primary text-ink shadow-xs"
+                              : "border border-line bg-surface text-ink hover:bg-primary-soft"
+                          }`}
+                        >
+                          {tr("حفظ المسار ✓")}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        <div className="mt-4 border-t border-line pt-3">
+          <p className="mb-2 text-xs font-extrabold text-muted">{tr("إدارة مصادر الأقسام الأساسية والمخصّصة:")}</p>
+          <div className="flex flex-wrap gap-2">
+            {[
+              { id: "news", label: "الأخبار المحلية" },
+              { id: "israel", label: "أخبار إسرائيل" },
+              { id: "sports", label: "الرياضة" },
+              { id: "tech", label: "التقنية" },
+              { id: "weather", label: "الطقس" },
+              ...dbCustomSecs.map((d) => ({ id: d.id, label: `✨ ${d.name}` })),
+            ].map((b) => (
+              <button
+                key={b.id}
+                type="button"
+                onClick={() => onSelectSection(b.id)}
+                className={`rounded-2xl border px-3 py-2 text-xs font-extrabold transition ${
+                  currentId === b.id
+                    ? "border-ink bg-ink text-paper"
+                    : "border-line bg-surface hover:bg-primary-soft"
+                }`}
+              >
+                {b.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -4656,7 +6413,8 @@ function parseTopBarConfig(quickLinks: SiteSettings["quickLinks"]): BarBtnItem[]
   return pairs.map((p, idx) => {
     const colon = p.indexOf(":");
     const icon = colon > 0 ? p.slice(0, colon) : "news";
-    const to = colon > 0 ? p.slice(colon + 1) : p;
+    const rawTo = colon > 0 ? p.slice(colon + 1) : p;
+    const to = rawTo.replace(/%20/g, " ");
     return {
       icon: icon || "news",
       to: to || "/news",
@@ -4710,7 +6468,8 @@ function parseBotBarConfig(quickLinks: SiteSettings["quickLinks"]): {
   const btns: BarBtnItem[] = pairs.map((p, idx) => {
     const colon = p.indexOf(":");
     const icon = colon > 0 ? p.slice(0, colon) : "home";
-    const to = colon > 0 ? p.slice(colon + 1) : p;
+    const rawTo = colon > 0 ? p.slice(colon + 1) : p;
+    const to = rawTo.replace(/%20/g, " ");
     return {
       icon: icon || "home",
       to: to || "/",
@@ -5688,6 +7447,50 @@ function MenusAndBarsPart({ s, set }: SettingsPartProps) {
   const botCfg = parseBotBarConfig(s.quickLinks);
   const cssCfg = parseBotBarCssConfig(s.quickLinks);
 
+  const [dbSecsForBars, setDbSecsForBars] = useState<AdminSection[]>([]);
+  useEffect(() => {
+    const BUILTIN = new Set(["news", "israel", "sports", "tech", "weather"]);
+    void adminListSections()
+      .then((r) => {
+        if (r.authed && r.sections) {
+          setDbSecsForBars(r.sections.filter((sec) => !BUILTIN.has(sec.id)));
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  // Automatically combine built-in presets + all custom sections (from DB and quickLinks) so they are always available in Bottom Bar & Top Bar options
+  const allBarDestinations: BarBtnItem[] = useMemo(() => {
+    const list: BarBtnItem[] = [...QUICK_PRESET_DESTINATIONS];
+    const addCustomOpt = (labelRaw: string, defaultIcon: string, customUrl?: string) => {
+      const label = labelRaw.trim();
+      if (!label) return;
+      const qlMatch = (s.quickLinks ?? []).find(
+        (q) => q.id.startsWith("sec") && q.title.trim() === label,
+      );
+      const resolvedUrl = customUrl || qlMatch?.url || `/?q=${label}`;
+      const resolvedIcon =
+        (qlMatch?.emoji ? EMOJI_TO_ICON_KEY[qlMatch.emoji] : undefined) ||
+        defaultIcon ||
+        (/فن|موضة|ثقافة/.test(label) ? "sparkles" : "news");
+      if (!list.some((d) => d.label.trim() === label)) {
+        list.push({ icon: resolvedIcon, label, to: resolvedUrl });
+      }
+    };
+
+    // Always include "فن و موضة" + all DB custom sections + quickLinks custom sections
+    addCustomOpt("فن و موضة", "sparkles");
+    for (const dbSec of dbSecsForBars) {
+      addCustomOpt(dbSec.name, /فن|موضة|ثقافة/.test(dbSec.name) ? "sparkles" : "news");
+    }
+    for (const q of s.quickLinks ?? []) {
+      if (q.id.startsWith("sec") && q.title.trim()) {
+        addCustomOpt(q.title, EMOJI_TO_ICON_KEY[q.emoji] || "news", q.url);
+      }
+    }
+    return list;
+  }, [dbSecsForBars, s.quickLinks]);
+
   const liveTileItem = (s.quickLinks ?? []).find((q) => q.id === "tilelive");
   const liveTileVisible = liveTileItem ? !liveTileItem.subtitle?.includes("مَخفي") : true;
   const liveTileGlow =
@@ -5868,15 +7671,15 @@ function MenusAndBarsPart({ s, set }: SettingsPartProps) {
             {tr("+ إضافة سريعة لقسم في القائمة العلوية:")}
           </p>
           <div className="flex flex-wrap gap-1.5">
-            {QUICK_PRESET_DESTINATIONS.filter((d) => d.to !== "/").map((preset) => {
-              const exists = topBtns.some((b) => b.to === preset.to && b.label === preset.label);
+            {allBarDestinations.filter((d) => d.to !== "/").map((preset) => {
+              const exists = topBtns.some((b) => b.label.trim() === preset.label.trim());
               return (
                 <button
                   key={`${preset.to}-${preset.label}`}
                   type="button"
                   onClick={() => {
                     if (exists) {
-                      updateTop(topBtns.filter((b) => !(b.to === preset.to && b.label === preset.label)));
+                      updateTop(topBtns.filter((b) => b.label.trim() !== preset.label.trim()));
                     } else {
                       updateTop([...topBtns, { ...preset }]);
                     }
@@ -6366,8 +8169,8 @@ function MenusAndBarsPart({ s, set }: SettingsPartProps) {
             {tr("+ إضافة أو إلغاء سريع لأزرار البار السفلي:")}
           </p>
           <div className="flex flex-wrap gap-1.5">
-            {QUICK_PRESET_DESTINATIONS.map((preset) => {
-              const exists = botCfg.btns.some((b) => b.to === preset.to && b.label === preset.label);
+            {allBarDestinations.map((preset) => {
+              const exists = botCfg.btns.some((b) => b.label.trim() === preset.label.trim());
               return (
                 <button
                   key={`${preset.to}-${preset.label}`}
@@ -6376,7 +8179,7 @@ function MenusAndBarsPart({ s, set }: SettingsPartProps) {
                     if (exists) {
                       updateBot(
                         botCfg.style,
-                        botCfg.btns.filter((b) => !(b.to === preset.to && b.label === preset.label)),
+                        botCfg.btns.filter((b) => b.label.trim() !== preset.label.trim()),
                       );
                     } else {
                       updateBot(botCfg.style, [...botCfg.btns, { ...preset }]);

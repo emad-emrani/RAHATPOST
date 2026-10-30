@@ -128,7 +128,8 @@ function GlobalCustomBottomBar() {
     const parsedBtns = pairs.map((p, idx) => {
       const colon = p.indexOf(":");
       const icon = colon > 0 ? p.slice(0, colon) : "home";
-      const to = colon > 0 ? p.slice(colon + 1) : p;
+      const rawTo = colon > 0 ? p.slice(colon + 1) : p;
+      const to = rawTo.replace(/%20/g, " ");
       return {
         icon: icon || "home",
         to: to || "/",
@@ -223,16 +224,22 @@ function GlobalCustomBottomBar() {
         <div className="mx-auto flex max-w-xl items-center justify-around">
           {btns.map((item, idx) => {
             const Icon = BOT_ICON_MAP[item.icon] ?? House;
+            const hasQuery = item.to.includes("?q=");
+            const linkTo = (hasQuery ? item.to.split("?q=")[0] || "/" : item.to) as "/";
+            const linkSearch = hasQuery
+              ? { q: decodeURIComponent(item.to.split("?q=")[1] ?? "") }
+              : undefined;
             const exact = item.to === "/";
             const isActive = exact
-              ? pathname === "/"
+              ? pathname === "/" && !hasQuery
               : pathname === item.to || pathname.startsWith(`${item.to}/`);
 
             if (style === "custom") {
               return (
                 <Link
                   key={`${item.to}-${idx}`}
-                  to={item.to as "/"}
+                  to={linkTo}
+                  search={linkSearch}
                   activeOptions={{ exact }}
                   data-active={isActive ? "true" : "false"}
                   className="custom-botbar-item flex flex-1 flex-col items-center justify-center gap-0.5 rounded-2xl py-1.5 text-[11px] font-extrabold transition"
@@ -257,7 +264,8 @@ function GlobalCustomBottomBar() {
               return (
                 <Link
                   key={`${item.to}-${idx}`}
-                  to={item.to as "/"}
+                  to={linkTo}
+                  search={linkSearch}
                   activeOptions={{ exact }}
                   className="flex flex-1 flex-col items-center justify-center gap-0.5 py-2 text-[11px] font-bold text-white/70 transition"
                   activeProps={{
@@ -276,7 +284,8 @@ function GlobalCustomBottomBar() {
               return (
                 <Link
                   key={`${item.to}-${idx}`}
-                  to={item.to as "/"}
+                  to={linkTo}
+                  search={linkSearch}
                   activeOptions={{ exact }}
                   className="flex flex-1 flex-col items-center justify-center gap-0.5 rounded-full py-1.5 text-[11px] font-bold text-muted transition"
                   activeProps={{
@@ -295,7 +304,8 @@ function GlobalCustomBottomBar() {
               return (
                 <Link
                   key={`${item.to}-${idx}`}
-                  to={item.to as "/"}
+                  to={linkTo}
+                  search={linkSearch}
                   activeOptions={{ exact }}
                   className="flex flex-1 flex-col items-center justify-center gap-1 rounded-2xl py-1.5 text-[11px] font-bold text-muted transition"
                   activeProps={{
@@ -316,7 +326,8 @@ function GlobalCustomBottomBar() {
               return (
                 <Link
                   key={`${item.to}-${idx}`}
-                  to={item.to as "/"}
+                  to={linkTo}
+                  search={linkSearch}
                   activeOptions={{ exact }}
                   className="flex flex-1 flex-col items-center justify-center gap-0.5 border-t-2 border-transparent py-1.5 text-[11px] font-bold text-muted transition"
                   activeProps={{
@@ -334,7 +345,8 @@ function GlobalCustomBottomBar() {
             return (
               <Link
                 key={`${item.to}-${idx}`}
-                to={item.to as "/"}
+                to={linkTo}
+                search={linkSearch}
                 activeOptions={{ exact }}
                 className="tabbar-link"
               >

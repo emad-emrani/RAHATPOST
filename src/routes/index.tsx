@@ -222,37 +222,74 @@ function Home() {
 
   const settings = useSiteSettings();
   const visibleCustomSections = useMemo(() => {
-    const out: { id: string; rawName: string; name: string; home: boolean; items: NewsItem[]; icon: string }[] = [];
+    const out: {
+      id: string;
+      rawName: string;
+      name: string;
+      home: boolean;
+      items: NewsItem[];
+      icon: string;
+      url: string;
+    }[] = [];
     const seenNames = new Set<string>();
 
-    const pickIconForName = (n: string) =>
-      /فن|موضة|ثقافة|مشاهير|جمال/.test(n)
+    const emojiToIcon: Record<string, string> = {
+      "✨": "sparkles",
+      "📰": "news",
+      "📺": "tv",
+      "🔴": "tv",
+      "⚽": "trophy",
+      "🚌": "bus",
+      "📢": "ad",
+      "🚨": "siren",
+      "📍": "pin",
+      "🛍️": "store",
+      "💼": "store",
+      "🌍": "globe",
+      "💻": "cpu",
+    };
+
+    const pickIconForName = (n: string, emoji?: string) =>
+      (emoji && emojiToIcon[emoji]) ||
+      (/فن|موضة|ثقافة|مشاهير|جمال/.test(n)
         ? "sparkles"
         : /رياضة|مباريات|كرة/.test(n)
           ? "trophy"
           : /تقنية|تكنولوجيا/.test(n)
             ? "cpu"
-            : "news";
+            : "news");
 
     // 1. Custom sections from database (created in SectionAdmin like "فن و موضة")
     for (const cs of customSecsState) {
       const cleanName = cs.name.trim();
       if (!cleanName || seenNames.has(cleanName)) continue;
       seenNames.add(cleanName);
+      const qlOverride = (settings.quickLinks ?? []).find(
+        (q) => q.id.startsWith("sec") && q.title.trim() === cleanName,
+      );
       const matchedFromNews = news.items.filter(
         (i) =>
           i.category === cleanName ||
           i.title.includes(cleanName) ||
-          (/فن|موضة/.test(cleanName) && /فن|موضة|ثقافة|مهرجان|أزياء|سينما|مسرح|فنان/.test(`${i.title} ${i.summary} ${i.category}`)),
+          (/فن|موضة/.test(cleanName) &&
+            /فن|موضة|ثقافة|مهرجان|أزياء|سينما|مسرح|فنان/.test(
+              `${i.title} ${i.summary} ${i.category}`,
+            )),
       );
-      const mergedItems = cs.items.length > 0 ? cs.items : matchedFromNews.length > 0 ? matchedFromNews : news.items.slice(0, 4);
+      const mergedItems =
+        cs.items.length > 0
+          ? cs.items
+          : matchedFromNews.length > 0
+            ? matchedFromNews
+            : news.items.slice(0, 4);
       out.push({
         id: cs.id,
         rawName: cleanName,
         name: cleanName,
-        home: cs.home !== false,
+        home: cs.home !== false && !qlOverride?.subtitle?.includes("مَخفي_رئيسية"),
         items: staggerSectionItems(mergedItems, 4),
-        icon: pickIconForName(cleanName),
+        icon: pickIconForName(cleanName, qlOverride?.emoji),
+        url: qlOverride?.url?.trim() || `/?q=${cleanName}`,
       });
     }
 
@@ -272,9 +309,10 @@ function Home() {
         id: q.id,
         rawName: cleanName,
         name: `${q.emoji ? q.emoji + " " : ""}${cleanName}`,
-        home: true,
+        home: !q.subtitle?.includes("مَخفي_رئيسية"),
         items: matched.length > 0 ? matched : news.items.slice(0, 5),
-        icon: pickIconForName(cleanName),
+        icon: pickIconForName(cleanName, q.emoji),
+        url: q.url?.trim() || `/?q=${cleanName}`,
       });
     }
     return out;
@@ -299,6 +337,9 @@ function Home() {
   const now = useNow(news.now);
   const search = Route.useSearch();
   const [q, setQ] = useState(search.q ?? "");
+  useEffect(() => {
+    setQ(search.q ?? "");
+  }, [search.q]);
   const query = q.trim();
   const ranked = useMemo(() => staggerSectionItems(newestFirst(news.items), 0), [news.items]);
   const breaking = news.items.find((item) => item.breaking);
@@ -510,7 +551,7 @@ function Home() {
             <NewsUnavailable />
           )}
         </section>
-        {visibleCustomSections.map((cs) => (
+        {visibleCustomSections.filter((cs) => cs.home).map((cs) => (
           <section key={cs.id} className="mt-6">
             <SectionTitle title={trv(cs.name)} to="/news" more={tr("كل الأخبار")} />
             {cs.items.length > 0 ? (
@@ -2182,7 +2223,7 @@ function HomeTilesBar({
   customSections = [],
 }: {
   hasLiveMatch?: boolean;
-  customSections?: { id: string; rawName: string; name: string; icon: string }[];
+  customSections?: { id: string; rawName: string; name: string; icon: string; url?: string }[];
 }) {
   const st = useSiteSettings();
   const topCfgItem = (st.quickLinks ?? []).find((q) => q.id === "topbarcfg");
@@ -2200,7 +2241,8 @@ function HomeTilesBar({
         return pairs.map((p, idx) => {
           const colon = p.indexOf(":");
           const icon = colon > 0 ? p.slice(0, colon) : "news";
-          const to = colon > 0 ? p.slice(colon + 1) : p;
+          const rawTo = colon > 0 ? p.slice(colon + 1) : p;
+          const to = rawTo.replace(/%20/g, " ");
           return {
             icon: icon || "news",
             to: to || "/news",
@@ -2228,7 +2270,7 @@ function HomeTilesBar({
     if (!combined.some((c) => c.label.trim() === cleanLabel)) {
       combined.push({
         icon: cs.icon || (/فن|موضة|ثقافة/.test(cleanLabel) ? "sparkles" : "news"),
-        to: `/?q=${encodeURIComponent(cleanLabel)}`,
+        to: cs.url?.trim() || `/?q=${cleanLabel}`,
         label: cleanLabel,
       });
     }
@@ -2247,7 +2289,7 @@ function HomeTilesBar({
         return (
           <Link
             key={`${t.to}-${idx}`}
-            to={(t.to.includes("?q=") ? "/" : t.to) as "/"}
+            to={(t.to.includes("?q=") ? t.to.split("?q=")[0] || "/" : t.to) as "/"}
             search={
               t.to.includes("?q=")
                 ? { q: decodeURIComponent(t.to.split("?q=")[1] ?? "") }
@@ -2526,7 +2568,8 @@ function CustomBottomBar() {
     const parsedBtns = pairs.map((p, idx) => {
       const colon = p.indexOf(":");
       const icon = colon > 0 ? p.slice(0, colon) : "home";
-      const to = colon > 0 ? p.slice(colon + 1) : p;
+      const rawTo = colon > 0 ? p.slice(colon + 1) : p;
+      const to = rawTo.replace(/%20/g, " ");
       return {
         icon: icon || "home",
         to: to || "/",
@@ -2612,13 +2655,19 @@ ${userExtraCss}`}</style>
         <div className="mx-auto flex max-w-xl items-center justify-around">
           {btns.map((item, idx) => {
             const Icon = ICON_MAP[item.icon] ?? House;
-            const exact = item.to === "/";
+            const hasQuery = item.to.includes("?q=");
+            const linkTo = (hasQuery ? item.to.split("?q=")[0] || "/" : item.to) as "/";
+            const linkSearch = hasQuery
+              ? { q: decodeURIComponent(item.to.split("?q=")[1] ?? "") }
+              : undefined;
+            const exact = item.to === "/" && !hasQuery;
             const isActive = exact;
             if (style === "custom") {
               return (
                 <Link
                   key={`${item.to}-${idx}`}
-                  to={item.to as "/"}
+                  to={linkTo}
+                  search={linkSearch}
                   activeOptions={{ exact }}
                   data-active={isActive ? "true" : "false"}
                   className="custom-botbar-item flex flex-1 flex-col items-center justify-center gap-0.5 rounded-2xl py-1.5 text-[11px] font-extrabold transition"
@@ -2641,7 +2690,8 @@ ${userExtraCss}`}</style>
               return (
                 <Link
                   key={`${item.to}-${idx}`}
-                  to={item.to as "/"}
+                  to={linkTo}
+                  search={linkSearch}
                   activeOptions={{ exact }}
                   className="flex flex-1 flex-col items-center justify-center gap-0.5 py-2 text-[11px] font-bold text-white/70 transition"
                   activeProps={{
@@ -2658,7 +2708,8 @@ ${userExtraCss}`}</style>
               return (
                 <Link
                   key={`${item.to}-${idx}`}
-                  to={item.to as "/"}
+                  to={linkTo}
+                  search={linkSearch}
                   activeOptions={{ exact }}
                   className="flex flex-1 flex-col items-center justify-center gap-0.5 rounded-full py-1.5 text-[11px] font-bold text-muted transition"
                   activeProps={{
@@ -2675,7 +2726,8 @@ ${userExtraCss}`}</style>
               return (
                 <Link
                   key={`${item.to}-${idx}`}
-                  to={item.to as "/"}
+                  to={linkTo}
+                  search={linkSearch}
                   activeOptions={{ exact }}
                   className="flex flex-1 flex-col items-center justify-center gap-1 rounded-2xl py-1.5 text-[11px] font-bold text-muted transition"
                   activeProps={{
@@ -2694,7 +2746,8 @@ ${userExtraCss}`}</style>
               return (
                 <Link
                   key={`${item.to}-${idx}`}
-                  to={item.to as "/"}
+                  to={linkTo}
+                  search={linkSearch}
                   activeOptions={{ exact }}
                   className="flex flex-1 flex-col items-center justify-center gap-0.5 border-t-2 border-transparent py-1.5 text-[11px] font-bold text-muted transition"
                   activeProps={{
@@ -2710,7 +2763,8 @@ ${userExtraCss}`}</style>
             return (
               <Link
                 key={`${item.to}-${idx}`}
-                to={item.to as "/"}
+                to={linkTo}
+                search={linkSearch}
                 activeOptions={{ exact }}
                 className="tabbar-link"
               >

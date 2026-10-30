@@ -1,5 +1,4 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { PushCta, ShareWhatsApp } from "@/components/growth";
 import { Shell } from "@/components/shell";
 import {
   Badges,
@@ -100,7 +99,6 @@ function ProductPage() {
           <h1 className="text-2xl font-bold">{trv(p.name)}</h1>
           <Price p={p} currency={settings.currency} big />
           {p.shortDesc ? <p className="font-semibold">{trv(p.shortDesc)}</p> : null}
-          <ShareWhatsApp title={p.name} path={`/store/${p.slug}`} />
           <BuyButtons p={p} />
           {p.inStock && !p.isSample ? (
             <WhatsAppCashButton items={[{ id: p.id, qty: 1 }]} redirect={`/store/${p.slug}`} />

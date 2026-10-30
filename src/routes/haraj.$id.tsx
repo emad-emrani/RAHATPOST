@@ -1,5 +1,4 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { PushCta, ShareWhatsApp } from "@/components/growth";
 import { MessageCircle } from "lucide-react";
 import { AdGallery } from "@/components/ad-gallery";
 import { SellerCard, SpecsTable } from "@/components/haraj";
@@ -91,7 +90,6 @@ function ItemPage() {
         <h1 className="mt-2 text-2xl font-bold leading-tight">{trv(l.title)}</h1>
         <p className="mt-1 text-2xl font-bold">{trv(priceLabel(l))}</p>
         <p className="mt-1 font-semibold text-muted">📍 {trv(l.area)} · {new Date(l.renewedAt).toLocaleDateString("en-GB")}</p>
-        <ShareWhatsApp className="mt-3" title={l.title} path={`/haraj/${l.id}`} />
         {l.sample ? (
           <p className="mt-3 rounded-xl bg-surface p-3 font-bold">{tr("هذا إعلان مثال لعرض شكل الحراج فقط، وليس غرضاً حقيقياً للبيع.")}</p>
         ) : l.sold ? (
