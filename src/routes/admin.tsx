@@ -3284,6 +3284,12 @@ function MatchesAdmin() {
   const [matchNote, setMatchNote] = useState("");
   const [matchStreamUrl, setMatchStreamUrl] = useState("");
   const [matchChannel, setMatchChannel] = useState("");
+  const [homeGoalsText, setHomeGoalsText] = useState("");
+  const [awayGoalsText, setAwayGoalsText] = useState("");
+  const [homeYellowCards, setHomeYellowCards] = useState(0);
+  const [homeRedCards, setHomeRedCards] = useState(0);
+  const [awayYellowCards, setAwayYellowCards] = useState(0);
+  const [awayRedCards, setAwayRedCards] = useState(0);
 
   const load = async () => {
     const res = await adminGetMatchesSettings();
@@ -3375,6 +3381,39 @@ function MatchesAdmin() {
       setMsg("الرجاء إدخال اسم الفريق المضيف والفريق الضيف.");
       return;
     }
+    const parseAdminGoalInput = (raw: string): { m: string; s: string }[] => {
+      return raw
+        .split(/[,،;\n]+/)
+        .map((x) => x.trim())
+        .filter(Boolean)
+        .map((entry) => {
+          const matchMin = entry.match(/^(.*?)\s*(\d+(?:\+\d+)?\x27?)$/);
+          if (matchMin && matchMin[1].trim()) {
+            const minVal = matchMin[2].endsWith("\x27") ? matchMin[2] : `${matchMin[2]}\x27`;
+            return { s: matchMin[1].trim(), m: minVal };
+          }
+          const matchMinFirst = entry.match(/^(\d+(?:\+\d+)?\x27?)\s*[:\-]?\s*(.+)$/);
+          if (matchMinFirst && matchMinFirst[2].trim()) {
+            const minVal = matchMinFirst[1].endsWith("\x27") ? matchMinFirst[1] : `${matchMinFirst[1]}\x27`;
+            return { s: matchMinFirst[2].trim(), m: minVal };
+          }
+          return { s: entry, m: "" };
+        });
+    };
+
+    const hgList = parseAdminGoalInput(homeGoalsText);
+    const agList = parseAdminGoalInput(awayGoalsText);
+    const metaPayload = {
+      hg: hgList,
+      ag: agList,
+      hy: Number(homeYellowCards) || 0,
+      hr: Number(homeRedCards) || 0,
+      ay: Number(awayYellowCards) || 0,
+      ar: Number(awayRedCards) || 0,
+      min: matchMinute.trim() || undefined,
+    };
+    const metaTag = `{{META:${JSON.stringify(metaPayload)}}}`;
+
     const cleanStream = matchStreamUrl.trim() || undefined;
     const cleanChan = matchChannel.trim() || undefined;
     const cleanNote = matchNote.trim();
@@ -3383,6 +3422,7 @@ function MatchesAdmin() {
         cleanChan ? `[${cleanChan}]` : "",
         cleanNote,
         cleanStream ?? "",
+        metaTag,
       ]
         .filter(Boolean)
         .join(" ")
@@ -3417,6 +3457,12 @@ function MatchesAdmin() {
     setMatchNote("");
     setMatchStreamUrl("");
     setMatchChannel("");
+    setHomeGoalsText("");
+    setAwayGoalsText("");
+    setHomeYellowCards(0);
+    setHomeRedCards(0);
+    setAwayYellowCards(0);
+    setAwayRedCards(0);
   };
 
   const updateCustomMatch = (id: string, patch: Partial<CustomMatch>) => {
@@ -3871,7 +3917,87 @@ function MatchesAdmin() {
             />
           </label>
 
-          <div className="flex items-end">
+          <label className="text-xs font-bold">
+            ⏱️ {tr("وقت المباراة المباشر (الدقيقة الحالية)")}
+            <input
+              type="text"
+              value={matchMinute}
+              onChange={(e) => setMatchMinute(e.target.value)}
+              placeholder="مثال: 65' أو 45+2' أو استراحة"
+              dir="ltr"
+              className="field mt-1 text-xs"
+            />
+          </label>
+
+          <label className="text-xs font-bold sm:col-span-2">
+            ⚽ {tr("أهداف الفريق المضيف (اسم صاحب الهدف وبجانبه الدقيقة)")}
+            <input
+              type="text"
+              value={homeGoalsText}
+              onChange={(e) => setHomeGoalsText(e.target.value)}
+              placeholder="مثال: ليفاندوفسكي 23'، لامين يامال 67'"
+              className="field mt-1 text-xs"
+            />
+          </label>
+
+          <label className="text-xs font-bold sm:col-span-2">
+            ⚽ {tr("أهداف الفريق الضيف (اسم صاحب الهدف وبجانبه الدقيقة)")}
+            <input
+              type="text"
+              value={awayGoalsText}
+              onChange={(e) => setAwayGoalsText(e.target.value)}
+              placeholder="مثال: مبابي 41'، بيلينغهام 82'"
+              className="field mt-1 text-xs"
+            />
+          </label>
+
+          <div className="grid grid-cols-2 gap-2 rounded-xl border border-line bg-paper p-2.5 sm:col-span-2">
+            <label className="text-[11px] font-extrabold">
+              🟨 {tr("بطاقات صفراء (المضيف)")}
+              <input
+                type="number"
+                min={0}
+                value={homeYellowCards}
+                onChange={(e) => setHomeYellowCards(Number(e.target.value))}
+                className="field mt-1 text-center text-xs"
+              />
+            </label>
+            <label className="text-[11px] font-extrabold">
+              🟥 {tr("بطاقات حمراء (المضيف)")}
+              <input
+                type="number"
+                min={0}
+                value={homeRedCards}
+                onChange={(e) => setHomeRedCards(Number(e.target.value))}
+                className="field mt-1 text-center text-xs"
+              />
+            </label>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 rounded-xl border border-line bg-paper p-2.5 sm:col-span-2">
+            <label className="text-[11px] font-extrabold">
+              🟨 {tr("بطاقات صفراء (الضيف)")}
+              <input
+                type="number"
+                min={0}
+                value={awayYellowCards}
+                onChange={(e) => setAwayYellowCards(Number(e.target.value))}
+                className="field mt-1 text-center text-xs"
+              />
+            </label>
+            <label className="text-[11px] font-extrabold">
+              🟥 {tr("بطاقات حمراء (الضيف)")}
+              <input
+                type="number"
+                min={0}
+                value={awayRedCards}
+                onChange={(e) => setAwayRedCards(Number(e.target.value))}
+                className="field mt-1 text-center text-xs"
+              />
+            </label>
+          </div>
+
+          <div className="flex items-end sm:col-span-4">
             <button
               type="button"
               onClick={addCustomMatch}
@@ -3919,10 +4045,11 @@ function MatchesAdmin() {
                       onBlur={(e) => {
                         const val = e.target.value.trim();
                         if (val !== (cm.streamUrl ?? "")) {
+                          const existingMeta = cm.note?.match(/\{\{META:\{[\s\S]*?\}\}\}/)?.[0] ?? "";
                           const chanPrefix = cm.channel ? `[${cm.channel}] ` : "";
                           updateCustomMatch(cm.id, {
                             streamUrl: val || undefined,
-                            note: `${chanPrefix}${val}`.trim() || undefined,
+                            note: `${chanPrefix}${val} ${existingMeta}`.trim() || undefined,
                           });
                         }
                       }}
@@ -3933,20 +4060,90 @@ function MatchesAdmin() {
                     </span>
                   </div>
                 </div>
-                <div className="flex items-center gap-1.5">
+                <div className="flex flex-wrap items-center gap-1.5">
                   <button
                     type="button"
-                    onClick={() => updateCustomMatch(cm.id, { homeScore: cm.homeScore + 1 })}
-                    className="rounded-xl border border-line bg-paper px-2.5 py-1 text-xs font-bold"
+                    onClick={() => {
+                      const scorer = window.prompt(`⚽ اسم مسجل الهدف لفريق ${cm.homeTeam} (اختياري):`, "") ?? "";
+                      const min = window.prompt("⏱️ دقيقة الهدف (مثال: 34'):", cm.minute || "45'") ?? "";
+                      let metaObj: any = { hg: [], ag: [], hy: 0, hr: 0, ay: 0, ar: 0 };
+                      const mMatch = cm.note?.match(/\{\{META:(\{[\s\S]*?\})\}\}/);
+                      if (mMatch) {
+                        try { metaObj = { ...metaObj, ...JSON.parse(mMatch[1]) }; } catch {}
+                      }
+                      if (scorer.trim() || min.trim()) {
+                        metaObj.hg = [...(metaObj.hg || []), { s: scorer.trim() || "هدف", m: min.trim() }];
+                      }
+                      const baseNote = (cm.note ?? "").replace(/\{\{META:\{[\s\S]*?\}\}\}/g, "").trim();
+                      updateCustomMatch(cm.id, {
+                        homeScore: cm.homeScore + 1,
+                        note: `${baseNote} {{META:${JSON.stringify(metaObj)}}}`.trim(),
+                      });
+                    }}
+                    className="rounded-xl border border-line bg-paper px-2.5 py-1 text-xs font-bold hover:bg-primary-soft"
                   >
-                    +1 {cm.homeTeam}
+                    ⚽ +1 {cm.homeTeam}
                   </button>
                   <button
                     type="button"
-                    onClick={() => updateCustomMatch(cm.id, { awayScore: cm.awayScore + 1 })}
-                    className="rounded-xl border border-line bg-paper px-2.5 py-1 text-xs font-bold"
+                    onClick={() => {
+                      const scorer = window.prompt(`⚽ اسم مسجل الهدف لفريق ${cm.awayTeam} (اختياري):`, "") ?? "";
+                      const min = window.prompt("⏱️ دقيقة الهدف (مثال: 67'):", cm.minute || "60'") ?? "";
+                      let metaObj: any = { hg: [], ag: [], hy: 0, hr: 0, ay: 0, ar: 0 };
+                      const mMatch = cm.note?.match(/\{\{META:(\{[\s\S]*?\})\}\}/);
+                      if (mMatch) {
+                        try { metaObj = { ...metaObj, ...JSON.parse(mMatch[1]) }; } catch {}
+                      }
+                      if (scorer.trim() || min.trim()) {
+                        metaObj.ag = [...(metaObj.ag || []), { s: scorer.trim() || "هدف", m: min.trim() }];
+                      }
+                      const baseNote = (cm.note ?? "").replace(/\{\{META:\{[\s\S]*?\}\}\}/g, "").trim();
+                      updateCustomMatch(cm.id, {
+                        awayScore: cm.awayScore + 1,
+                        note: `${baseNote} {{META:${JSON.stringify(metaObj)}}}`.trim(),
+                      });
+                    }}
+                    className="rounded-xl border border-line bg-paper px-2.5 py-1 text-xs font-bold hover:bg-primary-soft"
                   >
-                    +1 {cm.awayTeam}
+                    ⚽ +1 {cm.awayTeam}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      let metaObj: any = { hg: [], ag: [], hy: 0, hr: 0, ay: 0, ar: 0 };
+                      const mMatch = cm.note?.match(/\{\{META:(\{[\s\S]*?\})\}\}/);
+                      if (mMatch) {
+                        try { metaObj = { ...metaObj, ...JSON.parse(mMatch[1]) }; } catch {}
+                      }
+                      metaObj.hy = (Number(metaObj.hy) || 0) + 1;
+                      const baseNote = (cm.note ?? "").replace(/\{\{META:\{[\s\S]*?\}\}\}/g, "").trim();
+                      updateCustomMatch(cm.id, {
+                        note: `${baseNote} {{META:${JSON.stringify(metaObj)}}}`.trim(),
+                      });
+                    }}
+                    className="rounded-xl border border-line bg-paper px-2 py-1 text-[11px] font-bold"
+                    title={`إضافة بطاقة صفراء لـ ${cm.homeTeam}`}
+                  >
+                    🟨+ المضيف
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      let metaObj: any = { hg: [], ag: [], hy: 0, hr: 0, ay: 0, ar: 0 };
+                      const mMatch = cm.note?.match(/\{\{META:(\{[\s\S]*?\})\}\}/);
+                      if (mMatch) {
+                        try { metaObj = { ...metaObj, ...JSON.parse(mMatch[1]) }; } catch {}
+                      }
+                      metaObj.ay = (Number(metaObj.ay) || 0) + 1;
+                      const baseNote = (cm.note ?? "").replace(/\{\{META:\{[\s\S]*?\}\}\}/g, "").trim();
+                      updateCustomMatch(cm.id, {
+                        note: `${baseNote} {{META:${JSON.stringify(metaObj)}}}`.trim(),
+                      });
+                    }}
+                    className="rounded-xl border border-line bg-paper px-2 py-1 text-[11px] font-bold"
+                    title={`إضافة بطاقة صفراء لـ ${cm.awayTeam}`}
+                  >
+                    🟨+ الضيف
                   </button>
                   <select
                     value={cm.status}
