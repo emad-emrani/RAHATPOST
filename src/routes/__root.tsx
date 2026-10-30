@@ -34,7 +34,7 @@ import { SiteSettingsProvider, useSiteSettings } from "@/lib/site-settings/conte
 import { DEFAULT_ADSENSE_PUB, DEFAULT_SETTINGS, themeCss } from "@/lib/site-settings/types";
 import { mediaUrl } from "@/lib/media/types";
 import { getI18n } from "@/lib/i18n/api";
-import { BUILTIN_LANGS, setI18nState, tr, trv, type I18nState } from "@/lib/i18n/core";
+import { BUILTIN_LANGS, getI18nState, setI18nState, tr, trv, type I18nState } from "@/lib/i18n/core";
 
 const ARABIC_STATE: I18nState = { lang: "ar", dir: "rtl", dict: {}, langs: BUILTIN_LANGS };
 
