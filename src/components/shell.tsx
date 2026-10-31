@@ -211,20 +211,40 @@ export function Shell({ children, wide = false }: { children: ReactNode; wide?: 
 export function SectionTitle({
   title,
   to,
+  params,
   more,
 }: {
   title: string;
-  to?: "/" | "/news" | "/israel-news" | "/sports-news" | "/tech-news" | "/today" | "/buses" | "/directory" | "/store" | "/haraj";
+  to?:
+    | "/"
+    | "/news"
+    | "/israel-news"
+    | "/sports-news"
+    | "/tech-news"
+    | "/today"
+    | "/buses"
+    | "/directory"
+    | "/store"
+    | "/haraj"
+    | "/directory/guide/$guide";
+  params?: { guide: string };
   more?: string;
 }) {
   return (
     <div className="mb-3 flex items-center justify-between gap-3">
       <h2 className="text-lg font-extrabold tracking-tight sm:text-xl">{trv(title)}</h2>
       {to && more ? (
-        <Link to={to} className="see-all">
-          {trv(more)}
-          <ChevronLeft className="size-4" aria-hidden />
-        </Link>
+        to === "/directory/guide/$guide" ? (
+          <Link to="/directory/guide/$guide" params={{ guide: params?.guide || "post" }} className="see-all">
+            {trv(more)}
+            <ChevronLeft className="size-4" aria-hidden />
+          </Link>
+        ) : (
+          <Link to={to} className="see-all">
+            {trv(more)}
+            <ChevronLeft className="size-4" aria-hidden />
+          </Link>
+        )
       ) : null}
     </div>
   );

@@ -242,8 +242,8 @@ export function DashboardHome({ icons, go }: { icons: Record<string, LucideIcon>
         <CardBoundary><Card title={tr("أكثر تصنيفات الحراج نشاطاً")}>
           <ul className="flex flex-col gap-2">
             {d.topCategories.map((c) => (
-              <li key={c.category} className="flex items-center gap-3 text-sm">
-                <span className="w-28 truncate font-semibold">{catName(c.category)}</span>
+              <li key={c.key} className="flex items-center gap-3 text-sm">
+                <span className="w-28 truncate font-semibold">{catName(c.key)}</span>
                 <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-primary-soft">
                   <div className="h-full rounded-full bg-brand" style={{ width: `${(c.n / topMax) * 100}%` }} />
                 </div>
@@ -257,7 +257,7 @@ export function DashboardHome({ icons, go }: { icons: Record<string, LucideIcon>
   );
 }
 
-const KIND_BADGE: Record<ReviewItem["kind"], { label: string; cls: string }> = {
+const KIND_BADGE: Record<ReviewItem["type"], { label: string; cls: string }> = {
   haraj: { label: "حراج", cls: "bg-[#FEF3C7] text-[#92400E]" },
   news: { label: "خبر قارئ", cls: "bg-[#DBEAFE] text-[#1E40AF]" },
   comment: { label: "تعليق", cls: "bg-[#E0E7FF] text-[#3730A3]" },
@@ -265,28 +265,29 @@ const KIND_BADGE: Record<ReviewItem["kind"], { label: string; cls: string }> = {
 
 export function ReviewQueue({ onCount }: { onCount?: (n: number) => void }) {
   const [items, setItems] = useState<ReviewItem[] | null>(null);
-  const [filter, setFilter] = useState<"all" | ReviewItem["kind"]>("all");
+  const [filter, setFilter] = useState<"all" | ReviewItem["type"]>("all");
   const [busy, setBusy] = useState<string>("");
 
   const load = () => {
     adminReviewQueue().then((r) => {
-      setItems(r);
-      onCount?.(r.length);
+      const list = Array.isArray(r?.items) ? r.items : [];
+      setItems(list);
+      onCount?.(list.length);
     }).catch(() => setItems([]));
   };
   useEffect(load, []);
 
   if (!items) return <Skeleton rows={3} />;
-  const shown = filter === "all" ? items : items.filter((i) => i.kind === filter);
+  const shown = filter === "all" ? items : items.filter((i) => i.type === filter);
 
   const act = async (it: ReviewItem, ok: boolean) => {
-    const key = `${it.kind}:${it.id}`;
+    const key = `${it.type}:${it.id}`;
     setBusy(key);
     try {
-      if (it.kind === "haraj") await adminDecideListing({ data: { id: it.id, action: ok ? "approved" : "rejected" } });
-      else if (it.kind === "news") await adminDecideNews({ data: { id: it.id, action: ok ? "approved" : "rejected" } });
-      else await adminCommentAction({ data: { id: Number(it.id), action: ok ? "approve" : "delete" } });
-      const next = items.filter((x) => !(x.kind === it.kind && x.id === it.id));
+      if (it.type === "haraj") await adminDecideListing({ data: { id: it.id, action: ok ? "approved" : "rejected" } });
+      else if (it.type === "news") await adminDecideNews({ data: { id: it.id, action: ok ? "approved" : "rejected" } });
+      else await adminCommentAction({ data: { id: it.id, action: ok ? "restore" : "delete" } });
+      const next = items.filter((x) => !(x.type === it.type && x.id === it.id));
       setItems(next);
       onCount?.(next.length);
     } finally {
@@ -299,9 +300,9 @@ export function ReviewQueue({ onCount }: { onCount?: (n: number) => void }) {
       <div className="scroll-row gap-2">
         {([
           ["all", `الكل (${items.length})`],
-          ["haraj", `الحراج (${items.filter((i) => i.kind === "haraj").length})`],
-          ["news", `أخبار القراء (${items.filter((i) => i.kind === "news").length})`],
-          ["comment", `التعليقات (${items.filter((i) => i.kind === "comment").length})`],
+          ["haraj", `الحراج (${items.filter((i) => i.type === "haraj").length})`],
+          ["news", `أخبار القراء (${items.filter((i) => i.type === "news").length})`],
+          ["comment", `التعليقات (${items.filter((i) => i.type === "comment").length})`],
         ] as const).map(([k, l]) => (
           <button key={k} type="button" onClick={() => setFilter(k)} className={filter === k ? "chip chip-ink shrink-0" : "chip shrink-0 bg-paper"}>
             {trv(l)}
@@ -313,8 +314,8 @@ export function ReviewQueue({ onCount }: { onCount?: (n: number) => void }) {
       ) : (
         <ul className="flex flex-col gap-3">
           {shown.map((it) => {
-            const key = `${it.kind}:${it.id}`;
-            const b = KIND_BADGE[it.kind];
+            const key = `${it.type}:${it.id}`;
+            const b = KIND_BADGE[it.type];
             return (
               <li key={key} className="rounded-3xl bg-paper p-4 shadow-[0_1px_3px_rgba(16,24,40,0.06)]">
                 <div className="flex items-start gap-3">
@@ -326,8 +327,8 @@ export function ReviewQueue({ onCount }: { onCount?: (n: number) => void }) {
                     </div>
                     {it.title ? <p className="mt-1 font-bold">{it.title}</p> : null}
                     <p className="mt-1 line-clamp-3 text-sm font-semibold text-muted">{it.body}</p>
-                    {it.href ? (
-                      <a href={it.href} target="_blank" rel="noreferrer" className="mt-1 inline-flex items-center gap-1 text-xs font-bold text-primary-ink">
+                    {it.link ? (
+                      <a href={it.link} target="_blank" rel="noreferrer" className="mt-1 inline-flex items-center gap-1 text-xs font-bold text-primary-ink">
                         {tr("فتح الصفحة")} <ExternalLink className="size-3" />
                       </a>
                     ) : null}
@@ -338,7 +339,7 @@ export function ReviewQueue({ onCount }: { onCount?: (n: number) => void }) {
                     <Check className="size-4" /> {tr("موافقة")}
                   </button>
                   <button type="button" disabled={busy === key} onClick={() => act(it, false)} className="flex items-center justify-center gap-1.5 rounded-2xl bg-[#DC2626] py-2.5 text-sm font-bold text-white disabled:opacity-50">
-                    <X className="size-4" /> {tr(it.kind === "comment" ? "حذف" : "رفض")}
+                    <X className="size-4" /> {tr(it.type === "comment" ? "حذف" : "رفض")}
                   </button>
                 </div>
               </li>
@@ -390,9 +391,9 @@ export function AdminSearch({ sections, go }: { sections: { key: string; label: 
             </button>
           ))}
           {hits.map((h) => (
-            <button key={`${h.kind}:${h.id}`} type="button" onClick={() => { go(h.section); setQ(""); }} className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-start text-sm hover:bg-primary-soft">
+            <button key={`${h.type}:${h.id}`} type="button" onClick={() => { go(h.section); setQ(""); }} className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-start text-sm hover:bg-primary-soft">
               <span className="truncate font-semibold">{h.title}</span>
-              <span className="ms-2 shrink-0 text-xs text-muted">{h.sub}</span>
+              <span className="ms-2 shrink-0 text-xs text-muted">{h.meta}</span>
             </button>
           ))}
         </div>
