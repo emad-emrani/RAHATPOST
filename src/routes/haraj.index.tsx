@@ -501,6 +501,9 @@ function HarajPage() {
             </p>
           ) : null}
 
+          {list.length && list.every((i) => i.sample) ? (
+            <p className="stamp mb-3 p-3 font-bold">{tr("هذه إعلانات تجريبية للعرض فقط، وليست أغراضًا حقيقية للبيع.")}</p>
+          ) : null}
           {list.length ? (
             <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
               {list.map((i) => (

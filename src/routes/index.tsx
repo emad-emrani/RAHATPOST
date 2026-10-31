@@ -406,7 +406,15 @@ function Home() {
     () =>
       adsData.items
         .filter((l) => !l.sold)
-        .map((l) => ({ id: l.id, type: l.category, title: l.title, neighborhood: l.area, price: priceLabel(l), photo: l.photos[0] })),
+        .map((l) => ({
+          id: l.id,
+          type: l.category,
+          title: l.title,
+          neighborhood: l.area,
+          price: priceLabel(l),
+          photo: l.photos[0],
+          sample: l.sample,
+        })),
     [adsData],
   );
   const places = useMemo(() => [...approved, ...osmEntries()], [approved]);
@@ -786,6 +794,9 @@ function Home() {
             {tr("عندك غرض للبيع؟ أضفه إلى الحراج مجاناً.")}
           </Link>
         ) : null}
+        {classifieds.length > 0 && classifieds.every((item) => item.sample) ? (
+          <p className="mb-2 text-sm font-bold text-muted">{tr("هذه إعلانات تجريبية للعرض فقط، وليست أغراضًا حقيقية للبيع.")}</p>
+        ) : null}
         <ul className="grid gap-3 sm:grid-cols-2">
           {classifieds.slice(0, 4).map((item) => (
             <li key={item.id}>
@@ -805,6 +816,7 @@ function Home() {
                 ) : null}
                 <span className="min-w-0 flex-1">
                   <span className={item.quiet ? "chip" : "chip chip-deep"}>{trv(item.type)}</span>
+                  {item.sample ? <span className="chip ms-1">{tr("إعلان تجريبي")}</span> : null}
                   <span className="mt-1 block font-bold">{trv(item.title)}</span>
                   <span className="text-sm font-semibold text-muted">{trv(item.neighborhood)}</span>
                 </span>
@@ -1388,6 +1400,7 @@ function SearchResults({
           className="stamp press block p-4"
         >
           <span className="chip">{trv(item.type)}</span>
+          {item.sample ? <span className="chip ms-1">{tr("إعلان تجريبي")}</span> : null}
           <span className="mt-2 block font-bold">{trv(item.title)}</span>
           <span className="text-sm font-semibold text-muted">
             {trv(item.neighborhood)}

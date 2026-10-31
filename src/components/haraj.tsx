@@ -60,7 +60,7 @@ export function ListingCard({ item }: { item: Listing }) {
             <span className="chip chip-ink text-base">{tr("انباع")}</span>
           </span>
         ) : null}
-        {item.sample ? <span className="chip absolute top-2 end-2 bg-paper/95 text-xs">{tr("مثال")}</span> : null}
+        {item.sample ? <span className="chip absolute top-2 end-2 bg-paper/95 text-xs">{tr("إعلان تجريبي")}</span> : null}
         {item.photos.length > 1 ? (
           <span className="chip absolute bottom-2 start-2 bg-paper/90 text-xs">{item.photos.length} 📷</span>
         ) : null}

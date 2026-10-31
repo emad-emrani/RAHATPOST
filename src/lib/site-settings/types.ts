@@ -61,6 +61,25 @@ export type Slide =
 export type QuickLink = { id: string; title: string; subtitle: string; url: string; emoji: string };
 export type Toggle<T extends string> = { id: T; visible: boolean };
 
+/** A charging point the owner added. The public page also keeps the OpenStreetMap point. */
+export type RavKavPoint = {
+  id: string;
+  name: string;
+  address: string;
+  hours: string;
+  lat: number;
+  lon: number;
+};
+
+export type RavKavUi = {
+  /** Reserved for a buses-page shortcut. The public page still lists services. */
+  button: boolean;
+  /** Show the charging-point list and map. */
+  points: boolean;
+  /** Ids to hide, including the built-in map point. */
+  hidden: string[];
+};
+
 export const AD_PLACEMENTS = {
   home: "الصفحة الرئيسية (بين الأقسام)",
   newsList: "قائمة الأخبار",
@@ -99,6 +118,8 @@ export type SiteSettings = {
   nav: Toggle<NavId>[];
   tiles: Toggle<TileId>[];
   quickLinks: QuickLink[];
+  ravkavPoints: RavKavPoint[];
+  ravkavUi: RavKavUi;
 };
 
 export const THEME_DEFAULT = {
@@ -159,6 +180,8 @@ export const DEFAULT_SETTINGS: SiteSettings = {
   nav: (Object.keys(NAV_ITEMS) as NavId[]).map((id) => ({ id, visible: true })),
   tiles: (Object.keys(TILE_ITEMS) as TileId[]).map((id) => ({ id, visible: true })),
   quickLinks: [],
+  ravkavPoints: [],
+  ravkavUi: { button: true, points: true, hidden: [] },
 };
 
 const HEX = /^#[0-9a-f]{6}$/i;
@@ -305,6 +328,51 @@ export function sanitizeSettings(input: unknown): SiteSettings {
     nav: toggles(i.nav, Object.keys(NAV_ITEMS) as NavId[]),
     tiles: toggles(i.tiles, Object.keys(TILE_ITEMS) as TileId[]),
     quickLinks,
+    ravkavPoints: cleanRavkavPoints(i.ravkavPoints),
+    ravkavUi: cleanRavkavUi(i.ravkavUi),
+  };
+}
+
+const RAV_ID = /^[a-z0-9_-]{2,40}$/;
+
+function cleanRavkavPoints(input: unknown): RavKavPoint[] {
+  if (!Array.isArray(input)) return [];
+  const out: RavKavPoint[] = [];
+  for (const raw of input.slice(0, 40)) {
+    if (!raw || typeof raw !== "object") continue;
+    const p = raw as Record<string, unknown>;
+    const id = str(p.id, 40).toLowerCase();
+    const name = str(p.name, 80);
+    const lat = typeof p.lat === "number" ? p.lat : Number(p.lat);
+    const lon = typeof p.lon === "number" ? p.lon : Number(p.lon);
+    if (!RAV_ID.test(id) || !name || !Number.isFinite(lat) || !Number.isFinite(lon)) continue;
+    if (lat < 29.4 || lat > 33.5 || lon < 34.2 || lon > 35.95) continue;
+    if (out.some((o) => o.id === id)) continue;
+    out.push({
+      id,
+      name,
+      address: str(p.address, 160),
+      hours: str(p.hours, 80),
+      lat: Math.round(lat * 1e6) / 1e6,
+      lon: Math.round(lon * 1e6) / 1e6,
+    });
+  }
+  return out;
+}
+
+function cleanRavkavUi(input: unknown): RavKavUi {
+  const u = (input && typeof input === "object" ? input : {}) as Record<string, unknown>;
+  const hidden: string[] = [];
+  if (Array.isArray(u.hidden)) {
+    for (const h of u.hidden.slice(0, 40)) {
+      const id = str(h, 40).toLowerCase();
+      if (RAV_ID.test(id) && !hidden.includes(id)) hidden.push(id);
+    }
+  }
+  return {
+    button: u.button !== false,
+    points: u.points !== false,
+    hidden,
   };
 }
 
