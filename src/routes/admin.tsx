@@ -172,6 +172,7 @@ import { adminListAllMembers } from "@/lib/team/api";
 
 const CommentsAdmin = lazy(() => import("@/components/admin/comments-admin").then((m) => ({ default: m.CommentsAdmin })));
 const AlertsAdmin = lazy(() => import("@/components/admin/content-admin").then((m) => ({ default: m.AlertsAdmin })));
+const AnnounceBarAdmin = lazy(() => import("@/components/admin/content-admin").then((m) => ({ default: m.AnnounceBarAdmin })));
 const DutyAdmin = lazy(() => import("@/components/admin/content-admin").then((m) => ({ default: m.DutyAdmin })));
 const PushAdmin = lazy(() => import("@/components/admin/content-admin").then((m) => ({ default: m.PushAdmin })));
 const ReportsAdmin = lazy(() => import("@/components/admin/content-admin").then((m) => ({ default: m.ReportsAdmin })));
@@ -2910,9 +2911,7 @@ function AdminPage() {
           ) : current === "members-passwords" ? (
             <PasswordAndMembersManager />
           ) : current === "members-list" ? (
-            <div className="space-y-6">
-              <PasswordAndMembersManager />
-            </div>
+            <MembersAdmin only="list" />
           ) : current.startsWith("members-") ? (
             <MembersAdmin key={current} only={current.slice(8) as "list"} />
           ) : current === "comments" ? (
@@ -2924,7 +2923,10 @@ function AdminPage() {
           ) : current === "duty" ? (
             <DutyAdmin />
           ) : current === "alerts" ? (
-            <AlertsAdmin />
+            <div className="flex flex-col gap-4">
+              <AnnounceBarAdmin />
+              <AlertsAdmin />
+            </div>
           ) : current === "push" ? (
             <PushAdmin />
           ) : current === "haraj-cats" ? (

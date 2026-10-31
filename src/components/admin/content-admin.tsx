@@ -15,6 +15,8 @@ import { PUSH_TOPICS, type PushTopic } from "@/lib/push/types";
 import { adminListReports, adminResolveReport } from "@/lib/reports/api";
 import { TARGET_LABEL, type ReportGroup } from "@/lib/reports/types";
 import { tr, trv } from "@/lib/i18n/core";
+import { adminGetSiteSettings, adminSaveSiteSettings } from "@/lib/site-settings/api";
+import type { Announcement } from "@/lib/site-settings/types";
 
 const DATETIME = new Intl.DateTimeFormat("ar-u-nu-latn", {
   timeZone: "Asia/Jerusalem",
@@ -283,6 +285,89 @@ export function DutyAdmin() {
         )}
       </section>
     </div>
+  );
+}
+
+/* ------------------------------------------------------- site announcement */
+
+export function AnnounceBarAdmin() {
+  const [bar, setBar] = useState<Announcement | null>(null);
+  const [base, setBase] = useState<Record<string, unknown> | null>(null);
+  const [msg, setMsg] = useState("");
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    adminGetSiteSettings()
+      .then((r) => {
+        if (!r.authed || !r.settings) {
+          setMsg(tr("هذا القسم لمالك الموقع فقط."));
+          return;
+        }
+        setBase(r.settings);
+        setBar(r.settings.announce);
+      })
+      .catch(() => setMsg(tr("تعذّر التحميل.")));
+  }, []);
+  if (!bar || !base) return <p className="stamp p-4 font-semibold">{msg || tr("جاري التحميل…")}</p>;
+  const save = async (next: Announcement) => {
+    setBusy(true);
+    setMsg("");
+    try {
+      const res = await adminSaveSiteSettings({
+        data: { ...base, announce: { ...next, rev: String(Date.now()) } },
+      });
+      if (res.ok && res.settings) {
+        setBase(res.settings);
+        setBar(res.settings.announce);
+        setMsg(tr("تم الحفظ. الشريط يظهر تحت ترويسة الموقع."));
+      } else setMsg(res.message ?? tr("تعذّر الحفظ."));
+    } catch {
+      setMsg(tr("تعذّر الحفظ."));
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <form
+      className="stamp flex flex-col gap-3 p-4"
+      onSubmit={(event) => {
+        event.preventDefault();
+        void save(bar);
+      }}
+    >
+      <h2 className="text-xl font-bold">{tr("شريط أعلى الموقع")}</h2>
+      <p className="text-sm font-semibold text-muted">{tr("يظهر تحت الشعار في كل الصفحات، أو في صفحات الباصات فقط. الزائر يستطيع إغلاقه إلى أن تغيّر النص.")}</p>
+      <label className="flex items-center justify-between gap-3 font-bold">
+        {tr("إظهار الشريط")}
+        <input type="checkbox" className="size-6 accent-[#FDB700]" checked={bar.enabled} onChange={(e) => setBar({ ...bar, enabled: e.target.checked })} />
+      </label>
+      <label className="text-sm font-bold">
+        {tr("النص")}
+        <input className="field mt-1" maxLength={180} value={bar.text} onChange={(e) => setBar({ ...bar, text: e.target.value })} />
+      </label>
+      <label className="text-sm font-bold">
+        {tr("رابط اختياري")}
+        <input className="field mt-1" dir="ltr" placeholder="/today أو https://" value={bar.link} onChange={(e) => setBar({ ...bar, link: e.target.value })} />
+      </label>
+      <div className="grid gap-2 sm:grid-cols-2">
+        <label className="text-sm font-bold">
+          {tr("الأسلوب")}
+          <select className="field mt-1" value={bar.kind} onChange={(e) => setBar({ ...bar, kind: e.target.value as Announcement["kind"] })}>
+            <option value="info">{tr("عادي")}</option>
+            <option value="warning">{tr("تنبيه")}</option>
+            <option value="urgent">{tr("عاجل")}</option>
+          </select>
+        </label>
+        <label className="text-sm font-bold">
+          {tr("أين يظهر")}
+          <select className="field mt-1" value={bar.scope} onChange={(e) => setBar({ ...bar, scope: e.target.value as Announcement["scope"] })}>
+            <option value="all">{tr("كل الصفحات")}</option>
+            <option value="buses">{tr("صفحات الباصات فقط")}</option>
+          </select>
+        </label>
+      </div>
+      <button type="submit" className="btn" disabled={busy}>{tr("حفظ الشريط")}</button>
+      {msg ? <p className="text-sm font-semibold">{msg}</p> : null}
+    </form>
   );
 }
 
