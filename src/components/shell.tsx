@@ -9,6 +9,7 @@ import { mediaUrl } from "@/lib/media/types";
 import { useSiteSettings } from "@/lib/site-settings/context";
 import { cartCount, useCart } from "@/lib/store/cart";
 import { tr, trv } from "@/lib/i18n/core";
+import { AnnounceBar } from "@/components/announce-bar";
 
 const NAV = [
   { to: "/", label: "الرئيسية", icon: House, exact: true },
@@ -80,6 +81,7 @@ export function Shell({ children, wide = false }: { children: ReactNode; wide?: 
           })}
         </nav>
       </header>
+      <AnnounceBar />
 
       <main
         className={`mx-auto w-full ${wide ? "max-w-6xl" : "max-w-5xl"} px-4 pt-4 pb-8 sm:px-6`}

@@ -80,6 +80,16 @@ export type RavKavUi = {
   hidden: string[];
 };
 
+/** Thin bar under the site header. Visitors can dismiss one revision. */
+export type Announcement = {
+  enabled: boolean;
+  text: string;
+  link: string;
+  kind: "info" | "warning" | "urgent";
+  scope: "all" | "buses";
+  rev: string;
+};
+
 export const AD_PLACEMENTS = {
   home: "الصفحة الرئيسية (بين الأقسام)",
   newsList: "قائمة الأخبار",
@@ -120,6 +130,7 @@ export type SiteSettings = {
   quickLinks: QuickLink[];
   ravkavPoints: RavKavPoint[];
   ravkavUi: RavKavUi;
+  announce: Announcement;
 };
 
 export const THEME_DEFAULT = {
@@ -182,6 +193,7 @@ export const DEFAULT_SETTINGS: SiteSettings = {
   quickLinks: [],
   ravkavPoints: [],
   ravkavUi: { button: true, points: true, hidden: [] },
+  announce: { enabled: false, text: "", link: "", kind: "info", scope: "all", rev: "1" },
 };
 
 const HEX = /^#[0-9a-f]{6}$/i;
@@ -265,14 +277,14 @@ export function sanitizeSettings(input: unknown): SiteSettings {
     }
   const quickLinks: QuickLink[] = [];
   if (Array.isArray(i.quickLinks))
-    for (const q of i.quickLinks.slice(0, 12)) {
+    for (const q of i.quickLinks.slice(0, 48)) {
       const title = str(q?.title, 60);
       const url = safeUrl(q?.url);
       if (title && url && ID.test(String(q?.id)))
         quickLinks.push({
           id: String(q.id),
           title,
-          subtitle: str(q.subtitle, 100),
+          subtitle: str(q.subtitle, 240),
           url,
           emoji: str(q.emoji, 4),
         });
@@ -330,6 +342,23 @@ export function sanitizeSettings(input: unknown): SiteSettings {
     quickLinks,
     ravkavPoints: cleanRavkavPoints(i.ravkavPoints),
     ravkavUi: cleanRavkavUi(i.ravkavUi),
+    announce: cleanAnnounce(i.announce),
+  };
+}
+
+function cleanAnnounce(input: unknown): Announcement {
+  const d = DEFAULT_SETTINGS.announce;
+  const a = (input && typeof input === "object" ? input : {}) as Record<string, unknown>;
+  const kind = a.kind === "warning" || a.kind === "urgent" || a.kind === "info" ? a.kind : d.kind;
+  const scope = a.scope === "buses" ? "buses" : "all";
+  const text = str(a.text, 180);
+  return {
+    enabled: a.enabled === true && Boolean(text),
+    text,
+    link: safeUrl(a.link),
+    kind,
+    scope,
+    rev: str(a.rev, 20) || d.rev,
   };
 }
 
