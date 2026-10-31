@@ -15,7 +15,7 @@ export type ListAd = {
   photo?: string;
 };
 
-/** Real approved ads, or the «نموذج» samples only while there are no real ones. */
+/** Real approved ads, or labelled «إعلان تجريبي» samples only while there are no real ones. */
 export function listAds(res: { ads: PublicAd[]; showSamples: boolean }): ListAd[] {
   return res.showSamples
     ? classifieds

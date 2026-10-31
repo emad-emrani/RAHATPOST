@@ -3091,7 +3091,7 @@ function AdsAdmin() {
     <>
       <div className="stamp mb-3 flex flex-wrap items-center gap-2 p-3">
         <p className="min-w-0 flex-1 text-sm font-semibold">
-          {tr("إعلانات المثال: {0} (تظهر بشارة «مثال» ولا تُفهرس).", items.filter((i) => i.sample).length)}
+          {tr("إعلانات تجريبية: {0} (تظهر بشارة «إعلان تجريبي» ولا تُفهرس).", items.filter((i) => i.sample).length)}
         </p>
         <button type="button" className="btn btn-ghost" disabled={busyId === "samples"} onClick={async () => {
           if (!confirm(tr("حذف كل إعلانات المثال وصورها؟"))) return;
@@ -3120,7 +3120,7 @@ function AdsAdmin() {
                 <span className="chip">{trv(l.category)}</span>
                 <span className="chip">{trv(l.condition)}</span>
                 {l.sold ? <span className="chip chip-ink">{tr("انباع")}</span> : null}
-                {l.sample ? <span className="chip">{tr("مثال")}</span> : null}
+                {l.sample ? <span className="chip">{tr("إعلان تجريبي")}</span> : null}
                 {l.expired ? <span className="chip">{tr("منتهي")}</span> : null}
               </div>
               <h2 className="mt-2 text-xl font-bold">{trv(l.title)}</h2>
@@ -11237,7 +11237,7 @@ function StorePaySettingsAdmin() {
 /* -------------------------------------------------------------------------- */
 /* Helper for Per-Section Homepage Translation ON/OFF stored in siteSettings  */
 /* -------------------------------------------------------------------------- */
-function parseAdminTxSecsMap(quickLinks: SiteSettings["quickLinks"]): Record<string, boolean> {
+function parseAdminTxSecsMap(quickLinks: SiteSettings["quickLinks"] | undefined): Record<string, boolean> {
   const item = (quickLinks ?? []).find((q) => q.id === "txsecscfg");
   const map: Record<string, boolean> = {};
   if (!item?.subtitle) return map;

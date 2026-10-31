@@ -6,6 +6,9 @@ import { busLines } from "@/data/buses";
 import { adminListBusOverrides, adminSaveBusOverride, type BusOverride } from "@/lib/buses/overrides";
 import { shapeFile, type LineShapes } from "@/lib/buses/map";
 import { lineInfo, stopName } from "@/lib/buses/schedule";
+import { OSM_RAVKAV_POINTS } from "@/data/ravkav-points";
+import { adminGetSiteSettings, adminSaveSiteSettings } from "@/lib/site-settings/api";
+import type { RavKavPoint, RavKavUi, SiteSettings } from "@/lib/site-settings/types";
 import { tr, trv } from "@/lib/i18n/core";
 
 const empty = (number: string): BusOverride => ({ number, hidden: false, labelFrom: "", labelTo: "", note: "", shape: null, hiddenStops: [] });
@@ -25,6 +28,7 @@ export function BusLinesAdmin() {
         {tr("المواعيد تأتي تلقائياً كل يوم من وزارة المواصلات ولا تُعدَّل يدوياً. هنا تتحكم بالظهور والأسماء والملاحظات ومسار الخريطة.")}{" "}
         {trv(`(${new Date(busSchedule.generatedAt).toLocaleString("en-GB", { timeZone: "Asia/Jerusalem" })})`)}
       </p>
+      <RavKavAdmin />
       <NoticeEditor row={get("*")} onSaved={reload} />
       {busLines.map((l) => {
         const r = get(l.number);
@@ -42,6 +46,148 @@ export function BusLinesAdmin() {
         );
       })}
     </div>
+  );
+}
+
+const blankPoint = { name: "", address: "", hours: "", lat: "", lon: "" };
+
+/** Charging points saved in site settings. The public page keeps the map point unless it is hidden. */
+function RavKavAdmin() {
+  const [settings, setSettings] = useState<SiteSettings | null>(null);
+  const [form, setForm] = useState(blankPoint);
+  const [msg, setMsg] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    adminGetSiteSettings()
+      .then((r) => {
+        if (r.authed && r.settings) setSettings(r.settings);
+        else setMsg(tr("هذا القسم لمالك الموقع فقط."));
+      })
+      .catch(() => setMsg(tr("تعذّر التحميل.")));
+  }, []);
+
+  const save = async (points: RavKavPoint[], ui: RavKavUi) => {
+    if (!settings) return;
+    setBusy(true);
+    setMsg("");
+    try {
+      const res = await adminSaveSiteSettings({ data: { ...settings, ravkavPoints: points, ravkavUi: ui } });
+      if (res.ok && res.settings) {
+        setSettings(res.settings);
+        setMsg(tr("تم الحفظ — يظهر في صفحة رب-كاف خلال دقيقة."));
+      } else setMsg(res.message || tr("تعذّر الحفظ."));
+    } catch {
+      setMsg(tr("تعذّر الحفظ."));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (!settings) return <p className="stamp p-4 font-semibold">{msg || tr("جاري تحميل نقاط رب-كاف…")}</p>;
+  const points = settings.ravkavPoints;
+  const ui = settings.ravkavUi;
+  const hidden = new Set(ui.hidden);
+  const toggleHidden = (id: string) => {
+    const next = hidden.has(id) ? ui.hidden.filter((x) => x !== id) : [...ui.hidden, id];
+    void save(points, { ...ui, hidden: next });
+  };
+  const add = () => {
+    const lat = Number(form.lat.replace(",", "."));
+    const lon = Number(form.lon.replace(",", "."));
+    const name = form.name.trim();
+    if (name.length < 2) return setMsg(tr("اكتب اسم النقطة."));
+    if (!Number.isFinite(lat) || !Number.isFinite(lon) || lat < 29.4 || lat > 33.5 || lon < 34.2 || lon > 35.95) {
+      return setMsg(tr("خط العرض وخط الطول يجب أن يكونا داخل إسرائيل. مثال رهط: 31.392 و 34.755."));
+    }
+    const id = `rk${Math.random().toString(36).slice(2, 10)}`;
+    setForm(blankPoint);
+    void save(
+      [...points, { id, name, address: form.address.trim(), hours: form.hours.trim(), lat, lon }],
+      ui,
+    );
+  };
+
+  return (
+    <section className="stamp p-3">
+      <h2 className="font-bold">{tr("نقاط شحن رب-كاف")}</h2>
+      <p className="mt-1 text-sm font-semibold text-muted">
+        {tr("النقاط التي تضيفها هنا تُحفظ وتظهر في صفحة رب-كاف مع نقطة محطة القطار من الخريطة العامة.")}
+      </p>
+      <label className="mt-3 flex items-center justify-between gap-3 font-bold">
+        {tr("إظهار نقاط الشحن في الصفحة")}
+        <input
+          type="checkbox"
+          role="switch"
+          className="size-6 accent-[#FDB700]"
+          checked={ui.points}
+          disabled={busy}
+          onChange={(e) => void save(points, { ...ui, points: e.target.checked })}
+        />
+      </label>
+
+      <ul className="mt-3 flex flex-col gap-2">
+        {OSM_RAVKAV_POINTS.map((p) => (
+          <li key={p.id} className="flex items-start justify-between gap-3 rounded-2xl bg-surface p-3">
+            <span className="min-w-0">
+              <span className="block font-bold">{trv(p.name)}</span>
+              <span className="text-xs font-semibold text-muted">{tr("نقطة الخريطة العامة — تبقى إن لم تُخفَ")}</span>
+            </span>
+            <button type="button" className="chip shrink-0" disabled={busy} onClick={() => toggleHidden(p.id)}>
+              {hidden.has(p.id) ? tr("إظهار") : tr("إخفاء")}
+            </button>
+          </li>
+        ))}
+        {points.map((p) => (
+          <li key={p.id} className="flex items-start justify-between gap-3 rounded-2xl bg-surface p-3">
+            <span className="min-w-0">
+              <span className="block font-bold">{trv(p.name)}</span>
+              <span className="text-xs font-semibold text-muted">
+                {trv(p.address)} {p.hours ? `· ${trv(p.hours)}` : ""} · {p.lat}, {p.lon}
+              </span>
+            </span>
+            <span className="flex shrink-0 gap-1">
+              <button type="button" className="chip" disabled={busy} onClick={() => toggleHidden(p.id)}>
+                {hidden.has(p.id) ? tr("إظهار") : tr("إخفاء")}
+              </button>
+              <button
+                type="button"
+                className="chip"
+                disabled={busy}
+                onClick={() => void save(points.filter((x) => x.id !== p.id), { ...ui, hidden: ui.hidden.filter((id) => id !== p.id) })}
+              >
+                {tr("حذف")}
+              </button>
+            </span>
+          </li>
+        ))}
+      </ul>
+
+      <div className="mt-3 grid gap-2 sm:grid-cols-2">
+        <label className="text-sm font-bold sm:col-span-2">
+          {tr("اسم النقطة")}
+          <input className="field mt-1" value={form.name} maxLength={80} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+        </label>
+        <label className="text-sm font-bold">
+          {tr("العنوان")}
+          <input className="field mt-1" value={form.address} maxLength={160} onChange={(e) => setForm({ ...form, address: e.target.value })} />
+        </label>
+        <label className="text-sm font-bold">
+          {tr("ساعات العمل")}
+          <input className="field mt-1" value={form.hours} maxLength={80} onChange={(e) => setForm({ ...form, hours: e.target.value })} />
+        </label>
+        <label className="text-sm font-bold">
+          {tr("خط العرض")}
+          <input className="field mt-1" dir="ltr" inputMode="decimal" placeholder="31.392" value={form.lat} onChange={(e) => setForm({ ...form, lat: e.target.value })} />
+        </label>
+        <label className="text-sm font-bold">
+          {tr("خط الطول")}
+          <input className="field mt-1" dir="ltr" inputMode="decimal" placeholder="34.755" value={form.lon} onChange={(e) => setForm({ ...form, lon: e.target.value })} />
+        </label>
+      </div>
+      <button type="button" className="btn mt-3" disabled={busy} onClick={add}>{tr("إضافة نقطة الشحن")}</button>
+      {msg ? <p className="mt-2 text-sm font-semibold">{msg}</p> : null}
+    </section>
   );
 }
 
