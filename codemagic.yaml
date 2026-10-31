@@ -76,6 +76,15 @@ workflows:
     scripts:
       - name: Install Capacitor + sync
         script: cd mobile && npm ci && npx cap sync android
+      # Optional. Leave unset until a Firebase project exists. Native push is not required for the first store build.
+      # Codemagic secret name: GOOGLE_SERVICES_JSON (the full google-services.json text, not a file in git).
+      - name: Optional Firebase config
+        script: |
+          if [ -n "${GOOGLE_SERVICES_JSON:-}" ]; then
+            printf '%s\n' "$GOOGLE_SERVICES_JSON" > "$CM_BUILD_DIR/mobile/android/app/google-services.json"
+          else
+            echo "GOOGLE_SERVICES_JSON is not set. Website alerts still use VAPID in the browser. Native Firebase push stays off."
+          fi
       - name: Keystore properties for Gradle
         script: |
           cat > "$CM_BUILD_DIR/keystore.properties" <<PROPS

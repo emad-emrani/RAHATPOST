@@ -324,12 +324,14 @@ export const Route = createFileRoute("/admin")({
             if (rpcAction === "owner-login") {
               const password = String(data.password ?? "").trim();
               const remember = Boolean(data.remember);
-              if (password.length < 4) {
+              const { ADMIN_COOKIE, ADMIN_LOGIN_DISABLED_MESSAGE, adminPasswordConfigured, checkPassword, issueSession, REMEMBER_MS } = await import(
+                "@/lib/directory/auth.server"
+              );
+              if (!adminPasswordConfigured()) {
+                rpcRes = { ok: false, message: ADMIN_LOGIN_DISABLED_MESSAGE };
+              } else if (password.length < 4) {
                 rpcRes = { ok: false, message: "أدخل كلمة المرور." };
               } else {
-                const { ADMIN_COOKIE, checkPassword, issueSession, REMEMBER_MS } = await import(
-                  "@/lib/directory/auth.server"
-                );
                 const { masterEmails } = await import("@/lib/admin-auth");
                 const mEmail = (masterEmails()[0] || "amad.wwf@gmail.com").toLowerCase();
 
@@ -356,16 +358,6 @@ export const Route = createFileRoute("/admin")({
                   );
                   if (masterAcc[0]?.password) {
                     matched = await verifyBetterAuthPassword(masterAcc[0].password, password);
-                  } else if (!process.env.ADMIN_PASSWORD || process.env.ADMIN_PASSWORD.trim().length < 8) {
-                    // First-time setup when ADMIN_PASSWORD env var is not configured
-                    if (password.length >= 8) {
-                      await sql.query(
-                        `insert into auth_settings (key, value, updated_at) values ('owner_password', $1::jsonb, now())
-                         on conflict (key) do update set value = excluded.value, updated_at = now()`,
-                        [JSON.stringify({ password, updatedAt: new Date().toISOString() })],
-                      );
-                      matched = true;
-                    }
                   }
                 }
 
@@ -373,11 +365,8 @@ export const Route = createFileRoute("/admin")({
                   rpcRes = { ok: false, message: "كلمة المرور غير صحيحة." };
                 } else {
                   const syncedEmail = await syncMasterAccountPassword(password);
+                  let sessionOk = false;
                   try {
-                    if (!process.env.ADMIN_PASSWORD || process.env.ADMIN_PASSWORD.trim().length < 8) {
-                      process.env.ADMIN_PASSWORD =
-                        (process.env.BETTER_AUTH_SECRET || "rahatpost-owner-secret-key").slice(0, 32);
-                    }
                     const tok = remember ? issueSession(REMEMBER_MS) : issueSession();
                     setCookie(ADMIN_COOKIE, tok, {
                       httpOnly: true,
@@ -389,10 +378,12 @@ export const Route = createFileRoute("/admin")({
                     const maxAgePart = remember ? `; Max-Age=${Math.floor(REMEMBER_MS / 1000)}` : "";
                     const securePart = process.env.VERCEL ? "; Secure" : "";
                     cookieHeaderToSet = `${ADMIN_COOKIE}=${tok}; Path=/; HttpOnly; SameSite=Strict${securePart}${maxAgePart}`;
+                    sessionOk = true;
                   } catch (e) {
                     console.error("[admin-rpc] issueSession notice", e);
+                    rpcRes = { ok: false, message: ADMIN_LOGIN_DISABLED_MESSAGE };
                   }
-                  rpcRes = { ok: true, masterEmail: syncedEmail };
+                  if (sessionOk) rpcRes = { ok: true, masterEmail: syncedEmail };
                 }
               }
             } else {

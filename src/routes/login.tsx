@@ -135,9 +135,12 @@ export const Route = createFileRoute("/login")({
             if (rpcAction === "owner-login") {
               const password = String(data.password ?? "").trim();
               const remember = Boolean(data.remember);
-              const { ADMIN_COOKIE, checkPassword, issueSession, REMEMBER_MS } = await import(
+              const { ADMIN_COOKIE, ADMIN_LOGIN_DISABLED_MESSAGE, adminPasswordConfigured, checkPassword, issueSession, REMEMBER_MS } = await import(
                 "@/lib/directory/auth.server"
               );
+              if (!adminPasswordConfigured()) {
+                rpcRes = { ok: false, message: ADMIN_LOGIN_DISABLED_MESSAGE };
+              } else {
               const { masterEmails } = await import("@/lib/admin-auth");
               const { randomBytes } = await import("node:crypto");
               const mEmail = (masterEmails()[0] || "amad.wwf@gmail.com").toLowerCase();
@@ -206,11 +209,8 @@ export const Route = createFileRoute("/login")({
                     [accId, uid, hashed],
                   );
                 }
+                let sessionOk = false;
                 try {
-                  if (!process.env.ADMIN_PASSWORD || process.env.ADMIN_PASSWORD.trim().length < 8) {
-                    process.env.ADMIN_PASSWORD =
-                      (process.env.BETTER_AUTH_SECRET || "rahatpost-owner-secret-key").slice(0, 32);
-                  }
                   const tok = remember ? issueSession(REMEMBER_MS) : issueSession();
                   setCookie(ADMIN_COOKIE, tok, {
                     httpOnly: true,
@@ -222,10 +222,13 @@ export const Route = createFileRoute("/login")({
                   const maxAgePart = remember ? `; Max-Age=${Math.floor(REMEMBER_MS / 1000)}` : "";
                   const securePart = process.env.VERCEL ? "; Secure" : "";
                   cookieHeaderToSet = `${ADMIN_COOKIE}=${tok}; Path=/; HttpOnly; SameSite=Strict${securePart}${maxAgePart}`;
-                } catch {
-                  /* ignore */
+                  sessionOk = true;
+                } catch (error) {
+                  console.error("[admin] could not start a session", error);
+                  rpcRes = { ok: false, message: ADMIN_LOGIN_DISABLED_MESSAGE };
                 }
-                rpcRes = { ok: true, masterEmail: mEmail };
+                if (sessionOk) rpcRes = { ok: true, masterEmail: mEmail };
+              }
               }
             } else if (rpcAction === "self-change-password") {
               const email = String(data.email ?? "").trim().toLowerCase();
