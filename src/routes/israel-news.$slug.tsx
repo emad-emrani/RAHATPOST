@@ -198,7 +198,7 @@ export const Route = createFileRoute("/israel-news/$slug")({
       now: Date.now(),
       fetchedAt: null,
       failedSources: [],
-      translation: "off",
+      mode: "mymemory",
     });
 
     let rawData: { result: IsraelNewsResult; item: IsraelNewsItem | null };
@@ -282,6 +282,7 @@ function IsraelArticlePage() {
 
   const [fullParagraphs, setFullParagraphs] = useState<string[]>([]);
   const [extraImages, setExtraImages] = useState<string[]>([]);
+  const [rejectedImages, setRejectedImages] = useState<string[]>([]);
   const [extraVideos, setExtraVideos] = useState<{ type: "video" | "iframe"; src: string; poster?: string }[]>([]);
   const [loadingFull, setLoadingFull] = useState(false);
   const [showFull, setShowFull] = useState(false);
@@ -291,6 +292,7 @@ function IsraelArticlePage() {
   useEffect(() => {
     setFullParagraphs([]);
     setExtraImages([]);
+    setRejectedImages([]);
     setExtraVideos([]);
     setShowFull(false);
     setLightboxOpen(false);
@@ -335,14 +337,18 @@ function IsraelArticlePage() {
   }, [article?.link, wantLang]);
 
   const allGalleryImages = useMemo(() => {
+    const nonArticleRe = /avatar|author|writer|byline|contributor|columnist|journalist|profile|userphoto|user-pic|headshot|gravatar|logo|icon|sprite|badge|button|emoji|banner|(?:\b|-|_)(?:50x50|60x60|64x64|75x75|80x80|90x90|96x96|100x100|120x120|150x150|180x180|200x200|240x240|300x300)(?:\b|\.|-|_)/i;
     const list: string[] = [];
     const add = (u?: string) => {
-      if (u && !list.includes(u)) list.push(u);
+      if (!u) return;
+      if (rejectedImages.includes(u)) return;
+      if (nonArticleRe.test(u)) return;
+      if (!list.includes(u)) list.push(u);
     };
     add(article?.image);
     for (const im of extraImages) add(im);
     return list;
-  }, [article?.image, extraImages]);
+  }, [article?.image, extraImages, rejectedImages]);
 
   if (!article) {
     return (
@@ -543,7 +549,17 @@ function IsraelArticlePage() {
                       alt={trv(titleText)}
                       loading="lazy"
                       referrerPolicy="no-referrer"
-                      className="aspect-[4/3] w-full object-cover transition duration-300 group-hover:scale-105"
+                      onLoad={(e) => {
+                            const w = e.currentTarget.naturalWidth;
+                            const h = e.currentTarget.naturalHeight;
+                            if ((w > 0 && w < 260) || (h > 0 && h < 180) || (w > 0 && h > 0 && Math.abs(w - h) <= 14 && w <= 360)) {
+                              setRejectedImages((prev) => (prev.includes(imgUrl) ? prev : [...prev, imgUrl]));
+                            }
+                          }}
+                          onError={() => {
+                            setRejectedImages((prev) => (prev.includes(imgUrl) ? prev : [...prev, imgUrl]));
+                          }}
+                          className="aspect-[4/3] w-full object-cover transition duration-300 group-hover:scale-105" 
                     />
                     <span className="pointer-events-none absolute right-2 bottom-2 rounded-lg bg-black/65 px-2 py-0.5 text-[10px] font-bold text-white">
                       🔍 {tr("تكبير")}
