@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 
 /**
  * Branded image for news items without a photo (headline + section + logo), or a cached AI
- * illustration (?ai=<key>), PLUS full-article content, original images, and videos extractor (?full=1&url=...).
+ * illustration (?ai=<key>), PLUS full-article content, original article-only images (excluding author avatars/non-article images), and videos extractor (?full=1&url=...).
  */
 const IMMUTABLE = "public, max-age=31536000, s-maxage=31536000, immutable";
 
@@ -80,23 +80,49 @@ function isBoilerplateParagraph(text: string): boolean {
   return false;
 }
 
+const NON_ARTICLE_IMAGE_URL_RE =
+  /avatar|author|writer|byline|contributor|columnist|journalist|editor-pic|profile|userphoto|user-pic|headshot|gravatar|logo|icon|sprite|pixel|1x1|blank|spinner|loader|emoji|feedburner|ads|adserver|banner|button|badge|brand|watermark|signature|related|popular|trending|widget|sidebar|newsletter|subscribe|outbrain|taboola|(?:\b|-|_)(?:50x50|60x60|64x64|75x75|80x80|90x90|96x96|100x100|120x120|150x150|180x180|200x200|240x240|300x300)(?:\b|\.|-|_)/i;
+
+const NON_ARTICLE_IMG_TAG_RE =
+  /\b(?:class|id|alt|title|data-testid|data-component|itemprop)=["'][^"']*(?:avatar|author|writer|byline|contributor|columnist|journalist|profile|user-pic|headshot|logo|icon|badge|emoji|related|recommended|sidebar|widget|promo|ad-|ads-|كاتب|المؤلف|المحرر|مراسل|صورة الكاتب)[^"']*["']/i;
+
 function normalizeImageUrl(raw: string, baseUrl: string): string | null {
   const cleaned = decodeHtmlEntities(raw).trim();
-  if (!cleaned || cleaned.startsWith("data:")) return null;
+  if (!cleaned || cleaned.startsWith("data:") || cleaned.endsWith(".svg")) return null;
   try {
     const resolved = new URL(cleaned, baseUrl).href;
     if (!/^https?:\/\//i.test(resolved)) return null;
-    if (
-      /avatar|logo|icon|sprite|pixel|1x1|blank|spinner|loader|emoji|gravatar|feedburner|ads|banner|button|badge/i.test(
-        resolved,
-      )
-    ) {
+    if (NON_ARTICLE_IMAGE_URL_RE.test(resolved)) {
       return null;
     }
     return resolved.replace(/^http:\/\//i, "https://");
   } catch {
     return null;
   }
+}
+
+function stripNonArticleHtmlBlocks(rawHtml: string): string {
+  let out = rawHtml.replace(
+    /<(script|style|noscript|svg|form|nav|footer|aside|header)\b[\s\S]*?<\/\1>/gi,
+    " ",
+  );
+  // Cut off anything after related posts / author bio / comments markers at the bottom of the article
+  const cutoffMarkers = [
+    /<div[^>]+(?:class|id)=["'][^"']*(?:author-bio|author-box|author-info|writer-info|post-author|article-author|byline-box|related-posts|related-articles|more-articles|recommended|popular-posts|comments-area|post-tags|article-footer|share-buttons)[^"']*["']/i,
+    /<section[^>]+(?:class|id)=["'][^"']*(?:author|related|recommended|more-from|popular|comments)[^"']*["']/i,
+  ];
+  for (const re of cutoffMarkers) {
+    const m = out.match(re);
+    if (m && m.index !== undefined && m.index > out.length * 0.35) {
+      out = out.slice(0, m.index);
+    }
+  }
+  // Remove inline author/byline/related/avatar containers anywhere in the scope
+  out = out.replace(
+    /<(?:div|section|aside|figure|span|p|ul)[^>]+(?:class|id|data-testid|itemprop)=["'][^"']*(?:author|writer|byline|contributor|columnist|avatar|profile|bio|related|recommended|more-from|popular|trending|read-also|read-more|sidebar|widget|share|social|newsletter|comments|tags|breadcrumb)[^"']*["'][^>]*>[\s\S]*?<\/(?:div|section|aside|figure|span|p|ul)>/gi,
+    " ",
+  );
+  return out;
 }
 
 function normalizeVideoCandidate(rawUrl: string, baseUrl: string): ExtractedVideo | null {
@@ -241,7 +267,7 @@ function parseFullArticleHtml(html: string, pageUrl: string): FullArticleExtract
     if (vUrl) pushVid(vUrl, normalizedOg);
   }
 
-  // 2. Check JSON-LD for articleBody, image, and VideoObject
+  // 2. Check JSON-LD strictly for Article / NewsArticle / VideoObject (NEVER Person / Author / Organization!)
   const ldBlocks =
     html.match(/<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi) ?? [];
   for (const block of ldBlocks) {
@@ -255,12 +281,21 @@ function parseFullArticleHtml(html: string, pageUrl: string): FullArticleExtract
           return;
         }
         const obj = node as Record<string, unknown>;
+        const rawType = Array.isArray(obj["@type"])
+          ? obj["@type"].join(" ")
+          : String(obj["@type"] ?? "");
+
+        // Skip Person / Author / Organization / Publisher / Breadcrumb / ItemList nodes completely!
+        if (/Person|Author|Organization|Publisher|BreadcrumbList|ItemList|SiteNavigationElement/i.test(rawType)) {
+          return;
+        }
+
         if (typeof obj.articleBody === "string" && obj.articleBody.trim().length > 80) {
           pushPara(stripTagsClean(obj.articleBody));
         }
+
         // VideoObject in JSON-LD
-        const nodeType = String(obj["@type"] ?? "");
-        if (/VideoObject/i.test(nodeType) || obj.contentUrl || obj.embedUrl) {
+        if (/VideoObject/i.test(rawType) || obj.contentUrl || obj.embedUrl) {
           const thumb =
             typeof obj.thumbnailUrl === "string"
               ? obj.thumbnailUrl
@@ -273,21 +308,26 @@ function parseFullArticleHtml(html: string, pageUrl: string): FullArticleExtract
         if (obj.video && typeof obj.video === "object") {
           walk(obj.video);
         }
-        if (typeof obj.image === "string") pushImg(obj.image);
-        else if (Array.isArray(obj.image)) {
-          obj.image.forEach((im) => {
-            if (typeof im === "string") pushImg(im);
-            else if (im && typeof im === "object" && typeof (im as { url?: string }).url === "string") {
-              pushImg((im as { url: string }).url);
-            }
-          });
-        } else if (
-          obj.image &&
-          typeof obj.image === "object" &&
-          typeof (obj.image as { url?: string }).url === "string"
-        ) {
-          pushImg((obj.image as { url: string }).url);
+
+        // Only accept images from Article / NewsArticle / BlogPosting / ReportageNewsArticle nodes
+        if (/Article|BlogPosting|NewsArticle|Report/i.test(rawType)) {
+          if (typeof obj.image === "string") pushImg(obj.image);
+          else if (Array.isArray(obj.image)) {
+            obj.image.forEach((im) => {
+              if (typeof im === "string") pushImg(im);
+              else if (im && typeof im === "object" && typeof (im as { url?: string }).url === "string") {
+                pushImg((im as { url: string }).url);
+              }
+            });
+          } else if (
+            obj.image &&
+            typeof obj.image === "object" &&
+            typeof (obj.image as { url?: string }).url === "string"
+          ) {
+            pushImg((obj.image as { url: string }).url);
+          }
         }
+
         if (obj["@graph"]) walk(obj["@graph"]);
       };
       walk(parsed);
@@ -296,19 +336,22 @@ function parseFullArticleHtml(html: string, pageUrl: string): FullArticleExtract
     }
   }
 
-  // 3. Extract from <article> or main article container (keeping <video> and <iframe> before stripping!)
-  const articleScopes = [
-    html.match(/<article\b[^>]*>([\s\S]*?)<\/article>/i)?.[1],
+  // 3. Extract from the actual article body container ONLY (never the whole page with sidebars/authors)
+  const specificArticleContainers = [
     html.match(
-      /<div[^>]+(?:itemprop=["']articleBody["']|class=["'][^"']*(?:entry-content|post-content|article-body|article-content|story-body|article__body|single-content|td-post-content|art-body)[^"']*["'])[^>]*>([\s\S]*?)<\/div>/i,
+      /<div[^>]+(?:itemprop=["']articleBody["']|class=["'][^"']*(?:entry-content|post-content|article-body|article-content|story-body|article__body|single-content|td-post-content|art-body|body-content)[^"']*["'])[^>]*>([\s\S]*?)<\/div>/i,
     )?.[1],
+    html.match(/<article\b[^>]*>([\s\S]*?)<\/article>/i)?.[1],
     html.match(/<main\b[^>]*>([\s\S]*?)<\/main>/i)?.[1],
-    html,
   ].filter((x): x is string => Boolean(x));
 
-  for (const rawScope of articleScopes) {
-    // 3a. Extract <video> and <source> tags
-    for (const vBlock of rawScope.match(/<video\b[\s\S]*?<\/video>|<video\b[^>]*\/?>/gi) ?? []) {
+  const scopesToScan = specificArticleContainers.length > 0 ? specificArticleContainers : [html];
+
+  for (const rawScope of scopesToScan) {
+    const cleanArticleScope = stripNonArticleHtmlBlocks(rawScope);
+
+    // 3a. Extract <video> and <source> tags inside article scope
+    for (const vBlock of cleanArticleScope.match(/<video\b[\s\S]*?<\/video>|<video\b[^>]*\/?>/gi) ?? []) {
       const poster = vBlock.match(/\bposter=["']([^"']+)["']/i)?.[1] ?? normalizedOg;
       const directSrc =
         vBlock.match(/\bsrc=["']([^"']+)["']/i)?.[1] ??
@@ -324,7 +367,7 @@ function parseFullArticleHtml(html: string, pageUrl: string): FullArticleExtract
     }
 
     // 3b. Extract <iframe> video embeds (YouTube, Vimeo, Dailymotion, Facebook, etc.)
-    for (const ifTag of rawScope.match(/<iframe\b[^>]*>/gi) ?? []) {
+    for (const ifTag of cleanArticleScope.match(/<iframe\b[^>]*>/gi) ?? []) {
       const ifSrc =
         ifTag.match(/\bdata-src=["']([^"']+)["']/i)?.[1] ??
         ifTag.match(/\bdata-lazy-src=["']([^"']+)["']/i)?.[1] ??
@@ -333,36 +376,39 @@ function parseFullArticleHtml(html: string, pageUrl: string): FullArticleExtract
       if (videos.length >= 4) break;
     }
 
-    // 3c. Extract data-video-url / data-video-src / direct mp4/m3u8/youtube links inside article scope
-    for (const m of rawScope.matchAll(
+    // 3c. Extract data-video-url / data-video-src
+    for (const m of cleanArticleScope.matchAll(
       /\b(?:data-video(?:-src|-url)?|data-mp4|data-hls|data-embed-url)=["']([^"']+)["']/gi,
     )) {
       if (m[1]) pushVid(m[1], normalizedOg);
       if (videos.length >= 4) break;
     }
 
-    const cleanedScope = rawScope.replace(
-      /<(script|style|noscript|svg|iframe|form|nav|footer|aside|header)\b[\s\S]*?<\/\1>/gi,
-      " ",
-    );
+    // 3d. Extract ONLY genuine editorial article images (only if we found a dedicated article container, never from whole-page fallback)
+    if (specificArticleContainers.length > 0) {
+      for (const imgTag of cleanArticleScope.match(/<img\b[^>]*>/gi) ?? []) {
+        // Skip any img with author/avatar/profile/related/logo classes, alt, or attributes
+        if (NON_ARTICLE_IMG_TAG_RE.test(imgTag)) continue;
 
-    // 3d. Extract images inside article scope
-    for (const imgTag of cleanedScope.match(/<img\b[^>]*>/gi) ?? []) {
-      const width = Number(imgTag.match(/\bwidth=["']?(\d+)/i)?.[1] ?? 0);
-      const height = Number(imgTag.match(/\bheight=["']?(\d+)/i)?.[1] ?? 0);
-      if ((width && width < 180) || (height && height < 120)) continue;
-      const src =
-        imgTag.match(/\bdata-src=["']([^"']+)["']/i)?.[1] ??
-        imgTag.match(/\bdata-lazy-src=["']([^"']+)["']/i)?.[1] ??
-        imgTag.match(/\bdata-original=["']([^"']+)["']/i)?.[1] ??
-        imgTag.match(/\bsrc=["']([^"']+)["']/i)?.[1];
-      if (src) pushImg(src);
-      if (images.length >= 8) break;
+        const width = Number(imgTag.match(/\bwidth=["']?(\d+)/i)?.[1] ?? 0);
+        const height = Number(imgTag.match(/\bheight=["']?(\d+)/i)?.[1] ?? 0);
+        // Reject small images or square headshots (avatars are typically 1:1 and <= 320px)
+        if ((width && width < 280) || (height && height < 180)) continue;
+        if (width > 0 && height > 0 && Math.abs(width - height) <= 16 && width <= 340) continue;
+
+        const src =
+          imgTag.match(/\bdata-src=["']([^"']+)["']/i)?.[1] ??
+          imgTag.match(/\bdata-lazy-src=["']([^"']+)["']/i)?.[1] ??
+          imgTag.match(/\bdata-original=["']([^"']+)["']/i)?.[1] ??
+          imgTag.match(/\bsrc=["']([^"']+)["']/i)?.[1];
+        if (src) pushImg(src);
+        if (images.length >= 6) break;
+      }
     }
 
     // 3e. Extract paragraphs & subheadings inside scope
     const pMatches =
-      cleanedScope.match(/<(?:p|h2|h3|blockquote)\b[^>]*>([\s\S]*?)<\/(?:p|h2|h3|blockquote)>/gi) ?? [];
+      cleanArticleScope.match(/<(?:p|h2|h3|blockquote)\b[^>]*>([\s\S]*?)<\/(?:p|h2|h3|blockquote)>/gi) ?? [];
     for (const pHtml of pMatches) {
       const txt = stripTagsClean(pHtml);
       pushPara(txt);
@@ -386,7 +432,7 @@ function parseFullArticleHtml(html: string, pageUrl: string): FullArticleExtract
   return {
     ok: paragraphs.length > 0 || images.length > 0 || videos.length > 0,
     paragraphs: paragraphs.slice(0, 26),
-    images: images.slice(0, 8),
+    images: images.slice(0, 6),
     videos: videos.slice(0, 4),
     ogImage: normalizedOg || images[0],
   };
