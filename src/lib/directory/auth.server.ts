@@ -4,8 +4,16 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 export const ADMIN_COOKIE = "rp_admin";
 const SESSION_MS = 12 * 60 * 60_000;
 
-/** Shortest ADMIN_PASSWORD accepted (shorter values disable admin login entirely). */
+/** Shortest ADMIN_PASSWORD accepted. Shorter or missing values disable password login. */
 const MIN_PASSWORD_LENGTH = 8;
+
+/** Shown when ADMIN_PASSWORD is missing. There is no built-in default password. */
+export const ADMIN_LOGIN_DISABLED_MESSAGE =
+  "دخول الإدارة بكلمة المرور غير مفعّل. أضف ADMIN_PASSWORD (8 أحرف على الأقل) في إعدادات Vercel ثم أعد نشر الموقع. لا توجد كلمة مرور افتراضية.";
+
+export function adminPasswordConfigured(): boolean {
+  return secret() !== null;
+}
 
 function secret(): string | null {
   const pw = process.env.ADMIN_PASSWORD?.trim();
@@ -14,8 +22,7 @@ function secret(): string | null {
     console.error(
       `[admin] ADMIN_PASSWORD is shorter than ${MIN_PASSWORD_LENGTH} characters; admin login disabled`,
     );
-  // Local preview only, so the admin page can be exercised without the real secret.
-  return process.env.VERCEL ? null : "local-preview-admin";
+  return null;
 }
 
 function sign(value: string, key: string) {

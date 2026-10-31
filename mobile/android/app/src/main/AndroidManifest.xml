@@ -48,6 +48,12 @@
                 <data android:pathPrefix="/my-ads" />
                 <data android:pathPrefix="/privacy" />
                 <data android:pathPrefix="/terms" />
+                <data android:pathPrefix="/haraj" />
+                <data android:pathPrefix="/store" />
+                <data android:pathPrefix="/sports-news" />
+                <data android:pathPrefix="/tech-news" />
+                <data android:pathPrefix="/cart" />
+                <data android:host="www.rahatpost.com" />
             </intent-filter>
         </activity>
 
@@ -63,6 +69,8 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Android 13+: the site can ask to show alerts. Not requested until the visitor taps allow. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <!-- "أقرب محطة لي" (nearest bus stop) on /buses asks for the location only when the user taps
          it; the WebView prompt is bridged to the Android runtime permission. Never in background. -->
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />

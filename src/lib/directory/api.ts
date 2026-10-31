@@ -121,12 +121,13 @@ export const adminLogin = createServerFn({ method: "POST" })
   }))
   .handler(async ({ data }): Promise<{ ok: boolean; message?: string }> => {
     const { getRequestIP, setCookie } = await import("@tanstack/react-start/server");
-    const { ADMIN_COOKIE, checkPassword, issueSession, sessionMaxAge, REMEMBER_MS } =
+    const { ADMIN_COOKIE, ADMIN_LOGIN_DISABLED_MESSAGE, adminPasswordConfigured, checkPassword, issueSession, sessionMaxAge, REMEMBER_MS } =
       await import("./auth.server");
     const ip = getRequestIP({ xForwardedFor: true }) ?? "unknown";
     const now = Date.now();
     const recent = (loginHits.get(ip) ?? []).filter((t) => now - t < 15 * 60_000);
     if (recent.length >= 8) return { ok: false, message: "محاولات كثيرة. حاول بعد ربع ساعة." };
+    if (!adminPasswordConfigured()) return { ok: false, message: ADMIN_LOGIN_DISABLED_MESSAGE };
     if (!checkPassword(data.password)) {
       recent.push(now);
       loginHits.set(ip, recent);
