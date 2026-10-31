@@ -3934,7 +3934,7 @@ ${userExtraCss}`}</style>
 }
 
 
-/** Animated Top Weather & Prayer Bar (Day/Night, Sun, Moon & Stars, Wind, Rain, Clouds, Live Time & Next Prayer). */
+/** Animated Top Weather & Prayer Bar — Transparent (no background box) to blend seamlessly with the site on all screens. */
 function AnimatedWeatherPrayerBar({
   weather,
   serverNow,
@@ -3951,7 +3951,6 @@ function AnimatedWeatherPrayerBar({
 
   const next = useMemo(() => nextPrayer(now), [now]);
 
-  // Determine Jerusalem/Rahat local hour & formatted clock
   const { localHour, timeStr } = useMemo(() => {
     try {
       const parts = new Intl.DateTimeFormat("en-GB", {
@@ -3971,205 +3970,138 @@ function AnimatedWeatherPrayerBar({
   const isNight = weather ? !weather.isDay : localHour >= 18 || localHour < 6;
   const kind = weather ? weatherKind(weather.code) : "clear";
   const isRainy = kind === "rain" || kind === "storm" || (weather?.rainChance ?? 0) >= 40;
-  const isWindy = (weather?.wind ?? 0) >= 18;
   const isCloudy = kind === "partly" || kind === "cloudy" || kind === "fog";
 
-  const bgGradient = isNight
-    ? "from-[#0B1120] via-[#1E293B] to-[#1E1B4B] text-white border-[#334155]"
-    : isRainy
-      ? "from-[#1E293B] via-[#334155] to-[#0F172A] text-white border-[#475569]"
-      : "from-[#0284C7] via-[#0369A1] to-[#1D4ED8] text-white border-[#38BDF8]/40";
-
   return (
-    <div className="relative overflow-hidden rounded-3xl border shadow-sm">
+    <div className="w-full bg-transparent">
       <style>{`
         @keyframes rpSunSpin {
           0% { transform: rotate(0deg) scale(1); }
-          50% { transform: rotate(180deg) scale(1.08); }
+          50% { transform: rotate(180deg) scale(1.1); }
           100% { transform: rotate(360deg) scale(1); }
         }
         @keyframes rpMoonFloat {
           0%, 100% { transform: translateY(0px) rotate(-6deg); }
-          50% { transform: translateY(-4px) rotate(4deg); }
+          50% { transform: translateY(-3px) rotate(5deg); }
         }
         @keyframes rpStarTwinkle {
-          0%, 100% { opacity: 0.25; transform: scale(0.85); }
+          0%, 100% { opacity: 0.3; transform: scale(0.85); }
           50% { opacity: 1; transform: scale(1.2); }
         }
         @keyframes rpCloudDrift {
           0%, 100% { transform: translateX(0px); }
-          50% { transform: translateX(8px); }
+          50% { transform: translateX(4px); }
         }
-        @keyframes rpRainDrop {
-          0% { transform: translateY(-10px); opacity: 0; }
-          40% { opacity: 0.85; }
-          100% { transform: translateY(26px); opacity: 0; }
+        @keyframes rpRainBounce {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(2.5px); }
         }
         @keyframes rpWindWave {
-          0% { transform: translateX(-8px); opacity: 0.25; }
-          50% { opacity: 0.9; }
-          100% { transform: translateX(10px); opacity: 0.2; }
+          0%, 100% { transform: translateX(-2px); opacity: 0.7; }
+          50% { transform: translateX(3px); opacity: 1; }
         }
       `}</style>
 
-      <div
-        className={`relative bg-gradient-to-r ${bgGradient} px-3.5 py-2.5 sm:px-5 sm:py-3`}
-      >
-        {/* Background Animated Sky Effects (Stars at Night, Raindrops when Rainy, Wind streaks, Clouds) */}
-        <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
-          {isNight ? (
+      <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-bold text-ink sm:text-sm">
+        {/* Weather + Animated Icon (Sun / Moon & Stars / Rain / Wind / Clouds) — Transparent */}
+        <Link
+          to="/today"
+          className="inline-flex flex-wrap items-center gap-2 py-1 transition hover:opacity-80"
+          aria-label={
+            weather
+              ? tr("الطقس في رهط: {0} درجة، {1}", weather.temp, weatherLabel(weather.code))
+              : tr("الطقس في رهط")
+          }
+        >
+          <span className="relative inline-flex items-center justify-center text-lg leading-none">
+            {isRainy ? (
+              <span style={{ animation: "rpRainBounce 1.4s infinite ease-in-out" }}>🌧️</span>
+            ) : isNight ? (
+              <span className="inline-flex items-center">
+                <span style={{ animation: "rpMoonFloat 3.2s infinite ease-in-out" }}>🌙</span>
+                <span
+                  className="-ms-1 -mt-2 text-[10px]"
+                  style={{ animation: "rpStarTwinkle 2.2s infinite ease-in-out" }}
+                >
+                  ✨
+                </span>
+              </span>
+            ) : isCloudy ? (
+              <span style={{ animation: "rpCloudDrift 3.5s infinite ease-in-out" }}>⛅</span>
+            ) : (
+              <span style={{ animation: "rpSunSpin 10s infinite linear" }}>☀️</span>
+            )}
+          </span>
+
+          {weather ? (
             <>
-              <span
-                className="absolute top-2 right-[12%] size-1.5 rounded-full bg-yellow-200"
-                style={{ animation: "rpStarTwinkle 2.4s infinite ease-in-out" }}
-              />
-              <span
-                className="absolute top-5 right-[28%] size-1 rounded-full bg-white"
-                style={{ animation: "rpStarTwinkle 3.1s infinite ease-in-out 0.7s" }}
-              />
-              <span
-                className="absolute bottom-2.5 right-[45%] size-1.5 rounded-full bg-yellow-100"
-                style={{ animation: "rpStarTwinkle 2.8s infinite ease-in-out 1.2s" }}
-              />
-              <span
-                className="absolute top-2.5 left-[35%] size-1 rounded-full bg-white"
-                style={{ animation: "rpStarTwinkle 2.2s infinite ease-in-out 0.4s" }}
-              />
-              <span
-                className="absolute bottom-3 left-[18%] size-1.5 rounded-full bg-yellow-200"
-                style={{ animation: "rpStarTwinkle 3.4s infinite ease-in-out 1.5s" }}
-              />
+              <bdi dir="ltr" className="text-sm font-extrabold text-ink sm:text-base">
+                {trv(weather.temp)}°
+              </bdi>
+              <span className="font-bold text-muted">{weatherLabel(weather.code)}</span>
+
+              {weather.wind !== null ? (
+                <span
+                  className="inline-flex items-center gap-0.5 text-[11px] font-bold text-muted"
+                  title={tr("سرعة الرياح")}
+                >
+                  <span
+                    className="inline-block"
+                    style={{ animation: "rpWindWave 2s infinite ease-in-out" }}
+                  >
+                    💨
+                  </span>
+                  <bdi dir="ltr">{trv(weather.wind)}</bdi>
+                  <span>{tr("كم/س")}</span>
+                </span>
+              ) : null}
+
+              {weather.rainChance !== null && weather.rainChance > 0 ? (
+                <span
+                  className="inline-flex items-center gap-0.5 text-[11px] font-bold text-primary-ink"
+                  title={tr("احتمال المطر")}
+                >
+                  <span style={{ animation: "rpRainBounce 1.6s infinite ease-in-out" }}>💧</span>
+                  <bdi dir="ltr">{trv(weather.rainChance)}%</bdi>
+                </span>
+              ) : null}
             </>
           ) : (
-            <span className="absolute -top-6 -right-6 size-24 rounded-full bg-yellow-300/20 blur-xl" />
+            <span className="font-extrabold">{tr("طقس رهط")}</span>
           )}
 
-          {isRainy ? (
-            <>
-              {[15, 28, 42, 58, 72, 85].map((leftPct, i) => (
-                <span
-                  key={leftPct}
-                  className="absolute top-1 h-3 w-[1.5px] rounded-full bg-sky-200/80"
-                  style={{
-                    left: `${leftPct}%`,
-                    animation: `rpRainDrop ${1.1 + (i % 3) * 0.25}s infinite linear ${i * 0.18}s`,
-                  }}
-                />
-              ))}
-            </>
-          ) : null}
-
-          {isCloudy ? (
-            <span
-              className="absolute top-1 left-[42%] text-lg opacity-25"
-              style={{ animation: "rpCloudDrift 5s infinite ease-in-out" }}
-            >
-              ☁️
-            </span>
-          ) : null}
-        </div>
-
-        {/* Main Content Grid: Weather + Animated Icons | Time of Day | Next Prayer Countdown */}
-        <div className="relative z-10 flex flex-wrap items-center justify-between gap-2 text-xs sm:text-sm">
-          {/* Weather & Animated Sky Icon */}
-          <Link
-            to="/today"
-            className="flex items-center gap-2.5 rounded-2xl bg-white/10 px-3 py-1.5 backdrop-blur-xs transition hover:bg-white/20"
-            aria-label={
-              weather
-                ? tr("الطقس في رهط: {0} درجة، {1}", weather.temp, weatherLabel(weather.code))
-                : tr("الطقس في رهط")
-            }
-          >
-            {/* Animated Weather Visual */}
-            <span className="relative flex size-8 shrink-0 items-center justify-center rounded-xl bg-white/15 text-lg shadow-2xs">
-              {isRainy ? (
-                <span style={{ animation: "rpCloudDrift 3s infinite ease-in-out" }}>🌧️</span>
-              ) : isNight ? (
-                <span style={{ animation: "rpMoonFloat 3.5s infinite ease-in-out" }}>🌙</span>
-              ) : isCloudy ? (
-                <span style={{ animation: "rpCloudDrift 4s infinite ease-in-out" }}>⛅</span>
-              ) : (
-                <span style={{ animation: "rpSunSpin 12s infinite linear" }}>☀️</span>
-              )}
-            </span>
-
-            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-              {weather ? (
-                <>
-                  <span className="text-base font-extrabold leading-none tracking-tight sm:text-lg" dir="ltr">
-                    {trv(weather.temp)}°
-                  </span>
-                  <span className="font-extrabold text-white/95">
-                    {weatherLabel(weather.code)}
-                  </span>
-                  {weather.wind !== null ? (
-                    <span
-                      className="inline-flex items-center gap-1 rounded-full bg-white/15 px-2 py-0.5 text-[10px] font-bold text-white/90"
-                      title={tr("سرعة الرياح")}
-                    >
-                      <span
-                        className="inline-block"
-                        style={{ animation: "rpWindWave 2.2s infinite ease-in-out" }}
-                      >
-                        💨
-                      </span>
-                      <bdi dir="ltr">{trv(weather.wind)}</bdi>
-                      <span>{tr("كم/س")}</span>
-                    </span>
-                  ) : null}
-                  {weather.rainChance !== null && weather.rainChance > 0 ? (
-                    <span
-                      className="inline-flex items-center gap-0.5 rounded-full bg-sky-400/25 px-2 py-0.5 text-[10px] font-bold text-sky-100"
-                      title={tr("احتمال المطر")}
-                    >
-                      <span>☔</span>
-                      <bdi dir="ltr">{trv(weather.rainChance)}%</bdi>
-                    </span>
-                  ) : isWindy ? null : null}
-                </>
-              ) : (
-                <span className="font-extrabold">{tr("طقس رهط")}</span>
-              )}
-            </div>
-          </Link>
-
-          {/* Center Live Day/Night Time Chip */}
-          <Link
-            to="/today"
-            className="hidden items-center gap-1.5 rounded-2xl bg-white/10 px-3 py-1.5 text-xs font-extrabold text-white/95 backdrop-blur-xs transition hover:bg-white/20 sm:inline-flex"
-          >
-            <span>{isNight ? "🌌" : "🌤️"}</span>
-            <span>{isNight ? tr("توقيت رهط ليلاً") : tr("توقيت رهط نهاراً")}</span>
-            <span dir="ltr" className="rounded-lg bg-black/25 px-2 py-0.5 font-mono text-xs text-[#FDE047]">
+          {/* Day / Night Live Time Indicator */}
+          <span className="inline-flex items-center gap-1 text-[11px] font-bold text-muted">
+            <span>·</span>
+            <span>{isNight ? tr("ليلاً") : tr("نهاراً")}</span>
+            <bdi dir="ltr" className="font-mono font-extrabold text-ink">
               {timeStr}
-            </span>
-          </Link>
+            </bdi>
+          </span>
+        </Link>
 
-          {/* Next Prayer + Live Countdown */}
-          <Link
-            to="/today"
-            className="flex items-center gap-2 rounded-2xl bg-white/10 px-3 py-1.5 backdrop-blur-xs transition hover:bg-white/20"
+        {/* Next Prayer + Live Countdown — Transparent */}
+        <Link
+          to="/today"
+          className="inline-flex items-center gap-1.5 py-1 transition hover:opacity-80"
+        >
+          <span
+            className="inline-block text-base leading-none"
+            style={{ animation: "rpMoonFloat 3.6s infinite ease-in-out" }}
+            aria-hidden
           >
-            <span
-              className="grid size-7 shrink-0 place-items-center rounded-xl bg-[#F2C94C]/25 text-sm"
-              style={{ animation: "rpMoonFloat 4s infinite ease-in-out" }}
-            >
-              🕌
-            </span>
-            <div className="flex flex-wrap items-center gap-1.5">
-              <span className="font-extrabold text-[#FDE047]">
-                {trv(next.name)}
-              </span>
-              <span dir="ltr" className="rounded-lg bg-black/25 px-1.5 py-0.5 font-extrabold text-white">
-                {formatPrayerTime(next.at)}
-              </span>
-              <span className="text-[11px] font-bold text-white/80">
-                ({countdownAr(next.at - now)})
-              </span>
-            </div>
-          </Link>
-        </div>
+            🕌
+          </span>
+          <span className="font-extrabold text-ink">
+            {trv(next.name)}{" "}
+            <bdi dir="ltr" className="text-primary-ink">
+              {formatPrayerTime(next.at)}
+            </bdi>
+          </span>
+          <span className="text-xs font-semibold text-muted">
+            {countdownAr(next.at - now)}
+          </span>
+        </Link>
       </div>
     </div>
   );
