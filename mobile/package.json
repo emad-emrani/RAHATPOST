@@ -12,6 +12,7 @@
     "open:ios": "cap open ios"
   },
   "dependencies": {
+    "@capacitor-community/admob": "^7.0.0",
     "@capacitor/android": "^7.4.0",
     "@capacitor/app": "^7.0.0",
     "@capacitor/browser": "^7.0.0",
