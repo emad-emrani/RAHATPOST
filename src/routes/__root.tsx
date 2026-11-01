@@ -22,7 +22,7 @@ import {
   Tv,
   type LucideIcon,
 } from "lucide-react";
-import { useMemo, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, type CSSProperties } from "react";
 import { AuthProvider } from "@/lib/auth/provider";
 import { PreviewHostBridge } from "@/components/preview-host-bridge";
 import { ServiceWorkerRegistration } from "@/components/install-app";
@@ -441,6 +441,178 @@ export const Route = createRootRoute({
 
 const NO_ADSENSE_PATHS = /^\/(admin|login|reset-password|app-auth|my-|cart|orders|store|haraj|ads|submit)/;
 
+type ParsedMobileAdsConfig = {
+  ampAds: boolean;
+  enabled: boolean;
+  pos: "b" | "t";
+  androidAppId: string;
+  iosAppId: string;
+  bannerAdUnitId: string;
+  interstitialAdUnitId: string;
+};
+
+function parseRootMobileAdsConfig(
+  quickLinks: { id: string; title?: string }[] | undefined,
+  adsensePub: string,
+): ParsedMobileAdsConfig {
+  const sliderItem = (quickLinks ?? []).find((q) => q.id === "slidercfg");
+  const titleFlags = sliderItem?.title ?? "";
+  const ampAds = !titleFlags.includes("amp:0");
+  let enabled = true;
+  let pos: "b" | "t" = "b";
+  let androidApp = "3347511713";
+  let iosApp = "1458002511";
+  let bannerUnit = "6300978111";
+  let interstitialUnit = "";
+  for (const part of titleFlags.split("|")) {
+    if (part.startsWith("m:")) {
+      const mParts = part.slice(2).split(",");
+      if (mParts[0] !== undefined) enabled = mParts[0] !== "0";
+      if (mParts[1] === "t" || mParts[1] === "b") pos = mParts[1];
+      if (mParts[2]) androidApp = mParts[2];
+      if (mParts[3]) iosApp = mParts[3];
+      if (mParts[4] !== undefined) bannerUnit = mParts[4];
+      if (mParts[5] !== undefined) interstitialUnit = mParts[5];
+    }
+  }
+  const pubDigits = (adsensePub || DEFAULT_ADSENSE_PUB).replace(/[^0-9]/g, "") || "9063892572843254";
+  return {
+    ampAds,
+    enabled,
+    pos,
+    androidAppId: `ca-app-pub-${pubDigits}~${androidApp}`,
+    iosAppId: `ca-app-pub-${pubDigits}~${iosApp}`,
+    bannerAdUnitId: bannerUnit ? `ca-app-pub-${pubDigits}/${bannerUnit}` : "",
+    interstitialAdUnitId: interstitialUnit ? `ca-app-pub-${pubDigits}/${interstitialUnit}` : "",
+  };
+}
+
+/**
+ * Bridges the Google Mobile Ads SDK (@capacitor-community/admob) inside the Android & iOS
+ * Capacitor app, automatically hiding native banners on restricted routes (/store, /haraj, etc.).
+ */
+function GoogleMobileAdsBridge({
+  config,
+  allowAdsOnPage,
+  pathname,
+}: {
+  config: ParsedMobileAdsConfig;
+  allowAdsOnPage: boolean;
+  pathname: string;
+}) {
+  const initializedRef = useRef(false);
+  const bannerVisibleRef = useRef(false);
+  const articleVisitsRef = useRef(0);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const win = window as unknown as {
+      __GOOGLE_MOBILE_ADS_CONFIG__?: unknown;
+      Capacitor?: {
+        isNativePlatform?: () => boolean;
+        getPlatform?: () => string;
+        Plugins?: {
+          AdMob?: {
+            initialize: (opts?: Record<string, unknown>) => Promise<void>;
+            requestTrackingAuthorization?: () => Promise<void>;
+            showBanner: (opts: Record<string, unknown>) => Promise<void>;
+            hideBanner: () => Promise<void>;
+            removeBanner: () => Promise<void>;
+            prepareInterstitial?: (opts: Record<string, unknown>) => Promise<void>;
+            showInterstitial?: () => Promise<void>;
+          };
+        };
+      };
+    };
+
+    win.__GOOGLE_MOBILE_ADS_CONFIG__ = {
+      sdk: "Google Mobile Ads SDK v23.6.0",
+      plugin: "@capacitor-community/admob",
+      ...config,
+      allowAdsOnPage,
+    };
+
+    const admob = win.Capacitor?.Plugins?.AdMob;
+    if (!admob) return;
+
+    let cancelled = false;
+
+    const syncMobileAds = async () => {
+      try {
+        if (!config.enabled || !allowAdsOnPage || !config.bannerAdUnitId) {
+          if (bannerVisibleRef.current) {
+            bannerVisibleRef.current = false;
+            await admob.hideBanner().catch(() => {});
+            await admob.removeBanner().catch(() => {});
+          }
+          return;
+        }
+
+        if (!initializedRef.current) {
+          initializedRef.current = true;
+          await admob.initialize({ initializeForTesting: false }).catch(() => {});
+          if (typeof admob.requestTrackingAuthorization === "function") {
+            await admob.requestTrackingAuthorization().catch(() => {});
+          }
+        }
+
+        if (cancelled) return;
+
+        await admob
+          .showBanner({
+            adId: config.bannerAdUnitId,
+            adSize: "ADAPTIVE_BANNER",
+            position: config.pos === "t" ? "TOP_CENTER" : "BOTTOM_CENTER",
+            margin: config.pos === "b" ? 56 : 0,
+            isTesting: false,
+          })
+          .then(() => {
+            bannerVisibleRef.current = true;
+          })
+          .catch(() => {});
+
+        // Optional Interstitial Ad on article reads (at most once every 4 articles)
+        if (
+          config.interstitialAdUnitId &&
+          /^\/(news|israel-news)\/[^/]+/.test(pathname) &&
+          typeof admob.prepareInterstitial === "function" &&
+          typeof admob.showInterstitial === "function"
+        ) {
+          articleVisitsRef.current += 1;
+          if (articleVisitsRef.current % 4 === 0) {
+            await admob
+              .prepareInterstitial({
+                adId: config.interstitialAdUnitId,
+                isTesting: false,
+              })
+              .then(() => admob.showInterstitial?.())
+              .catch(() => {});
+          }
+        }
+      } catch {
+        /* ignore native bridge errors outside app environment */
+      }
+    };
+
+    void syncMobileAds();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    allowAdsOnPage,
+    config.androidAppId,
+    config.bannerAdUnitId,
+    config.enabled,
+    config.interstitialAdUnitId,
+    config.iosAppId,
+    config.pos,
+    pathname,
+  ]);
+
+  return null;
+}
+
 function RootComponent() {
   const { settings, i18n } = Route.useLoaderData();
   const location = useLocation();
@@ -450,16 +622,31 @@ function RootComponent() {
   const defLang = i18n.langs.find((l) => l.isDefault)?.code ?? "ar";
   const adsensePub = settings.google.adsensePub || DEFAULT_ADSENSE_PUB;
   const allowAdsOnPage = !NO_ADSENSE_PATHS.test(pathname);
+  const mobileAdsCfg = useMemo(
+    () => parseRootMobileAdsConfig(settings.quickLinks, adsensePub),
+    [settings.quickLinks, adsensePub],
+  );
   return (
     <html lang={i18n.lang} dir={i18n.dir} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: langRedirectScript(i18n.lang, defLang, i18n.langs.map((l) => l.code)) }} />
+        <meta name="google-mobile-ads-android-app-id" content={mobileAdsCfg.androidAppId} />
+        <meta name="google-mobile-ads-ios-app-id" content={mobileAdsCfg.iosAppId} />
         {allowAdsOnPage ? (
-          <script
-            async
-            src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adsensePub}`}
-            crossOrigin="anonymous"
-          />
+          <>
+            <script
+              async
+              src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adsensePub}`}
+              crossOrigin="anonymous"
+            />
+            {mobileAdsCfg.ampAds ? (
+              <script
+                async
+                custom-element="amp-auto-ads"
+                src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js"
+              />
+            ) : null}
+          </>
         ) : (
           <style id="no-adsense-on-route">{`.adsbygoogle, ins.adsbygoogle, amp-auto-ads, [aria-label="إعلان"] { display: none !important; }`}</style>
         )}
@@ -467,9 +654,18 @@ function RootComponent() {
         {css ? <style id="site-theme" dangerouslySetInnerHTML={{ __html: css }} /> : null}
       </head>
       <body>
+        {allowAdsOnPage && mobileAdsCfg.ampAds ? (
+          // @ts-expect-error AMP custom element
+          <amp-auto-ads type="adsense" data-ad-client={adsensePub} />
+        ) : null}
         <SiteSettingsProvider value={settings}>
           <PreviewHostBridge />
           <ServiceWorkerRegistration />
+          <GoogleMobileAdsBridge
+            config={mobileAdsCfg}
+            allowAdsOnPage={allowAdsOnPage}
+            pathname={pathname}
+          />
           <AuthProvider>
             <Outlet />
             <GlobalCustomBottomBar />
