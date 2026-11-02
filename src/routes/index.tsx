@@ -734,7 +734,7 @@ function Home() {
     post: postGuide ? (
       <section>
         <SectionTitle title={tr("دليل البريد والخدمات في رهط")} to="/directory/guide/$guide" params={{ guide: "post" }} more={tr("الدليل الكامل")} />
-        <HomePostCard guide={postGuide} />
+        <InteractiveRahatServicesHub now={now} />
       </section>
     ) : null,
     install: (
@@ -4102,6 +4102,964 @@ function AnimatedWeatherPrayerBar({
             {countdownAr(next.at - now)}
           </span>
         </Link>
+      </div>
+    </div>
+  );
+}
+
+
+
+/* -------------------------------------------------------------------------- */
+/* Interactive Rahat Post & Services Guide Hub                                */
+/* -------------------------------------------------------------------------- */
+
+type InteractivePostBranch = {
+  id: string;
+  name: string;
+  officialName: string;
+  kind: string;
+  badge: string;
+  address: string;
+  phone?: string;
+  hours: { dayIdx: number[]; label: string; ranges: [number, number][] }[];
+  hoursDisplay: { day: string; time: string }[];
+  services: string[];
+  note: string;
+  url: string;
+  appointmentUrl?: string;
+  directionsUrl: string;
+};
+
+const RAHAT_POST_BRANCHES: InteractivePostBranch[] = [
+  {
+    id: "209",
+    name: "فرع صلاح الدين",
+    officialName: "סאלח אדין רהט (209)",
+    kind: "فرع بريد وبنك البريد",
+    badge: "فرع #209",
+    address: "شارع صلاح الدين 237، بجانب مدرسة صلاح الدين، رهط",
+    phone: "171",
+    hours: [
+      { dayIdx: [0, 1], label: "08:00–16:00", ranges: [[480, 960]] },
+      { dayIdx: [2], label: "08:00–15:00، 16:00–18:00", ranges: [[480, 900], [960, 1080]] },
+      { dayIdx: [3], label: "08:00–18:00", ranges: [[480, 1080]] },
+      { dayIdx: [4], label: "08:00–15:00", ranges: [[480, 900]] },
+    ],
+    hoursDisplay: [
+      { day: "الأحد والاثنين", time: "08:00–16:00" },
+      { day: "الثلاثاء", time: "08:00–15:00، 16:00–18:00" },
+      { day: "الأربعاء", time: "08:00–18:00" },
+      { day: "الخميس", time: "08:00–15:00" },
+      { day: "الجمعة والسبت", time: "مغلق" },
+    ],
+    services: ["خدمات مالية (بنك البريد)", "دفع فواتير وأرنونا", "بريد دولي ومحلي", "تأمينات"],
+    note: "يعمل بحجز دور مسبق عبر موقع البريد أو الاتصال على 171.",
+    url: "https://doar.israelpost.co.il/branch/209",
+    appointmentUrl: "https://israelpost.co.il/%D7%A9%D7%99%D7%A8%D7%95%D7%AA%D7%99%D7%9D/%D7%90%D7%99%D7%AA%D7%95%D7%A8-%D7%A1%D7%A0%D7%99%D7%A4%D7%99%D7%9D-%D7%95%D7%96%D7%99%D7%9E%D7%95%D7%9F-%D7%AA%D7%95%D7%A8-%D7%91%D7%A7%D7%9C%D7%99%D7%A7/%D7%96%D7%99%D7%9E%D7%95%D7%9F-%D7%AA%D7%95%D7%A8-%D7%95%D7%91%D7%99%D7%98%D7%95%D7%97?no=209",
+    directionsUrl: "https://www.google.com/maps/dir/?api=1&destination=31.399078,34.748416",
+  },
+  {
+    id: "237",
+    name: "الوحدة المركزية (السوق)",
+    officialName: "היחידה המרכזית רהט (237)",
+    kind: "فرع بريد مركزي وبنك البريد",
+    badge: "فرع #237",
+    address: "المركز التجاري، السوق البلدي، وسط مدينة رهط",
+    phone: "171",
+    hours: [
+      { dayIdx: [0, 2], label: "08:00–18:00", ranges: [[480, 1080]] },
+      { dayIdx: [1, 3, 4], label: "08:00–15:00", ranges: [[480, 900]] },
+    ],
+    hoursDisplay: [
+      { day: "الأحد والثلاثاء", time: "08:00–18:00" },
+      { day: "الاثنين والأربعاء والخميس", time: "08:00–15:00" },
+      { day: "الجمعة والسبت", time: "مغلق" },
+    ],
+    services: ["خدمات مالية (بنك البريد)", "دفع فواتير وأرنونا", "بطاقات مشحونة وعملات", "بريد دولي ومحلي"],
+    note: "يعمل بحجز دور مسبق · فاكس الفرع: 08-6114077.",
+    url: "https://doar.israelpost.co.il/branch/237",
+    appointmentUrl: "https://israelpost.co.il/%D7%A9%D7%99%D7%A8%D7%95%D7%AA%D7%99%D7%9D/%D7%90%D7%99%D7%AA%D7%95%D7%A8-%D7%A1%D7%A0%D7%99%D7%A4%D7%99%D7%9D-%D7%95%D7%96%D7%99%D7%9E%D7%95%D7%9F-%D7%AA%D7%95%D7%A8-%D7%91%D7%A7%D7%9C%D7%99%D7%A7/%D7%96%D7%99%D7%9E%D7%95%D7%9F-%D7%AA%D7%95%D7%A8-%D7%95%D7%91%D7%99%D7%98%D7%95%D7%97?no=237",
+    directionsUrl: "https://www.google.com/maps/dir/?api=1&destination=31.394548,34.753934",
+  },
+  {
+    id: "297",
+    name: "فرع المختار (مقابل البلدية)",
+    officialName: "אל מוכתר רהט (297)",
+    kind: "فرع بريد وبنك البريد",
+    badge: "فرع #297",
+    address: "مقابل مبنى بلدية رهط",
+    phone: "171",
+    hours: [
+      { dayIdx: [1], label: "08:00–18:00", ranges: [[480, 1080]] },
+      { dayIdx: [0, 2, 3, 4], label: "08:00–14:00", ranges: [[480, 840]] },
+    ],
+    hoursDisplay: [
+      { day: "الاثنين", time: "08:00–18:00" },
+      { day: "الأحد، الثلاثاء، الأربعاء، الخميس", time: "08:00–14:00" },
+      { day: "الجمعة والسبت", time: "مغلق" },
+    ],
+    services: ["خدمات مالية (بنك البريد)", "دفع فواتير وأرنونا", "بريد دولي ومحلي", "تأمينات"],
+    note: "يعمل بحجز دور مسبق عبر موقع البريد أو الهاتف 171.",
+    url: "https://doar.israelpost.co.il/branch/297",
+    appointmentUrl: "https://israelpost.co.il/%D7%A9%D7%99%D7%A8%D7%95%D7%AA%D7%99%D7%9D/%D7%90%D7%99%D7%AA%D7%95%D7%A8-%D7%A1%D7%A0%D7%99%D7%A4%D7%99%D7%9D-%D7%95%D7%96%D7%99%D7%9E%D7%95%D7%9F-%D7%AA%D7%95%D7%A8-%D7%91%D7%A7%D7%9C%D7%99%D7%A7/%D7%96%D7%99%D7%9E%D7%95%D7%9F-%D7%AA%D7%95%D7%A8-%D7%95%D7%91%D7%99%D7%98%D7%95%D7%97?no=297",
+    directionsUrl: "https://www.google.com/maps/search/?api=1&query=%D7%93%D7%95%D7%90%D7%A8%20%D7%90%D7%9C%20%D7%9E%D7%95%D7%9B%D7%AA%D7%A8%20%D7%A8%D7%94%D7%98",
+  },
+  {
+    id: "3795",
+    name: "الفارس موبايل (استلام طرود)",
+    officialName: "אלפארס מובייל (3795)",
+    kind: "مركز تسليم طرود فقط",
+    badge: "نقطة #3795",
+    address: "شارع صلاح الدين 239، رهط",
+    hours: [
+      { dayIdx: [0, 1, 2, 3, 4], label: "12:00–20:00", ranges: [[720, 1200]] },
+      { dayIdx: [5], label: "09:00–12:00", ranges: [[540, 720]] },
+    ],
+    hoursDisplay: [
+      { day: "الأحد–الخميس", time: "12:00–20:00" },
+      { day: "الجمعة", time: "09:00–12:00" },
+      { day: "السبت", time: "مغلق" },
+    ],
+    services: ["استلام الطرود والرسائل فقط (איסוף בלבד)"],
+    note: "نقطة مخصصة لاستلام الطرود المسجلة (لا تشمل دفع الفواتير أو بنك البريد).",
+    url: "https://doar.israelpost.co.il/branch/3795",
+    directionsUrl: "https://www.google.com/maps/dir/?api=1&destination=31.394312,34.74261",
+  },
+];
+
+function getBranchLiveStatus(branch: InteractivePostBranch, nowMs: number): {
+  isOpen: boolean;
+  todayHours: string;
+} {
+  try {
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: "Asia/Jerusalem",
+      weekday: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    }).formatToParts(new Date(nowMs));
+    const wk = parts.find((p) => p.type === "weekday")?.value ?? "Sun";
+    const hr = Number(parts.find((p) => p.type === "hour")?.value ?? 10);
+    const mn = Number(parts.find((p) => p.type === "minute")?.value ?? 0);
+    const dayMap: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+    const dayIdx = dayMap[wk] ?? 0;
+    const mins = (hr === 24 ? 0 : hr) * 60 + mn;
+    const rule = branch.hours.find((h) => h.dayIdx.includes(dayIdx));
+    if (!rule) return { isOpen: false, todayHours: "مغلق اليوم" };
+    const isOpen = rule.ranges.some(([start, end]) => mins >= start && mins < end);
+    return { isOpen, todayHours: rule.label };
+  } catch {
+    return { isOpen: false, todayHours: "08:00–15:00" };
+  }
+}
+
+function InteractiveRahatServicesHub({ now }: { now: number }) {
+  const [mainTab, setMainTab] = useState<"post" | "municipality" | "health" | "transport">("post");
+  const [postSubTab, setPostSubTab] = useState<"branches" | "pay" | "track" | "bank">("branches");
+  const [selectedBranchId, setSelectedBranchId] = useState<string>("209");
+  const [showAllHours, setShowAllHours] = useState<boolean>(false);
+  const [trackingCode, setTrackingCode] = useState<string>("");
+  const [selectedPayIdx, setSelectedPayIdx] = useState<number>(0);
+  const [busFilter, setBusFilter] = useState<"city" | "intercity">("city");
+
+  const activeBranch =
+    RAHAT_POST_BRANCHES.find((b) => b.id === selectedBranchId) ?? RAHAT_POST_BRANCHES[0];
+  const activeStatus = getBranchLiveStatus(activeBranch, now);
+
+  const paymentOptions = [
+    {
+      icon: "🏠",
+      title: "الأرنونا والمياه (بلدية رهط)",
+      desc: "تسديد ضريبة الأرنونا وفواتير المياه أونلاين ببطاقة الاعتماد أو في أي فرع بريد بالقسيمة.",
+      steps: [
+        "للدفع الفوري عبر بوابة بلدية رهط (PayBill): جهّز رقم الهوية ورقم الزبون/القسيمة.",
+        "للدفع في البريد أو تقسيط المبلغ (3 إلى 36 دفعة): أحضر قسيمة الدفع الأصلية.",
+        "للاستفسار أو التسويات: قسم الجباية في بلدية رهط على الرقم 08-9914982.",
+      ],
+      primaryLabel: "دفع الأرنونا والمياه أونلاين ↗",
+      primaryHref: "https://www.paybill.co.il/Payment/WaterPayment?p=165",
+      secondaryLabel: "دفع الأرنونا عبر موقع البريد ↗",
+      secondaryHref: "https://doar.israelpost.co.il/content/city-tax-payment/",
+    },
+    {
+      icon: "⚡",
+      title: "الكهرباء والماء والغاز وبيزك",
+      desc: "دفع قسائم شركة الكهرباء وشركات المياه والاتصالات في الفرع أو بتصوير القسيمة أونلاين.",
+      steps: [
+        "الكهرباء: تحتاج رقم العقد ورقم الفاتورة الظاهرين على القسيمة.",
+        "يمكن تقسيط الفواتير من 300 ₪ حتى 100,000 ₪ ببطاقة اعتماد (3–36 دفعة).",
+        "يُحسب الدفع في نفس يوم العمل حتى الساعة 18:30 (الأحد–الخميس).",
+      ],
+      primaryLabel: "دفع قسيمة أونلاين (موقع البريد) ↗",
+      primaryHref: "https://doar.israelpost.co.il/voucher",
+      secondaryLabel: "شرح تقسيط الفواتير ببطاقة الاعتماد ↗",
+      secondaryHref: "https://doar.israelpost.co.il/content/paymet-by-credit-card/",
+    },
+    {
+      icon: "🚗",
+      title: "ترخيص السيارة ومخالفات السير",
+      desc: "رسوم رخصة المركبة ورخصة السياقة وغرامات الشرطة ومخالفات السير.",
+      steps: [
+        "رسوم وزارة المواصلات (ترخيص السيارة وفحص السياقة) تُدفع بالقسيمة في البريد أو أونلاين.",
+        "مخالفات السير وغرامات الشرطة تُدفع عبر بوابة الدفع الحكومية أو في فروع البريد.",
+        "إذا فقدت ورقة المخالفة اتصل بمركز الجباية: *35592 أو 073-2055000.",
+      ],
+      primaryLabel: "دفع مخالفة السير (gov.il) ↗",
+      primaryHref: "https://www.gov.il/ar/service/police_fine_payment",
+      secondaryLabel: "بوابة الدفع المباشر للمخالفات ↗",
+      secondaryHref: "https://ecom.gov.il/voucherspa/input/318",
+    },
+    {
+      icon: "🏛️",
+      title: "التأمين الوطني والضرائب",
+      desc: "دفعات التأمين الوطني (ביטוח לאומי)، ضريبة الدخل (מס הכנסה) وضريبة القيمة المضافة (מע״מ).",
+      steps: [
+        "تُقبل الشيكات من جميع البنوك في كافة فروع البريد برسوم شباك 4 ₪ فقط.",
+        "بين 1 و14 من الشهر يمكن الدفع بشيك مؤجّل (شيك واحد لكل قسيمة).",
+        "لأصحاب المصالح (أكثر من 10 قسائم): يتوفر مسار «مغلّف الأعمال» السريع.",
+      ],
+      primaryLabel: "دفع الضرائب في موقع البريد ↗",
+      primaryHref: "https://doar.israelpost.co.il/content/tax-payment",
+      secondaryLabel: "دفع القسائم الحكومية أونلاين ↗",
+      secondaryHref: "https://doar.israelpost.co.il/voucher",
+    },
+  ];
+
+  const activePay = paymentOptions[selectedPayIdx] ?? paymentOptions[0];
+
+  const cityBuses = [
+    { line: "1", route: "حي السلام (مستودع البلدية) ↔ الخزان / حطين" },
+    { line: "2", route: "حي السلام (الدفيئات) ↔ الخضر / حي 31" },
+    { line: "3", route: "محطة تافوح / السلام ↔ رفح / البوئي" },
+    { line: "4 / 4أ", route: "المدينة المنورة (شمال غرب) ↔ الحديقة" },
+    { line: "5", route: "خط دائري: حي صلاح الدين (مدرسة الهدى)" },
+    { line: "6", route: "المدينة المنورة (الحديقة) ↔ صلاح الدين" },
+  ];
+
+  const intercityBuses = [
+    { line: "450–455، 471", route: "رهط ↔ بئر السبع (مباشر من الأحياء)" },
+    { line: "425", route: "رهط ↔ تل السبع" },
+    { line: "40 / 423", route: "رهط ↔ كسيفة" },
+    { line: "427", route: "رهط ↔ عرعرة النقب" },
+    { line: "462", route: "رهط ↔ سديروت" },
+    { line: "467", route: "رهط ↔ عسقلان" },
+  ];
+
+  return (
+    <div className="stamp overflow-hidden border-2 border-primary/80 bg-gradient-to-b from-primary-soft/60 via-paper to-paper p-3.5 sm:p-4 shadow-sm">
+      {/* Top 4 Main Service Category Tabs */}
+      <div
+        role="tablist"
+        aria-label={tr("أقسام دليل البريد والخدمات في رهط")}
+        className="grid grid-cols-2 gap-2 sm:grid-cols-4"
+      >
+        {[
+          { id: "post" as const, icon: "📮", title: "البريد وبنك البريد", sub: "4 فروع · دفع وتتبع" },
+          { id: "municipality" as const, icon: "🏛️", title: "البلدية والأرنونا", sub: "الجباية · طوارئ 106" },
+          { id: "health" as const, icon: "🏥", title: "الصحة والطوارئ", sub: "الإسعاف 101 · العيادات" },
+          { id: "transport" as const, icon: "🚌", title: "باصات غاليم", sub: "خطوط 1–6 وبئر السبع" },
+        ].map((tab) => {
+          const active = mainTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              role="tab"
+              aria-selected={active}
+              onClick={() => setMainTab(tab.id)}
+              className={`press flex items-center gap-2.5 rounded-2xl border p-2.5 text-start transition-all ${
+                active
+                  ? "border-ink bg-ink text-paper shadow-sm"
+                  : "border-line bg-paper/90 text-ink hover:border-primary"
+              }`}
+            >
+              <span
+                className={`grid size-10 shrink-0 place-items-center rounded-xl text-xl ${
+                  active ? "bg-primary text-ink" : "bg-primary-soft text-ink"
+                }`}
+                aria-hidden
+              >
+                {tab.icon}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-xs font-extrabold sm:text-sm">
+                  {trv(tab.title)}
+                </span>
+                <span
+                  className={`block truncate text-[11px] font-semibold ${
+                    active ? "text-paper/75" : "text-muted"
+                  }`}
+                >
+                  {trv(tab.sub)}
+                </span>
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* TAB 1: POST & POSTAL BANK */}
+      {mainTab === "post" ? (
+        <div className="mt-3.5 space-y-3">
+          {/* Interactive Sub-navigation pills */}
+          <div className="flex flex-wrap items-center gap-1.5 rounded-2xl bg-surface/90 p-1.5">
+            {[
+              { id: "branches" as const, label: "📍 فروع رهط وساعات العمل" },
+              { id: "pay" as const, label: "💳 دفع الفواتير والأرنونا" },
+              { id: "track" as const, label: "📦 تتبع طرد بريدي" },
+              { id: "bank" as const, label: "🏦 بنك البريد والمخصصات" },
+            ].map((sub) => {
+              const isSub = postSubTab === sub.id;
+              return (
+                <button
+                  key={sub.id}
+                  type="button"
+                  onClick={() => setPostSubTab(sub.id)}
+                  className={`press flex-1 whitespace-nowrap rounded-xl px-3 py-2 text-xs font-extrabold transition sm:text-sm ${
+                    isSub
+                      ? "bg-primary text-ink shadow-2xs"
+                      : "text-muted hover:bg-paper/60 hover:text-ink"
+                  }`}
+                >
+                  {trv(sub.label)}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Sub-view 1: Interactive Branches with Live Status */}
+          {postSubTab === "branches" ? (
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {RAHAT_POST_BRANCHES.map((b) => {
+                  const st = getBranchLiveStatus(b, now);
+                  const isSel = b.id === activeBranch.id;
+                  return (
+                    <button
+                      key={b.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedBranchId(b.id);
+                        setShowAllHours(false);
+                      }}
+                      className={`press flex flex-col justify-between rounded-2xl border p-2.5 text-start transition ${
+                        isSel
+                          ? "border-2 border-primary bg-primary-soft/80 shadow-2xs"
+                          : "border-line bg-paper hover:border-primary/60"
+                      }`}
+                    >
+                      <div className="flex w-full items-center justify-between gap-1">
+                        <span className="rounded-lg bg-surface px-1.5 py-0.5 text-[10px] font-extrabold text-muted">
+                          {trv(b.badge)}
+                        </span>
+                        <span
+                          className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-extrabold ${
+                            st.isOpen
+                              ? "bg-[#16A34A]/15 text-[#15803D]"
+                              : "bg-surface text-muted"
+                          }`}
+                        >
+                          <span
+                            className={`size-1.5 rounded-full ${
+                              st.isOpen ? "bg-[#16A34A] animate-pulse" : "bg-muted"
+                            }`}
+                          />
+                          {st.isOpen ? tr("مفتوح الآن") : tr("مغلق")}
+                        </span>
+                      </div>
+                      <p className="mt-1.5 truncate text-xs font-extrabold text-ink sm:text-sm">
+                        {trv(b.name)}
+                      </p>
+                      <p className="mt-0.5 truncate text-[11px] font-semibold text-muted" dir="ltr">
+                        {trv(st.todayHours)}
+                      </p>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Selected Branch Interactive Detail Card */}
+              <div className="rounded-2xl border border-line bg-paper p-3.5 shadow-2xs">
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="text-base font-extrabold text-ink sm:text-lg">
+                        {trv(activeBranch.name)}
+                      </h3>
+                      <span
+                        className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-extrabold ${
+                          activeStatus.isOpen
+                            ? "bg-[#16A34A]/15 text-[#15803D]"
+                            : "bg-alert/10 text-alert"
+                        }`}
+                      >
+                        <span
+                          className={`size-2 rounded-full ${
+                            activeStatus.isOpen ? "bg-[#16A34A] animate-ping" : "bg-alert"
+                          }`}
+                        />
+                        {activeStatus.isOpen ? tr("مفتوح الآن") : tr("مغلق حالياً")}
+                      </span>
+                    </div>
+                    <p className="mt-0.5 text-xs font-semibold text-muted">
+                      {trv(activeBranch.kind)} · <span lang="he">{activeBranch.officialName}</span>
+                    </p>
+                  </div>
+                  <span className="rounded-xl bg-surface px-2.5 py-1 text-xs font-extrabold text-ink">
+                    🕒 {tr("اليوم:")}{" "}
+                    <bdi dir="ltr" className="text-primary-ink">
+                      {trv(activeStatus.todayHours)}
+                    </bdi>
+                  </span>
+                </div>
+
+                <p className="mt-2 flex items-center gap-1.5 text-xs font-bold text-ink sm:text-sm">
+                  <MapPin className="size-4 shrink-0 text-primary-ink" aria-hidden />
+                  <span>{trv(activeBranch.address)}</span>
+                </p>
+
+                <div className="mt-2.5 flex flex-wrap gap-1.5">
+                  {activeBranch.services.map((srv) => (
+                    <span
+                      key={srv}
+                      className="rounded-xl border border-line bg-surface/60 px-2.5 py-1 text-[11px] font-bold text-ink"
+                    >
+                      ✓ {trv(srv)}
+                    </span>
+                  ))}
+                </div>
+
+                <p className="mt-2 text-xs font-semibold text-muted">💡 {trv(activeBranch.note)}</p>
+
+                {/* Expandable Full Weekly Schedule */}
+                <div className="mt-2.5">
+                  <button
+                    type="button"
+                    onClick={() => setShowAllHours((v) => !v)}
+                    className="inline-flex items-center gap-1 text-xs font-extrabold text-primary-ink underline decoration-1 underline-offset-4"
+                  >
+                    <span>
+                      {showAllHours
+                        ? tr("إخفاء جدول ساعات الأسبوع")
+                        : tr("عرض جدول ساعات الأسبوع الكامل")}
+                    </span>
+                    <ChevronDown
+                      className={`size-4 transition-transform ${showAllHours ? "rotate-180" : ""}`}
+                      aria-hidden
+                    />
+                  </button>
+                  {showAllHours ? (
+                    <div className="mt-2 rounded-xl bg-surface p-2.5 text-xs">
+                      {activeBranch.hoursDisplay.map((row) => (
+                        <div
+                          key={row.day}
+                          className="flex items-center justify-between border-b border-line/70 py-1.5 last:border-b-0"
+                        >
+                          <span className="font-semibold text-ink">{trv(row.day)}</span>
+                          <span className="font-extrabold text-primary-ink" dir="ltr">
+                            {trv(row.time)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+
+                {/* Action Buttons */}
+                <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                  <a
+                    href={activeBranch.directionsUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn py-2 text-xs font-extrabold"
+                  >
+                    📍 {tr("الاتجاهات للفرع")}
+                  </a>
+                  {activeBranch.appointmentUrl ? (
+                    <a
+                      href={activeBranch.appointmentUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn btn-ghost py-2 text-xs font-extrabold"
+                    >
+                      📅 {tr("حجز دور مسبق")}
+                    </a>
+                  ) : null}
+                  <a
+                    href="tel:171"
+                    className="btn btn-ghost py-2 text-xs font-extrabold"
+                  >
+                    📞 {tr("اتصال بمركز 171")}
+                  </a>
+                  <a
+                    href={activeBranch.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn btn-ghost py-2 text-xs font-extrabold"
+                  >
+                    🔗 {tr("صفحة الفرع الرسمية")}
+                  </a>
+                </div>
+              </div>
+            </div>
+          ) : null}
+
+          {/* Sub-view 2: Interactive Bill & Tax Payment Assistant */}
+          {postSubTab === "pay" ? (
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {paymentOptions.map((opt, idx) => {
+                  const isSel = idx === selectedPayIdx;
+                  return (
+                    <button
+                      key={opt.title}
+                      type="button"
+                      onClick={() => setSelectedPayIdx(idx)}
+                      className={`press flex items-center gap-2 rounded-2xl border p-2.5 text-start transition ${
+                        isSel
+                          ? "border-2 border-primary bg-primary-soft font-extrabold text-ink"
+                          : "border-line bg-paper font-bold text-ink hover:border-primary/60"
+                      }`}
+                    >
+                      <span className="text-lg" aria-hidden>
+                        {opt.icon}
+                      </span>
+                      <span className="line-clamp-2 text-xs">{trv(opt.title)}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="rounded-2xl border border-line bg-paper p-3.5">
+                <h3 className="text-base font-extrabold text-ink">
+                  {activePay.icon} {trv(activePay.title)}
+                </h3>
+                <p className="mt-1 text-xs font-semibold text-muted sm:text-sm">
+                  {trv(activePay.desc)}
+                </p>
+                <ul className="mt-2.5 space-y-1.5 text-xs font-semibold text-ink sm:text-sm">
+                  {activePay.steps.map((st) => (
+                    <li key={st} className="flex items-start gap-2">
+                      <span className="mt-0.5 text-primary-ink">✓</span>
+                      <span>{trv(st)}</span>
+                    </li>
+                  ))}
+                </ul>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <a
+                    href={activePay.primaryHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn py-2 text-xs font-extrabold"
+                  >
+                    {trv(activePay.primaryLabel)}
+                  </a>
+                  <a
+                    href={activePay.secondaryHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn btn-ghost py-2 text-xs font-extrabold"
+                  >
+                    {trv(activePay.secondaryLabel)}
+                  </a>
+                </div>
+              </div>
+            </div>
+          ) : null}
+
+          {/* Sub-view 3: Interactive Parcel Tracker */}
+          {postSubTab === "track" ? (
+            <div className="rounded-2xl border border-line bg-paper p-3.5 space-y-3">
+              <div>
+                <h3 className="text-base font-extrabold text-ink">
+                  📦 {tr("تتبع الطرود والبعائث في بريد إسرائيل")}
+                </h3>
+                <p className="mt-0.5 text-xs font-semibold text-muted sm:text-sm">
+                  {tr("أدخل رقم التتبع المكون من حروف وأرقام (مثل RR123456789IL أو RS...) لفتح حالة الطرد ومكان استلامه في رهط مباشرة:")}
+                </p>
+              </div>
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const clean = trackingCode.trim().toUpperCase();
+                  const targetUrl = clean
+                    ? `https://doar.israelpost.co.il/deliverytracker?itemcode=${encodeURIComponent(clean)}`
+                    : "https://doar.israelpost.co.il/deliverytracker";
+                  window.open(targetUrl, "_blank", "noopener,noreferrer");
+                }}
+                className="flex flex-col gap-2 sm:flex-row"
+              >
+                <input
+                  type="text"
+                  dir="ltr"
+                  value={trackingCode}
+                  onChange={(e) => setTrackingCode(e.target.value)}
+                  placeholder="RR123456789IL / حزمة بريد..."
+                  className="field flex-1 font-mono text-sm uppercase"
+                />
+                <button type="submit" className="btn shrink-0 px-5 py-2.5 text-xs font-extrabold sm:text-sm">
+                  🔍 {tr("تتبع الطرد الآن ↗")}
+                </button>
+              </form>
+              <div className="grid gap-2 sm:grid-cols-2 text-xs font-semibold">
+                <div className="rounded-xl bg-surface p-2.5">
+                  <p className="font-extrabold text-ink">📍 {tr("نقاط استلام الطرود في رهط:")}</p>
+                  <p className="mt-0.5 text-muted">
+                    {tr("توزّع الطرود حسب الحي في فرع صلاح الدين (209)، البريد المركزي (237)، فرع المختار (297)، أو نقطة الفارس موبايل (3795).")}
+                  </p>
+                </div>
+                <div className="rounded-xl bg-surface p-2.5">
+                  <p className="font-extrabold text-ink">🪪 {tr("ماذا تحضر عند الاستلام؟")}</p>
+                  <p className="mt-0.5 text-muted">
+                    {tr("بطاقة الهوية الأصلية + رقم الرسالة النصية (SMS) التي وصلتك من البريد مع رقم الرف/المرجع.")}
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : null}
+
+          {/* Sub-view 4: Postal Bank (Doar Finance) */}
+          {postSubTab === "bank" ? (
+            <div className="grid gap-2.5 sm:grid-cols-2">
+              <div className="rounded-2xl border border-line bg-paper p-3">
+                <h4 className="text-sm font-extrabold text-ink">
+                  💵 {tr("استلام مخصصات التأمين الوطني (קצבאות)")}
+                </h4>
+                <p className="mt-1 text-xs font-semibold text-muted">
+                  {tr("صرف مخصصات التأمين الوطني والرفاه نقداً في فروع رهط (209، 237، 297) بإبراز بطاقة الهوية الأصلية فقط.")}
+                </p>
+                <a
+                  href="https://doar.israelpost.co.il/content/social-security-benefits/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-2 inline-block text-xs font-extrabold text-primary-ink underline"
+                >
+                  {tr("تفاصيل استلام المخصصات ↗")}
+                </a>
+              </div>
+              <div className="rounded-2xl border border-line bg-paper p-3">
+                <h4 className="text-sm font-extrabold text-ink">
+                  ⚡ {tr("تحويل فوري داخل البلاد «مزومان بزمان»")}
+                </h4>
+                <p className="mt-1 text-xs font-semibold text-muted">
+                  {tr("تحويل نقدي حتى 10,000 ₪ بدون حساب بنك يصل خلال دقائق بين أي فرعي بريد برقم الهوية ورقم المرجع.")}
+                </p>
+                <a
+                  href="https://doar.israelpost.co.il/content/about-cash-on-time/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-2 inline-block text-xs font-extrabold text-primary-ink underline"
+                >
+                  {tr("خدمة مزومان بزمان ↗")}
+                </a>
+              </div>
+              <div className="rounded-2xl border border-line bg-paper p-3">
+                <h4 className="text-sm font-extrabold text-ink">
+                  🌍 {tr("تحويل أموال للخارج وعملات أجنبية")}
+                </h4>
+                <p className="mt-1 text-xs font-semibold text-muted">
+                  {tr("تحويل نقدي دولي عبر DOAR MONEY TRANSFER أو لحساب بنكي عبر Eurogiro، وشراء العملات والبطاقات المشحونة.")}
+                </p>
+                <a
+                  href="https://doar.israelpost.co.il/en/content/doar-money-transfer"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-2 inline-block text-xs font-extrabold text-primary-ink underline"
+                >
+                  {tr("التحويل الدولي ↗")}
+                </a>
+              </div>
+              <div className="rounded-2xl border border-line bg-paper p-3 flex flex-col justify-between">
+                <div>
+                  <h4 className="text-sm font-extrabold text-ink">
+                    📞 {tr("هاتف خدمة بنك البريد (دوار فيننسيم)")}
+                  </h4>
+                  <p className="mt-1 text-xs font-semibold text-muted">
+                    {tr("للاستفسار عن الحسابات والبطاقات المشحونة والتحويلات المالية:")}
+                  </p>
+                </div>
+                <div className="mt-2 flex gap-2">
+                  <a href="tel:025005303" className="btn py-1.5 text-xs font-extrabold">
+                    📞 <span dir="ltr">02-5005303</span>
+                  </a>
+                  <a href="tel:171" className="btn btn-ghost py-1.5 text-xs font-extrabold">
+                    📞 <span dir="ltr">171</span>
+                  </a>
+                </div>
+              </div>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
+      {/* TAB 2: MUNICIPALITY & ARNONA */}
+      {mainTab === "municipality" ? (
+        <div className="mt-3.5 space-y-3">
+          <div className="grid gap-2.5 sm:grid-cols-3">
+            <a
+              href="https://www.paybill.co.il/Payment/WaterPayment?p=165"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="press flex items-center gap-3 rounded-2xl border-2 border-primary bg-paper p-3 shadow-2xs"
+            >
+              <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-primary-soft text-xl">
+                💳
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-xs font-extrabold text-ink sm:text-sm">
+                  {tr("دفع الأرنونا والمياه أونلاين")}
+                </span>
+                <span className="block text-[11px] font-semibold text-muted">
+                  {tr("بوابة الدفع الرسمية لبلدية رهط ↗")}
+                </span>
+              </span>
+            </a>
+
+            <a
+              href="tel:089914982"
+              className="press flex items-center gap-3 rounded-2xl border border-line bg-paper p-3 shadow-2xs"
+            >
+              <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-surface text-xl">
+                📞
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-xs font-extrabold text-ink sm:text-sm">
+                  {tr("قسم الجباية — بلدية رهط")}
+                </span>
+                <span className="block font-mono text-xs font-extrabold text-primary-ink" dir="ltr">
+                  08-9914982
+                </span>
+              </span>
+            </a>
+
+            <a
+              href="tel:106"
+              className="press flex items-center gap-3 rounded-2xl border border-line bg-paper p-3 shadow-2xs"
+            >
+              <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-alert/10 text-xl">
+                🚨
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-xs font-extrabold text-ink sm:text-sm">
+                  {tr("مركز الطوارئ البلدي 106")}
+                </span>
+                <span className="block text-[11px] font-semibold text-muted">
+                  {tr("إنارة، نظافة، طرق وطوارئ الأحياء")}
+                </span>
+              </span>
+            </a>
+          </div>
+
+          <div className="grid gap-2.5 sm:grid-cols-2">
+            <div className="rounded-2xl border border-line bg-paper p-3">
+              <h4 className="text-xs font-extrabold text-ink sm:text-sm">
+                🏛️ {tr("المركز الجماهيري رهط (מתנ״ס רהט)")}
+              </h4>
+              <p className="mt-0.5 text-xs font-semibold text-muted">
+                {tr("دورات تعليمية ورياضية، فعاليات ثقافية وشبابية وبرامج للأطفال والعائلات في مركز المدينة.")}
+              </p>
+              <div className="mt-2 flex gap-2">
+                <a
+                  href="https://www.google.com/maps/dir/?api=1&destination=31.3925,34.7544"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn py-1.5 text-xs font-extrabold"
+                >
+                  📍 {tr("الاتجاهات للمركز الجماهيري")}
+                </a>
+                <Link
+                  to="/directory/guide/$guide"
+                  params={{ guide: "municipality" }}
+                  className="btn btn-ghost py-1.5 text-xs font-extrabold"
+                >
+                  {tr("دليل البلدية الكامل")}
+                </Link>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-line bg-paper p-3">
+              <h4 className="text-xs font-extrabold text-ink sm:text-sm">
+                🛍️ {tr("السوق البلدي والمركز التجاري رهط")}
+              </h4>
+              <p className="mt-0.5 text-xs font-semibold text-muted">
+                {tr("وسط المدينة — يضم المحلات التجارية، البريد المركزي (237)، البنوك والمطاعم والخدمات.")}
+              </p>
+              <div className="mt-2 flex gap-2">
+                <a
+                  href="https://www.google.com/maps/dir/?api=1&destination=31.394647,34.758378"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn py-1.5 text-xs font-extrabold"
+                >
+                  📍 {tr("الاتجاهات للسوق البلدي")}
+                </a>
+                <a
+                  href="https://rahat-muni.com/%D9%82%D8%B3%D9%85-%D8%A7%D9%84%D8%AC%D8%A8%D8%A7%D9%8A%D9%87/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn btn-ghost py-1.5 text-xs font-extrabold"
+                >
+                  {tr("موقع بلدية رهط ↗")}
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {/* TAB 3: HEALTH & EMERGENCY */}
+      {mainTab === "health" ? (
+        <div className="mt-3.5 space-y-3">
+          {/* 1-Tap Emergency Speed Dial */}
+          <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
+            {[
+              { num: "101", label: "الإسعاف", icon: "🚑" },
+              { num: "1221", label: "اتحاد الإنقاذ", icon: "⚡" },
+              { num: "100", label: "الشرطة", icon: "🚓" },
+              { num: "102", label: "الإطفاء", icon: "🚒" },
+              { num: "103", label: "الكهرباء", icon: "🔌" },
+              { num: "106", label: "طوارئ البلدية", icon: "🏛️" },
+            ].map((em) => (
+              <a
+                key={em.num}
+                href={`tel:${em.num}`}
+                className="press flex flex-col items-center justify-center rounded-2xl border border-line bg-paper p-2 text-center shadow-2xs hover:border-alert"
+              >
+                <span className="text-base" aria-hidden>
+                  {em.icon}
+                </span>
+                <span className="font-mono text-sm font-extrabold text-alert" dir="ltr">
+                  {em.num}
+                </span>
+                <span className="truncate text-[11px] font-bold text-ink">{trv(em.label)}</span>
+              </a>
+            ))}
+          </div>
+
+          <div className="grid gap-2.5 sm:grid-cols-3">
+            <div className="rounded-2xl border border-line bg-paper p-3">
+              <h4 className="text-xs font-extrabold text-ink sm:text-sm">
+                🏥 {tr("عيادة ومستشفى كلاليت رهط")}
+              </h4>
+              <p className="mt-0.5 text-[11px] font-semibold text-muted">
+                {tr("طب عائلة وأطفال، عيادات تخصصية، مختبر وصيدلية.")}
+              </p>
+              <a
+                href="https://www.google.com/maps/dir/?api=1&destination=31.394985,34.754784"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn mt-2 w-full py-1.5 text-xs font-extrabold"
+              >
+                📍 {tr("الاتجاهات للعيادة")}
+              </a>
+            </div>
+
+            <div className="rounded-2xl border border-line bg-paper p-3">
+              <h4 className="text-xs font-extrabold text-ink sm:text-sm">
+                👶 {tr("مركز قطرة حليب (טיפת חלב)")}
+              </h4>
+              <p className="mt-0.5 text-[11px] font-semibold text-muted">
+                {tr("تطعيمات الأطفال والرضّع ومتابعة نمو الطفل وصحة الأم.")}
+              </p>
+              <a
+                href="https://www.google.com/maps/dir/?api=1&destination=31.392461,34.751015"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn mt-2 w-full py-1.5 text-xs font-extrabold"
+              >
+                📍 {tr("الاتجاهات لقطرة حليب")}
+              </a>
+            </div>
+
+            <div className="rounded-2xl border-2 border-primary bg-primary-soft/60 p-3">
+              <h4 className="text-xs font-extrabold text-ink sm:text-sm">
+                💊 {tr("صيدلية المناوبة (الحراسة) اليوم")}
+              </h4>
+              <p className="mt-0.5 text-[11px] font-semibold text-muted">
+                {tr("شاهد الصيدلية المناوبة المفتوحة اليوم في رهط مع الهاتف والموقع.")}
+              </p>
+              <Link
+                to="/today"
+                className="btn mt-2 w-full py-1.5 text-xs font-extrabold"
+              >
+                {tr("افتح لوحة اليوم والصيدلية")}
+              </Link>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {/* TAB 4: GALIM BUSES */}
+      {mainTab === "transport" ? (
+        <div className="mt-3.5 space-y-3">
+          <div className="flex items-center justify-between gap-2 rounded-2xl bg-surface p-1.5">
+            <button
+              type="button"
+              onClick={() => setBusFilter("city")}
+              className={`press flex-1 rounded-xl py-2 text-xs font-extrabold transition ${
+                busFilter === "city" ? "bg-primary text-ink shadow-2xs" : "text-muted"
+              }`}
+            >
+              🚌 {tr("خطوط داخل أحياء رهط (1–6)")}
+            </button>
+            <button
+              type="button"
+              onClick={() => setBusFilter("intercity")}
+              className={`press flex-1 rounded-xl py-2 text-xs font-extrabold transition ${
+                busFilter === "intercity" ? "bg-primary text-ink shadow-2xs" : "text-muted"
+              }`}
+            >
+              🛣️ {tr("خطوط بئر السبع والنقب")}
+            </button>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {(busFilter === "city" ? cityBuses : intercityBuses).map((b) => (
+              <Link
+                key={b.line}
+                to="/buses"
+                className="press flex items-center gap-2.5 rounded-2xl border border-line bg-paper p-2.5 hover:border-primary"
+              >
+                <span className="grid min-w-10 shrink-0 place-items-center rounded-xl bg-primary px-2 py-1.5 font-mono text-xs font-extrabold text-ink">
+                  {b.line}
+                </span>
+                <span className="line-clamp-2 text-xs font-bold text-ink">{trv(b.route)}</span>
+              </Link>
+            ))}
+          </div>
+
+          <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+            <Link to="/buses" className="btn flex-1 py-2 text-xs font-extrabold">
+              🗺️ {tr("تتبع الباصات مباشر على الخريطة ومواعيد اليوم")}
+            </Link>
+            <a href="tel:086688700" className="btn btn-ghost py-2 text-xs font-extrabold">
+              📞 {tr("شركة غاليم: 08-6688700")}
+            </a>
+          </div>
+        </div>
+      ) : null}
+
+      {/* Footer Quick Links to All 4 Full Guides */}
+      <div className="mt-3.5 flex flex-wrap items-center justify-between gap-2 border-t border-line/80 pt-3 text-xs font-extrabold">
+        <span className="text-muted">{tr("الأدلة التفصيلية الكاملة:")}</span>
+        <div className="flex flex-wrap gap-1.5">
+          {[
+            { slug: "post", label: "📮 دليل البريد" },
+            { slug: "municipality", label: "🏛️ دليل البلدية" },
+            { slug: "health", label: "🏥 دليل الصحة" },
+            { slug: "transport", label: "🚌 دليل الباصات" },
+          ].map((g) => (
+            <Link
+              key={g.slug}
+              to="/directory/guide/$guide"
+              params={{ guide: g.slug }}
+              className="rounded-xl border border-line bg-paper px-2.5 py-1 text-ink transition hover:border-primary hover:bg-primary-soft"
+            >
+              {trv(g.label)}
+            </Link>
+          ))}
+        </div>
       </div>
     </div>
   );
