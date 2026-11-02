@@ -1,0 +1,71 @@
+name: Build and Upload iOS to App Store Connect
+
+# Builds the Rahat Post iOS app on a GitHub macOS runner, automatically creates/fetches
+# Apple Distribution signing certificates & profiles via codemagic-cli-tools, and uploads
+# the signed .ipa directly to App Store Connect (TestFlight).
+#
+# Required GitHub Repository Secrets (Settings -> Secrets and variables -> Actions):
+#   APP_STORE_CONNECT_ISSUER_ID        (Issuer ID from App Store Connect -> Users and Access -> Keys)
+#   APP_STORE_CONNECT_KEY_IDENTIFIER   (Key ID from App Store Connect)
+#   APP_STORE_CONNECT_PRIVATE_KEY      (Full text content of the AuthKey_XXXX.p8 file)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  ios-release:
+    runs-on: macos-14
+    timeout-minutes: 45
+    env:
+      BUNDLE_ID: com.rahatpost.app
+      XCODE_WORKSPACE: mobile/ios/App/App.xcworkspace
+      XCODE_SCHEME: App
+      APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+      APP_STORE_CONNECT_KEY_IDENTIFIER: ${{ secrets.APP_STORE_CONNECT_KEY_IDENTIFIER }}
+      APP_STORE_CONNECT_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install codemagic-cli-tools for automatic Apple Signing & Publishing
+        run: pip3 install codemagic-cli-tools
+
+      - name: Install Capacitor & CocoaPods dependencies
+        run: |
+          cd mobile
+          npm install
+          npx cap sync ios
+          cd ios/App
+          pod install
+
+      - name: Initialize keychain & automatically create/fetch Apple Distribution Certificate and Profile
+        run: |
+          keychain initialize
+          openssl genrsa -out /tmp/cert_key.pem 2048
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --platform IOS \
+            --type IOS_APP_STORE \
+            --certificate-key=@file:/tmp/cert_key.pem \
+            --create
+          keychain add-certificates
+
+      - name: Apply provisioning profile & increment build number
+        run: |
+          xcode-project use-profiles --project mobile/ios/App/App.xcodeproj
+          cd mobile/ios/App && agvtool new-version -all "$GITHUB_RUN_NUMBER"
+
+      - name: Build signed IPA for App Store
+        run: |
+          xcode-project build-ipa \
+            --workspace "$XCODE_WORKSPACE" \
+            --scheme "$XCODE_SCHEME"
+
+      - name: Upload IPA to App Store Connect (TestFlight)
+        run: |
+          app-store-connect publish \
+            --path "build/ios/ipa/*.ipa"
