@@ -23,6 +23,73 @@ import { spawn } from "node:child_process";
 import { readFileSync, realpathSync } from "node:fs";
 import { constants as osConstants } from "node:os";
 import { dirname, join } from "node:path";
+
+// Auto-extract any uploaded rahatpost-*.zip archives before running vite build on Vercel
+import { existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { inflateRawSync } from "node:zlib";
+
+function extractZipBufferInNode(buf, destDir) {
+  let eocdOffset = -1;
+  for (let i = buf.length - 22; i >= Math.max(0, buf.length - 65557); i--) {
+    if (buf.readUInt32LE(i) === 0x06054b50) {
+      eocdOffset = i;
+      break;
+    }
+  }
+  if (eocdOffset < 0) return 0;
+  const totalEntries = buf.readUInt16LE(eocdOffset + 10);
+  const cdOffset = buf.readUInt32LE(eocdOffset + 16);
+  let ptr = cdOffset;
+  let count = 0;
+  for (let i = 0; i < totalEntries; i++) {
+    if (ptr + 46 > buf.length || buf.readUInt32LE(ptr) !== 0x02014b50) break;
+    const method = buf.readUInt16LE(ptr + 10);
+    const compSize = buf.readUInt32LE(ptr + 20);
+    const nameLen = buf.readUInt16LE(ptr + 28);
+    const extraLen = buf.readUInt16LE(ptr + 30);
+    const commentLen = buf.readUInt16LE(ptr + 32);
+    const localHeaderOffset = buf.readUInt32LE(ptr + 42);
+    const fileName = buf.subarray(ptr + 46, ptr + 46 + nameLen).toString("utf8");
+    ptr += 46 + nameLen + extraLen + commentLen;
+    if (!fileName || fileName.endsWith("/") || fileName.includes("..")) continue;
+    if (localHeaderOffset + 30 > buf.length || buf.readUInt32LE(localHeaderOffset) !== 0x04034b50) continue;
+    const lNameLen = buf.readUInt16LE(localHeaderOffset + 26);
+    const lExtraLen = buf.readUInt16LE(localHeaderOffset + 28);
+    const dataStart = localHeaderOffset + 30 + lNameLen + lExtraLen;
+    const compData = buf.subarray(dataStart, dataStart + compSize);
+    const fileData = method === 0 ? compData : method === 8 ? inflateRawSync(compData) : null;
+    if (!fileData) continue;
+    const outPath = join(destDir, fileName);
+    mkdirSync(dirname(outPath), { recursive: true });
+    writeFileSync(outPath, fileData);
+    count++;
+  }
+  return count;
+}
+
+function autoUnpackUploadedZips(root) {
+  try {
+    const dirsToScan = [root, join(root, "src"), join(root, "src/routes"), join(root, "mobile")];
+    for (const d of dirsToScan) {
+      if (!existsSync(d)) continue;
+      for (const name of readdirSync(d)) {
+        if (!name.toLowerCase().endsWith(".zip")) continue;
+        const fullZip = join(d, name);
+        const lower = name.toLowerCase();
+        if (lower.includes("routes")) {
+          const n = extractZipBufferInNode(readFileSync(fullZip), join(root, "src/routes"));
+          console.log(`[auto-unpack] Extracted ${n} files from ${name} into src/routes/`);
+        } else if (lower.includes("mobile") || lower.includes("admob") || lower.includes("rahatpost")) {
+          const n = extractZipBufferInNode(readFileSync(fullZip), root);
+          console.log(`[auto-unpack] Extracted ${n} files from ${name} into root`);
+        }
+      }
+    }
+  } catch (e) {
+    console.warn("[auto-unpack] warning:", e?.message || e);
+  }
+}
+
 import { fileURLToPath } from "node:url";
 
 export const APP_ENV_REL_PATH = ".grok/app-env.json";
@@ -110,6 +177,7 @@ function main(argv) {
     console.error("usage: node scripts/with-app-env.mjs <command> [args…]");
     process.exit(2);
   }
+  autoUnpackUploadedZips(projectRoot());
   const env = mergeAppEnv(readAppEnv(projectRoot()), process.env);
   const child = spawn(command, args, { stdio: "inherit", env });
   // The dev server is long-running and is stopped by signalling this wrapper.

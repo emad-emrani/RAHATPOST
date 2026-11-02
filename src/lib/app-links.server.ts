@@ -24,8 +24,11 @@ export function normalizeFingerprint(value: string): string | null {
   return hex.match(/../g)!.join(":");
 }
 
+export const UPLOAD_KEY_SHA256_CI =
+  "F0:09:2D:F3:CF:AC:0C:FF:7A:66:F2:85:62:7C:AF:68:7F:0F:06:CB:F7:08:34:97:C1:90:A4:3D:90:70:84:84";
+
 export function assetLinkFingerprints(extra = process.env.ASSETLINKS_SHA256 ?? ""): string[] {
-  const all = [UPLOAD_KEY_SHA256, ...extra.split(",")]
+  const all = [UPLOAD_KEY_SHA256, UPLOAD_KEY_SHA256_CI, ...extra.split(",")]
     .map((v) => normalizeFingerprint(v.trim()))
     .filter((v): v is string => Boolean(v));
   return [...new Set(all)];
