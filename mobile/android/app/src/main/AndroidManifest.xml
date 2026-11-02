@@ -8,6 +8,17 @@
         android:supportsRtl="true"
         android:usesCleartextTraffic="false"
         android:theme="@style/AppTheme">
+        <!-- Google Mobile Ads SDK (AdMob) Application ID & Optimization Flags -->
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="@string/admob_app_id" />
+        <meta-data
+            android:name="com.google.android.gms.ads.flag.OPTIMIZE_INITIALIZATION"
+            android:value="true" />
+        <meta-data
+            android:name="com.google.android.gms.ads.flag.OPTIMIZE_AD_LOADING"
+            android:value="true" />
+
         <activity
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode|navigation"
             android:name=".MainActivity"
@@ -48,12 +59,6 @@
                 <data android:pathPrefix="/my-ads" />
                 <data android:pathPrefix="/privacy" />
                 <data android:pathPrefix="/terms" />
-                <data android:pathPrefix="/haraj" />
-                <data android:pathPrefix="/store" />
-                <data android:pathPrefix="/sports-news" />
-                <data android:pathPrefix="/tech-news" />
-                <data android:pathPrefix="/cart" />
-                <data android:host="www.rahatpost.com" />
             </intent-filter>
         </activity>
 
@@ -69,8 +74,9 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
-    <!-- Android 13+: the site can ask to show alerts. Not requested until the visitor taps allow. -->
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- Google Mobile Ads SDK (Advertising ID permission for Android 13+) -->
+    <uses-permission android:name="com.google.android.gms.permission.AD_ID" />
     <!-- "أقرب محطة لي" (nearest bus stop) on /buses asks for the location only when the user taps
          it; the WebView prompt is bridged to the Android runtime permission. Never in background. -->
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />

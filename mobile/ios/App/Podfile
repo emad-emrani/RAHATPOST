@@ -11,6 +11,7 @@ install! 'cocoapods', :disable_input_output_paths => true
 def capacitor_pods
   pod 'Capacitor', :path => '../../node_modules/@capacitor/ios'
   pod 'CapacitorCordova', :path => '../../node_modules/@capacitor/ios'
+  pod 'CapacitorCommunityAdmob', :path => '../../node_modules/@capacitor-community/admob'
   pod 'CapacitorApp', :path => '../../node_modules/@capacitor/app'
   pod 'CapacitorBrowser', :path => '../../node_modules/@capacitor/browser'
   pod 'CapacitorSplashScreen', :path => '../../node_modules/@capacitor/splash-screen'
@@ -19,7 +20,8 @@ end
 
 target 'App' do
   capacitor_pods
-  # Add your Pods here
+  # Google Mobile Ads SDK (AdMob)
+  pod 'Google-Mobile-Ads-SDK'
 end
 
 post_install do |installer|

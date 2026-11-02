@@ -5,4 +5,6 @@
     <string name="title_activity_main">Rahat Post</string>
     <string name="package_name">com.rahatpost.app</string>
     <string name="custom_url_scheme">com.rahatpost.app</string>
+    <!-- Google Mobile Ads SDK (AdMob) Application ID -->
+    <string name="admob_app_id">ca-app-pub-9063892572843254~3347511713</string>
 </resources>
