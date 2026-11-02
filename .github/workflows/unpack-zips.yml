@@ -1,0 +1,71 @@
+name: Auto Unpack Uploaded ZIPs
+
+# Automatically extracts rahatpost-routes-only.zip and rahatpost-mobile-admob.zip
+# whenever they are uploaded to the repository (root or src/routes/), removes the
+# .zip archives, and commits the extracted files to main.
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "**.zip"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: unpack-zips
+  cancel-in-progress: false
+
+jobs:
+  unpack:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract uploaded ZIP archives
+        run: |
+          FOUND=0
+
+          # 1. If rahatpost-routes-only.zip was uploaded in root or src/routes/
+          for Z in "rahatpost-routes-only.zip" "src/routes/rahatpost-routes-only.zip"; do
+            if [ -f "$Z" ]; then
+              echo "Extracting $Z into src/routes/..."
+              mkdir -p src/routes
+              unzip -o "$Z" -d src/routes/
+              rm -f "$Z"
+              FOUND=1
+            fi
+          done
+
+          # 2. If rahatpost-mobile-admob.zip was uploaded in root or src/routes/ or mobile/
+          for Z in "rahatpost-mobile-admob.zip" "src/routes/rahatpost-mobile-admob.zip" "mobile/rahatpost-mobile-admob.zip"; do
+            if [ -f "$Z" ]; then
+              echo "Extracting $Z into repository root..."
+              unzip -o "$Z" -d .
+              rm -f "$Z"
+              FOUND=1
+            fi
+          done
+
+          if [ "$FOUND" -eq 0 ]; then
+            echo "No target zip files found to extract."
+            exit 0
+          fi
+
+      - name: Commit and push extracted files
+        run: |
+          if [ -z "$(git status --porcelain)" ]; then
+            echo "No changes after extraction."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Auto-extract uploaded ZIP updates ($(date -u +%Y-%m-%dT%H:%M:%SZ))"
+          git pull --rebase origin main
+          git push origin main
