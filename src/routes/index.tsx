@@ -549,7 +549,32 @@ function Home() {
   }, [query, news.items, places, classifieds, israelItems]);
 
   const directoryPreview = places.length ? (
-    <InteractiveDirectoryHomeSection places={places} />
+    <section>
+      <SectionTitle title={tr("دليل محلات وخدمات رهط")} to="/directory" more={tr("كل الدليل")} />
+      <ul className="grid gap-3 sm:grid-cols-2">
+        {places.slice(0, 6).map((place) => (
+          <li key={place.slug}>
+            <Link
+              to="/directory/$slug"
+              params={{ slug: place.slug }}
+              className="stamp press flex items-center gap-3 px-4 py-3"
+            >
+              <span className="icon-badge shrink-0">
+                <MapPin className="size-5" aria-hidden />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block font-bold leading-snug">{trv(place.name)}</span>
+                <span className="text-sm font-semibold text-muted">
+                  {trv(place.category)}
+                  {place.address || place.area ? ` · ${trv(place.address ?? place.area ?? "")}` : ""}
+                </span>
+              </span>
+              <ChevronLeft className="size-5 shrink-0 text-muted" aria-hidden />
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </section>
   ) : null;
 
   type ExtendedHomeSectionId = HomeSectionId | "matches" | `csec~${string}`;
@@ -5037,250 +5062,5 @@ function InteractiveRahatServicesHub({ now }: { now: number }) {
         </div>
       </div>
     </div>
-  );
-}
-
-
-
-/* -------------------------------------------------------------------------- */
-/* Interactive Rahat Shops & Services Directory Section (Homepage)            */
-/* -------------------------------------------------------------------------- */
-
-function InteractiveDirectoryHomeSection({ places }: { places: DirectoryEntry[] }) {
-  const [hubMap, setHubMap] = useState<
-    Record<
-      string,
-      {
-        slug: string;
-        isCustomShop?: boolean;
-        customName?: string;
-        customCategory?: string;
-        customArea?: string;
-        customAddress?: string;
-        logoKey?: string;
-        verified?: boolean;
-        featured?: boolean;
-        supervisorName?: string;
-        products?: { id: string; name: string }[];
-        campaigns?: { id: string; title: string; discountBadge: string; active: boolean }[];
-      }
-    >
-  >({});
-  const [activeCat, setActiveCat] = useState<string>("الكل");
-
-  useEffect(() => {
-    fetch("/api/media?kind=shop-hub")
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => {
-        if (d?.ok && d.shops) setHubMap(d.shops);
-      })
-      .catch(() => {});
-  }, []);
-
-  const enriched = useMemo(() => {
-    const seen = new Set<string>();
-    const list: (DirectoryEntry & {
-      featured?: boolean;
-      supervisorName?: string;
-      productsCount: number;
-      offerBadge?: string;
-    })[] = [];
-
-    for (const p of places) {
-      seen.add(p.slug);
-      const cfg = hubMap[p.slug];
-      const activeCamps = (cfg?.campaigns ?? []).filter((c) => c.active);
-      list.push({
-        ...p,
-        name: cfg?.customName || p.name,
-        category: cfg?.customCategory || p.category,
-        area: cfg?.customArea || p.area,
-        address: cfg?.customAddress || p.address,
-        photo: cfg?.logoKey || p.photo,
-        verified: cfg?.verified !== undefined ? cfg.verified : p.verified,
-        featured: cfg?.featured,
-        supervisorName: cfg?.supervisorName,
-        productsCount: cfg?.products?.length ?? 0,
-        offerBadge: activeCamps[0]?.discountBadge,
-      });
-    }
-
-    for (const [slug, cfg] of Object.entries(hubMap)) {
-      if (seen.has(slug) || !cfg.isCustomShop || !cfg.customName) continue;
-      const activeCamps = (cfg.campaigns ?? []).filter((c) => c.active);
-      list.push({
-        slug,
-        name: cfg.customName,
-        category: cfg.customCategory || "خدمات",
-        source: "owner",
-        verified: cfg.verified !== false,
-        area: cfg.customArea,
-        address: cfg.customAddress,
-        photo: cfg.logoKey,
-        featured: cfg.featured,
-        supervisorName: cfg.supervisorName,
-        productsCount: cfg.products?.length ?? 0,
-        offerBadge: activeCamps[0]?.discountBadge,
-      });
-    }
-
-    return list.sort((a, b) => {
-      const score = (x: (typeof list)[number]) =>
-        (x.featured ? 100 : 0) +
-        (x.offerBadge ? 50 : 0) +
-        (x.productsCount > 0 ? 30 : 0) +
-        (x.photo ? 15 : 0) +
-        (x.verified ? 10 : 0);
-      return score(b) - score(a);
-    });
-  }, [places, hubMap]);
-
-  const categories = useMemo(() => {
-    const base = ["الكل", "مطاعم ومقاهي", "بقالات", "صحة", "ملابس", "خدمات"];
-    return base.filter((c) => c === "الكل" || enriched.some((p) => p.category === c));
-  }, [enriched]);
-
-  const visiblePlaces = useMemo(() => {
-    const filtered =
-      activeCat === "الكل"
-        ? enriched
-        : activeCat === "__offers__"
-          ? enriched.filter((p) => Boolean(p.offerBadge) || p.productsCount > 0)
-          : enriched.filter((p) => p.category === activeCat);
-    return filtered.slice(0, 6);
-  }, [enriched, activeCat]);
-
-  const hasAnyOffers = enriched.some((p) => Boolean(p.offerBadge) || p.productsCount > 0);
-
-  return (
-    <section className="space-y-3">
-      <SectionTitle title={tr("دليل محلات وخدمات رهط")} to="/directory" more={tr("كل الدليل")} />
-
-      <div className="stamp overflow-hidden border-2 border-primary/70 bg-gradient-to-b from-primary-soft/50 via-paper to-paper p-3.5 sm:p-4 shadow-xs space-y-3">
-        {/* Category & Offers Filter Bar */}
-        <div className="flex items-center justify-between gap-2 flex-wrap">
-          <div className="flex flex-wrap items-center gap-1.5">
-            {categories.map((cat) => (
-              <button
-                key={cat}
-                type="button"
-                onClick={() => setActiveCat(cat)}
-                className={`press rounded-full px-3 py-1 text-xs font-extrabold transition ${
-                  activeCat === cat
-                    ? "bg-ink text-paper shadow-2xs"
-                    : "border border-line bg-paper text-ink hover:border-primary"
-                }`}
-              >
-                {trv(cat)}
-              </button>
-            ))}
-            {hasAnyOffers ? (
-              <button
-                type="button"
-                onClick={() => setActiveCat("__offers__")}
-                className={`press rounded-full px-3 py-1 text-xs font-extrabold transition ${
-                  activeCat === "__offers__"
-                    ? "bg-alert text-white shadow-2xs"
-                    : "border border-alert/40 bg-alert/10 text-alert hover:bg-alert/20"
-                }`}
-              >
-                🔥 {tr("عروض ومنتجات")}
-              </button>
-            ) : null}
-          </div>
-
-          <Link
-            to="/submit"
-            search={{ mode: "نشاط" }}
-            className="inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1 text-xs font-extrabold text-ink shadow-2xs hover:opacity-90"
-          >
-            <Plus className="size-3.5" aria-hidden />
-            {tr("أضف محلك")}
-          </Link>
-        </div>
-
-        {/* Shops Grid */}
-        <ul className="grid gap-3 sm:grid-cols-2">
-          {visiblePlaces.map((place) => (
-            <li key={place.slug}>
-              <Link
-                to="/directory/$slug"
-                params={{ slug: place.slug }}
-                className={`press flex items-center gap-3 rounded-2xl border p-3 transition ${
-                  place.featured || place.offerBadge
-                    ? "border-2 border-primary bg-primary-soft/35"
-                    : "border-line bg-paper hover:border-primary"
-                }`}
-              >
-                {place.photo ? (
-                  <img
-                    src={mediaUrl(place.photo)}
-                    alt={trv(place.name)}
-                    className="size-14 shrink-0 rounded-2xl border-2 border-primary/60 bg-paper object-cover shadow-2xs"
-                    loading="lazy"
-                    decoding="async"
-                  />
-                ) : (
-                  <span className="icon-badge size-14 shrink-0 rounded-2xl bg-primary-soft text-primary-ink">
-                    <Store className="size-6" aria-hidden />
-                  </span>
-                )}
-
-                <span className="min-w-0 flex-1 space-y-0.5">
-                  <span className="flex flex-wrap items-center gap-1.5">
-                    <span className="truncate text-sm font-extrabold leading-snug text-ink sm:text-base">
-                      {trv(place.name)}
-                    </span>
-                    {place.verified ? (
-                      <span className="rounded-full bg-ink px-2 py-0.5 text-[10px] font-extrabold text-paper">
-                        ✓ {tr("موثّق")}
-                      </span>
-                    ) : null}
-                  </span>
-
-                  <span className="flex flex-wrap items-center gap-1.5 text-xs font-bold text-muted">
-                    <span>{trv(place.category)}</span>
-                    {place.address || place.area ? (
-                      <span className="truncate">· {trv(place.address ?? place.area ?? "")}</span>
-                    ) : null}
-                  </span>
-
-                  {place.offerBadge || place.productsCount > 0 || place.supervisorName ? (
-                    <span className="flex flex-wrap items-center gap-1 pt-0.5">
-                      {place.offerBadge ? (
-                        <span className="rounded-full bg-alert px-2 py-0.5 text-[10px] font-extrabold text-white">
-                          🔥 {trv(place.offerBadge)}
-                        </span>
-                      ) : null}
-                      {place.productsCount > 0 ? (
-                        <span className="rounded-full bg-primary-soft px-2 py-0.5 text-[10px] font-extrabold text-primary-ink">
-                          🛍️ {trv(place.productsCount)} {tr("منتج")}
-                        </span>
-                      ) : null}
-                      {place.supervisorName ? (
-                        <span className="rounded-full bg-[#16A34A]/15 px-2 py-0.5 text-[10px] font-extrabold text-[#15803D]">
-                          👤 {tr("إشراف معتمد")}
-                        </span>
-                      ) : null}
-                    </span>
-                  ) : null}
-                </span>
-
-                <ChevronLeft className="size-5 shrink-0 text-muted" aria-hidden />
-              </Link>
-            </li>
-          ))}
-        </ul>
-
-        <div className="flex items-center justify-between border-t border-line/70 pt-2.5 text-xs font-extrabold">
-          <span className="text-muted">
-            {tr("يمكن لأصحاب المحلات إضافة لوجو المحل والمنتجات وحملات العروض داخل صفحة المحل")}
-          </span>
-          <Link to="/directory" className="text-primary-ink underline">
-            {tr("تصفح كل المحلات ←")}
-          </Link>
-        </div>
-      </div>
-    </section>
   );
 }
