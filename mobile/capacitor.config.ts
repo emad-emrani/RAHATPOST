@@ -15,7 +15,7 @@ const config: CapacitorConfig = {
     // Google / Facebook sign-in is NOT done in the WebView (they block it); see README.
     allowNavigation: ["rahatpost.com", "*.rahatpost.com"],
   },
-  backgroundColor: "#FDB700",
+  backgroundColor: "#f2c94c",
   // Lets the site recognise the store app (e.g. hide "install the app" prompts).
   appendUserAgent: "RahatPostApp/1.0.0",
   android: {
@@ -27,13 +27,14 @@ const config: CapacitorConfig = {
   ios: { contentInset: "automatic" },
   plugins: {
     SplashScreen: {
-      launchShowDuration: 1200,
+      launchShowDuration: 450,
       launchAutoHide: true,
-      backgroundColor: "#FDB700",
+      fadeOutDuration: 250,
+      backgroundColor: "#f2c94c",
       showSpinner: false,
-      androidScaleType: "CENTER_CROP",
+      androidScaleType: "CENTER_INSIDE",
     },
-    StatusBar: { style: "LIGHT", backgroundColor: "#F2C94C", overlaysWebView: false },
+    StatusBar: { style: "LIGHT", backgroundColor: "#f2c94c", overlaysWebView: false },
   },
 };
 

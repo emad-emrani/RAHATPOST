@@ -549,32 +549,7 @@ function Home() {
   }, [query, news.items, places, classifieds, israelItems]);
 
   const directoryPreview = places.length ? (
-    <section>
-      <SectionTitle title={tr("دليل محلات وخدمات رهط")} to="/directory" more={tr("كل الدليل")} />
-      <ul className="grid gap-3 sm:grid-cols-2">
-        {places.slice(0, 6).map((place) => (
-          <li key={place.slug}>
-            <Link
-              to="/directory/$slug"
-              params={{ slug: place.slug }}
-              className="stamp press flex items-center gap-3 px-4 py-3"
-            >
-              <span className="icon-badge shrink-0">
-                <MapPin className="size-5" aria-hidden />
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block font-bold leading-snug">{trv(place.name)}</span>
-                <span className="text-sm font-semibold text-muted">
-                  {trv(place.category)}
-                  {place.address || place.area ? ` · ${trv(place.address ?? place.area ?? "")}` : ""}
-                </span>
-              </span>
-              <ChevronLeft className="size-5 shrink-0 text-muted" aria-hidden />
-            </Link>
-          </li>
-        ))}
-      </ul>
-    </section>
+    <InteractiveDirectoryHomeSection places={places} />
   ) : null;
 
   type ExtendedHomeSectionId = HomeSectionId | "matches" | `csec~${string}`;
@@ -3934,7 +3909,7 @@ ${userExtraCss}`}</style>
 }
 
 
-/** Animated Top Weather & Prayer Bar — Transparent (no background box) to blend seamlessly with the site on all screens. */
+/** Animated Top Weather & Prayer Bar — Harmonious single-row card matching site design & Image 2 RTL order. */
 function AnimatedWeatherPrayerBar({
   weather,
   serverNow,
@@ -3963,7 +3938,7 @@ function AnimatedWeatherPrayerBar({
       const mm = parts.find((p) => p.type === "minute")?.value ?? "00";
       return { localHour: Number(hh), timeStr: `${hh}:${mm}` };
     } catch {
-      return { localHour: 20, timeStr: "20:00" };
+      return { localHour: 12, timeStr: "12:00" };
     }
   }, [now]);
 
@@ -3973,54 +3948,55 @@ function AnimatedWeatherPrayerBar({
   const isCloudy = kind === "partly" || kind === "cloudy" || kind === "fog";
 
   return (
-    <div className="w-full bg-transparent">
+    <div className="-mt-1 w-full sm:mt-0">
       <style>{`
         @keyframes rpSunSpin {
           0% { transform: rotate(0deg) scale(1); }
-          50% { transform: rotate(180deg) scale(1.1); }
+          50% { transform: rotate(180deg) scale(1.08); }
           100% { transform: rotate(360deg) scale(1); }
         }
         @keyframes rpMoonFloat {
-          0%, 100% { transform: translateY(0px) rotate(-6deg); }
-          50% { transform: translateY(-3px) rotate(5deg); }
+          0%, 100% { transform: translateY(0px) rotate(-5deg); }
+          50% { transform: translateY(-2px) rotate(4deg); }
         }
         @keyframes rpStarTwinkle {
-          0%, 100% { opacity: 0.3; transform: scale(0.85); }
-          50% { opacity: 1; transform: scale(1.2); }
+          0%, 100% { opacity: 0.35; transform: scale(0.85); }
+          50% { opacity: 1; transform: scale(1.15); }
         }
         @keyframes rpCloudDrift {
           0%, 100% { transform: translateX(0px); }
-          50% { transform: translateX(4px); }
+          50% { transform: translateX(2.5px); }
         }
         @keyframes rpRainBounce {
           0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(2.5px); }
+          50% { transform: translateY(2px); }
         }
         @keyframes rpWindWave {
-          0%, 100% { transform: translateX(-2px); opacity: 0.7; }
-          50% { transform: translateX(3px); opacity: 1; }
+          0%, 100% { transform: translateX(-1px); opacity: 0.75; }
+          50% { transform: translateX(1.5px); opacity: 1; }
         }
       `}</style>
 
-      <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-bold text-ink sm:text-sm">
-        {/* Weather + Animated Icon (Sun / Moon & Stars / Rain / Wind / Clouds) — Transparent */}
+      {/* Single-Row Harmonious Card — Fits 100% on one line on mobile & desktop in exact Image 2 RTL order */}
+      <div className="stamp flex flex-nowrap items-center justify-between gap-1.5 overflow-x-auto rounded-2xl border border-line bg-paper px-2.5 py-2 text-[10.5px] font-bold text-ink [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:gap-3 sm:px-4 sm:py-2.5 sm:text-xs">
+        {/* Right Side (in RTL): Weather Icon + Temp + Condition + Wind + Day/Night Live Time */}
         <Link
           to="/today"
-          className="inline-flex flex-wrap items-center gap-2 py-1 transition hover:opacity-80"
+          className="inline-flex min-w-0 shrink-0 items-center gap-1 whitespace-nowrap transition hover:opacity-80 sm:gap-2"
           aria-label={
             weather
               ? tr("الطقس في رهط: {0} درجة، {1}", weather.temp, weatherLabel(weather.code))
               : tr("الطقس في رهط")
           }
         >
-          <span className="relative inline-flex items-center justify-center text-lg leading-none">
+          <span className="relative inline-flex size-5 shrink-0 items-center justify-center rounded-full bg-primary-soft text-xs leading-none sm:size-6 sm:text-sm">
             {isRainy ? (
               <span style={{ animation: "rpRainBounce 1.4s infinite ease-in-out" }}>🌧️</span>
             ) : isNight ? (
               <span className="inline-flex items-center">
                 <span style={{ animation: "rpMoonFloat 3.2s infinite ease-in-out" }}>🌙</span>
                 <span
-                  className="-ms-1 -mt-2 text-[10px]"
+                  className="-ms-1 -mt-1 text-[8px]"
                   style={{ animation: "rpStarTwinkle 2.2s infinite ease-in-out" }}
                 >
                   ✨
@@ -4035,14 +4011,14 @@ function AnimatedWeatherPrayerBar({
 
           {weather ? (
             <>
-              <bdi dir="ltr" className="text-sm font-extrabold text-ink sm:text-base">
+              <bdi dir="ltr" className="text-[11px] font-extrabold text-ink sm:text-sm">
                 {trv(weather.temp)}°
               </bdi>
-              <span className="font-bold text-muted">{weatherLabel(weather.code)}</span>
+              <span className="font-bold text-ink/85">{weatherLabel(weather.code)}</span>
 
               {weather.wind !== null ? (
                 <span
-                  className="inline-flex items-center gap-0.5 text-[11px] font-bold text-muted"
+                  className="inline-flex items-center gap-0.5 text-[10px] font-bold text-muted sm:text-xs"
                   title={tr("سرعة الرياح")}
                 >
                   <span
@@ -4058,7 +4034,7 @@ function AnimatedWeatherPrayerBar({
 
               {weather.rainChance !== null && weather.rainChance > 0 ? (
                 <span
-                  className="inline-flex items-center gap-0.5 text-[11px] font-bold text-primary-ink"
+                  className="inline-flex items-center gap-0.5 text-[10px] font-bold text-primary-ink sm:text-xs"
                   title={tr("احتمال المطر")}
                 >
                   <span style={{ animation: "rpRainBounce 1.6s infinite ease-in-out" }}>💧</span>
@@ -4071,8 +4047,8 @@ function AnimatedWeatherPrayerBar({
           )}
 
           {/* Day / Night Live Time Indicator */}
-          <span className="inline-flex items-center gap-1 text-[11px] font-bold text-muted">
-            <span>·</span>
+          <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-muted sm:gap-1 sm:text-xs">
+            <span className="text-line">·</span>
             <span>{isNight ? tr("ليلاً") : tr("نهاراً")}</span>
             <bdi dir="ltr" className="font-mono font-extrabold text-ink">
               {timeStr}
@@ -4080,13 +4056,16 @@ function AnimatedWeatherPrayerBar({
           </span>
         </Link>
 
-        {/* Next Prayer + Live Countdown — Transparent */}
+        {/* Subtle Vertical Divider */}
+        <span className="h-3.5 w-px shrink-0 bg-line" aria-hidden />
+
+        {/* Left Side (in RTL): Mosque Icon + Next Prayer Name & Time + Countdown */}
         <Link
           to="/today"
-          className="inline-flex items-center gap-1.5 py-1 transition hover:opacity-80"
+          className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap transition hover:opacity-80 sm:gap-1.5"
         >
           <span
-            className="inline-block text-base leading-none"
+            className="inline-flex size-5 shrink-0 items-center justify-center rounded-full bg-primary-soft text-xs leading-none sm:size-6 sm:text-sm"
             style={{ animation: "rpMoonFloat 3.6s infinite ease-in-out" }}
             aria-hidden
           >
@@ -4098,7 +4077,7 @@ function AnimatedWeatherPrayerBar({
               {formatPrayerTime(next.at)}
             </bdi>
           </span>
-          <span className="text-xs font-semibold text-muted">
+          <span className="text-[10px] font-semibold text-muted sm:text-xs">
             {countdownAr(next.at - now)}
           </span>
         </Link>
@@ -4106,7 +4085,6 @@ function AnimatedWeatherPrayerBar({
     </div>
   );
 }
-
 
 
 /* -------------------------------------------------------------------------- */
@@ -5062,5 +5040,250 @@ function InteractiveRahatServicesHub({ now }: { now: number }) {
         </div>
       </div>
     </div>
+  );
+}
+
+
+
+/* -------------------------------------------------------------------------- */
+/* Interactive Rahat Shops & Services Directory Section (Homepage)            */
+/* -------------------------------------------------------------------------- */
+
+function InteractiveDirectoryHomeSection({ places }: { places: DirectoryEntry[] }) {
+  const [hubMap, setHubMap] = useState<
+    Record<
+      string,
+      {
+        slug: string;
+        isCustomShop?: boolean;
+        customName?: string;
+        customCategory?: string;
+        customArea?: string;
+        customAddress?: string;
+        logoKey?: string;
+        verified?: boolean;
+        featured?: boolean;
+        supervisorName?: string;
+        products?: { id: string; name: string }[];
+        campaigns?: { id: string; title: string; discountBadge: string; active: boolean }[];
+      }
+    >
+  >({});
+  const [activeCat, setActiveCat] = useState<string>("الكل");
+
+  useEffect(() => {
+    fetch("/api/media?kind=shop-hub")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (d?.ok && d.shops) setHubMap(d.shops);
+      })
+      .catch(() => {});
+  }, []);
+
+  const enriched = useMemo(() => {
+    const seen = new Set<string>();
+    const list: (DirectoryEntry & {
+      featured?: boolean;
+      supervisorName?: string;
+      productsCount: number;
+      offerBadge?: string;
+    })[] = [];
+
+    for (const p of places) {
+      seen.add(p.slug);
+      const cfg = hubMap[p.slug];
+      const activeCamps = (cfg?.campaigns ?? []).filter((c) => c.active);
+      list.push({
+        ...p,
+        name: cfg?.customName || p.name,
+        category: cfg?.customCategory || p.category,
+        area: cfg?.customArea || p.area,
+        address: cfg?.customAddress || p.address,
+        photo: cfg?.logoKey || p.photo,
+        verified: cfg?.verified !== undefined ? cfg.verified : p.verified,
+        featured: cfg?.featured,
+        supervisorName: cfg?.supervisorName,
+        productsCount: cfg?.products?.length ?? 0,
+        offerBadge: activeCamps[0]?.discountBadge,
+      });
+    }
+
+    for (const [slug, cfg] of Object.entries(hubMap)) {
+      if (seen.has(slug) || !cfg.isCustomShop || !cfg.customName) continue;
+      const activeCamps = (cfg.campaigns ?? []).filter((c) => c.active);
+      list.push({
+        slug,
+        name: cfg.customName,
+        category: cfg.customCategory || "خدمات",
+        source: "owner",
+        verified: cfg.verified !== false,
+        area: cfg.customArea,
+        address: cfg.customAddress,
+        photo: cfg.logoKey,
+        featured: cfg.featured,
+        supervisorName: cfg.supervisorName,
+        productsCount: cfg.products?.length ?? 0,
+        offerBadge: activeCamps[0]?.discountBadge,
+      });
+    }
+
+    return list.sort((a, b) => {
+      const score = (x: (typeof list)[number]) =>
+        (x.featured ? 100 : 0) +
+        (x.offerBadge ? 50 : 0) +
+        (x.productsCount > 0 ? 30 : 0) +
+        (x.photo ? 15 : 0) +
+        (x.verified ? 10 : 0);
+      return score(b) - score(a);
+    });
+  }, [places, hubMap]);
+
+  const categories = useMemo(() => {
+    const base = ["الكل", "مطاعم ومقاهي", "بقالات", "صحة", "ملابس", "خدمات"];
+    return base.filter((c) => c === "الكل" || enriched.some((p) => p.category === c));
+  }, [enriched]);
+
+  const visiblePlaces = useMemo(() => {
+    const filtered =
+      activeCat === "الكل"
+        ? enriched
+        : activeCat === "__offers__"
+          ? enriched.filter((p) => Boolean(p.offerBadge) || p.productsCount > 0)
+          : enriched.filter((p) => p.category === activeCat);
+    return filtered.slice(0, 6);
+  }, [enriched, activeCat]);
+
+  const hasAnyOffers = enriched.some((p) => Boolean(p.offerBadge) || p.productsCount > 0);
+
+  return (
+    <section className="space-y-3">
+      <SectionTitle title={tr("دليل محلات وخدمات رهط")} to="/directory" more={tr("كل الدليل")} />
+
+      <div className="stamp overflow-hidden border-2 border-primary/70 bg-gradient-to-b from-primary-soft/50 via-paper to-paper p-3.5 sm:p-4 shadow-xs space-y-3">
+        {/* Category & Offers Filter Bar */}
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <div className="flex flex-wrap items-center gap-1.5">
+            {categories.map((cat) => (
+              <button
+                key={cat}
+                type="button"
+                onClick={() => setActiveCat(cat)}
+                className={`press rounded-full px-3 py-1 text-xs font-extrabold transition ${
+                  activeCat === cat
+                    ? "bg-ink text-paper shadow-2xs"
+                    : "border border-line bg-paper text-ink hover:border-primary"
+                }`}
+              >
+                {trv(cat)}
+              </button>
+            ))}
+            {hasAnyOffers ? (
+              <button
+                type="button"
+                onClick={() => setActiveCat("__offers__")}
+                className={`press rounded-full px-3 py-1 text-xs font-extrabold transition ${
+                  activeCat === "__offers__"
+                    ? "bg-alert text-white shadow-2xs"
+                    : "border border-alert/40 bg-alert/10 text-alert hover:bg-alert/20"
+                }`}
+              >
+                🔥 {tr("عروض ومنتجات")}
+              </button>
+            ) : null}
+          </div>
+
+          <Link
+            to="/submit"
+            search={{ mode: "نشاط" }}
+            className="inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1 text-xs font-extrabold text-ink shadow-2xs hover:opacity-90"
+          >
+            <Plus className="size-3.5" aria-hidden />
+            {tr("أضف محلك")}
+          </Link>
+        </div>
+
+        {/* Shops Grid */}
+        <ul className="grid gap-3 sm:grid-cols-2">
+          {visiblePlaces.map((place) => (
+            <li key={place.slug}>
+              <Link
+                to="/directory/$slug"
+                params={{ slug: place.slug }}
+                className={`press flex items-center gap-3 rounded-2xl border p-3 transition ${
+                  place.featured || place.offerBadge
+                    ? "border-2 border-primary bg-primary-soft/35"
+                    : "border-line bg-paper hover:border-primary"
+                }`}
+              >
+                {place.photo ? (
+                  <img
+                    src={place.photo.startsWith("data:image/") || place.photo.startsWith("http") || place.photo.startsWith("/") ? place.photo : mediaUrl(place.photo)}
+                    alt={trv(place.name)}
+                    className="size-14 shrink-0 rounded-2xl border-2 border-primary/60 bg-paper object-cover shadow-2xs"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                ) : (
+                  <span className="icon-badge size-14 shrink-0 rounded-2xl bg-primary-soft text-primary-ink">
+                    <Store className="size-6" aria-hidden />
+                  </span>
+                )}
+
+                <span className="min-w-0 flex-1 space-y-0.5">
+                  <span className="flex flex-wrap items-center gap-1.5">
+                    <span className="truncate text-sm font-extrabold leading-snug text-ink sm:text-base">
+                      {trv(place.name)}
+                    </span>
+                    {place.verified ? (
+                      <span className="rounded-full bg-ink px-2 py-0.5 text-[10px] font-extrabold text-paper">
+                        ✓ {tr("موثّق")}
+                      </span>
+                    ) : null}
+                  </span>
+
+                  <span className="flex flex-wrap items-center gap-1.5 text-xs font-bold text-muted">
+                    <span>{trv(place.category)}</span>
+                    {place.address || place.area ? (
+                      <span className="truncate">· {trv(place.address ?? place.area ?? "")}</span>
+                    ) : null}
+                  </span>
+
+                  {place.offerBadge || place.productsCount > 0 || place.supervisorName ? (
+                    <span className="flex flex-wrap items-center gap-1 pt-0.5">
+                      {place.offerBadge ? (
+                        <span className="rounded-full bg-alert px-2 py-0.5 text-[10px] font-extrabold text-white">
+                          🔥 {trv(place.offerBadge)}
+                        </span>
+                      ) : null}
+                      {place.productsCount > 0 ? (
+                        <span className="rounded-full bg-primary-soft px-2 py-0.5 text-[10px] font-extrabold text-primary-ink">
+                          🛍️ {trv(place.productsCount)} {tr("منتج")}
+                        </span>
+                      ) : null}
+                      {place.supervisorName ? (
+                        <span className="rounded-full bg-[#16A34A]/15 px-2 py-0.5 text-[10px] font-extrabold text-[#15803D]">
+                          👤 {tr("إشراف معتمد")}
+                        </span>
+                      ) : null}
+                    </span>
+                  ) : null}
+                </span>
+
+                <ChevronLeft className="size-5 shrink-0 text-muted" aria-hidden />
+              </Link>
+            </li>
+          ))}
+        </ul>
+
+        <div className="flex items-center justify-between border-t border-line/70 pt-2.5 text-xs font-extrabold">
+          <span className="text-muted">
+            {tr("يمكن لأصحاب المحلات إضافة لوجو المحل والمنتجات وحملات العروض داخل صفحة المحل")}
+          </span>
+          <Link to="/directory" className="text-primary-ink underline">
+            {tr("تصفح كل المحلات ←")}
+          </Link>
+        </div>
+      </div>
+    </section>
   );
 }

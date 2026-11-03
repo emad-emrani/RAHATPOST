@@ -10,8 +10,8 @@
   "display": "standalone",
   "display_override": ["standalone", "minimal-ui"],
   "orientation": "portrait",
-  "background_color": "#FDB700",
-  "theme_color": "#F2C94C",
+  "background_color": "#f2c94c",
+  "theme_color": "#f2c94c",
   "categories": ["news", "lifestyle", "local"],
   "icons": [
     { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
