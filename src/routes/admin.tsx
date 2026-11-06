@@ -793,7 +793,7 @@ const ALL_TABS: { key: Section; label: string; icon: LucideIcon }[] = [
   { key: "sec-weather", label: "حالة الطقس", icon: CloudSun },
   { key: "buses", label: "الباصات", icon: Bus },
   { key: "duty", label: "صيدلية المناوبة", icon: Pill },
-  { key: "directory", label: "طلبات دليل المصالح", icon: Store },
+  { key: "directory", label: "دليل محلات وخدمات رهط", icon: Store },
   { key: "comments", label: "التعليقات", icon: MessageSquare },
   { key: "reports", label: "البلاغات", icon: Flag },
   { key: "ads", label: "إعلانات الحراج والمراجعة", icon: Megaphone },
@@ -12917,7 +12917,7 @@ function DirectoryShopsHubAdmin({
       });
       const data = await res.json();
       if (data?.ok && data.shops) {
-        setHubMap(data.shops);
+        setHubMap(data.shops); try { window.localStorage.setItem("rp_latest_shop_hub", JSON.stringify({ shops: data.shops, globalSettings: globalCfg })); window.dispatchEvent(new CustomEvent("rp-shop-hub-updated")); } catch {}
         setShowNewShop(false);
         setNewShopName("");
         setNewShopArea("");
@@ -12965,7 +12965,7 @@ function DirectoryShopsHubAdmin({
       });
       const data = await res.json();
       if (data?.ok && data.shops) {
-        setHubMap(data.shops);
+        setHubMap(data.shops); try { window.localStorage.setItem("rp_latest_shop_hub", JSON.stringify({ shops: data.shops, globalSettings: globalCfg })); window.dispatchEvent(new CustomEvent("rp-shop-hub-updated")); } catch {}
         setMsg(tr("✓ تم حفظ لوجو وبيانات المحل بنجاح."));
       }
     } finally {
@@ -12995,7 +12995,7 @@ function DirectoryShopsHubAdmin({
       });
       const data = await res.json();
       if (data?.ok && data.shops) {
-        setHubMap(data.shops);
+        setHubMap(data.shops); try { window.localStorage.setItem("rp_latest_shop_hub", JSON.stringify({ shops: data.shops, globalSettings: globalCfg })); window.dispatchEvent(new CustomEvent("rp-shop-hub-updated")); } catch {}
         setSupUserId(userId);
         setSupEmail(email);
         setSupName(name);
@@ -13034,7 +13034,7 @@ function DirectoryShopsHubAdmin({
       });
       const data = await res.json();
       if (data?.ok && data.shops) {
-        setHubMap(data.shops);
+        setHubMap(data.shops); try { window.localStorage.setItem("rp_latest_shop_hub", JSON.stringify({ shops: data.shops, globalSettings: globalCfg })); window.dispatchEvent(new CustomEvent("rp-shop-hub-updated")); } catch {}
         setProdName("");
         setProdPrice("");
         setProdOldPrice("");
@@ -13057,7 +13057,7 @@ function DirectoryShopsHubAdmin({
         body: JSON.stringify({ slug: selectedSlug, action: "delete_product", productId }),
       });
       const data = await res.json();
-      if (data?.ok && data.shops) setHubMap(data.shops);
+      if (data?.ok && data.shops) setHubMap(data.shops); try { window.localStorage.setItem("rp_latest_shop_hub", JSON.stringify({ shops: data.shops, globalSettings: globalCfg })); window.dispatchEvent(new CustomEvent("rp-shop-hub-updated")); } catch {}
     } finally {
       setBusy(false);
     }
@@ -13086,7 +13086,7 @@ function DirectoryShopsHubAdmin({
       });
       const data = await res.json();
       if (data?.ok && data.shops) {
-        setHubMap(data.shops);
+        setHubMap(data.shops); try { window.localStorage.setItem("rp_latest_shop_hub", JSON.stringify({ shops: data.shops, globalSettings: globalCfg })); window.dispatchEvent(new CustomEvent("rp-shop-hub-updated")); } catch {}
         setCampTitle("");
         setCampSubtitle("");
         setCampValid("");
@@ -13108,7 +13108,7 @@ function DirectoryShopsHubAdmin({
         body: JSON.stringify({ slug: selectedSlug, action: "delete_campaign", campaignId }),
       });
       const data = await res.json();
-      if (data?.ok && data.shops) setHubMap(data.shops);
+      if (data?.ok && data.shops) setHubMap(data.shops); try { window.localStorage.setItem("rp_latest_shop_hub", JSON.stringify({ shops: data.shops, globalSettings: globalCfg })); window.dispatchEvent(new CustomEvent("rp-shop-hub-updated")); } catch {}
     } finally {
       setBusy(false);
     }
@@ -13154,19 +13154,59 @@ function DirectoryShopsHubAdmin({
     setBusy(true);
     setMsg("");
     try {
-      const res = await fetch("/api/media?kind=shop-hub", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          action: "save_global_settings",
-          settings: optimistic,
-        }),
-      });
-      const data = await res.json().catch(() => null);
-      if (data?.ok && data.globalSettings) {
-        setGlobalCfg(data.globalSettings);
-        setMsg(tr("✓ تم حفظ مظهر الدليل وإعدادات العرض في الصفحة الرئيسية فوراً!"));
-      }
+      const dhubUrl = `/__dhub?st=${encodeURIComponent(optimistic.directoryStyle)}&os=${optimistic.showOfficialStoreOnHome ? "1" : "0"}&cf=${optimistic.showCategoryFilterOnHome ? "1" : "0"}&cnt=${optimistic.homeItemsCount}`;
+      const [res] = await Promise.all([
+        fetch("/api/media?kind=shop-hub", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            action: "save_global_settings",
+            settings: optimistic,
+          }),
+        }).catch(() => null),
+        adminGetSiteSettings()
+          .then(async (cur) => {
+            if (!cur.settings) return;
+            const others = (cur.settings.quickLinks ?? []).filter((q) => q.id !== "dirhubcfg");
+            const nextSettings: SiteSettings = {
+              ...cur.settings,
+              quickLinks: [
+                ...others,
+                {
+                  id: "dirhubcfg",
+                  title: "dirhubcfg",
+                  subtitle: optimistic.directoryStyle,
+                  url: dhubUrl,
+                  emoji: "🏪",
+                },
+              ],
+            };
+            await Promise.all([
+              adminSaveSiteSettings({ data: nextSettings }).catch(() => null),
+              fetch("/api/media?kind=live-settings", {
+                method: "POST",
+                headers: { "content-type": "application/json" },
+                body: JSON.stringify({ settings: nextSettings }),
+              }).catch(() => null),
+            ]);
+            try {
+              window.localStorage.setItem("rp_latest_site_settings", JSON.stringify(nextSettings));
+              window.dispatchEvent(new CustomEvent("rp-site-settings-updated", { detail: nextSettings }));
+            } catch {}
+          })
+          .catch(() => null),
+      ]);
+      const data = await res?.json().catch(() => null);
+      const savedCfg = data?.ok && data.globalSettings ? data.globalSettings : optimistic;
+      setGlobalCfg(savedCfg);
+      try {
+        window.localStorage.setItem(
+          "rp_latest_shop_hub",
+          JSON.stringify({ shops: data?.shops ?? hubMap, globalSettings: savedCfg }),
+        );
+        window.dispatchEvent(new CustomEvent("rp-shop-hub-updated"));
+      } catch {}
+      setMsg(tr("✓ تم حفظ مظهر الدليل وإعدادات العرض في الصفحة الرئيسية والتطبيق فوراً!"));
     } finally {
       setBusy(false);
     }

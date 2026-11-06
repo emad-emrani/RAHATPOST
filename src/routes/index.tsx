@@ -552,13 +552,13 @@ function Home() {
     () => store.products.filter((p) => p.slug !== "hub-cfg-main" && !p.slug.startsWith("offer-")),
     [store.products],
   );
-  const directoryPreview = places.length ? (
+  const directoryPreview = (
     <InteractiveDirectoryHomeSection
       places={places}
       storeProducts={filteredStoreProducts}
       storeCurrency={store.settings.currency}
     />
-  ) : null;
+  );
 
   type ExtendedHomeSectionId = HomeSectionId | "matches" | `csec~${string}`;
   const customSectionBlocks: Record<string, ReactNode> = {};
@@ -5474,12 +5474,38 @@ function InteractiveDirectoryHomeSection({
       }
     >
   >({});
+  const siteSettings = useSiteSettings();
+  const syncedDirCfg = useMemo(() => {
+    const item = (siteSettings.quickLinks ?? []).find((q) => q.id === "dirhubcfg");
+    if (!item || !item.url.startsWith("/__dhub?")) return null;
+    try {
+      const sp = new URLSearchParams(item.url.slice(8));
+      const validStyles = ["cards", "showcase", "grid", "carousel", "compact", "dark_gold"] as const;
+      const stRaw = sp.get("st") || "cards";
+      const directoryStyle = (validStyles as readonly string[]).includes(stRaw)
+        ? (stRaw as typeof validStyles[number])
+        : "cards";
+      const showOfficialStoreOnHome = sp.get("os") === "1";
+      const showCategoryFilterOnHome = sp.get("cf") !== "0";
+      const cnt = Number(sp.get("cnt") || 6);
+      const homeItemsCount = [4, 6, 8, 12].includes(cnt) ? cnt : 6;
+      return {
+        directoryStyle,
+        showOfficialStoreOnHome,
+        showCategoryFilterOnHome,
+        homeItemsCount,
+      };
+    } catch {
+      return null;
+    }
+  }, [siteSettings.quickLinks]);
+
   const [globalCfg, setGlobalCfg] = useState<{
     directoryStyle: "cards" | "showcase" | "grid" | "carousel" | "compact" | "dark_gold";
     showOfficialStoreOnHome: boolean;
     showCategoryFilterOnHome: boolean;
     homeItemsCount: number;
-  }>({
+  }>(() => syncedDirCfg ?? {
     directoryStyle: "cards",
     showOfficialStoreOnHome: false,
     showCategoryFilterOnHome: true,
@@ -5488,18 +5514,61 @@ function InteractiveDirectoryHomeSection({
   const [activeCat, setActiveCat] = useState<string>("الكل");
 
   useEffect(() => {
-    fetch("/api/media?kind=shop-hub")
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => {
-        if (d?.ok) {
+    if (syncedDirCfg) {
+      setGlobalCfg((prev) => ({ ...prev, ...syncedDirCfg }));
+    }
+  }, [syncedDirCfg]);
+
+  useEffect(() => {
+    let active = true;
+    try {
+      const cached = window.localStorage.getItem("rp_latest_shop_hub");
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed?.shops) setHubMap(parsed.shops);
+        if (parsed?.globalSettings) {
+          setGlobalCfg((prev) => ({ ...prev, ...parsed.globalSettings }));
+        }
+      }
+    } catch {}
+
+    const syncHub = () => {
+      fetch(`/api/media?kind=shop-hub&_t=${Date.now()}`, { cache: "no-store" })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d) => {
+          if (!active || !d?.ok) return;
           if (d.shops) setHubMap(d.shops);
           if (d.globalSettings) {
-            setGlobalCfg((prev) => ({ ...prev, ...d.globalSettings }));
+            setGlobalCfg((prev) => ({ ...prev, ...(syncedDirCfg ?? d.globalSettings) }));
           }
-        }
-      })
-      .catch(() => {});
-  }, []);
+          try {
+            window.localStorage.setItem(
+              "rp_latest_shop_hub",
+              JSON.stringify({ shops: d.shops, globalSettings: d.globalSettings }),
+            );
+          } catch {}
+        })
+        .catch(() => {});
+    };
+    syncHub();
+
+    const onFocus = () => {
+      if (document.visibilityState === "visible") syncHub();
+    };
+    window.addEventListener("rp-shop-hub-updated", syncHub);
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onFocus);
+    const timer = window.setInterval(() => {
+      if (document.visibilityState === "visible") syncHub();
+    }, 10000);
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+      window.removeEventListener("rp-shop-hub-updated", syncHub);
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onFocus);
+    };
+  }, [syncedDirCfg]);
 
   const enriched = useMemo(() => {
     const seen = new Set<string>();

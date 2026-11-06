@@ -125,7 +125,13 @@ async function saveDirectoryGlobalSettings(patch: Partial<DirectoryGlobalSetting
 const json = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), {
     status,
-    headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" },
+    headers: {
+      "content-type": "application/json; charset=utf-8",
+      "cache-control": "private, no-store, no-cache, must-revalidate, max-age=0",
+      pragma: "no-cache",
+      expires: "0",
+      "access-control-allow-origin": "*",
+    },
   });
 
 const hits = new Map<string, number[]>();
@@ -283,16 +289,20 @@ async function deleteShopConfig(slug: string): Promise<void> {
 }
 
 async function checkViewerRoles() {
-  const { getAdminAccess } = await import("@/lib/admin-auth");
+  const { getAdminAccess, isAdmin: checkIsAdmin, isOwner: checkIsOwner } = await import("@/lib/admin-auth");
   const { getSessionUser } = await import("@/lib/auth/verify.server");
-  const [adminAccess, user] = await Promise.all([
+  const [adminAccess, adm, own, user] = await Promise.all([
     getAdminAccess().catch(() => null),
+    checkIsAdmin().catch(() => false),
+    checkIsOwner().catch(() => false),
     getSessionUser().catch(() => null),
   ]);
   const isAdmin = Boolean(
-    adminAccess &&
-      (adminAccess.level === "owner" ||
-        (adminAccess.level === "moderator" && adminAccess.perms.includes("moderate_directory"))),
+    adm ||
+      own ||
+      (adminAccess &&
+        (adminAccess.level === "owner" ||
+          adminAccess.level === "moderator")),
   );
   return {
     isAdmin,
