@@ -12823,7 +12823,60 @@ function DirectoryShopsHubAdmin({
   const shopImgUrl = (v?: string | null): string => {
     if (!v) return "";
     if (v.startsWith("data:image/") || v.startsWith("http://") || v.startsWith("https://") || v.startsWith("/")) return v;
-    return mediaUrl(v);
+    return `/api/media?kind=blob&key=${encodeURIComponent(v)}`;
+  };
+
+  const compressShopImageFile = async (
+    file: File,
+    maxSide: number,
+  ): Promise<{ blob: Blob; dataUrl: string }> => {
+    try {
+      const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+        const el = new Image();
+        const objUrl = URL.createObjectURL(file);
+        el.onload = () => {
+          URL.revokeObjectURL(objUrl);
+          resolve(el);
+        };
+        el.onerror = () => {
+          URL.revokeObjectURL(objUrl);
+          reject(new Error("img-load"));
+        };
+        el.src = objUrl;
+      });
+      const w0 = img.naturalWidth || img.width || 400;
+      const h0 = img.naturalHeight || img.height || 400;
+      const scale = Math.min(1, maxSide / Math.max(w0, h0));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.max(1, Math.round(w0 * scale));
+      canvas.height = Math.max(1, Math.round(h0 * scale));
+      const ctx = canvas.getContext("2d");
+      if (!ctx) throw new Error("no-ctx");
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      let dataUrl = canvas.toDataURL("image/webp", 0.82);
+      if (!dataUrl.startsWith("data:image/webp")) {
+        dataUrl = canvas.toDataURL("image/jpeg", 0.84);
+      }
+      const blob = await new Promise<Blob>((resolve) => {
+        canvas.toBlob(
+          (b) => resolve(b || file),
+          dataUrl.startsWith("data:image/webp") ? "image/webp" : "image/jpeg",
+          0.82,
+        );
+      });
+      return { blob, dataUrl };
+    } catch {
+      const blob = await compress(file).catch(() => file);
+      const dataUrl = await new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(typeof reader.result === "string" ? reader.result : "");
+        reader.onerror = () => resolve("");
+        reader.readAsDataURL(blob);
+      });
+      return { blob, dataUrl };
+    }
   };
 
   const uploadAdminShopImage = async (
@@ -12834,13 +12887,12 @@ function DirectoryShopsHubAdmin({
     setBusy(true);
     setMsg("");
     try {
-      const blob = await compress(file);
-      const dataUrl = await new Promise<string>((resolve) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(typeof reader.result === "string" ? reader.result : "");
-        reader.onerror = () => resolve("");
-        reader.readAsDataURL(blob);
-      });
+      const maxSide = autoSaveField === "logoKey" ? 440 : 960;
+      const { blob, dataUrl } = await compressShopImageFile(file, maxSide);
+      if (dataUrl) {
+        if (autoSaveField === "logoKey") setEditLogo(dataUrl);
+        if (autoSaveField === "coverKey") setEditCover(dataUrl);
+      }
       let finalRef = dataUrl;
       try {
         const res = await fetch(`/api/media?kind=shop-upload&slug=${encodeURIComponent(targetSlug)}`, {
@@ -12849,17 +12901,33 @@ function DirectoryShopsHubAdmin({
           body: blob,
         });
         const data = await res.json().catch(() => null);
-        if (res.ok && data?.ok && data?.key) {
-          finalRef = String(data.key);
+        if (res.ok && data?.ok) {
+          finalRef = data.dataUrl || dataUrl || (data.key ? `/api/media?kind=blob&key=${data.key}` : "");
         }
       } catch {
-        /* fallback to dataUrl */
+        /* keep self-contained dataUrl */
       }
       if (!finalRef) {
         setMsg(tr("تعذّر قراءة الصورة."));
         return null;
       }
       if (autoSaveField) {
+        setHubMap((prev) => {
+          const cur = prev[targetSlug] ?? { slug: targetSlug, products: [], campaigns: [] };
+          const next = {
+            ...prev,
+            [targetSlug]: { ...cur, [autoSaveField]: finalRef },
+          };
+          try {
+            window.localStorage.setItem(
+              "rp_latest_shop_hub",
+              JSON.stringify({ shops: next, globalSettings: globalCfg }),
+            );
+            window.dispatchEvent(new CustomEvent("rp-shop-hub-updated"));
+          } catch {}
+          return next;
+        });
+
         const saveRes = await fetch("/api/media?kind=shop-hub", {
           method: "POST",
           headers: { "content-type": "application/json" },
@@ -12872,12 +12940,19 @@ function DirectoryShopsHubAdmin({
         const saveData = await saveRes?.json().catch(() => null);
         if (saveData?.ok && saveData.shops) {
           setHubMap(saveData.shops);
-          setMsg(
-            autoSaveField === "logoKey"
-              ? tr("✓ تم رفع وحفظ لوجو المحل تلقائياً!")
-              : tr("✓ تم رفع وحفظ غلاف المحل تلقائياً!"),
-          );
+          try {
+            window.localStorage.setItem(
+              "rp_latest_shop_hub",
+              JSON.stringify({ shops: saveData.shops, globalSettings: globalCfg }),
+            );
+            window.dispatchEvent(new CustomEvent("rp-shop-hub-updated"));
+          } catch {}
         }
+        setMsg(
+          autoSaveField === "logoKey"
+            ? tr("✓ تم رفع وحفظ لوجو المحل فوراً!")
+            : tr("✓ تم رفع وحفظ صورة غلاف المحل فوراً!"),
+        );
       }
       return finalRef;
     } catch {
@@ -13618,6 +13693,7 @@ function DirectoryShopsHubAdmin({
                           disabled={busy}
                           onChange={async (e) => {
                             const f = e.target.files?.[0];
+                            e.target.value = "";
                             if (!f) return;
                             const k = await uploadAdminShopImage(f, activeShop.slug, "logoKey");
                             if (k) setEditLogo(k);
@@ -13651,21 +13727,33 @@ function DirectoryShopsHubAdmin({
                   )}
                   <div className="space-y-1">
                     <p className="text-xs font-extrabold text-ink">{tr("صورة غلاف صفحة المحل")}</p>
-                    <label className="btn btn-ghost cursor-pointer py-1.5 px-3 text-xs font-extrabold">
-                      {editCover ? tr("تغيير الغلاف") : tr("+ رفع صورة غلاف")}
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        disabled={busy}
-                        onChange={async (e) => {
-                          const f = e.target.files?.[0];
-                          if (!f) return;
-                          const k = await uploadAdminShopImage(f, activeShop.slug, "coverKey");
-                          if (k) setEditCover(k);
-                        }}
-                      />
-                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      <label className="btn btn-ghost cursor-pointer py-1.5 px-3 text-xs font-extrabold">
+                        {editCover ? tr("تغيير الغلاف") : tr("+ رفع صورة غلاف")}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          disabled={busy}
+                          onChange={async (e) => {
+                            const f = e.target.files?.[0];
+                            e.target.value = "";
+                            if (!f) return;
+                            const k = await uploadAdminShopImage(f, activeShop.slug, "coverKey");
+                            if (k) setEditCover(k);
+                          }}
+                        />
+                      </label>
+                      {editCover ? (
+                        <button
+                          type="button"
+                          onClick={() => setEditCover("")}
+                          className="btn btn-ghost py-1.5 px-2.5 text-xs font-bold text-alert"
+                        >
+                          {tr("حذف")}
+                        </button>
+                      ) : null}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -14090,17 +14178,30 @@ function DirectoryShopsHubAdmin({
               }`}
             >
               <div className="flex items-center gap-3 min-w-0">
-                {shop.photo ? (
-                  <img
-                    src={shopImgUrl(shop.photo)}
-                    alt={shop.name}
-                    className="size-12 shrink-0 rounded-2xl border border-primary object-cover"
-                  />
-                ) : (
-                  <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-surface text-base font-extrabold text-muted">
-                    🏪
-                  </span>
-                )}
+                <div className="relative shrink-0">
+                  {shop.cfg?.coverKey ? (
+                    <img
+                      src={shopImgUrl(shop.cfg.coverKey)}
+                      alt=""
+                      className="h-12 w-18 rounded-2xl border border-line object-cover opacity-85"
+                    />
+                  ) : null}
+                  {shop.photo ? (
+                    <img
+                      src={shopImgUrl(shop.photo)}
+                      alt={shop.name}
+                      className={`${
+                        shop.cfg?.coverKey
+                          ? "absolute -bottom-1 -start-1 size-9 rounded-xl border-2 border-paper shadow-sm"
+                          : "size-12 rounded-2xl border border-primary"
+                      } bg-paper object-cover`}
+                    />
+                  ) : !shop.cfg?.coverKey ? (
+                    <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-surface text-base font-extrabold text-muted">
+                      🏪
+                    </span>
+                  ) : null}
+                </div>
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-1">
                     <p className="truncate text-sm font-extrabold text-ink">{shop.name}</p>

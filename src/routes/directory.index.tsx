@@ -79,7 +79,7 @@ export const Route = createFileRoute("/directory/")({
 function shopImgSrc(v?: string | null): string {
   if (!v) return "";
   if (v.startsWith("data:image/") || v.startsWith("http://") || v.startsWith("https://") || v.startsWith("/")) return v;
-  return mediaUrl(v);
+  return `/api/media?kind=blob&key=${encodeURIComponent(v)}`;
 }
 
 function DirectoryPage() {
@@ -618,7 +618,7 @@ function DirectoryPage() {
                   <Link
                     to="/directory/$slug"
                     params={{ slug: item.slug }}
-                    className={`stamp press flex items-center gap-3.5 p-3.5 transition ${
+                    className={`stamp press flex flex-col overflow-hidden p-0 transition ${
                       isDarkGold
                         ? "border-[#f2c94c]/45 bg-[#1e293b] text-white hover:border-[#f2c94c]"
                         : item.featured || hasOffer
@@ -626,19 +626,36 @@ function DirectoryPage() {
                           : "hover:border-primary"
                     }`}
                   >
-                    {item.photo ? (
-                      <img
-                        src={shopImgSrc(item.photo)}
-                        alt={tr("لوجو {0}", item.name)}
-                        className="size-16 shrink-0 rounded-2xl border-2 border-primary/60 bg-paper object-cover shadow-2xs"
-                        loading="lazy"
-                        decoding="async"
-                      />
-                    ) : (
-                      <span className="icon-badge size-16 shrink-0 rounded-2xl bg-primary-soft text-primary-ink">
-                        <CategoryIcon category={item.category} className="size-8" />
-                      </span>
-                    )}
+                    {item.coverKey ? (
+                      <div className="relative h-28 w-full overflow-hidden bg-ink">
+                        <img
+                          src={shopImgSrc(item.coverKey)}
+                          alt={item.name}
+                          className="h-full w-full object-cover"
+                          loading="lazy"
+                        />
+                      </div>
+                    ) : null}
+                    <div className="flex items-center gap-3.5 p-3.5">
+                      {item.photo ? (
+                        <img
+                          src={shopImgSrc(item.photo)}
+                          alt={tr("لوجو {0}", item.name)}
+                          className={`size-16 shrink-0 rounded-2xl border-2 border-primary/60 bg-paper object-cover shadow-2xs ${
+                            item.coverKey ? "-mt-8 border-paper shadow-md" : ""
+                          }`}
+                          loading="lazy"
+                          decoding="async"
+                        />
+                      ) : (
+                        <span
+                          className={`icon-badge size-16 shrink-0 rounded-2xl bg-primary-soft text-primary-ink ${
+                            item.coverKey ? "-mt-8 border-2 border-paper shadow-md" : ""
+                          }`}
+                        >
+                          <CategoryIcon category={item.category} className="size-8" />
+                        </span>
+                      )}
 
                     <span className="min-w-0 flex-1 space-y-1">
                       <span className="flex flex-wrap items-center gap-1.5">
@@ -712,10 +729,11 @@ function DirectoryPage() {
                       ) : null}
                     </span>
 
-                    <ChevronLeft
-                      className={`size-5 shrink-0 ${isDarkGold ? "text-[#f2c94c]" : "text-muted"}`}
-                      aria-hidden
-                    />
+                      <ChevronLeft
+                        className={`size-5 shrink-0 ${isDarkGold ? "text-[#f2c94c]" : "text-muted"}`}
+                        aria-hidden
+                      />
+                    </div>
                   </Link>
                 </li>
               );

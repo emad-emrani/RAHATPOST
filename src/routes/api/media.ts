@@ -186,8 +186,8 @@ function cleanImageRef(v: unknown): string | undefined {
   if (!s) return undefined;
   if (MEDIA_KEY_RE.test(s)) return s;
   if (s.startsWith("/media/") && MEDIA_KEY_RE.test(s.slice(7))) return s.slice(7);
-  if (s.startsWith("data:image/") && s.length <= 450_000) return s;
-  if ((s.startsWith("https://") || s.startsWith("http://") || s.startsWith("/")) && s.length <= 500)
+  if (s.startsWith("data:image/") && s.length <= 4_000_000) return s;
+  if ((s.startsWith("https://") || s.startsWith("http://") || s.startsWith("/")) && s.length <= 1500)
     return s;
   return undefined;
 }
@@ -259,11 +259,53 @@ async function loadAllShopConfigs(): Promise<Record<string, ShopHubEntryConfig>>
       SELECT slug, data FROM shop_hub_configs ORDER BY updated_at DESC LIMIT 1000
     `;
     const out: Record<string, ShopHubEntryConfig> = {};
+    const keysToHydrate = new Set<string>();
+
     for (const r of rows) {
       if (r.slug === GLOBAL_SETTINGS_SLUG) continue;
       const parsed = typeof r.data === "string" ? JSON.parse(r.data) : r.data;
-      out[r.slug] = normalizeShopConfig(r.slug, parsed);
+      const cfg = normalizeShopConfig(r.slug, parsed);
+      out[r.slug] = cfg;
+      if (cfg.logoKey && MEDIA_KEY_RE.test(cfg.logoKey)) keysToHydrate.add(cfg.logoKey);
+      if (cfg.coverKey && MEDIA_KEY_RE.test(cfg.coverKey)) keysToHydrate.add(cfg.coverKey);
+      for (const p of cfg.products) {
+        if (p.imageKey && MEDIA_KEY_RE.test(p.imageKey)) keysToHydrate.add(p.imageKey);
+      }
+      for (const c of cfg.campaigns) {
+        if (c.imageKey && MEDIA_KEY_RE.test(c.imageKey)) keysToHydrate.add(c.imageKey);
+      }
     }
+
+    if (keysToHydrate.size > 0) {
+      try {
+        const keyList = Array.from(keysToHydrate);
+        const blobRows = await sql.query<{ key: string; content_type: string; bytes: Uint8Array | Buffer }>(
+          `SELECT key, content_type, bytes FROM shop_media_blobs WHERE key = ANY($1::text[])`,
+          [keyList],
+        );
+        const dataUrlMap = new Map<string, string>();
+        for (const b of blobRows) {
+          if (b.bytes) {
+            const b64 = Buffer.from(b.bytes).toString("base64");
+            const ct = b.content_type || (b.key.endsWith(".jpg") ? "image/jpeg" : "image/webp");
+            dataUrlMap.set(b.key, `data:${ct};base64,${b64}`);
+          }
+        }
+        for (const cfg of Object.values(out)) {
+          if (cfg.logoKey && dataUrlMap.has(cfg.logoKey)) cfg.logoKey = dataUrlMap.get(cfg.logoKey);
+          if (cfg.coverKey && dataUrlMap.has(cfg.coverKey)) cfg.coverKey = dataUrlMap.get(cfg.coverKey);
+          for (const p of cfg.products) {
+            if (p.imageKey && dataUrlMap.has(p.imageKey)) p.imageKey = dataUrlMap.get(p.imageKey);
+          }
+          for (const c of cfg.campaigns) {
+            if (c.imageKey && dataUrlMap.has(c.imageKey)) c.imageKey = dataUrlMap.get(c.imageKey);
+          }
+        }
+      } catch (err) {
+        console.warn("[shop-hub] key hydration warning", err);
+      }
+    }
+
     return out;
   } catch (e) {
     console.error("[shop-hub] load failed", e);
@@ -288,17 +330,34 @@ async function deleteShopConfig(slug: string): Promise<void> {
   await sql`DELETE FROM shop_hub_configs WHERE slug = ${slug}`;
 }
 
-async function checkViewerRoles() {
-  const { getAdminAccess, isAdmin: checkIsAdmin, isOwner: checkIsOwner } = await import("@/lib/admin-auth");
+async function checkViewerRoles(request?: Request) {
+  const { getAdminAccess, isAdmin: checkIsAdmin, isOwner: checkIsOwner, masterEmails } = await import("@/lib/admin-auth");
   const { getSessionUser } = await import("@/lib/auth/verify.server");
+  const { ADMIN_COOKIE, verifySession } = await import("@/lib/directory/auth.server");
+
+  let cookieAdmin = false;
+  if (request) {
+    const rawCookie = request.headers.get("cookie") || "";
+    const match = rawCookie.match(new RegExp(`(?:^|;\\s*)${ADMIN_COOKIE}=([^;]+)`));
+    if (match?.[1]) {
+      try {
+        cookieAdmin = verifySession(decodeURIComponent(match[1].trim()));
+      } catch {}
+    }
+  }
+
   const [adminAccess, adm, own, user] = await Promise.all([
     getAdminAccess().catch(() => null),
     checkIsAdmin().catch(() => false),
     checkIsOwner().catch(() => false),
     getSessionUser().catch(() => null),
   ]);
+  const userEmail = (user?.email ?? "").toLowerCase();
+  const isMaster = Boolean(userEmail && masterEmails().includes(userEmail));
   const isAdmin = Boolean(
-    adm ||
+    cookieAdmin ||
+      isMaster ||
+      adm ||
       own ||
       (adminAccess &&
         (adminAccess.level === "owner" ||
@@ -308,7 +367,7 @@ async function checkViewerRoles() {
     isAdmin,
     signedIn: Boolean(user || isAdmin),
     userId: user?.id ?? "",
-    email: (user?.email ?? "").toLowerCase(),
+    email: userEmail,
     name: user?.name ?? (isAdmin ? "مدير الموقع" : ""),
   };
 }
@@ -332,13 +391,11 @@ function isSupervisorOfShop(
 
 /** Photo upload for an article or shop asset (admin or shop supervisor). */
 async function staffOrShopUpload(request: Request, isShopUpload: boolean): Promise<Response> {
-  const { assertSameSiteRequest } = await import("@/lib/auth/isolation.server");
-  try {
-    assertSameSiteRequest();
-  } catch {
+  const secSite = request.headers.get("sec-fetch-site");
+  if (secSite && secSite !== "same-origin" && secSite !== "same-site" && secSite !== "none") {
     return json(403, { ok: false, message: "طلب غير صحيح." });
   }
-  const viewer = await checkViewerRoles();
+  const viewer = await checkViewerRoles(request);
   if (isShopUpload) {
     const slug = (new URL(request.url).searchParams.get("slug") ?? "").trim();
     const all = await loadAllShopConfigs();
@@ -377,7 +434,7 @@ async function staffOrShopUpload(request: Request, isShopUpload: boolean): Promi
     // 2. Also store in Blob/local storage if configured
     const { putMedia } = await import("@/lib/media/storage.server");
     await putMedia(key, image.bytes, image.contentType).catch(() => {});
-    return json(200, { ok: true, key, url: mediaUrl(key) });
+    const dataUrl = `data:${image.contentType};base64,${Buffer.from(image.bytes).toString("base64")}`; return json(200, { ok: true, key, url: `/api/media?kind=blob&key=${key}`, dataUrl });
   } catch (error) {
     console.error("[media] upload failed", error);
     return json(500, { ok: false, message: "تعذّر رفع الصورة الآن." });
@@ -385,10 +442,8 @@ async function staffOrShopUpload(request: Request, isShopUpload: boolean): Promi
 }
 
 async function handleShopHubPost(request: Request): Promise<Response> {
-  const { assertSameSiteRequest } = await import("@/lib/auth/isolation.server");
-  try {
-    assertSameSiteRequest();
-  } catch {
+  const secSite = request.headers.get("sec-fetch-site");
+  if (secSite && secSite !== "same-origin" && secSite !== "same-site" && secSite !== "none") {
     return json(403, { ok: false, message: "طلب غير صحيح." });
   }
   let body: any;
@@ -399,7 +454,7 @@ async function handleShopHubPost(request: Request): Promise<Response> {
   }
   const action = String(body?.action ?? "");
   if (action === "save_global_settings") {
-    const viewer = await checkViewerRoles();
+    const viewer = await checkViewerRoles(request);
     if (!viewer.isAdmin) {
       return json(403, { ok: false, message: "تغيير مظهر الدليل متاح لإدارة الموقع فقط." });
     }
@@ -417,7 +472,7 @@ async function handleShopHubPost(request: Request): Promise<Response> {
     return json(400, { ok: false, message: "معرّف المحل غير صالح." });
   }
 
-  const viewer = await checkViewerRoles();
+  const viewer = await checkViewerRoles(request);
   const all = await loadAllShopConfigs();
   const current: ShopHubEntryConfig = all[slug] ?? {
     slug,
@@ -547,6 +602,30 @@ export const Route = createFileRoute("/api/media")({
     handlers: {
       GET: async ({ request }) => {
         const u = new URL(request.url);
+        if (u.searchParams.get("kind") === "blob") {
+          const key = (u.searchParams.get("key") ?? "").trim();
+          if (!MEDIA_KEY_RE.test(key)) return new Response("Not found", { status: 404 });
+          try {
+            const sql = await ensureShopHubTable();
+            const rows = await sql<{ content_type: string; bytes: Uint8Array | Buffer }>`
+              SELECT content_type, bytes FROM shop_media_blobs WHERE key = ${key} LIMIT 1
+            `;
+            if (rows.length > 0 && rows[0].bytes) {
+              const rawBytes = new Uint8Array(rows[0].bytes);
+              return new Response(rawBytes as unknown as BodyInit, {
+                status: 200,
+                headers: {
+                  "content-type": rows[0].content_type || (key.endsWith(".jpg") ? "image/jpeg" : "image/webp"),
+                  "cache-control": "public, max-age=31536000, immutable",
+                  "content-length": String(rawBytes.byteLength),
+                },
+              });
+            }
+          } catch (e) {
+            console.error("[media blob] failed", e);
+          }
+          return new Response("Not found", { status: 404 });
+        }
         if (u.searchParams.get("kind") === "live-settings") {
           try {
             const { loadSettings } = await import("@/lib/site-settings/store.server");
@@ -570,7 +649,7 @@ export const Route = createFileRoute("/api/media")({
           const [shops, globalSettings, viewer] = await Promise.all([
             loadAllShopConfigs(),
             loadDirectoryGlobalSettings(),
-            checkViewerRoles(),
+            checkViewerRoles(request),
           ]);
           const slug = u.searchParams.get("slug");
           if (slug) {
@@ -591,7 +670,7 @@ export const Route = createFileRoute("/api/media")({
       POST: async ({ request }) => {
         const kind = new URL(request.url).searchParams.get("kind");
         if (kind === "live-settings") {
-          const viewer = await checkViewerRoles();
+          const viewer = await checkViewerRoles(request);
           const { isAdmin, isOwner } = await import("@/lib/admin-auth");
           const [adm, own] = await Promise.all([
             isAdmin().catch(() => false),
@@ -676,7 +755,7 @@ export const Route = createFileRoute("/api/media")({
             width: image.width,
             height: image.height,
           });
-          return json(200, { ok: true, key, url: mediaUrl(key) });
+          const dataUrl = `data:${image.contentType};base64,${Buffer.from(image.bytes).toString("base64")}`; return json(200, { ok: true, key, url: `/api/media?kind=blob&key=${key}`, dataUrl });
         } catch (error) {
           console.error("[media] upload failed", error);
           return json(500, { ok: false, message: "تعذّر رفع الصورة الآن. حاول مرة أخرى." });

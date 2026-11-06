@@ -5653,7 +5653,7 @@ function InteractiveDirectoryHomeSection({
   const resolveImg = (v?: string) => {
     if (!v) return "";
     if (v.startsWith("data:image/") || v.startsWith("http") || v.startsWith("/")) return v;
-    return mediaUrl(v);
+    return `/api/media?kind=blob&key=${encodeURIComponent(v)}`;
   };
 
   const styleMode = globalCfg.directoryStyle || "cards";
@@ -6014,7 +6014,7 @@ function InteractiveDirectoryHomeSection({
                   <Link
                     to="/directory/$slug"
                     params={{ slug: place.slug }}
-                    className={`press flex items-center gap-3 rounded-2xl border p-3 transition ${
+                    className={`press flex flex-col overflow-hidden rounded-2xl border transition ${
                       isDarkGold
                         ? "border-[#f2c94c]/45 bg-[#1e293b]/95 text-white hover:border-[#f2c94c]"
                         : place.featured || place.offerBadge
@@ -6022,19 +6022,36 @@ function InteractiveDirectoryHomeSection({
                           : "border-line bg-paper hover:border-primary"
                     }`}
                   >
-                    {place.photo ? (
-                      <img
-                        src={resolveImg(place.photo)}
-                        alt={trv(place.name)}
-                        className="size-14 shrink-0 rounded-2xl border-2 border-primary/60 bg-paper object-cover shadow-2xs"
-                        loading="lazy"
-                        decoding="async"
-                      />
-                    ) : (
-                      <span className="icon-badge size-14 shrink-0 rounded-2xl bg-primary-soft text-primary-ink">
-                        <Store className="size-6" aria-hidden />
-                      </span>
-                    )}
+                    {place.coverKey ? (
+                      <div className="relative h-24 w-full overflow-hidden bg-ink">
+                        <img
+                          src={resolveImg(place.coverKey)}
+                          alt={trv(place.name)}
+                          className="h-full w-full object-cover"
+                          loading="lazy"
+                        />
+                      </div>
+                    ) : null}
+                    <div className="flex items-center gap-3 p-3">
+                      {place.photo ? (
+                        <img
+                          src={resolveImg(place.photo)}
+                          alt={trv(place.name)}
+                          className={`size-14 shrink-0 rounded-2xl border-2 border-primary/60 bg-paper object-cover shadow-2xs ${
+                            place.coverKey ? "-mt-7 border-paper shadow-md" : ""
+                          }`}
+                          loading="lazy"
+                          decoding="async"
+                        />
+                      ) : (
+                        <span
+                          className={`icon-badge size-14 shrink-0 rounded-2xl bg-primary-soft text-primary-ink ${
+                            place.coverKey ? "-mt-7 border-2 border-paper shadow-md" : ""
+                          }`}
+                        >
+                          <Store className="size-6" aria-hidden />
+                        </span>
+                      )}
 
                     <span className="min-w-0 flex-1 space-y-0.5">
                       <span className="flex flex-wrap items-center gap-1.5">
@@ -6088,10 +6105,11 @@ function InteractiveDirectoryHomeSection({
                       ) : null}
                     </span>
 
-                    <ChevronLeft
-                      className={`size-5 shrink-0 ${isDarkGold ? "text-[#f2c94c]" : "text-muted"}`}
-                      aria-hidden
-                    />
+                      <ChevronLeft
+                        className={`size-5 shrink-0 ${isDarkGold ? "text-[#f2c94c]" : "text-muted"}`}
+                        aria-hidden
+                      />
+                    </div>
                   </Link>
                 </li>
               ))}

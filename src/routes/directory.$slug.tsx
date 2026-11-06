@@ -280,8 +280,56 @@ function BusinessPage() {
     setBusy(true);
     setMsg("");
     try {
-      const blob = await compress(file);
-      const dataUrl = await blobToDataUrl(blob).catch(() => "");
+      const maxSide = autoSaveField === "logoKey" ? 440 : 960;
+      let blob: Blob = file;
+      let dataUrl = "";
+      try {
+        const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+          const el = new Image();
+          const objUrl = URL.createObjectURL(file);
+          el.onload = () => {
+            URL.revokeObjectURL(objUrl);
+            resolve(el);
+          };
+          el.onerror = () => {
+            URL.revokeObjectURL(objUrl);
+            reject(new Error("img-load"));
+          };
+          el.src = objUrl;
+        });
+        const w0 = img.naturalWidth || img.width || 400;
+        const h0 = img.naturalHeight || img.height || 400;
+        const scale = Math.min(1, maxSide / Math.max(w0, h0));
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, Math.round(w0 * scale));
+        canvas.height = Math.max(1, Math.round(h0 * scale));
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          ctx.fillStyle = "#ffffff";
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          dataUrl = canvas.toDataURL("image/webp", 0.82);
+          if (!dataUrl.startsWith("data:image/webp")) {
+            dataUrl = canvas.toDataURL("image/jpeg", 0.84);
+          }
+          blob = await new Promise<Blob>((resolve) =>
+            canvas.toBlob(
+              (b) => resolve(b || file),
+              dataUrl.startsWith("data:image/webp") ? "image/webp" : "image/jpeg",
+              0.82,
+            ),
+          );
+        }
+      } catch {
+        blob = await compress(file).catch(() => file);
+        dataUrl = await blobToDataUrl(blob).catch(() => "");
+      }
+
+      if (dataUrl) {
+        if (autoSaveField === "logoKey") setLogoKey(dataUrl);
+        if (autoSaveField === "coverKey") setCoverKey(dataUrl);
+      }
+
       let finalRef = dataUrl;
       try {
         const res = await fetch(`/api/media?kind=shop-upload&slug=${encodeURIComponent(slug)}`, {
@@ -290,17 +338,22 @@ function BusinessPage() {
           body: blob,
         });
         const data = await res.json().catch(() => null);
-        if (res.ok && data?.ok && data?.key) {
-          finalRef = String(data.key);
+        if (res.ok && data?.ok) {
+          finalRef = data.dataUrl || dataUrl || (data.key ? `/api/media?kind=blob&key=${data.key}` : "");
         }
       } catch {
-        /* fallback to dataUrl */
+        /* keep dataUrl */
       }
       if (!finalRef) {
         setMsg(tr("تعذّر قراءة الصورة."));
         return null;
       }
       if (autoSaveField) {
+        setHubCfg((prev) =>
+          prev
+            ? { ...prev, [autoSaveField]: finalRef }
+            : ({ slug, products: [], campaigns: [], [autoSaveField]: finalRef } as ShopHubEntryConfig),
+        );
         const saveRes = await fetch("/api/media?kind=shop-hub", {
           method: "POST",
           headers: { "content-type": "application/json" },
@@ -313,12 +366,21 @@ function BusinessPage() {
         const saveData = await saveRes?.json().catch(() => null);
         if (saveData?.ok && saveData.shop) {
           setHubCfg(saveData.shop);
-          setMsg(
-            autoSaveField === "logoKey"
-              ? tr("✓ تم رفع وحفظ لوجو المحل بنجاح.")
-              : tr("✓ تم رفع وحفظ غلاف المحل بنجاح."),
-          );
+          try {
+            if (saveData.shops) {
+              window.localStorage.setItem(
+                "rp_latest_shop_hub",
+                JSON.stringify({ shops: saveData.shops }),
+              );
+            }
+            window.dispatchEvent(new CustomEvent("rp-shop-hub-updated"));
+          } catch {}
         }
+        setMsg(
+          autoSaveField === "logoKey"
+            ? tr("✓ تم رفع وحفظ لوجو المحل بنجاح.")
+            : tr("✓ تم رفع وحفظ غلاف المحل بنجاح."),
+        );
       }
       return finalRef;
     } catch {
