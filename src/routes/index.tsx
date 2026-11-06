@@ -1578,6 +1578,45 @@ function resolveMatchDetails(m: RichMatchItem, meta?: CustomMatchMetaPayload): L
   return base;
 }
 
+const STADIUM_PITCH_KEYFRAMES = `
+@keyframes rpTurfBreeze {
+  0%, 100% { background-position: 0% 50%, 0 0; }
+  50% { background-position: 100% 50%, 24px 0; }
+}
+@keyframes rpFloodlightSweep {
+  0%, 100% { transform: translateX(-30%) rotate(-12deg); opacity: 0.22; }
+  50% { transform: translateX(30%) rotate(12deg); opacity: 0.38; }
+}
+@keyframes rpBallRoam {
+  0%   { transform: translate(0px, 0px) scale(1); }
+  20%  { transform: translate(58px, -14px) scale(1.08); }
+  45%  { transform: translate(110px, 10px) scale(0.96); }
+  70%  { transform: translate(-65px, -12px) scale(1.08); }
+  88%  { transform: translate(-112px, 8px) scale(1.12); }
+  100% { transform: translate(0px, 0px) scale(1); }
+}
+@keyframes rpGoalCelebration {
+  0%   { transform: scale(0.75); opacity: 0; }
+  15%  { transform: scale(1.06); opacity: 1; }
+  30%  { transform: scale(0.98); opacity: 1; }
+  85%  { transform: scale(1); opacity: 1; }
+  100% { transform: scale(0.92); opacity: 0; }
+}
+@keyframes rpCardFlipIn {
+  0%   { transform: perspective(400px) rotateY(90deg) scale(0.6); opacity: 0; }
+  25%  { transform: perspective(400px) rotateY(-12deg) scale(1.08); opacity: 1; }
+  45%  { transform: perspective(400px) rotateY(0deg) scale(1); opacity: 1; }
+  85%  { transform: perspective(400px) rotateY(0deg) scale(1); opacity: 1; }
+  100% { transform: perspective(400px) rotateY(-45deg) scale(0.85); opacity: 0; }
+}
+@keyframes rpRadarWave {
+  0%   { transform: scale(0.5); opacity: 0.85; }
+  100% { transform: scale(2.4); opacity: 0; }
+}
+`;
+
+type PitchEventKind = "none" | "goal" | "foul" | "red" | "attack";
+
 function MatchRowCard({ m, showLeagueBadge }: { m: RichMatchItem; showLeagueBadge?: boolean }) {
   const isLive = m.status === "in";
   const isDone = m.status === "post";
@@ -1585,6 +1624,132 @@ function MatchRowCard({ m, showLeagueBadge }: { m: RichMatchItem; showLeagueBadg
   const details = useMemo(() => resolveMatchDetails(m, meta), [m, meta]);
   const [watchOpen, setWatchOpen] = useState(false);
   const embed = streamUrl ? toEmbedStreamUrl(streamUrl) : null;
+
+  // Live animated stadium event state ("goal" | "foul" | "red" | "attack" | "none")
+  const [pitchEvent, setPitchEvent] = useState<PitchEventKind>("none");
+  const [pitchEventText, setPitchEventText] = useState<string>("");
+  const [pitchEventSub, setPitchEventSub] = useState<string>("");
+  const eventTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const triggerPitchEvent = (kind: PitchEventKind, customTitle?: string, customSub?: string) => {
+    if (eventTimerRef.current) clearTimeout(eventTimerRef.current);
+    setPitchEvent(kind);
+    if (kind === "goal") {
+      const lastGoal =
+        details.homeGoals[details.homeGoals.length - 1] ??
+        details.awayGoals[details.awayGoals.length - 1];
+      const scorerText = lastGoal
+        ? `${trv(lastGoal.scorer)} ${lastGoal.minute ? `(${lastGoal.minute})` : ""}`
+        : `${trv(m.homeTeam)} × ${trv(m.awayTeam)}`;
+      setPitchEventText(customTitle || tr("⚽ هـــــدف! GOOOAL!"));
+      setPitchEventSub(customSub || scorerText);
+    } else if (kind === "foul") {
+      const lastYellow =
+        details.homeCardEvents.filter((c) => c.card === "yellow").slice(-1)[0] ??
+        details.awayCardEvents.filter((c) => c.card === "yellow").slice(-1)[0];
+      setPitchEventText(customTitle || tr("📢 صافرة الحكم: فاول وبطاقة صفراء!"));
+      setPitchEventSub(
+        customSub ||
+          (lastYellow?.player
+            ? `${trv(lastYellow.player)} ${lastYellow.minute ? `(${lastYellow.minute})` : ""}`
+            : `${tr("خطأ تكتيكي في وسط الملعب")} · ${trv(m.homeTeam)} × ${trv(m.awayTeam)}`),
+      );
+    } else if (kind === "red") {
+      const lastRed =
+        details.homeCardEvents.filter((c) => c.card === "red").slice(-1)[0] ??
+        details.awayCardEvents.filter((c) => c.card === "red").slice(-1)[0];
+      setPitchEventText(customTitle || tr("🟥 قرار حاسم: بطاقة حمراء وطرد!"));
+      setPitchEventSub(
+        customSub ||
+          (lastRed?.player
+            ? `${trv(lastRed.player)} ${lastRed.minute ? `(${lastRed.minute})` : ""}`
+            : `${tr("تدخل قوي ومراجعة الحكم")} · ${trv(m.homeTeam)} × ${trv(m.awayTeam)}`),
+      );
+    } else if (kind === "attack") {
+      setPitchEventText(customTitle || tr("⚡ هجمة خطيرة داخل منطقة الجزاء!"));
+      setPitchEventSub(
+        customSub || `${tr("ضغط هجومي متواصل على المرمى")} · ${trv(m.homeTeam)} × ${trv(m.awayTeam)}`,
+      );
+    }
+    if (kind !== "none") {
+      eventTimerRef.current = setTimeout(() => {
+        setPitchEvent("none");
+      }, 4600);
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (eventTimerRef.current) clearTimeout(eventTimerRef.current);
+    };
+  }, []);
+
+  // Automatically detect real-time score, yellow card, or red card changes and fire stadium animation!
+  const prevMetricsRef = useRef<{
+    id: string;
+    hs: number;
+    as: number;
+    yc: number;
+    rc: number;
+  }>({
+    id: m.id,
+    hs: m.homeScore ?? 0,
+    as: m.awayScore ?? 0,
+    yc: details.homeYellowCards + details.awayYellowCards,
+    rc: details.homeRedCards + details.awayRedCards,
+  });
+
+  useEffect(() => {
+    const curHs = m.homeScore ?? 0;
+    const curAs = m.awayScore ?? 0;
+    const curYc = details.homeYellowCards + details.awayYellowCards;
+    const curRc = details.homeRedCards + details.awayRedCards;
+    const prev = prevMetricsRef.current;
+
+    if (prev.id !== m.id) {
+      prevMetricsRef.current = { id: m.id, hs: curHs, as: curAs, yc: curYc, rc: curRc };
+      // If switched to a match with goals or live action, show a brief welcome stadium event
+      if (curHs + curAs > 0 && isLive) {
+        triggerPitchEvent("goal");
+      } else if (curRc > 0 && isLive) {
+        triggerPitchEvent("red");
+      } else if (curYc > 0 && isLive) {
+        triggerPitchEvent("foul");
+      }
+      return;
+    }
+
+    if (curHs > prev.hs) {
+      triggerPitchEvent(
+        "goal",
+        `⚽ ${tr("هـــدف لصالح")} ${trv(m.homeTeam)}!`,
+        `${curHs} - ${curAs}`,
+      );
+    } else if (curAs > prev.as) {
+      triggerPitchEvent(
+        "goal",
+        `⚽ ${tr("هـــدف لصالح")} ${trv(m.awayTeam)}!`,
+        `${curHs} - ${curAs}`,
+      );
+    } else if (curRc > prev.rc) {
+      triggerPitchEvent("red");
+    } else if (curYc > prev.yc) {
+      triggerPitchEvent("foul");
+    }
+
+    prevMetricsRef.current = { id: m.id, hs: curHs, as: curAs, yc: curYc, rc: curRc };
+  }, [
+    m.id,
+    m.homeScore,
+    m.awayScore,
+    m.homeTeam,
+    m.awayTeam,
+    isLive,
+    details.homeYellowCards,
+    details.awayYellowCards,
+    details.homeRedCards,
+    details.awayRedCards,
+  ]);
 
   // Compute initial live seconds for the real-time match clock
   const initialLiveSeconds = useMemo(() => {
@@ -1633,235 +1798,464 @@ function MatchRowCard({ m, showLeagueBadge }: { m: RichMatchItem; showLeagueBadg
     return `${String(mins).padStart(2, "0")}:${secs}`;
   }, [isLive, details.isHalftime, details.liveMinuteText, m.statusTextAr, liveSec]);
 
+  const borderGlowCls =
+    pitchEvent === "goal"
+      ? "border-2 border-[#FACC15] shadow-[0_0_24px_rgba(250,204,21,0.55)]"
+      : pitchEvent === "foul"
+        ? "border-2 border-[#FDE047] shadow-[0_0_20px_rgba(253,224,71,0.45)]"
+        : pitchEvent === "red"
+          ? "border-2 border-[#EF4444] shadow-[0_0_22px_rgba(239,68,68,0.55)]"
+          : pitchEvent === "attack"
+            ? "border-2 border-[#38BDF8] shadow-[0_0_18px_rgba(56,189,248,0.45)]"
+            : isLive
+              ? "border-2 border-[#22C55E]/80 shadow-sm"
+              : "border border-[#15803D]/60 shadow-xs";
+
   return (
     <div
-      className={`flex flex-col gap-1 rounded-2xl border px-2.5 py-2 transition ${
-        isLive
-          ? "border-alert/50 bg-alert/5 shadow-xs"
-          : "border-line bg-paper hover:border-ink/25"
-      }`}
+      className={`relative overflow-hidden rounded-2xl px-3 py-2.5 text-white transition-all duration-300 ${borderGlowCls}`}
+      style={{
+        backgroundImage:
+          "radial-gradient(circle at 50% 0%, rgba(255,255,255,0.16) 0%, rgba(0,0,0,0.28) 90%), repeating-linear-gradient(90deg, #0b532b 0px, #0b532b 22px, #0f6837 22px, #0f6837 44px)",
+        backgroundSize: "200% 100%, 44px 100%",
+        animation: "rpTurfBreeze 9s ease-in-out infinite",
+      }}
     >
-      {showLeagueBadge ? (
-        <div className="flex items-center justify-between text-[10px] leading-none font-bold text-muted">
-          <span className="inline-flex items-center gap-1 truncate">
-            <span>{m.leagueBadge}</span>
-            <span className="truncate">{trv(m.leagueNameAr)}</span>
-          </span>
-          <span className="shrink-0">{m.dateLabelAr}</span>
-        </div>
-      ) : null}
+      <style>{STADIUM_PITCH_KEYFRAMES}</style>
 
-      {/* Compact single-height match row: Team + inline cards + micro goals under name */}
-      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-1.5">
-        {/* Home team (Right in RTL) */}
-        <div className="flex min-w-0 items-center gap-1.5">
-          <TeamCrest name={m.homeTeam} logo={m.homeLogo} />
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-1">
-              <span className="truncate text-xs font-extrabold text-ink sm:text-sm">
-                {trv(m.homeTeam)}
-              </span>
-              {/* Compact inline cards per team */}
-              <span
-                dir="ltr"
-                className="inline-flex shrink-0 items-center gap-0.5 text-[9px] leading-none font-extrabold"
-                title={tr("البطاقات الصفراء والحمراء")}
-              >
-                <span
-                  className={`inline-flex items-center rounded px-1 py-0.5 ${
-                    details.homeYellowCards > 0
-                      ? "bg-[#FEF08A] text-[#854D0E]"
-                      : "bg-surface text-muted/70"
-                  }`}
-                >
-                  🟨{details.homeYellowCards}
-                </span>
-                {details.homeRedCards > 0 ? (
-                  <span className="inline-flex items-center rounded bg-[#FEE2E2] px-1 py-0.5 text-[#991B1B]">
-                    🟥{details.homeRedCards}
-                  </span>
-                ) : null}
-              </span>
-            </div>
+      {/* Animated Stadium Floodlight Beams */}
+      <div
+        className="pointer-events-none absolute -top-10 inset-x-0 h-28"
+        style={{
+          background:
+            "conic-gradient(from 180deg at 50% 0%, transparent 30%, rgba(255,255,255,0.22) 48%, rgba(250,204,21,0.18) 52%, transparent 70%)",
+          animation: "rpFloodlightSweep 6s ease-in-out infinite",
+        }}
+        aria-hidden
+      />
 
-            {/* Micro compact goals list right below team name without increasing box height */}
-            {details.homeGoals.length > 0 ? (
-              <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[9px] leading-tight font-bold text-muted">
-                {details.homeGoals.map((g, idx) => (
-                  <span
-                    key={`hg-${idx}-${g.minute}-${g.scorer}`}
-                    className="inline-flex items-center gap-0.5 truncate"
-                  >
-                    <span className="text-[8px]">⚽</span>
-                    <span className="truncate text-ink/90">{trv(g.scorer)}</span>
-                    {g.minute ? (
-                      <span dir="ltr" className="font-extrabold text-primary-ink">
-                        {g.minute}
-                      </span>
-                    ) : null}
-                  </span>
-                ))}
-              </div>
-            ) : null}
-          </div>
-        </div>
+      {/* Authentic SVG Football Pitch Markings & Animated Ball on Pitch */}
+      <svg
+        viewBox="0 0 400 130"
+        preserveAspectRatio="none"
+        className="pointer-events-none absolute inset-0 h-full w-full opacity-35"
+        aria-hidden
+      >
+        {/* Outer Pitch Boundary */}
+        <rect x="6" y="6" width="388" height="118" rx="6" fill="none" stroke="#ffffff" strokeWidth="1.6" />
+        {/* Halfway Line */}
+        <line x1="200" y1="6" x2="200" y2="124" stroke="#ffffff" strokeWidth="1.5" />
+        {/* Center Circle & Spot */}
+        <circle cx="200" cy="65" r="24" fill="none" stroke="#ffffff" strokeWidth="1.5" />
+        <circle cx="200" cy="65" r="2.6" fill="#ffffff" />
+        {/* Left Penalty Area & 6-Yard Box */}
+        <rect x="6" y="28" width="48" height="74" fill="none" stroke="#ffffff" strokeWidth="1.5" />
+        <rect x="6" y="45" width="18" height="40" fill="none" stroke="#ffffff" strokeWidth="1.3" />
+        <path d="M 54 49 A 18 18 0 0 1 54 81" fill="none" stroke="#ffffff" strokeWidth="1.4" />
+        {/* Right Penalty Area & 6-Yard Box */}
+        <rect x="346" y="28" width="48" height="74" fill="none" stroke="#ffffff" strokeWidth="1.5" />
+        <rect x="376" y="45" width="18" height="40" fill="none" stroke="#ffffff" strokeWidth="1.3" />
+        <path d="M 346 49 A 18 18 0 0 0 346 81" fill="none" stroke="#ffffff" strokeWidth="1.4" />
+        {/* Corner Arcs */}
+        <path d="M 6 14 A 8 8 0 0 0 14 6" fill="none" stroke="#ffffff" strokeWidth="1.3" />
+        <path d="M 386 6 A 8 8 0 0 0 394 14" fill="none" stroke="#ffffff" strokeWidth="1.3" />
+        <path d="M 6 116 A 8 8 0 0 1 14 124" fill="none" stroke="#ffffff" strokeWidth="1.3" />
+        <path d="M 386 124 A 8 8 0 0 1 394 116" fill="none" stroke="#ffffff" strokeWidth="1.3" />
+      </svg>
 
-        {/* Center score / kickoff + micro live match clock */}
-        <div className="flex flex-col items-center justify-center px-1.5">
-          {m.status === "pre" ? (
-            <span
-              dir="ltr"
-              className="rounded-lg bg-surface px-2 py-0.5 text-[11px] font-extrabold text-ink"
-            >
-              {m.kickoffTimeAr}
-            </span>
-          ) : (
-            <div
-              dir="ltr"
-              className={`flex items-center gap-1 rounded-lg px-2 py-0.5 text-sm leading-tight font-extrabold ${
-                isLive ? "bg-alert text-white" : "bg-surface text-ink"
-              }`}
-            >
-              <span>{m.homeScore ?? 0}</span>
-              <span className="opacity-60">:</span>
-              <span>{m.awayScore ?? 0}</span>
-            </div>
-          )}
-
+      {/* Moving Ball & Radar Pulse in the Pitch Background */}
+      <div
+        className="pointer-events-none absolute top-1/2 left-1/2 z-0 -translate-x-1/2 -translate-y-1/2"
+        aria-hidden
+      >
+        <div
+          className="relative flex items-center justify-center"
+          style={{
+            animation: "rpBallRoam 11s ease-in-out infinite",
+          }}
+        >
           <span
-            dir="ltr"
-            className={`mt-0.5 inline-flex items-center gap-1 text-[9px] leading-none font-extrabold ${
-              isLive ? "text-alert" : isDone ? "text-muted" : "text-primary-ink"
-            }`}
-          >
-            {isLive ? (
-              <>
-                <span className="size-1.5 animate-ping rounded-full bg-alert" />
-                <span>⏱️ {formattedLiveClock}</span>
-              </>
-            ) : (
-              <span>{trv(m.statusTextAr)}</span>
-            )}
-          </span>
-        </div>
-
-        {/* Away team (Left in RTL) */}
-        <div className="flex min-w-0 items-center justify-end gap-1.5 text-left">
-          <div className="min-w-0 flex-1 text-left">
-            <div className="flex items-center justify-end gap-1">
-              {/* Compact inline cards per team */}
-              <span
-                dir="ltr"
-                className="inline-flex shrink-0 items-center gap-0.5 text-[9px] leading-none font-extrabold"
-                title={tr("البطاقات الصفراء والحمراء")}
-              >
-                {details.awayRedCards > 0 ? (
-                  <span className="inline-flex items-center rounded bg-[#FEE2E2] px-1 py-0.5 text-[#991B1B]">
-                    🟥{details.awayRedCards}
-                  </span>
-                ) : null}
-                <span
-                  className={`inline-flex items-center rounded px-1 py-0.5 ${
-                    details.awayYellowCards > 0
-                      ? "bg-[#FEF08A] text-[#854D0E]"
-                      : "bg-surface text-muted/70"
-                  }`}
-                >
-                  🟨{details.awayYellowCards}
-                </span>
-              </span>
-              <span className="truncate text-xs font-extrabold text-ink sm:text-sm">
-                {trv(m.awayTeam)}
-              </span>
-            </div>
-
-            {/* Micro compact goals list right below away team name */}
-            {details.awayGoals.length > 0 ? (
-              <div className="mt-0.5 flex flex-wrap items-center justify-end gap-x-1.5 gap-y-0.5 text-[9px] leading-tight font-bold text-muted">
-                {details.awayGoals.map((g, idx) => (
-                  <span
-                    key={`ag-${idx}-${g.minute}-${g.scorer}`}
-                    className="inline-flex items-center gap-0.5 truncate"
-                  >
-                    {g.minute ? (
-                      <span dir="ltr" className="font-extrabold text-primary-ink">
-                        {g.minute}
-                      </span>
-                    ) : null}
-                    <span className="truncate text-ink/90">{trv(g.scorer)}</span>
-                    <span className="text-[8px]">⚽</span>
-                  </span>
-                ))}
-              </div>
-            ) : null}
-          </div>
-          <TeamCrest name={m.awayTeam} logo={m.awayLogo} />
+            className="absolute size-7 rounded-full border border-[#FACC15]/70 bg-[#FACC15]/20"
+            style={{ animation: "rpRadarWave 1.8s ease-out infinite" }}
+          />
+          <span className="text-[11px] drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">⚽</span>
         </div>
       </div>
 
-      {channel || cleanNote || streamUrl ? (
-        <div className="mt-0.5 flex flex-wrap items-center justify-between gap-1.5 border-t border-line/50 pt-1">
-          <div className="flex flex-wrap items-center gap-1 text-[10px] leading-none font-bold text-muted">
+      {/* Live Match Event Overlay Banner (Goal / Foul / Red Card / Dangerous Attack) */}
+      {pitchEvent !== "none" ? (
+        <div
+          onClick={() => setPitchEvent("none")}
+          className="absolute inset-0 z-20 flex cursor-pointer flex-col items-center justify-center bg-black/75 px-3 text-center backdrop-blur-[2px]"
+          style={{
+            animation:
+              pitchEvent === "goal"
+                ? "rpGoalCelebration 4.5s ease-in-out forwards"
+                : "rpCardFlipIn 4.5s ease-in-out forwards",
+          }}
+        >
+          {pitchEvent === "goal" ? (
+            <div className="flex flex-col items-center">
+              <div className="flex items-center gap-2 text-2xl sm:text-3xl">
+                <span className="animate-bounce">⚽</span>
+                <span className="rounded-2xl bg-gradient-to-r from-[#FACC15] via-[#FEF08A] to-[#FACC15] px-4 py-1 text-base font-extrabold text-[#111827] shadow-[0_0_25px_rgba(250,204,21,0.9)] sm:text-lg">
+                  {pitchEventText}
+                </span>
+                <span className="animate-bounce">🥅</span>
+              </div>
+              <p className="mt-1.5 text-xs font-extrabold text-[#FEF08A] sm:text-sm">
+                🎉 {pitchEventSub}
+              </p>
+            </div>
+          ) : pitchEvent === "foul" ? (
+            <div className="flex flex-col items-center">
+              <div className="flex items-center gap-2">
+                <span className="inline-block h-8 w-6 rounded-sm border-2 border-white bg-[#FACC15] shadow-[0_0_20px_rgba(250,204,21,0.95)]" />
+                <span className="rounded-xl bg-[#FACC15] px-3.5 py-1 text-sm font-extrabold text-[#111827] shadow-lg">
+                  {pitchEventText}
+                </span>
+              </div>
+              <p className="mt-1.5 text-xs font-extrabold text-white/95">
+                ⚠️ {pitchEventSub}
+              </p>
+            </div>
+          ) : pitchEvent === "red" ? (
+            <div className="flex flex-col items-center">
+              <div className="flex items-center gap-2">
+                <span className="inline-block h-8 w-6 rounded-sm border-2 border-white bg-[#EF4444] shadow-[0_0_24px_rgba(239,68,68,0.95)]" />
+                <span className="rounded-xl bg-[#EF4444] px-3.5 py-1 text-sm font-extrabold text-white shadow-lg">
+                  {pitchEventText}
+                </span>
+              </div>
+              <p className="mt-1.5 text-xs font-extrabold text-[#FECACA]">
+                🚨 {pitchEventSub}
+              </p>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center">
+              <span className="rounded-xl bg-[#0284C7] px-3.5 py-1 text-sm font-extrabold text-white shadow-[0_0_20px_rgba(56,189,248,0.85)]">
+                {pitchEventText}
+              </span>
+              <p className="mt-1.5 text-xs font-extrabold text-[#BAE6FD]">
+                🔥 {pitchEventSub}
+              </p>
+            </div>
+          )}
+        </div>
+      ) : null}
+
+      {/* Foreground Content Over the Stadium Pitch */}
+      <div className="relative z-10 flex flex-col gap-1.5">
+        {showLeagueBadge ? (
+          <div className="flex items-center justify-between text-[10px] leading-none font-extrabold text-white/90">
+            <span className="inline-flex items-center gap-1 truncate rounded-full bg-black/35 px-2 py-0.5 backdrop-blur-[1px]">
+              <span>{m.leagueBadge}</span>
+              <span className="truncate">{trv(m.leagueNameAr)}</span>
+            </span>
+            <span className="shrink-0 rounded-full bg-black/35 px-2 py-0.5 text-[#FEF08A]">
+              {m.dateLabelAr}
+            </span>
+          </div>
+        ) : null}
+
+        {/* Main Match Scoreboard Row on the Pitch */}
+        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-1.5 py-1">
+          {/* Home team (Right in RTL) */}
+          <div className="flex min-w-0 items-center gap-1.5">
+            <div className="rounded-full bg-white/95 p-0.5 shadow-sm">
+              <TeamCrest name={m.homeTeam} logo={m.homeLogo} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1">
+                <span className="truncate text-xs font-extrabold text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)] sm:text-sm">
+                  {trv(m.homeTeam)}
+                </span>
+                {/* Compact inline cards per team (clickable to trigger card animation!) */}
+                <button
+                  type="button"
+                  dir="ltr"
+                  onClick={() =>
+                    triggerPitchEvent(
+                      details.homeRedCards > 0 ? "red" : "foul",
+                      details.homeRedCards > 0
+                        ? `🟥 ${tr("بطاقة حمراء")} — ${trv(m.homeTeam)}`
+                        : `🟨 ${tr("فاول وإنذار")} — ${trv(m.homeTeam)}`,
+                    )
+                  }
+                  className="inline-flex shrink-0 items-center gap-0.5 text-[9px] leading-none font-extrabold"
+                  title={tr("اضغط لعرض أنيميشن الفاول والبطاقات")}
+                >
+                  <span
+                    className={`inline-flex items-center rounded px-1 py-0.5 ${
+                      details.homeYellowCards > 0
+                        ? "bg-[#FEF08A] text-[#854D0E] shadow-2xs"
+                        : "bg-black/40 text-white/80"
+                    }`}
+                  >
+                    🟨{details.homeYellowCards}
+                  </span>
+                  {details.homeRedCards > 0 ? (
+                    <span className="inline-flex items-center rounded bg-[#EF4444] px-1 py-0.5 text-white shadow-2xs">
+                      🟥{details.homeRedCards}
+                    </span>
+                  ) : null}
+                </button>
+              </div>
+
+              {/* Micro compact goals list right below team name */}
+              {details.homeGoals.length > 0 ? (
+                <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[9px] leading-tight font-bold text-[#FEF08A]">
+                  {details.homeGoals.map((g, idx) => (
+                    <button
+                      type="button"
+                      key={`hg-${idx}-${g.minute}-${g.scorer}`}
+                      onClick={() =>
+                        triggerPitchEvent(
+                          "goal",
+                          `⚽ ${tr("هدف")} ${trv(m.homeTeam)}!`,
+                          `${trv(g.scorer)} ${g.minute || ""}`,
+                        )
+                      }
+                      className="inline-flex items-center gap-0.5 truncate rounded bg-black/35 px-1 py-0.5"
+                    >
+                      <span className="text-[8px]">⚽</span>
+                      <span className="truncate text-white">{trv(g.scorer)}</span>
+                      {g.minute ? (
+                        <span dir="ltr" className="font-extrabold text-[#FACC15]">
+                          {g.minute}
+                        </span>
+                      ) : null}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          </div>
+
+          {/* Center Score / Kickoff + Live Match Clock over Center Circle */}
+          <div className="flex flex-col items-center justify-center px-1.5">
+            {m.status === "pre" ? (
+              <button
+                type="button"
+                onClick={() => triggerPitchEvent("attack")}
+                dir="ltr"
+                className="rounded-xl border border-white/25 bg-black/55 px-2.5 py-1 text-xs font-extrabold text-[#FACC15] shadow-sm backdrop-blur-[2px]"
+                title={tr("اضغط لمعاينة أجواء الملعب")}
+              >
+                {m.kickoffTimeAr}
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => triggerPitchEvent("goal")}
+                dir="ltr"
+                className={`flex items-center gap-1.5 rounded-xl border px-2.5 py-1 text-sm leading-tight font-extrabold shadow-sm ${
+                  isLive
+                    ? "border-[#FACC15] bg-[#DC2626] text-white"
+                    : "border-white/25 bg-black/60 text-white"
+                }`}
+                title={tr("اضغط لإعادة احتفالية الهدف")}
+              >
+                <span>{m.homeScore ?? 0}</span>
+                <span className="text-[#FACC15]">:</span>
+                <span>{m.awayScore ?? 0}</span>
+              </button>
+            )}
+
+            <span
+              dir="ltr"
+              className={`mt-1 inline-flex items-center gap-1 rounded-full bg-black/45 px-2 py-0.5 text-[9px] leading-none font-extrabold ${
+                isLive ? "text-[#FACC15]" : isDone ? "text-white/80" : "text-[#FEF08A]"
+              }`}
+            >
+              {isLive ? (
+                <>
+                  <span className="size-1.5 animate-ping rounded-full bg-[#22C55E]" />
+                  <span>⏱️ {formattedLiveClock}</span>
+                </>
+              ) : (
+                <span>{trv(m.statusTextAr)}</span>
+              )}
+            </span>
+          </div>
+
+          {/* Away team (Left in RTL) */}
+          <div className="flex min-w-0 items-center justify-end gap-1.5 text-left">
+            <div className="min-w-0 flex-1 text-left">
+              <div className="flex items-center justify-end gap-1">
+                {/* Compact inline cards per team */}
+                <button
+                  type="button"
+                  dir="ltr"
+                  onClick={() =>
+                    triggerPitchEvent(
+                      details.awayRedCards > 0 ? "red" : "foul",
+                      details.awayRedCards > 0
+                        ? `🟥 ${tr("بطاقة حمراء")} — ${trv(m.awayTeam)}`
+                        : `🟨 ${tr("فاول وإنذار")} — ${trv(m.awayTeam)}`,
+                    )
+                  }
+                  className="inline-flex shrink-0 items-center gap-0.5 text-[9px] leading-none font-extrabold"
+                  title={tr("اضغط لعرض أنيميشن الفاول والبطاقات")}
+                >
+                  {details.awayRedCards > 0 ? (
+                    <span className="inline-flex items-center rounded bg-[#EF4444] px-1 py-0.5 text-white shadow-2xs">
+                      🟥{details.awayRedCards}
+                    </span>
+                  ) : null}
+                  <span
+                    className={`inline-flex items-center rounded px-1 py-0.5 ${
+                      details.awayYellowCards > 0
+                        ? "bg-[#FEF08A] text-[#854D0E] shadow-2xs"
+                        : "bg-black/40 text-white/80"
+                    }`}
+                  >
+                    🟨{details.awayYellowCards}
+                  </span>
+                </button>
+                <span className="truncate text-xs font-extrabold text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)] sm:text-sm">
+                  {trv(m.awayTeam)}
+                </span>
+              </div>
+
+              {/* Micro compact goals list right below away team name */}
+              {details.awayGoals.length > 0 ? (
+                <div className="mt-0.5 flex flex-wrap items-center justify-end gap-x-1.5 gap-y-0.5 text-[9px] leading-tight font-bold text-[#FEF08A]">
+                  {details.awayGoals.map((g, idx) => (
+                    <button
+                      type="button"
+                      key={`ag-${idx}-${g.minute}-${g.scorer}`}
+                      onClick={() =>
+                        triggerPitchEvent(
+                          "goal",
+                          `⚽ ${tr("هدف")} ${trv(m.awayTeam)}!`,
+                          `${trv(g.scorer)} ${g.minute || ""}`,
+                        )
+                      }
+                      className="inline-flex items-center gap-0.5 truncate rounded bg-black/35 px-1 py-0.5"
+                    >
+                      {g.minute ? (
+                        <span dir="ltr" className="font-extrabold text-[#FACC15]">
+                          {g.minute}
+                        </span>
+                      ) : null}
+                      <span className="truncate text-white">{trv(g.scorer)}</span>
+                      <span className="text-[8px]">⚽</span>
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+            <div className="rounded-full bg-white/95 p-0.5 shadow-sm">
+              <TeamCrest name={m.awayTeam} logo={m.awayLogo} />
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom Interactive Pitch FX Bar + Channel / Live Stream */}
+        <div className="mt-0.5 flex flex-wrap items-center justify-between gap-1.5 border-t border-white/15 pt-1.5">
+          {/* Interactive Stadium Event Triggers (Goal / Foul / Red Card / Attack) */}
+          <div className="flex flex-wrap items-center gap-1">
+            <button
+              type="button"
+              onClick={() => triggerPitchEvent("goal")}
+              className="press inline-flex items-center gap-0.5 rounded-lg bg-black/40 px-1.5 py-0.5 text-[10px] font-extrabold text-[#FEF08A] hover:bg-[#FACC15] hover:text-[#111827]"
+              title={tr("عرض أنيميشن الهدف")}
+            >
+              <span>⚽</span>
+              <span>{tr("هدف")}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => triggerPitchEvent("foul")}
+              className="press inline-flex items-center gap-0.5 rounded-lg bg-black/40 px-1.5 py-0.5 text-[10px] font-extrabold text-white/90 hover:bg-[#FACC15] hover:text-[#111827]"
+              title={tr("عرض أنيميشن الفاول والإنذار")}
+            >
+              <span>🟨</span>
+              <span>{tr("فاول")}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => triggerPitchEvent("red")}
+              className="press inline-flex items-center gap-0.5 rounded-lg bg-black/40 px-1.5 py-0.5 text-[10px] font-extrabold text-[#FCA5A5] hover:bg-[#EF4444] hover:text-white"
+              title={tr("عرض أنيميشن البطاقة الحمراء")}
+            >
+              <span>🟥</span>
+              <span>{tr("طرد")}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => triggerPitchEvent("attack")}
+              className="press inline-flex items-center gap-0.5 rounded-lg bg-black/40 px-1.5 py-0.5 text-[10px] font-extrabold text-[#BAE6FD] hover:bg-[#0284C7] hover:text-white"
+              title={tr("عرض أنيميشن هجمة خطيرة")}
+            >
+              <span>⚡</span>
+              <span>{tr("هجمة")}</span>
+            </button>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-1.5 text-[10px] leading-none font-bold">
             {channel ? (
-              <span className="rounded bg-surface px-1.5 py-0.5 font-extrabold text-ink">
+              <span className="rounded-lg bg-black/45 px-2 py-0.5 font-extrabold text-white">
                 📡 {trv(channel)}
               </span>
             ) : null}
-            {cleanNote ? <span className="truncate">{trv(cleanNote)}</span> : null}
-          </div>
-
-          {streamUrl ? (
-            <button
-              type="button"
-              onClick={() => setWatchOpen((v) => !v)}
-              className={`inline-flex items-center gap-1 rounded-lg px-2 py-0.5 text-[10px] font-extrabold text-white shadow-2xs transition ${
-                watchOpen ? "bg-ink" : "bg-[#DC2626] hover:bg-[#B91C1C]"
-              }`}
-            >
-              <span className="size-1.5 animate-ping rounded-full bg-white" />
-              {watchOpen ? tr("إغلاق ✕") : tr("📺 بث مباشر")}
-            </button>
-          ) : null}
-        </div>
-      ) : null}
-
-      {watchOpen && streamUrl && embed ? (
-        <div className="mt-1.5 overflow-hidden rounded-2xl border border-line bg-black text-white shadow-md">
-          <div className="flex flex-wrap items-center justify-between gap-2 bg-ink px-3 py-1.5 text-xs font-extrabold text-paper">
-            <span className="inline-flex items-center gap-1.5">
-              <span className="size-2 animate-ping rounded-full bg-[#DC2626]" />
-              {tr("بث مباشر:")} {trv(m.homeTeam)} × {trv(m.awayTeam)}
-            </span>
-            <a
-              href={streamUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="rounded-lg bg-white/15 px-2 py-0.5 text-[10px] font-bold text-white hover:bg-white/25"
-            >
-              {tr("فتح في نافذة مستقلة ↗")}
-            </a>
-          </div>
-          <div className="relative aspect-video w-full bg-black">
-            {embed.type === "video" ? (
-              <video
-                src={embed.src}
-                controls
-                autoPlay
-                playsInline
-                className="h-full w-full object-contain"
-              />
-            ) : (
-              <iframe
-                src={embed.src}
-                title={`${m.homeTeam} vs ${m.awayTeam}`}
-                className="h-full w-full border-0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
-                allowFullScreen
-              />
-            )}
+            {cleanNote ? (
+              <span className="truncate text-white/85">{trv(cleanNote)}</span>
+            ) : null}
+            {streamUrl ? (
+              <button
+                type="button"
+                onClick={() => setWatchOpen((v) => !v)}
+                className={`inline-flex items-center gap-1 rounded-lg px-2 py-0.5 text-[10px] font-extrabold text-white shadow-2xs transition ${
+                  watchOpen ? "bg-ink" : "bg-[#DC2626] hover:bg-[#B91C1C]"
+                }`}
+              >
+                <span className="size-1.5 animate-ping rounded-full bg-white" />
+                {watchOpen ? tr("إغلاق ✕") : tr("📺 بث مباشر")}
+              </button>
+            ) : null}
           </div>
         </div>
-      ) : null}
+
+        {watchOpen && streamUrl && embed ? (
+          <div className="mt-1.5 overflow-hidden rounded-2xl border border-white/25 bg-black text-white shadow-md">
+            <div className="flex flex-wrap items-center justify-between gap-2 bg-ink px-3 py-1.5 text-xs font-extrabold text-paper">
+              <span className="inline-flex items-center gap-1.5">
+                <span className="size-2 animate-ping rounded-full bg-[#DC2626]" />
+                {tr("بث مباشر:")} {trv(m.homeTeam)} × {trv(m.awayTeam)}
+              </span>
+              <a
+                href={streamUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="rounded-lg bg-white/15 px-2 py-0.5 text-[10px] font-bold text-white hover:bg-white/25"
+              >
+                {tr("فتح في نافذة مستقلة ↗")}
+              </a>
+            </div>
+            <div className="relative aspect-video w-full bg-black">
+              {embed.type === "video" ? (
+                <video
+                  src={embed.src}
+                  controls
+                  autoPlay
+                  playsInline
+                  className="h-full w-full object-contain"
+                />
+              ) : (
+                <iframe
+                  src={embed.src}
+                  title={`${m.homeTeam} vs ${m.awayTeam}`}
+                  className="h-full w-full border-0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+                  allowFullScreen
+                />
+              )}
+            </div>
+          </div>
+        ) : null}
+      </div>
     </div>
   );
 }
