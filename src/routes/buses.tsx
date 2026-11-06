@@ -1289,6 +1289,18 @@ function BusesPage() {
           );
         })}
       </section>
+
+      <section className="stamp mt-4 p-3.5 text-xs font-semibold leading-relaxed text-muted">
+        <p className="font-bold text-ink">ℹ️ {tr("إخلاء مسؤولية والمصادر الرسمية للمواصلات (Official Transit Sources):")}</p>
+        <p className="mt-1">
+          {tr("منصة «رهط بوست» مستقلة ولا تمثل وزارة المواصلات أو شركة غاليم. جميع بيانات الخطوط والمواعيد مستمدة من المصادر الرسمية المفتوحة:")}
+        </p>
+        <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 font-bold" dir="ltr">
+          <a href="https://bus.gov.il" target="_blank" rel="noopener noreferrer" className="text-primary-ink underline">https://bus.gov.il</a>
+          <a href="https://www.gov.il/ar/departments/ministry_of_transport_and_road_safety" target="_blank" rel="noopener noreferrer" className="text-primary-ink underline">https://www.gov.il</a>
+          <a href="https://www.galim-bus.co.il" target="_blank" rel="noopener noreferrer" className="text-primary-ink underline">https://www.galim-bus.co.il</a>
+        </div>
+      </section>
     </Shell>
   );
 }

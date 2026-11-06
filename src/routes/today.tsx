@@ -150,6 +150,20 @@ function TodayPage() {
             ))}
           </ul>
         </section>
+
+        <section className="stamp p-3.5 text-xs font-semibold leading-relaxed text-muted">
+          <p className="font-bold text-ink">ℹ️ {tr("إخلاء مسؤولية والمصادر الرسمية (Official Sources):")}</p>
+          <p className="mt-1">
+            {tr("منصة «رهط بوست» هي منصة إعلامية ومجتمعية مستقلة ولا تمثل أي جهة حكومية أو رسمية. مصادر البيانات الرسمية:")}
+          </p>
+          <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 font-bold" dir="ltr">
+            <a href="https://www.gov.il" target="_blank" rel="noopener noreferrer" className="text-primary-ink underline">https://www.gov.il</a>
+            <a href="https://www.rahat.muni.il" target="_blank" rel="noopener noreferrer" className="text-primary-ink underline">https://www.rahat.muni.il</a>
+            <a href="https://doar.israelpost.co.il" target="_blank" rel="noopener noreferrer" className="text-primary-ink underline">https://doar.israelpost.co.il</a>
+            <a href="https://bus.gov.il" target="_blank" rel="noopener noreferrer" className="text-primary-ink underline">https://bus.gov.il</a>
+            <a href="https://www.mdais.org" target="_blank" rel="noopener noreferrer" className="text-primary-ink underline">https://www.mdais.org</a>
+          </div>
+        </section>
       </div>
     </Shell>
   );

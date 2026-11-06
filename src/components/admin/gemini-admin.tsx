@@ -172,20 +172,27 @@ export function GeminiAdmin() {
       </section>
 
       <section className="stamp flex flex-col gap-3 p-4">
-        <h2 className="text-lg font-bold">{tr("صور الذكاء الاصطناعي للأخبار بلا صور")}</h2>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-lg font-bold">{tr("صور الذكاء الاصطناعي للأخبار بلا صور (RSS)")}</h2>
+          <span className={`chip ${s.aiImages.enabled ? "bg-primary text-ink font-extrabold" : ""}`}>
+            {s.aiImages.enabled ? "✨ مفعّل تلقائياً" : "متوقف"}
+          </span>
+        </div>
         <p className="text-sm font-semibold text-muted">
-          {tr("الافتراضي: صورة بهوية رهط بوست (العنوان والشعار). عند التفعيل تُولَّد رسمة توضيحية عامة (بلا نصوص ولا وجوه حقيقية) في الخلفية، وعند أي خطأ تبقى الصورة الافتراضية.")}
+          {tr("عند جلب أي خبر من RSS بدون صورة في المصدر، يقوم النظام تلقائياً بتحليل عنوان وموضوع الخبر وتوليد صورة فنية معبّرة بقياس 16:9 بالذكاء الاصطناعي وحفظها للخبر. وعند أي خطأ احتياطي تظهر بطاقة رهط بوست.")}
         </p>
         <label className="flex items-center gap-2 font-bold">
           <input type="checkbox" checked={s.aiImages.enabled} onChange={(e) => setS({ ...s, aiImages: { ...s.aiImages, enabled: e.target.checked } })} />
-          {tr("تفعيل صور الذكاء الاصطناعي")}
+          {tr("تفعيل توليد صور الذكاء الاصطناعي تلقائياً للأخبار التي بدون صورة")}
         </label>
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="flex flex-col gap-1 text-sm font-bold">
             {tr("المزوّد")}
-            <select className="field" dir="ltr" value={s.aiImages.provider} onChange={(e) => setS({ ...s, aiImages: { ...s.aiImages, provider: e.target.value as "gemini" | "grok" } })}>
+            <select className="field" dir="ltr" value={s.aiImages.provider} onChange={(e) => setS({ ...s, aiImages: { ...s.aiImages, provider: e.target.value as "auto" | "gemini" | "grok" | "flux" } })}>
+              <option value="auto">Auto (Gemini → Grok → Flux AI مجاني)</option>
               <option value="gemini">Gemini (image)</option>
               <option value="grok">Grok (xAI image)</option>
+              <option value="flux">Flux AI (مجاني فوري بدون مفتاح)</option>
             </select>
           </label>
           <label className="flex flex-col gap-1 text-sm font-bold">
@@ -193,7 +200,17 @@ export function GeminiAdmin() {
             <input className="field" type="number" min={0} max={500} value={s.aiImages.dailyCap} onChange={(e) => setS({ ...s, aiImages: { ...s.aiImages, dailyCap: Number(e.target.value) } })} />
           </label>
         </div>
-        <button type="button" className="btn self-start" disabled={busy} onClick={() => save()}>{tr("حفظ")}</button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button type="button" className="btn self-start" disabled={busy} onClick={() => save()}>{tr("حفظ")}</button>
+          <a
+            href={`/api/news-image?ai_test=1&prov=${encodeURIComponent(s.aiImages.provider)}&t=${encodeURIComponent(testText || "افتتاح مشروع تطوير البنية التحتية والحدائق العامة في مدينة رهط")}`}
+            target="_blank"
+            rel="noreferrer"
+            className="btn btn-ghost text-xs font-extrabold"
+          >
+            🎨 {tr("معاينة توليد صورة خبر بالذكاء الاصطناعي")}
+          </a>
+        </div>
       </section>
 
       <section className="stamp flex flex-col gap-3 p-4">

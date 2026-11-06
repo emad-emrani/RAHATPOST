@@ -1,17 +1,28 @@
 import { createServerFn } from "@tanstack/react-start";
 import { sanitizeSettings, type SiteSettings } from "./types";
 
-/** Public: current settings (applied on every page by the root route). */
+/** Public: current settings (applied on every page by the root route, never stale-cached). */
 export const getSiteSettings = createServerFn({ method: "GET" }).handler(
   async (): Promise<SiteSettings> => {
     const { loadSettings } = await import("./store.server");
-    return loadSettings();
+    const settings = await loadSettings();
+    try {
+      const { setResponseHeader } = await import("@tanstack/react-start/server");
+      setResponseHeader("Cache-Control", "private, no-store, no-cache, must-revalidate, max-age=0");
+    } catch {
+      // outside a request
+    }
+    return settings;
   },
 );
 
 async function owner(): Promise<boolean> {
-  const { isOwner } = await import("@/lib/admin-auth");
-  return isOwner();
+  const { isAdmin, isOwner } = await import("@/lib/admin-auth");
+  const [adm, own] = await Promise.all([
+    isAdmin().catch(() => false),
+    isOwner().catch(() => false),
+  ]);
+  return Boolean(adm || own);
 }
 
 export const adminGetSiteSettings = createServerFn({ method: "POST" }).handler(
@@ -27,7 +38,7 @@ export const adminSaveSiteSettings = createServerFn({ method: "POST" })
   .handler(
     async ({ data }): Promise<{ ok: boolean; message?: string; settings?: SiteSettings }> => {
       if (!(await owner())) return { ok: false, message: "هذا القسم لمالك الموقع فقط." };
-      if (JSON.stringify(data ?? {}).length > 50_000)
+      if (JSON.stringify(data ?? {}).length > 80_000)
         return { ok: false, message: "البيانات كبيرة جداً." };
       try {
         const settings = sanitizeSettings(data);

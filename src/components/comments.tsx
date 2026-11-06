@@ -75,36 +75,15 @@ export function Comments({ articleKey }: { articleKey: string }) {
         </div>
       </div>
 
-      {isPending ? null : !user ? (
-        <div className="stamp flex flex-col gap-3 p-4">
-          <p className="font-bold">{tr("سجّل الدخول بحساب Google لتكتب تعليقاً أو ترد على الآخرين.")}</p>
-          <p className="text-sm font-semibold text-muted">
-            {tr("قراءة التعليقات متاحة للجميع. يظهر اسمك وصورتك مع تعليقك.")}
-          </p>
-          <Link to="/login" search={{ redirect }} className="btn">
-            {tr("سجّل الدخول للتعليق")}
-          </Link>
-        </div>
-      ) : thread?.blocked ? (
-        <p className="stamp p-4 font-semibold">{tr("تم إيقاف إمكانية التعليق لحسابك.")}</p>
-      ) : (
-        <Composer articleKey={articleKey} premod={thread?.premod ?? false} onPosted={posted} />
-      )}
-
-      {notice ? (
-        <p className="stamp mt-3 p-3 font-bold" role="status">
-          {trv(notice)}
-        </p>
-      ) : null}
-
+      {/* Comments box appears FIRST (above the write-a-comment bar) */}
       {!thread ? (
-        <p className="mt-4 font-semibold text-muted">{tr("جاري تحميل التعليقات…")}</p>
+        <p className="mb-4 font-semibold text-muted">{tr("جاري تحميل التعليقات…")}</p>
       ) : !thread.ok ? (
-        <p className="stamp mt-4 p-4 font-semibold">{tr("تعذّر تحميل التعليقات الآن.")}</p>
+        <p className="stamp mb-4 p-4 font-semibold">{tr("تعذّر تحميل التعليقات الآن.")}</p>
       ) : thread.comments.length === 0 ? (
-        <p className="mt-4 font-semibold text-muted">{tr("لا تعليقات بعد. كن أول من يعلّق.")}</p>
+        <p className="mb-4 font-semibold text-muted">{tr("لا تعليقات بعد. كن أول من يعلّق.")}</p>
       ) : (
-        <ul className="mt-4 flex flex-col gap-3">
+        <ul className="mb-4 flex flex-col gap-3">
           {thread.comments.map((c) => (
             <li key={c.id} className="stamp p-4">
               <CommentItem
@@ -139,6 +118,30 @@ export function Comments({ articleKey }: { articleKey: string }) {
           ))}
         </ul>
       )}
+
+      {notice ? (
+        <p className="stamp mb-3 p-3 font-bold" role="status">
+          {trv(notice)}
+        </p>
+      ) : null}
+
+      {/* Write-a-comment bar (Composer) placed BELOW the comments list */}
+      {isPending ? null : !user ? (
+        <div className="stamp flex flex-col gap-3 p-4">
+          <p className="font-bold">{tr("سجّل الدخول بحساب Google لتكتب تعليقاً أو ترد على الآخرين.")}</p>
+          <p className="text-sm font-semibold text-muted">
+            {tr("قراءة التعليقات متاحة للجميع. يظهر اسمك وصورتك مع تعليقك.")}
+          </p>
+          <Link to="/login" search={{ redirect }} className="btn">
+            {tr("سجّل الدخول للتعليق")}
+          </Link>
+        </div>
+      ) : thread?.blocked ? (
+        <p className="stamp p-4 font-semibold">{tr("تم إيقاف إمكانية التعليق لحسابك.")}</p>
+      ) : (
+        <Composer articleKey={articleKey} premod={thread?.premod ?? false} onPosted={posted} />
+      )}
+
       <p className="mt-3 text-sm font-semibold text-muted">
         {tr("التعليقات تعبّر عن أصحابها. يمنع السب والإساءة والإعلانات؛ أبلغ عن أي تعليق مخالف.")}
       </p>

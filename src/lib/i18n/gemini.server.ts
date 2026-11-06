@@ -27,7 +27,7 @@ export type GeminiSettings = {
   azureKeyBox?: string;
   azureRegion: string;
   /** Optional AI illustrations for news items without a photo (off by default). */
-  aiImages: { enabled: boolean; provider: "gemini" | "grok"; dailyCap: number };
+  aiImages: { enabled: boolean; provider: "auto" | "gemini" | "grok" | "flux"; dailyCap: number; v2Configured?: boolean };
 };
 
 export const DEFAULT_STYLE =
@@ -44,7 +44,7 @@ export const DEFAULT_GEMINI: GeminiSettings = {
   model: process.env.GEMINI_MODEL?.trim() || "gemini-3.8-flash",
   temperature: 0.2,
   stylePrompt: DEFAULT_STYLE,
-  aiImages: { enabled: false, provider: "gemini", dailyCap: 20 },
+  aiImages: { enabled: true, provider: "auto", dailyCap: 120, v2Configured: true },
 };
 
 let cache: { at: number; s: GeminiSettings } | null = null;
@@ -72,7 +72,7 @@ export async function loadGeminiSettings(fresh = false): Promise<GeminiSettings>
         order,
         providers: { ...DEFAULT_GEMINI.providers, ...(d.providers ?? {}) },
         uses: { ...DEFAULT_GEMINI.uses, ...(d.uses ?? {}) },
-        aiImages: { ...DEFAULT_GEMINI.aiImages, ...(d.aiImages ?? {}) },
+        aiImages: d.aiImages?.v2Configured ? { ...DEFAULT_GEMINI.aiImages, ...d.aiImages } : { enabled: true, provider: "auto", dailyCap: Math.max(120, Number(d.aiImages?.dailyCap) || 120), v2Configured: true },
       };
     }
   } catch (e) {

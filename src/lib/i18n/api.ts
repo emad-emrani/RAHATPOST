@@ -168,7 +168,7 @@ export type GeminiPublic = {
   grokModel: string;
   hasGrokOwnKey: boolean;
   hasGrokEnvKey: boolean;
-  aiImages: { enabled: boolean; provider: "gemini" | "grok"; dailyCap: number };
+  aiImages: { enabled: boolean; provider: "auto" | "gemini" | "grok" | "flux"; dailyCap: number; v2Configured?: boolean };
 };
 
 export type GeminiUsage = {
@@ -239,8 +239,11 @@ export const adminSaveGemini = createServerFn({ method: "POST" })
       aiImages: data.aiImages
         ? {
             enabled: Boolean(data.aiImages.enabled),
-            provider: (data.aiImages.provider === "grok" ? "grok" : "gemini") as "gemini" | "grok",
+            provider: (["auto", "gemini", "grok", "flux"].includes(String(data.aiImages.provider))
+              ? data.aiImages.provider
+              : "auto") as "auto" | "gemini" | "grok" | "flux",
             dailyCap: Math.max(0, Math.min(500, Math.round(Number(data.aiImages.dailyCap) || 0))),
+            v2Configured: true,
           }
         : cur.aiImages,
     };

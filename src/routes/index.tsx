@@ -81,11 +81,11 @@ export const Route = createFileRoute("/")({
   },
   // New items must show up within a minute or two: short CDN cache, revalidated in the background.
   headers: () => ({ "Cache-Control": HOME_CACHE }),
-  staleTime: 60_000,
+  staleTime: 0,
   component: Home,
 });
 
-const HOME_CACHE = "public, max-age=0, s-maxage=60, stale-while-revalidate=180";
+const HOME_CACHE = "public, max-age=0, s-maxage=1, stale-while-revalidate=5";
 
 const ISRAEL_HOME_WAIT_MS = 3_500;
 async function israelNewsForHome(): Promise<IsraelNewsResult | null> {
@@ -548,33 +548,16 @@ function Home() {
     };
   }, [query, news.items, places, classifieds, israelItems]);
 
+  const filteredStoreProducts = useMemo(
+    () => store.products.filter((p) => p.slug !== "hub-cfg-main" && !p.slug.startsWith("offer-")),
+    [store.products],
+  );
   const directoryPreview = places.length ? (
-    <section>
-      <SectionTitle title={tr("دليل محلات وخدمات رهط")} to="/directory" more={tr("كل الدليل")} />
-      <ul className="grid gap-3 sm:grid-cols-2">
-        {places.slice(0, 6).map((place) => (
-          <li key={place.slug}>
-            <Link
-              to="/directory/$slug"
-              params={{ slug: place.slug }}
-              className="stamp press flex items-center gap-3 px-4 py-3"
-            >
-              <span className="icon-badge shrink-0">
-                <MapPin className="size-5" aria-hidden />
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block font-bold leading-snug">{trv(place.name)}</span>
-                <span className="text-sm font-semibold text-muted">
-                  {trv(place.category)}
-                  {place.address || place.area ? ` · ${trv(place.address ?? place.area ?? "")}` : ""}
-                </span>
-              </span>
-              <ChevronLeft className="size-5 shrink-0 text-muted" aria-hidden />
-            </Link>
-          </li>
-        ))}
-      </ul>
-    </section>
+    <InteractiveDirectoryHomeSection
+      places={places}
+      storeProducts={filteredStoreProducts}
+      storeCurrency={store.settings.currency}
+    />
   ) : null;
 
   type ExtendedHomeSectionId = HomeSectionId | "matches" | `csec~${string}`;
@@ -587,7 +570,12 @@ function Home() {
         now={now}
       />
     );
-    customSectionBlocks[`csec~${cs.rawName}`] = blockEl;
+    const rName = cs.rawName.trim();
+    const compactName = rName.replace(/\s*و\s*/g, " و");
+    const spacedName = rName.replace(/\s*و\s*/g, " و ");
+    customSectionBlocks[`csec~${rName}`] = blockEl;
+    customSectionBlocks[`csec~${compactName}`] = blockEl;
+    customSectionBlocks[`csec~${spacedName}`] = blockEl;
     customSectionBlocks[`csec~${cs.id}`] = blockEl;
   }
 
@@ -640,6 +628,22 @@ function Home() {
                     >
                       <NewsImage item={item} className="size-16 rounded-xl" />
                       <span className="min-w-0 flex-1">
+                        <span className="flex flex-wrap items-center gap-1.5">
+                          {item.pinned ? (
+                            <span className="rounded-full bg-primary px-2 py-0.5 text-[10px] font-extrabold text-ink">
+                              📌 {tr("مثبّت")}
+                            </span>
+                          ) : null}
+                          {item.sourceUrl === "live" ? (
+                            <span className="rounded-full bg-alert px-2 py-0.5 text-[10px] font-extrabold text-white">
+                              🔴 {tr("بث مباشر")}
+                            </span>
+                          ) : item.sourceUrl === "video" ? (
+                            <span className="rounded-full bg-ink px-2 py-0.5 text-[10px] font-extrabold text-paper">
+                              🎬 {tr("فيديو")}
+                            </span>
+                          ) : null}
+                        </span>
                         <span className="block font-bold leading-snug">{trv(item.title)}</span>
                         <span className="text-sm font-semibold text-muted">
                           {trv(item.category)} · {relativeTimeAr(item.publishedAt, now)} ·{" "}
@@ -737,49 +741,9 @@ function Home() {
         <InteractiveRahatServicesHub now={now} />
       </section>
     ) : null,
-    install: (
-      <>
-        <InstallBanner />
-        <NotifyPrompt />
-      </>
-    ),
-    buses: (
-      <section>
-        <SectionTitle title={tr("باصات غاليم")} to="/buses" more={tr("كل المواعيد")} />
-        <Link to="/buses" className="stamp press flex items-center gap-3 p-4">
-          <span className="icon-badge">
-            <Bus className="size-6" aria-hidden />
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="block font-bold">{tr("خطوط المدينة 1 حتى 6، وبئر السبع وما حولها")}</span>
-            <span className="text-sm font-semibold text-muted">
-              {tr("شركة גלים · أوقات مباشرة وجدول اليوم")}
-            </span>
-          </span>
-          <ChevronLeft className="size-5 text-muted" aria-hidden />
-        </Link>
-      </section>
-    ),
-    directory: (
-      <>
-        {store.products.filter((p) => p.slug !== "hub-cfg-main" && !p.slug.startsWith("offer-")).length ? (
-          <section>
-            <SectionTitle title={tr("من المتجر الرسمي")} to="/store" more={tr("كل المتجر")} />
-            <ul className="scroll-row -mx-4 px-4 pb-2 sm:mx-0 sm:px-0">
-              {store.products
-                .filter((p) => p.slug !== "hub-cfg-main" && !p.slug.startsWith("offer-"))
-                .slice(0, 8)
-                .map((p) => (
-                  <li key={p.id} className="w-48 shrink-0">
-                    <ProductCard p={p} currency={store.settings.currency} />
-                  </li>
-                ))}
-            </ul>
-          </section>
-        ) : null}
-        {directoryPreview}
-      </>
-    ),
+    install: <HomeAppAndNotifySection />,
+    buses: <InteractiveGalimBusesHomeSection />, 
+    directory: directoryPreview,
     ads: (
       <section>
         <SectionTitle title={tr("جديد {0}", settings.texts.harajName)} to="/haraj" more={tr("كل الإعلانات")} />
@@ -818,23 +782,7 @@ function Home() {
       </section>
     ),
     duty: board.dutyVisible === false ? null : <DutyCard duty={board.duty} />,
-    emergency: (
-      <section>
-        <SectionTitle title={tr("أرقام الطوارئ في رهط")} to="/today" more={tr("كل الأرقام")} />
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {emergency.slice(0, 4).map((item) => (
-            <a
-              key={item.phone}
-              href={`tel:${item.phone}`}
-              className="stamp press flex flex-col items-center px-3 py-3.5 text-center"
-            >
-              <span className="text-2xl font-extrabold leading-none text-primary-ink">{trv(item.phone)}</span>
-              <span className="mt-1.5 text-sm font-bold">{trv(item.name)}</span>
-            </a>
-          ))}
-        </div>
-      </section>
-    ),
+    emergency: <InteractiveEmergencyHomeSection />, 
   };
 
   // Build the homepage section order from slidercfg (/hord) + settings.home + all visibleCustomSections
@@ -909,13 +857,7 @@ function Home() {
       }
     }
 
-    // Keep install banner at bottom
-    if (working.includes("install")) {
-      working = [
-        ...working.filter((id) => id !== "install"),
-        "install",
-      ];
-    }
+    // Respect exact admin section position for install and all sections
 
     return working;
   })();
@@ -973,8 +915,6 @@ function Home() {
               {order.map((id) => (
                 <Fragment key={id}>{trv(blocks[id])}</Fragment>
               ))}
-              {!order.includes("matches") ? blocks.matches : null}
-              {!order.includes("directory") ? directoryPreview : null}
             </>
           )}
         </div>
@@ -1270,11 +1210,17 @@ function CustomSectionTranslatedBlock({
 
   return (
     <section>
-      <SectionTitle
-        title={displayTitle}
-        to="/news"
-        more={tr("كل الأخبار")}
-      />
+      <div className="mb-3 flex items-baseline justify-between gap-2">
+        <h2 className="text-xl font-bold">{displayTitle}</h2>
+        <Link
+          to="/news"
+          search={{ cat: cs.rawName.trim() } as never}
+          className="inline-flex min-h-10 items-center gap-0.5 text-sm font-bold text-primary-ink"
+        >
+          <span>{tr("كل الأخبار")}</span>
+          <ChevronLeft className="size-4 rtl:rotate-0 ltr:rotate-180" aria-hidden />
+        </Link>
+      </div>
       {resolvedItems.length > 0 ? (
         <div className="grid gap-4 lg:grid-cols-12">
           <div className="lg:col-span-6">
@@ -3418,16 +3364,18 @@ function HomeTilesBar({
       (q) => q.title.trim() === cleanLabel && q.subtitle?.includes("مَخفي_علوي"),
     );
     if (hiddenByAdmin) continue;
-    if (!combined.some((c) => c.label.trim() === cleanLabel)) {
+    if (!combined.some((c) => c.label.trim().replace(/\s+/g, "") === cleanLabel.replace(/\s+/g, ""))) {
       combined.push({
         icon: cs.icon || (/فن|موضة|ثقافة/.test(cleanLabel) ? "sparkles" : "news"),
-        to: cs.url?.trim() || `/?q=${cleanLabel}`,
+        to: `/news?cat=${cleanLabel}`,
         label: cleanLabel,
       });
     }
   }
 
   if (!combined.length) return null;
+
+  const GENERAL_NEWS_LABELS = new Set(["الأخبار", "أخبار", "أخبار رهط", "آخر الأخبار", "كل الأخبار"]);
 
   return (
     <nav
@@ -3437,15 +3385,21 @@ function HomeTilesBar({
       {combined.map((t, idx) => {
         const Icon = ICON_MAP[t.icon] ?? Newspaper;
         const isLiveTile = t.to === "/sports-news" || t.icon === "tv";
+        const cleanLbl = t.label.trim();
+        const isCustomNewsSec =
+          t.to.includes("?cat=") ||
+          t.to.includes("?q=") ||
+          (t.to === "/news" && Boolean(cleanLbl) && !GENERAL_NEWS_LABELS.has(cleanLbl));
+        const resolvedCat = t.to.includes("?cat=")
+          ? decodeURIComponent(t.to.split("?cat=")[1] ?? cleanLbl)
+          : cleanLbl || decodeURIComponent(t.to.split("?q=")[1] ?? "");
+        const destTo = (isCustomNewsSec ? "/news" : t.to.split("?")[0] || "/") as "/";
+        const destSearch = isCustomNewsSec ? ({ cat: resolvedCat } as never) : undefined;
         return (
           <Link
-            key={`${t.to}-${idx}`}
-            to={(t.to.includes("?q=") ? t.to.split("?q=")[0] || "/" : t.to) as "/"}
-            search={
-              t.to.includes("?q=")
-                ? { q: decodeURIComponent(t.to.split("?q=")[1] ?? "") }
-                : undefined
-            }
+            key={`${t.to}-${cleanLbl}-${idx}`}
+            to={destTo}
+            search={destSearch}
             className="tile relative sm:flex-1"
           >
             <span
@@ -3481,6 +3435,7 @@ function HomeQuickLinks() {
       l.id !== "botbarcfg" &&
       l.id !== "botbarcss" &&
       l.id !== "txsecscfg" &&
+      l.id !== "busemergcfg" &&
       !l.id.startsWith("sec") &&
       l.subtitle !== " مَخفي",
   );
@@ -3934,7 +3889,7 @@ ${userExtraCss}`}</style>
 }
 
 
-/** Animated Top Weather & Prayer Bar — Transparent (no background box) to blend seamlessly with the site on all screens. */
+/** Animated Top Weather & Prayer Bar — Harmonious single-row card matching site design & Image 2 RTL order. */
 function AnimatedWeatherPrayerBar({
   weather,
   serverNow,
@@ -3963,7 +3918,7 @@ function AnimatedWeatherPrayerBar({
       const mm = parts.find((p) => p.type === "minute")?.value ?? "00";
       return { localHour: Number(hh), timeStr: `${hh}:${mm}` };
     } catch {
-      return { localHour: 20, timeStr: "20:00" };
+      return { localHour: 12, timeStr: "12:00" };
     }
   }, [now]);
 
@@ -3973,54 +3928,55 @@ function AnimatedWeatherPrayerBar({
   const isCloudy = kind === "partly" || kind === "cloudy" || kind === "fog";
 
   return (
-    <div className="w-full bg-transparent">
+    <div className="-mt-1 w-full sm:mt-0">
       <style>{`
         @keyframes rpSunSpin {
           0% { transform: rotate(0deg) scale(1); }
-          50% { transform: rotate(180deg) scale(1.1); }
+          50% { transform: rotate(180deg) scale(1.08); }
           100% { transform: rotate(360deg) scale(1); }
         }
         @keyframes rpMoonFloat {
-          0%, 100% { transform: translateY(0px) rotate(-6deg); }
-          50% { transform: translateY(-3px) rotate(5deg); }
+          0%, 100% { transform: translateY(0px) rotate(-5deg); }
+          50% { transform: translateY(-2px) rotate(4deg); }
         }
         @keyframes rpStarTwinkle {
-          0%, 100% { opacity: 0.3; transform: scale(0.85); }
-          50% { opacity: 1; transform: scale(1.2); }
+          0%, 100% { opacity: 0.35; transform: scale(0.85); }
+          50% { opacity: 1; transform: scale(1.15); }
         }
         @keyframes rpCloudDrift {
           0%, 100% { transform: translateX(0px); }
-          50% { transform: translateX(4px); }
+          50% { transform: translateX(2.5px); }
         }
         @keyframes rpRainBounce {
           0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(2.5px); }
+          50% { transform: translateY(2px); }
         }
         @keyframes rpWindWave {
-          0%, 100% { transform: translateX(-2px); opacity: 0.7; }
-          50% { transform: translateX(3px); opacity: 1; }
+          0%, 100% { transform: translateX(-1px); opacity: 0.75; }
+          50% { transform: translateX(1.5px); opacity: 1; }
         }
       `}</style>
 
-      <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-bold text-ink sm:text-sm">
-        {/* Weather + Animated Icon (Sun / Moon & Stars / Rain / Wind / Clouds) — Transparent */}
+      {/* Single-Row Harmonious Card — Fits 100% on one line on mobile & desktop in exact Image 2 RTL order */}
+      <div className="stamp flex flex-nowrap items-center justify-between gap-1.5 overflow-x-auto rounded-2xl border border-line bg-paper px-2.5 py-2 text-[10.5px] font-bold text-ink [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:gap-3 sm:px-4 sm:py-2.5 sm:text-xs">
+        {/* Right Side (in RTL): Weather Icon + Temp + Condition + Wind + Day/Night Live Time */}
         <Link
           to="/today"
-          className="inline-flex flex-wrap items-center gap-2 py-1 transition hover:opacity-80"
+          className="inline-flex min-w-0 shrink-0 items-center gap-1 whitespace-nowrap transition hover:opacity-80 sm:gap-2"
           aria-label={
             weather
               ? tr("الطقس في رهط: {0} درجة، {1}", weather.temp, weatherLabel(weather.code))
               : tr("الطقس في رهط")
           }
         >
-          <span className="relative inline-flex items-center justify-center text-lg leading-none">
+          <span className="relative inline-flex size-5 shrink-0 items-center justify-center rounded-full bg-primary-soft text-xs leading-none sm:size-6 sm:text-sm">
             {isRainy ? (
               <span style={{ animation: "rpRainBounce 1.4s infinite ease-in-out" }}>🌧️</span>
             ) : isNight ? (
               <span className="inline-flex items-center">
                 <span style={{ animation: "rpMoonFloat 3.2s infinite ease-in-out" }}>🌙</span>
                 <span
-                  className="-ms-1 -mt-2 text-[10px]"
+                  className="-ms-1 -mt-1 text-[8px]"
                   style={{ animation: "rpStarTwinkle 2.2s infinite ease-in-out" }}
                 >
                   ✨
@@ -4035,14 +3991,14 @@ function AnimatedWeatherPrayerBar({
 
           {weather ? (
             <>
-              <bdi dir="ltr" className="text-sm font-extrabold text-ink sm:text-base">
+              <bdi dir="ltr" className="text-[11px] font-extrabold text-ink sm:text-sm">
                 {trv(weather.temp)}°
               </bdi>
-              <span className="font-bold text-muted">{weatherLabel(weather.code)}</span>
+              <span className="font-bold text-ink/85">{weatherLabel(weather.code)}</span>
 
               {weather.wind !== null ? (
                 <span
-                  className="inline-flex items-center gap-0.5 text-[11px] font-bold text-muted"
+                  className="inline-flex items-center gap-0.5 text-[10px] font-bold text-muted sm:text-xs"
                   title={tr("سرعة الرياح")}
                 >
                   <span
@@ -4058,7 +4014,7 @@ function AnimatedWeatherPrayerBar({
 
               {weather.rainChance !== null && weather.rainChance > 0 ? (
                 <span
-                  className="inline-flex items-center gap-0.5 text-[11px] font-bold text-primary-ink"
+                  className="inline-flex items-center gap-0.5 text-[10px] font-bold text-primary-ink sm:text-xs"
                   title={tr("احتمال المطر")}
                 >
                   <span style={{ animation: "rpRainBounce 1.6s infinite ease-in-out" }}>💧</span>
@@ -4071,8 +4027,8 @@ function AnimatedWeatherPrayerBar({
           )}
 
           {/* Day / Night Live Time Indicator */}
-          <span className="inline-flex items-center gap-1 text-[11px] font-bold text-muted">
-            <span>·</span>
+          <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-muted sm:gap-1 sm:text-xs">
+            <span className="text-line">·</span>
             <span>{isNight ? tr("ليلاً") : tr("نهاراً")}</span>
             <bdi dir="ltr" className="font-mono font-extrabold text-ink">
               {timeStr}
@@ -4080,13 +4036,16 @@ function AnimatedWeatherPrayerBar({
           </span>
         </Link>
 
-        {/* Next Prayer + Live Countdown — Transparent */}
+        {/* Subtle Vertical Divider */}
+        <span className="h-3.5 w-px shrink-0 bg-line" aria-hidden />
+
+        {/* Left Side (in RTL): Mosque Icon + Next Prayer Name & Time + Countdown */}
         <Link
           to="/today"
-          className="inline-flex items-center gap-1.5 py-1 transition hover:opacity-80"
+          className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap transition hover:opacity-80 sm:gap-1.5"
         >
           <span
-            className="inline-block text-base leading-none"
+            className="inline-flex size-5 shrink-0 items-center justify-center rounded-full bg-primary-soft text-xs leading-none sm:size-6 sm:text-sm"
             style={{ animation: "rpMoonFloat 3.6s infinite ease-in-out" }}
             aria-hidden
           >
@@ -4098,7 +4057,7 @@ function AnimatedWeatherPrayerBar({
               {formatPrayerTime(next.at)}
             </bdi>
           </span>
-          <span className="text-xs font-semibold text-muted">
+          <span className="text-[10px] font-semibold text-muted sm:text-xs">
             {countdownAr(next.at - now)}
           </span>
         </Link>
@@ -4106,7 +4065,6 @@ function AnimatedWeatherPrayerBar({
     </div>
   );
 }
-
 
 
 /* -------------------------------------------------------------------------- */
@@ -4255,17 +4213,18 @@ function getBranchLiveStatus(branch: InteractivePostBranch, nowMs: number): {
 }
 
 function InteractiveRahatServicesHub({ now }: { now: number }) {
-  const [mainTab, setMainTab] = useState<"post" | "municipality" | "health" | "transport">("post");
+  const [mainTab, setMainTab] = useState<"post" | "municipality" | "health" | "transport" | null>(null);
   const [postSubTab, setPostSubTab] = useState<"branches" | "pay" | "track" | "bank">("branches");
-  const [selectedBranchId, setSelectedBranchId] = useState<string>("209");
+  const [selectedBranchId, setSelectedBranchId] = useState<string | null>(null);
   const [showAllHours, setShowAllHours] = useState<boolean>(false);
   const [trackingCode, setTrackingCode] = useState<string>("");
-  const [selectedPayIdx, setSelectedPayIdx] = useState<number>(0);
+  const [selectedPayIdx, setSelectedPayIdx] = useState<number | null>(null);
   const [busFilter, setBusFilter] = useState<"city" | "intercity">("city");
 
-  const activeBranch =
-    RAHAT_POST_BRANCHES.find((b) => b.id === selectedBranchId) ?? RAHAT_POST_BRANCHES[0];
-  const activeStatus = getBranchLiveStatus(activeBranch, now);
+  const activeBranch = selectedBranchId
+    ? RAHAT_POST_BRANCHES.find((b) => b.id === selectedBranchId) ?? null
+    : null;
+  const activeStatus = activeBranch ? getBranchLiveStatus(activeBranch, now) : null;
 
   const paymentOptions = [
     {
@@ -4326,7 +4285,7 @@ function InteractiveRahatServicesHub({ now }: { now: number }) {
     },
   ];
 
-  const activePay = paymentOptions[selectedPayIdx] ?? paymentOptions[0];
+  const activePay = selectedPayIdx !== null ? paymentOptions[selectedPayIdx] ?? null : null;
 
   const cityBuses = [
     { line: "1", route: "حي السلام (مستودع البلدية) ↔ الخزان / حطين" },
@@ -4367,7 +4326,7 @@ function InteractiveRahatServicesHub({ now }: { now: number }) {
               type="button"
               role="tab"
               aria-selected={active}
-              onClick={() => setMainTab(tab.id)}
+              onClick={() => setMainTab((prev) => (prev === tab.id ? null : tab.id))}
               className={`press flex items-center gap-2.5 rounded-2xl border p-2.5 text-start transition-all ${
                 active
                   ? "border-ink bg-ink text-paper shadow-sm"
@@ -4434,13 +4393,13 @@ function InteractiveRahatServicesHub({ now }: { now: number }) {
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                 {RAHAT_POST_BRANCHES.map((b) => {
                   const st = getBranchLiveStatus(b, now);
-                  const isSel = b.id === activeBranch.id;
+                  const isSel = activeBranch?.id === b.id;
                   return (
                     <button
                       key={b.id}
                       type="button"
                       onClick={() => {
-                        setSelectedBranchId(b.id);
+                        setSelectedBranchId((prev) => (prev === b.id ? null : b.id));
                         setShowAllHours(false);
                       }}
                       className={`press flex flex-col justify-between rounded-2xl border p-2.5 text-start transition ${
@@ -4479,7 +4438,8 @@ function InteractiveRahatServicesHub({ now }: { now: number }) {
                 })}
               </div>
 
-              {/* Selected Branch Interactive Detail Card */}
+              {/* Selected Branch Interactive Detail Card (appears after clicking a branch above) */}
+              {activeBranch && activeStatus ? (
               <div className="rounded-2xl border border-line bg-paper p-3.5 shadow-2xs">
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div>
@@ -4602,6 +4562,7 @@ function InteractiveRahatServicesHub({ now }: { now: number }) {
                   </a>
                 </div>
               </div>
+              ) : null}
             </div>
           ) : null}
 
@@ -4615,7 +4576,7 @@ function InteractiveRahatServicesHub({ now }: { now: number }) {
                     <button
                       key={opt.title}
                       type="button"
-                      onClick={() => setSelectedPayIdx(idx)}
+                      onClick={() => setSelectedPayIdx((prev) => (prev === idx ? null : idx))}
                       className={`press flex items-center gap-2 rounded-2xl border p-2.5 text-start transition ${
                         isSel
                           ? "border-2 border-primary bg-primary-soft font-extrabold text-ink"
@@ -4631,6 +4592,7 @@ function InteractiveRahatServicesHub({ now }: { now: number }) {
                 })}
               </div>
 
+              {activePay ? (
               <div className="rounded-2xl border border-line bg-paper p-3.5">
                 <h3 className="text-base font-extrabold text-ink">
                   {activePay.icon} {trv(activePay.title)}
@@ -4665,6 +4627,7 @@ function InteractiveRahatServicesHub({ now }: { now: number }) {
                   </a>
                 </div>
               </div>
+              ) : null}
             </div>
           ) : null}
 
@@ -5061,6 +5024,1259 @@ function InteractiveRahatServicesHub({ now }: { now: number }) {
           ))}
         </div>
       </div>
+
+      {/* Mandatory Google Play Official Sources & Non-Government Affiliation Disclaimer */}
+      <div className="mt-2.5 rounded-xl border border-line/80 bg-surface/70 p-2.5 text-[11px] font-semibold leading-relaxed text-muted">
+        <p className="font-bold text-ink">
+          ℹ️ {tr("إخلاء مسؤولية والمصادر الرسمية (Official Sources):")}
+        </p>
+        <p className="mt-0.5">
+          {tr("منصة «رهط بوست» هي منصة إعلامية ومجتمعية مستقلة ولا تمثل أي جهة حكومية أو رسمية. جميع بيانات ومواعيد الخدمات العامة مستندة إلى المصادر الحكومية والرسمية التالية:")}
+        </p>
+        <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-[11px] font-bold" dir="ltr">
+          <a href="https://www.gov.il" target="_blank" rel="noopener noreferrer" className="text-primary-ink underline">gov.il</a>
+          <a href="https://doar.israelpost.co.il" target="_blank" rel="noopener noreferrer" className="text-primary-ink underline">doar.israelpost.co.il</a>
+          <a href="https://www.rahat.muni.il" target="_blank" rel="noopener noreferrer" className="text-primary-ink underline">rahat.muni.il</a>
+          <a href="https://bus.gov.il" target="_blank" rel="noopener noreferrer" className="text-primary-ink underline">bus.gov.il</a>
+          <a href="https://www.galim-bus.co.il" target="_blank" rel="noopener noreferrer" className="text-primary-ink underline">galim-bus.co.il</a>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+
+/* -------------------------------------------------------------------------- */
+/* Interactive Rahat Shops & Services Directory Section (Homepage)            */
+/* -------------------------------------------------------------------------- */
+
+function InteractiveDirectoryHomeSection({
+  places,
+  storeProducts = [],
+  storeCurrency = "ILS",
+}: {
+  places: DirectoryEntry[];
+  storeProducts?: Parameters<typeof ProductCard>[0]["p"][];
+  storeCurrency?: Parameters<typeof ProductCard>[0]["currency"];
+}) {
+  const [hubMap, setHubMap] = useState<
+    Record<
+      string,
+      {
+        slug: string;
+        isCustomShop?: boolean;
+        customName?: string;
+        customCategory?: string;
+        customArea?: string;
+        customAddress?: string;
+        logoKey?: string;
+        coverKey?: string;
+        verified?: boolean;
+        featured?: boolean;
+        supervisorName?: string;
+        products?: { id: string; name: string; price?: string; imageKey?: string }[];
+        campaigns?: { id: string; title: string; discountBadge: string; active: boolean }[];
+      }
+    >
+  >({});
+  const [globalCfg, setGlobalCfg] = useState<{
+    directoryStyle: "cards" | "showcase" | "grid" | "carousel" | "compact" | "dark_gold";
+    showOfficialStoreOnHome: boolean;
+    showCategoryFilterOnHome: boolean;
+    homeItemsCount: number;
+  }>({
+    directoryStyle: "cards",
+    showOfficialStoreOnHome: false,
+    showCategoryFilterOnHome: true,
+    homeItemsCount: 6,
+  });
+  const [activeCat, setActiveCat] = useState<string>("الكل");
+
+  useEffect(() => {
+    fetch("/api/media?kind=shop-hub")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (d?.ok) {
+          if (d.shops) setHubMap(d.shops);
+          if (d.globalSettings) {
+            setGlobalCfg((prev) => ({ ...prev, ...d.globalSettings }));
+          }
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const enriched = useMemo(() => {
+    const seen = new Set<string>();
+    const list: (DirectoryEntry & {
+      coverKey?: string;
+      featured?: boolean;
+      supervisorName?: string;
+      productsCount: number;
+      offerBadge?: string;
+      offerTitle?: string;
+    })[] = [];
+
+    for (const p of places) {
+      seen.add(p.slug);
+      const cfg = hubMap[p.slug];
+      const activeCamps = (cfg?.campaigns ?? []).filter((c) => c.active);
+      list.push({
+        ...p,
+        name: cfg?.customName || p.name,
+        category: cfg?.customCategory || p.category,
+        area: cfg?.customArea || p.area,
+        address: cfg?.customAddress || p.address,
+        photo: cfg?.logoKey || p.photo,
+        coverKey: cfg?.coverKey,
+        verified: cfg?.verified !== undefined ? cfg.verified : p.verified,
+        featured: cfg?.featured,
+        supervisorName: cfg?.supervisorName,
+        productsCount: cfg?.products?.length ?? 0,
+        offerBadge: activeCamps[0]?.discountBadge,
+        offerTitle: activeCamps[0]?.title,
+      });
+    }
+
+    for (const [slug, cfg] of Object.entries(hubMap)) {
+      if (seen.has(slug) || !cfg.isCustomShop || !cfg.customName) continue;
+      const activeCamps = (cfg.campaigns ?? []).filter((c) => c.active);
+      list.push({
+        slug,
+        name: cfg.customName,
+        category: cfg.customCategory || "خدمات",
+        source: "owner",
+        verified: cfg.verified !== false,
+        area: cfg.customArea,
+        address: cfg.customAddress,
+        photo: cfg.logoKey,
+        coverKey: cfg.coverKey,
+        featured: cfg.featured,
+        supervisorName: cfg.supervisorName,
+        productsCount: cfg.products?.length ?? 0,
+        offerBadge: activeCamps[0]?.discountBadge,
+        offerTitle: activeCamps[0]?.title,
+      });
+    }
+
+    return list.sort((a, b) => {
+      const score = (x: (typeof list)[number]) =>
+        (x.featured ? 100 : 0) +
+        (x.offerBadge ? 50 : 0) +
+        (x.productsCount > 0 ? 30 : 0) +
+        (x.photo ? 15 : 0) +
+        (x.verified ? 10 : 0);
+      return score(b) - score(a);
+    });
+  }, [places, hubMap]);
+
+  const categories = useMemo(() => {
+    const base = ["الكل", "مطاعم ومقاهي", "بقالات", "صحة", "ملابس", "خدمات"];
+    return base.filter((c) => c === "الكل" || enriched.some((p) => p.category === c));
+  }, [enriched]);
+
+  const visiblePlaces = useMemo(() => {
+    const filtered =
+      activeCat === "الكل"
+        ? enriched
+        : activeCat === "__offers__"
+          ? enriched.filter((p) => Boolean(p.offerBadge) || p.productsCount > 0)
+          : enriched.filter((p) => p.category === activeCat);
+    return filtered.slice(0, globalCfg.homeItemsCount || 6);
+  }, [enriched, activeCat, globalCfg.homeItemsCount]);
+
+  const hasAnyOffers = enriched.some((p) => Boolean(p.offerBadge) || p.productsCount > 0);
+  const resolveImg = (v?: string) => {
+    if (!v) return "";
+    if (v.startsWith("data:image/") || v.startsWith("http") || v.startsWith("/")) return v;
+    return mediaUrl(v);
+  };
+
+  const styleMode = globalCfg.directoryStyle || "cards";
+  const isDarkGold = styleMode === "dark_gold";
+
+  return (
+    <div className="space-y-5">
+      {/* Optional Official Store Section — Hidden by Default unless enabled in Admin */}
+      {globalCfg.showOfficialStoreOnHome && storeProducts.length > 0 ? (
+        <section>
+          <SectionTitle title={tr("من المتجر الرسمي")} to="/store" more={tr("كل المتجر")} />
+          <ul className="scroll-row -mx-4 px-4 pb-2 sm:mx-0 sm:px-0">
+            {storeProducts.slice(0, 8).map((p) => (
+              <li key={p.id} className="w-48 shrink-0">
+                <ProductCard p={p} currency={storeCurrency} />
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
+      <section className="space-y-3">
+        <SectionTitle title={tr("دليل محلات وخدمات رهط")} to="/directory" more={tr("كل الدليل")} />
+
+        <div
+          className={`stamp overflow-hidden p-3.5 sm:p-4 shadow-xs space-y-3.5 ${
+            isDarkGold
+              ? "border-2 border-[#f2c94c] bg-gradient-to-b from-[#111827] via-[#1e293b] to-[#111827] text-white"
+              : "border-2 border-primary/70 bg-gradient-to-b from-primary-soft/50 via-paper to-paper"
+          }`}
+        >
+          {/* Category & Offers Filter Bar */}
+          {globalCfg.showCategoryFilterOnHome ? (
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <div className="flex flex-wrap items-center gap-1.5">
+                {categories.map((cat) => (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => setActiveCat(cat)}
+                    className={`press rounded-full px-3 py-1 text-xs font-extrabold transition ${
+                      activeCat === cat
+                        ? isDarkGold
+                          ? "bg-[#f2c94c] text-[#111827] shadow-2xs"
+                          : "bg-ink text-paper shadow-2xs"
+                        : isDarkGold
+                          ? "border border-white/20 bg-white/10 text-white hover:border-[#f2c94c]"
+                          : "border border-line bg-paper text-ink hover:border-primary"
+                    }`}
+                  >
+                    {trv(cat)}
+                  </button>
+                ))}
+                {hasAnyOffers ? (
+                  <button
+                    type="button"
+                    onClick={() => setActiveCat("__offers__")}
+                    className={`press rounded-full px-3 py-1 text-xs font-extrabold transition ${
+                      activeCat === "__offers__"
+                        ? "bg-alert text-white shadow-2xs"
+                        : "border border-alert/40 bg-alert/15 text-alert hover:bg-alert/25"
+                    }`}
+                  >
+                    🔥 {tr("عروض ومنتجات")}
+                  </button>
+                ) : null}
+              </div>
+
+              <Link
+                to="/submit"
+                search={{ mode: "نشاط" }}
+                className="inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1 text-xs font-extrabold text-ink shadow-2xs hover:opacity-90"
+              >
+                <Plus className="size-3.5" aria-hidden />
+                {tr("أضف محلك")}
+              </Link>
+            </div>
+          ) : null}
+
+          {/* STYLE 1: SHOWCASE (Large Cover Banner + Overlapping Logo + Offer Callout) */}
+          {styleMode === "showcase" ? (
+            <ul className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
+              {visiblePlaces.map((place) => (
+                <li key={place.slug}>
+                  <Link
+                    to="/directory/$slug"
+                    params={{ slug: place.slug }}
+                    className="press group flex h-full flex-col overflow-hidden rounded-2xl border border-line bg-paper shadow-2xs transition hover:border-primary"
+                  >
+                    <div className="relative h-24 w-full bg-gradient-to-l from-ink via-[#1e293b] to-ink overflow-hidden">
+                      {place.coverKey ? (
+                        <img
+                          src={resolveImg(place.coverKey)}
+                          alt={trv(place.name)}
+                          className="size-full object-cover opacity-85 transition group-hover:scale-105"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div className="size-full bg-[radial-gradient(circle_at_80%_20%,#f2c94c40,transparent_65%)]" />
+                      )}
+                      {place.offerBadge ? (
+                        <span className="absolute top-2.5 end-2.5 rounded-full bg-alert px-2.5 py-0.5 text-[10px] font-extrabold text-white shadow-xs">
+                          🔥 {trv(place.offerBadge)}
+                        </span>
+                      ) : null}
+                      {place.verified ? (
+                        <span className="absolute top-2.5 start-2.5 rounded-full bg-ink/85 px-2 py-0.5 text-[10px] font-extrabold text-primary backdrop-blur-xs">
+                          ✓ {tr("موثّق")}
+                        </span>
+                      ) : null}
+                    </div>
+                    <div className="relative flex flex-1 flex-col justify-between p-3.5 pt-2">
+                      <div className="flex items-start gap-2.5">
+                        <div className="-mt-7 shrink-0">
+                          {place.photo ? (
+                            <img
+                              src={resolveImg(place.photo)}
+                              alt={trv(place.name)}
+                              className="size-14 rounded-2xl border-2 border-paper bg-paper object-cover shadow-md"
+                              loading="lazy"
+                            />
+                          ) : (
+                            <span className="grid size-14 place-items-center rounded-2xl border-2 border-paper bg-primary text-ink shadow-md">
+                              <Store className="size-6" />
+                            </span>
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <h3 className="truncate text-sm font-extrabold text-ink sm:text-base">
+                            {trv(place.name)}
+                          </h3>
+                          <p className="truncate text-xs font-bold text-muted">
+                            {trv(place.category)}
+                            {place.address || place.area ? ` · ${trv(place.address ?? place.area ?? "")}` : ""}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="mt-3 flex items-center justify-between border-t border-line/70 pt-2 text-[11px] font-extrabold">
+                        <span className="text-muted">
+                          {place.productsCount > 0
+                            ? `🛍️ ${trv(place.productsCount)} ${tr("منتجات بالمتجر")}`
+                            : place.offerTitle
+                              ? `🔥 ${trv(place.offerTitle)}`
+                              : tr("صفحة المحل والخدمات")}
+                        </span>
+                        <span className="text-primary-ink">{tr("زيارة المحل ←")}</span>
+                      </div>
+                    </div>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          ) : styleMode === "grid" ? (
+            /* STYLE 2: GRID (App-Style Centered Square Shop Tiles) */
+            <ul className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-6">
+              {visiblePlaces.map((place) => (
+                <li key={place.slug}>
+                  <Link
+                    to="/directory/$slug"
+                    params={{ slug: place.slug }}
+                    className={`press flex h-full flex-col items-center justify-between rounded-2xl border p-3 text-center transition ${
+                      place.featured || place.offerBadge
+                        ? "border-2 border-primary bg-primary-soft/35"
+                        : "border-line bg-paper hover:border-primary"
+                    }`}
+                  >
+                    <div className="relative">
+                      {place.photo ? (
+                        <img
+                          src={resolveImg(place.photo)}
+                          alt={trv(place.name)}
+                          className="size-16 rounded-2xl border-2 border-primary/60 bg-paper object-cover shadow-2xs"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <span className="grid size-16 place-items-center rounded-2xl bg-primary-soft text-primary-ink">
+                          <Store className="size-7" />
+                        </span>
+                      )}
+                      {place.verified ? (
+                        <span className="absolute -bottom-1 -end-1 grid size-5 place-items-center rounded-full bg-ink text-[10px] font-extrabold text-primary shadow-2xs">
+                          ✓
+                        </span>
+                      ) : null}
+                    </div>
+                    <div className="mt-2 w-full space-y-0.5">
+                      <p className="truncate text-xs font-extrabold text-ink sm:text-sm">
+                        {trv(place.name)}
+                      </p>
+                      <p className="truncate text-[11px] font-bold text-muted">{trv(place.category)}</p>
+                    </div>
+                    {place.offerBadge ? (
+                      <span className="mt-1.5 inline-block rounded-full bg-alert px-2 py-0.5 text-[10px] font-extrabold text-white">
+                        🔥 {trv(place.offerBadge)}
+                      </span>
+                    ) : place.productsCount > 0 ? (
+                      <span className="mt-1.5 inline-block rounded-full bg-primary-soft px-2 py-0.5 text-[10px] font-extrabold text-primary-ink">
+                        🛍️ {trv(place.productsCount)} {tr("منتج")}
+                      </span>
+                    ) : (
+                      <span className="mt-1.5 inline-block rounded-full bg-surface px-2.5 py-0.5 text-[10px] font-bold text-muted">
+                        {tr("عرض المحل")}
+                      </span>
+                    )}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          ) : styleMode === "carousel" ? (
+            /* STYLE 3: CAROUSEL (Stories Circle Strip + Horizontal Sliding Cards) */
+            <div className="space-y-3">
+              {/* Top Story Circles */}
+              <div className="scroll-row -mx-2 px-2 pb-1">
+                {enriched.slice(0, 10).map((place) => (
+                  <Link
+                    key={`story-${place.slug}`}
+                    to="/directory/$slug"
+                    params={{ slug: place.slug }}
+                    className="flex w-18 shrink-0 flex-col items-center gap-1 text-center"
+                  >
+                    <span
+                      className={`grid size-14 place-items-center rounded-full p-0.5 ${
+                        place.offerBadge
+                          ? "bg-gradient-to-tr from-alert via-primary to-primary-deep"
+                          : "bg-gradient-to-tr from-primary to-primary-deep"
+                      }`}
+                    >
+                      {place.photo ? (
+                        <img
+                          src={resolveImg(place.photo)}
+                          alt={trv(place.name)}
+                          className="size-full rounded-full border-2 border-paper bg-paper object-cover"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <span className="grid size-full place-items-center rounded-full border-2 border-paper bg-paper text-primary-ink">
+                          <Store className="size-5" />
+                        </span>
+                      )}
+                    </span>
+                    <span className="w-full truncate text-[10.5px] font-extrabold text-ink">
+                      {trv(place.name)}
+                    </span>
+                  </Link>
+                ))}
+              </div>
+
+              {/* Horizontal Cards */}
+              <ul className="scroll-row -mx-2 px-2 pb-1">
+                {visiblePlaces.map((place) => (
+                  <li key={place.slug} className="w-64 shrink-0">
+                    <Link
+                      to="/directory/$slug"
+                      params={{ slug: place.slug }}
+                      className="press flex h-full flex-col justify-between rounded-2xl border border-line bg-paper p-3 shadow-2xs transition hover:border-primary"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        {place.photo ? (
+                          <img
+                            src={resolveImg(place.photo)}
+                            alt={trv(place.name)}
+                            className="size-12 shrink-0 rounded-xl border border-primary/50 object-cover"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-primary-soft text-primary-ink">
+                            <Store className="size-5" />
+                          </span>
+                        )}
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-extrabold text-ink">{trv(place.name)}</p>
+                          <p className="truncate text-xs font-bold text-muted">
+                            {trv(place.category)}
+                            {place.area ? ` · ${trv(place.area)}` : ""}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="mt-2.5 flex items-center justify-between border-t border-line/60 pt-2 text-[11px] font-extrabold">
+                        {place.offerBadge ? (
+                          <span className="rounded-full bg-alert px-2 py-0.5 text-[10px] text-white">
+                            🔥 {trv(place.offerBadge)}
+                          </span>
+                        ) : place.productsCount > 0 ? (
+                          <span className="rounded-full bg-primary-soft px-2 py-0.5 text-[10px] text-primary-ink">
+                            🛍️ {trv(place.productsCount)} {tr("منتج")}
+                          </span>
+                        ) : (
+                          <span className="text-muted">{tr("معلومات وتواصل")}</span>
+                        )}
+                        <span className="text-primary-ink">{tr("فتح ←")}</span>
+                      </div>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : styleMode === "compact" ? (
+            /* STYLE 4: COMPACT (Sleek High-Density List) */
+            <ul className="divide-y divide-line overflow-hidden rounded-2xl border border-line bg-paper">
+              {visiblePlaces.map((place) => (
+                <li key={place.slug}>
+                  <Link
+                    to="/directory/$slug"
+                    params={{ slug: place.slug }}
+                    className="flex items-center justify-between gap-2.5 px-3.5 py-2.5 transition hover:bg-surface/70"
+                  >
+                    <div className="flex min-w-0 items-center gap-2.5">
+                      {place.photo ? (
+                        <img
+                          src={resolveImg(place.photo)}
+                          alt={trv(place.name)}
+                          className="size-10 shrink-0 rounded-xl border border-line object-cover"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary-soft text-primary-ink">
+                          <Store className="size-4" />
+                        </span>
+                      )}
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className="truncate text-sm font-extrabold text-ink">{trv(place.name)}</span>
+                          {place.verified ? (
+                            <span className="rounded-full bg-ink px-1.5 py-0.2 text-[9px] font-extrabold text-paper">
+                              ✓
+                            </span>
+                          ) : null}
+                        </div>
+                        <p className="truncate text-[11px] font-bold text-muted">
+                          {trv(place.category)}
+                          {place.address || place.area ? ` · ${trv(place.address ?? place.area ?? "")}` : ""}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex shrink-0 items-center gap-1.5">
+                      {place.offerBadge ? (
+                        <span className="rounded-full bg-alert px-2 py-0.5 text-[10px] font-extrabold text-white">
+                          🔥 {trv(place.offerBadge)}
+                        </span>
+                      ) : null}
+                      {place.productsCount > 0 ? (
+                        <span className="rounded-full bg-primary-soft px-2 py-0.5 text-[10px] font-extrabold text-primary-ink">
+                          🛍️ {trv(place.productsCount)}
+                        </span>
+                      ) : null}
+                      <ChevronLeft className="size-4 text-muted" aria-hidden />
+                    </div>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            /* STYLE 5 & 6: CARDS (Default Modern Cards) & DARK_GOLD (Luxury Dark & Gold Cards) */
+            <ul className="grid gap-3 sm:grid-cols-2">
+              {visiblePlaces.map((place) => (
+                <li key={place.slug}>
+                  <Link
+                    to="/directory/$slug"
+                    params={{ slug: place.slug }}
+                    className={`press flex items-center gap-3 rounded-2xl border p-3 transition ${
+                      isDarkGold
+                        ? "border-[#f2c94c]/45 bg-[#1e293b]/95 text-white hover:border-[#f2c94c]"
+                        : place.featured || place.offerBadge
+                          ? "border-2 border-primary bg-primary-soft/35"
+                          : "border-line bg-paper hover:border-primary"
+                    }`}
+                  >
+                    {place.photo ? (
+                      <img
+                        src={resolveImg(place.photo)}
+                        alt={trv(place.name)}
+                        className="size-14 shrink-0 rounded-2xl border-2 border-primary/60 bg-paper object-cover shadow-2xs"
+                        loading="lazy"
+                        decoding="async"
+                      />
+                    ) : (
+                      <span className="icon-badge size-14 shrink-0 rounded-2xl bg-primary-soft text-primary-ink">
+                        <Store className="size-6" aria-hidden />
+                      </span>
+                    )}
+
+                    <span className="min-w-0 flex-1 space-y-0.5">
+                      <span className="flex flex-wrap items-center gap-1.5">
+                        <span
+                          className={`truncate text-sm font-extrabold leading-snug sm:text-base ${
+                            isDarkGold ? "text-white" : "text-ink"
+                          }`}
+                        >
+                          {trv(place.name)}
+                        </span>
+                        {place.verified ? (
+                          <span
+                            className={`rounded-full px-2 py-0.5 text-[10px] font-extrabold ${
+                              isDarkGold ? "bg-[#f2c94c] text-[#111827]" : "bg-ink text-paper"
+                            }`}
+                          >
+                            ✓ {tr("موثّق")}
+                          </span>
+                        ) : null}
+                      </span>
+
+                      <span
+                        className={`flex flex-wrap items-center gap-1.5 text-xs font-bold ${
+                          isDarkGold ? "text-slate-300" : "text-muted"
+                        }`}
+                      >
+                        <span>{trv(place.category)}</span>
+                        {place.address || place.area ? (
+                          <span className="truncate">· {trv(place.address ?? place.area ?? "")}</span>
+                        ) : null}
+                      </span>
+
+                      {place.offerBadge || place.productsCount > 0 || place.supervisorName ? (
+                        <span className="flex flex-wrap items-center gap-1 pt-0.5">
+                          {place.offerBadge ? (
+                            <span className="rounded-full bg-alert px-2 py-0.5 text-[10px] font-extrabold text-white">
+                              🔥 {trv(place.offerBadge)}
+                            </span>
+                          ) : null}
+                          {place.productsCount > 0 ? (
+                            <span className="rounded-full bg-primary-soft px-2 py-0.5 text-[10px] font-extrabold text-primary-ink">
+                              🛍️ {trv(place.productsCount)} {tr("منتج")}
+                            </span>
+                          ) : null}
+                          {place.supervisorName ? (
+                            <span className="rounded-full bg-[#16A34A]/20 px-2 py-0.5 text-[10px] font-extrabold text-[#22c55e]">
+                              👤 {tr("إشراف معتمد")}
+                            </span>
+                          ) : null}
+                        </span>
+                      ) : null}
+                    </span>
+
+                    <ChevronLeft
+                      className={`size-5 shrink-0 ${isDarkGold ? "text-[#f2c94c]" : "text-muted"}`}
+                      aria-hidden
+                    />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          <div
+            className={`flex items-center justify-between border-t pt-2.5 text-xs font-extrabold ${
+              isDarkGold ? "border-white/15 text-slate-300" : "border-line/70 text-muted"
+            }`}
+          >
+            <span>
+              {tr("يمكن لأصحاب المحلات إضافة لوجو المحل والمنتجات وحملات العروض داخل صفحة المحل")}
+            </span>
+            <Link
+              to="/directory"
+              className={`underline ${isDarkGold ? "text-[#f2c94c]" : "text-primary-ink"}`}
+            >
+              {tr("تصفح كل المحلات ←")}
+            </Link>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+
+
+/* -------------------------------------------------------------------------- */
+/* Modern Interactive Galim Buses & Rahat Emergency Homepage Sections         */
+/* -------------------------------------------------------------------------- */
+
+export type BusesHomeStyleKey =
+  | "modern_cards"
+  | "live_board"
+  | "compact_pills"
+  | "dark_gold"
+  | "split_showcase"
+  | "collapsible";
+
+export type EmergencyHomeStyleKey =
+  | "modern_grid"
+  | "compact_strip"
+  | "color_coded"
+  | "dark_gold"
+  | "list_rows"
+  | "collapsible";
+
+function parseBusesAndEmergencyHomeCfg(quickLinks: { id: string; title: string; subtitle: string; url: string }[]) {
+  const item = (quickLinks ?? []).find((q) => q.id === "busemergcfg");
+  let busesStyle: BusesHomeStyleKey = "modern_cards";
+  let emergencyStyle: EmergencyHomeStyleKey = "modern_grid";
+  let includeEmergencyInBuses = true;
+  let showAllEmergency = true;
+
+  if (item && item.url.startsWith("/__bemg?")) {
+    const sp = new URLSearchParams(item.url.slice(8));
+    const bs = sp.get("bs") as BusesHomeStyleKey | null;
+    if (
+      bs === "modern_cards" ||
+      bs === "live_board" ||
+      bs === "compact_pills" ||
+      bs === "dark_gold" ||
+      bs === "split_showcase" ||
+      bs === "collapsible"
+    ) {
+      busesStyle = bs;
+    }
+    const es = sp.get("es") as EmergencyHomeStyleKey | null;
+    if (
+      es === "modern_grid" ||
+      es === "compact_strip" ||
+      es === "color_coded" ||
+      es === "dark_gold" ||
+      es === "list_rows" ||
+      es === "collapsible"
+    ) {
+      emergencyStyle = es;
+    }
+    if (sp.get("ieb") === "0") includeEmergencyInBuses = false;
+    if (sp.get("sae") === "0") showAllEmergency = false;
+  }
+  return { busesStyle, emergencyStyle, includeEmergencyInBuses, showAllEmergency };
+}
+
+const GALIM_HOME_CITY_LINES = [
+  { line: "1", from: "حي السلام", to: "الخزان / حطين", freq: "كل 20 د" },
+  { line: "2", from: "حي السلام (الدفيئات)", to: "الخضر / حي 31", freq: "كل 20 د" },
+  { line: "3", from: "محطة تافوح / السلام", to: "رفح / البوئي", freq: "كل 25 د" },
+  { line: "4 / 4أ", from: "المدينة المنورة", to: "الحديقة العامة", freq: "كل 20 د" },
+  { line: "5", from: "حي صلاح الدين", to: "مدرسة الهدى (دائري)", freq: "كل 30 د" },
+  { line: "6", from: "المدينة المنورة", to: "حي صلاح الدين", freq: "كل 30 د" },
+];
+
+const GALIM_HOME_INTERCITY_LINES = [
+  { line: "450–455", from: "رهط (الأحياء)", to: "بئر السبع / سوروكا", freq: "كل 15 د" },
+  { line: "471", from: "رهط (مباشر)", to: "بئر السبع المركزية", freq: "سريع" },
+  { line: "425", from: "رهط", to: "تل السبع", freq: "منتظم" },
+  { line: "40 / 423", from: "رهط", to: "كسيفة / حورة", freq: "منتظم" },
+  { line: "427", from: "رهط", to: "عرعرة النقب", freq: "منتظم" },
+  { line: "462 / 467", from: "رهط", to: "سديروت / عسقلان", freq: "منتظم" },
+];
+
+const RAHAT_EMERGENCY_FULL = [
+  { name: "الشرطة", sub: "طوارئ الأمن", phone: "100", icon: "🚔", tone: "blue" },
+  { name: "الإسعاف (نجمة داود)", sub: "طوارئ طبية", phone: "101", icon: "🚑", tone: "red" },
+  { name: "الإطفاء والإنقاذ", sub: "حرائق وإنقاذ", phone: "102", icon: "🚒", tone: "orange" },
+  { name: "طوارئ بلدية رهط", sub: "الموكيد البلدي 24/7", phone: "106", icon: "🏛️", tone: "gold" },
+  { name: "طوارئ الكهرباء", sub: "أعطال الكهرباء", phone: "103", icon: "⚡", tone: "gold" },
+  { name: "الجبهة الداخلية", sub: "تعليمات الطوارئ", phone: "104", icon: "🛡️", tone: "blue" },
+  { name: "اتحاد الإنقاذ", sub: "איחוד הצלה", phone: "1221", icon: "🩺", tone: "green" },
+  { name: "الطوارئ الموحّد", sub: "خط الطوارئ العام", phone: "112", icon: "🆘", tone: "red" },
+  { name: "بدالة بلدية رهط", sub: "مكاتب البلدية", phone: "08-9914800", icon: "📞", tone: "neutral" },
+  { name: "استعلامات باصات غاليم", sub: "شركة גלים", phone: "08-6688700", icon: "🚌", tone: "neutral" },
+] as const;
+
+function InteractiveGalimBusesHomeSection() {
+  const settings = useSiteSettings();
+  const cfg = useMemo(() => parseBusesAndEmergencyHomeCfg(settings.quickLinks ?? []), [settings.quickLinks]);
+  const [tab, setTab] = useState<"city" | "intercity" | "emergency">("city");
+  const [expanded, setExpanded] = useState(cfg.busesStyle !== "collapsible");
+
+  useEffect(() => {
+    setExpanded(cfg.busesStyle !== "collapsible");
+  }, [cfg.busesStyle]);
+
+  const activeLines = tab === "intercity" ? GALIM_HOME_INTERCITY_LINES : GALIM_HOME_CITY_LINES;
+  const isDark = cfg.busesStyle === "dark_gold";
+
+  return (
+    <section>
+      <SectionTitle title={tr("باصات غاليم في رهط والنقب")} to="/buses" more={tr("الخريطة وكل المواعيد")} />
+
+      <div
+        className={`stamp overflow-hidden transition-all ${
+          isDark
+            ? "border-[#F2C94C]/50 bg-[#14120E] text-white shadow-md"
+            : cfg.busesStyle === "live_board"
+              ? "border-2 border-ink/80 bg-gradient-to-b from-surface via-paper to-paper"
+              : "border-2 border-primary/75 bg-gradient-to-b from-primary-soft/50 via-paper to-paper"
+        } p-3.5 sm:p-4`}
+      >
+        {/* Top Header Bar */}
+        <div className="flex flex-wrap items-center justify-between gap-2.5">
+          <div className="flex items-center gap-2.5">
+            <span
+              className={`grid size-11 shrink-0 place-items-center rounded-2xl text-xl shadow-2xs ${
+                isDark ? "bg-[#F2C94C] text-[#14120E]" : "bg-primary text-ink"
+              }`}
+              aria-hidden
+            >
+              <Bus className="size-6" />
+            </span>
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <h3 className={`text-sm font-extrabold sm:text-base ${isDark ? "text-white" : "text-ink"}`}>
+                  {tr("خطوط باصات غاليم (גלים) — رهط والنقب")}
+                </h3>
+                <span className="inline-flex items-center gap-1 rounded-full bg-[#16A34A]/15 px-2.5 py-0.5 text-[11px] font-extrabold text-[#15803D]">
+                  <span className="size-1.5 rounded-full bg-[#16A34A] animate-ping" />
+                  {tr("مباشر · جدول اليوم")}
+                </span>
+              </div>
+              <p className={`text-xs font-semibold ${isDark ? "text-white/70" : "text-muted"}`}>
+                {tr("خطوط داخل أحياء رهط (1–6)، بئر السبع، سوروكا وبلدات النقب مع التتبع الحي")}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            {cfg.busesStyle === "collapsible" ? (
+              <button
+                type="button"
+                onClick={() => setExpanded((v) => !v)}
+                className="btn btn-ghost px-3 py-1.5 text-xs font-extrabold"
+              >
+                {expanded ? tr("طي القائمة ▲") : tr("عرض الخطوط والمواعيد ▼")}
+              </button>
+            ) : null}
+            <Link
+              to="/buses"
+              className={`press inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-extrabold shadow-2xs transition ${
+                isDark
+                  ? "bg-[#F2C94C] text-[#14120E]"
+                  : "bg-ink text-paper hover:opacity-90"
+              }`}
+            >
+              <span>🗺️ {tr("تتبع مباشر")}</span>
+              <ChevronLeft className="size-4 rtl:rotate-0 ltr:rotate-180" aria-hidden />
+            </Link>
+          </div>
+        </div>
+
+        {expanded ? (
+          <div className="mt-3.5 space-y-3">
+            {/* Interactive Category Switcher */}
+            <div
+              className={`flex flex-wrap items-center gap-1.5 rounded-2xl p-1.5 ${
+                isDark ? "bg-white/10" : "bg-surface/90"
+              }`}
+            >
+              <button
+                type="button"
+                onClick={() => setTab("city")}
+                className={`press flex-1 whitespace-nowrap rounded-xl px-3 py-2 text-xs font-extrabold transition ${
+                  tab === "city"
+                    ? isDark
+                      ? "bg-[#F2C94C] text-[#14120E]"
+                      : "bg-primary text-ink shadow-2xs"
+                    : isDark
+                      ? "text-white/75 hover:text-white"
+                      : "text-muted hover:text-ink"
+                }`}
+              >
+                🚌 {tr("خطوط داخل رهط (1–6)")}
+              </button>
+              <button
+                type="button"
+                onClick={() => setTab("intercity")}
+                className={`press flex-1 whitespace-nowrap rounded-xl px-3 py-2 text-xs font-extrabold transition ${
+                  tab === "intercity"
+                    ? isDark
+                      ? "bg-[#F2C94C] text-[#14120E]"
+                      : "bg-primary text-ink shadow-2xs"
+                    : isDark
+                      ? "text-white/75 hover:text-white"
+                      : "text-muted hover:text-ink"
+                }`}
+              >
+                🛣️ {tr("بئر السبع والنقب")}
+              </button>
+              {cfg.includeEmergencyInBuses ? (
+                <button
+                  type="button"
+                  onClick={() => setTab("emergency")}
+                  className={`press flex-1 whitespace-nowrap rounded-xl px-3 py-2 text-xs font-extrabold transition ${
+                    tab === "emergency"
+                      ? "bg-alert text-white shadow-2xs"
+                      : isDark
+                        ? "text-white/75 hover:text-white"
+                        : "text-muted hover:text-ink"
+                  }`}
+                >
+                  🚨 {tr("أرقام الطوارئ في رهط")}
+                </button>
+              ) : null}
+            </div>
+
+            {tab === "emergency" ? (
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+                {RAHAT_EMERGENCY_FULL.map((em) => (
+                  <a
+                    key={em.phone}
+                    href={`tel:${em.phone}`}
+                    className={`press flex items-center justify-between gap-2 rounded-2xl border p-2.5 transition ${
+                      isDark
+                        ? "border-white/15 bg-white/5 text-white hover:border-[#F2C94C]"
+                        : "border-line bg-paper text-ink hover:border-primary"
+                    }`}
+                  >
+                    <span className="min-w-0">
+                      <span className="block truncate text-xs font-extrabold">
+                        {em.icon} {trv(em.name)}
+                      </span>
+                      <span className={`block truncate text-[10px] font-semibold ${isDark ? "text-white/60" : "text-muted"}`}>
+                        {trv(em.sub)}
+                      </span>
+                    </span>
+                    <span
+                      dir="ltr"
+                      className={`shrink-0 rounded-xl px-2 py-1 font-mono text-xs font-extrabold ${
+                        isDark ? "bg-[#F2C94C] text-[#14120E]" : "bg-primary-soft text-primary-ink"
+                      }`}
+                    >
+                      {em.phone}
+                    </span>
+                  </a>
+                ))}
+              </div>
+            ) : cfg.busesStyle === "compact_pills" ? (
+              <div className="flex flex-wrap gap-2">
+                {activeLines.map((b) => (
+                  <Link
+                    key={b.line}
+                    to="/buses"
+                    className={`press inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-extrabold transition ${
+                      isDark
+                        ? "border-white/20 bg-white/5 text-white hover:border-[#F2C94C]"
+                        : "border-line bg-paper text-ink hover:border-primary"
+                    }`}
+                  >
+                    <span className="rounded-full bg-primary px-2 py-0.5 font-mono text-[11px] font-extrabold text-ink">
+                      {b.line}
+                    </span>
+                    <span>{trv(b.from)} ↔ {trv(b.to)}</span>
+                  </Link>
+                ))}
+              </div>
+            ) : cfg.busesStyle === "live_board" ? (
+              <div className="overflow-hidden rounded-2xl border border-ink/20 bg-[#111827] text-white">
+                <div className="flex items-center justify-between border-b border-white/10 bg-white/5 px-3.5 py-2 text-[11px] font-extrabold text-[#F2C94C]">
+                  <span>🚌 {tr("رقم الخط")}</span>
+                  <span>📍 {tr("المسار والمحطات")}</span>
+                  <span>⏱️ {tr("التردد")}</span>
+                </div>
+                <div className="divide-y divide-white/10">
+                  {activeLines.map((b) => (
+                    <Link
+                      key={b.line}
+                      to="/buses"
+                      className="flex items-center justify-between gap-3 px-3.5 py-2.5 text-xs transition hover:bg-white/5"
+                    >
+                      <span className="rounded-lg bg-[#F2C94C] px-2.5 py-1 font-mono text-xs font-extrabold text-[#111827]">
+                        {b.line}
+                      </span>
+                      <span className="min-w-0 flex-1 truncate font-bold text-white">
+                        {trv(b.from)} ↔ {trv(b.to)}
+                      </span>
+                      <span className="shrink-0 rounded-full bg-emerald-500/20 px-2.5 py-0.5 text-[11px] font-extrabold text-emerald-300">
+                        {trv(b.freq)}
+                      </span>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            ) : cfg.busesStyle === "split_showcase" ? (
+              <div className="grid gap-3 lg:grid-cols-12">
+                <div className="flex flex-col justify-between rounded-2xl bg-ink p-4 text-paper lg:col-span-4">
+                  <div>
+                    <span className="inline-block rounded-full bg-primary px-2.5 py-0.5 text-[11px] font-extrabold text-ink">
+                      🗺️ {tr("خريطة الباصات المباشرة")}
+                    </span>
+                    <h4 className="mt-2 text-base font-extrabold">
+                      {tr("شاهد موقع الباص الآن في شوارع رهط")}
+                    </h4>
+                    <p className="mt-1 text-xs font-semibold text-paper/75">
+                      {tr("اختر رقم الخط لمعرفة أقرب محطة إليك وموعد وصول الحافلة القادمة بالثواني.")}
+                    </p>
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <Link to="/buses" className="btn flex-1 py-2 text-xs font-extrabold">
+                      {tr("افتح الخريطة الحية")}
+                    </Link>
+                    <a href="tel:086688700" className="btn btn-ghost border-white/25 text-paper py-2 text-xs font-extrabold">
+                      📞 08-6688700
+                    </a>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:col-span-8">
+                  {activeLines.map((b) => (
+                    <Link
+                      key={b.line}
+                      to="/buses"
+                      className="press flex flex-col justify-between rounded-2xl border border-line bg-paper p-2.5 hover:border-primary"
+                    >
+                      <div className="flex items-center justify-between gap-1">
+                        <span className="rounded-lg bg-primary px-2 py-0.5 font-mono text-xs font-extrabold text-ink">
+                          {tr("خط")} {b.line}
+                        </span>
+                        <span className="text-[10px] font-bold text-muted">{trv(b.freq)}</span>
+                      </div>
+                      <p className="mt-1.5 text-xs font-extrabold text-ink">
+                        {trv(b.from)} ↔ {trv(b.to)}
+                      </p>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              /* modern_cards & dark_gold */
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                {activeLines.map((b) => (
+                  <Link
+                    key={b.line}
+                    to="/buses"
+                    className={`press flex items-center gap-2.5 rounded-2xl border p-2.5 transition ${
+                      isDark
+                        ? "border-white/15 bg-white/5 text-white hover:border-[#F2C94C]"
+                        : "border-line bg-paper text-ink hover:border-primary shadow-2xs"
+                    }`}
+                  >
+                    <span
+                      className={`grid min-w-11 shrink-0 place-items-center rounded-xl px-2 py-2 font-mono text-xs font-extrabold ${
+                        isDark ? "bg-[#F2C94C] text-[#14120E]" : "bg-primary text-ink"
+                      }`}
+                    >
+                      {b.line}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-xs font-extrabold">
+                        {trv(b.from)} ↔ {trv(b.to)}
+                      </span>
+                      <span
+                        className={`mt-0.5 block truncate text-[11px] font-semibold ${
+                          isDark ? "text-white/65" : "text-muted"
+                        }`}
+                      >
+                        🕒 {trv(b.freq)} · {tr("شركة غاليم")}
+                      </span>
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            )}
+
+            {/* Quick Emergency Strip inside Buses Card when enabled and on city/intercity tab */}
+            {cfg.includeEmergencyInBuses && tab !== "emergency" ? (
+              <div
+                className={`flex flex-wrap items-center justify-between gap-2 rounded-2xl border px-3 py-2 text-xs ${
+                  isDark
+                    ? "border-white/15 bg-white/5 text-white"
+                    : "border-line/80 bg-surface/80 text-ink"
+                }`}
+              >
+                <span className="font-extrabold">
+                  🚨 {tr("طوارئ رهط السريعة:")}
+                </span>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {[
+                    { label: "الشرطة", phone: "100" },
+                    { label: "الإسعاف", phone: "101" },
+                    { label: "الإطفاء", phone: "102" },
+                    { label: "بلدية رهط", phone: "106" },
+                    { label: "الكهرباء", phone: "103" },
+                    { label: "إنقاذ", phone: "1221" },
+                  ].map((em) => (
+                    <a
+                      key={em.phone}
+                      href={`tel:${em.phone}`}
+                      className={`press inline-flex items-center gap-1 rounded-xl border px-2 py-1 text-[11px] font-extrabold transition ${
+                        isDark
+                          ? "border-white/20 bg-white/10 text-white hover:border-[#F2C94C]"
+                          : "border-line bg-paper text-ink hover:border-primary"
+                      }`}
+                    >
+                      <span>{trv(em.label)}</span>
+                      <span dir="ltr" className={isDark ? "text-[#F2C94C]" : "text-primary-ink"}>
+                        {em.phone}
+                      </span>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
+    </section>
+  );
+}
+
+function InteractiveEmergencyHomeSection() {
+  const settings = useSiteSettings();
+  const cfg = useMemo(() => parseBusesAndEmergencyHomeCfg(settings.quickLinks ?? []), [settings.quickLinks]);
+  const [showAll, setShowAll] = useState(cfg.showAllEmergency && cfg.emergencyStyle !== "collapsible");
+
+  useEffect(() => {
+    setShowAll(cfg.showAllEmergency && cfg.emergencyStyle !== "collapsible");
+  }, [cfg.showAllEmergency, cfg.emergencyStyle]);
+
+  const list = showAll ? RAHAT_EMERGENCY_FULL : RAHAT_EMERGENCY_FULL.slice(0, 4);
+  const isDark = cfg.emergencyStyle === "dark_gold";
+
+  const toneCls = (tone: string) => {
+    if (cfg.emergencyStyle !== "color_coded") {
+      return isDark
+        ? "border-white/15 bg-white/5 text-white hover:border-[#F2C94C]"
+        : "border-line bg-paper text-ink hover:border-primary";
+    }
+    if (tone === "red") return "border-red-500/30 bg-red-500/10 text-ink hover:border-red-500";
+    if (tone === "orange") return "border-amber-500/35 bg-amber-500/10 text-ink hover:border-amber-500";
+    if (tone === "blue") return "border-sky-500/30 bg-sky-500/10 text-ink hover:border-sky-500";
+    if (tone === "green") return "border-emerald-500/30 bg-emerald-500/10 text-ink hover:border-emerald-500";
+    return "border-primary/60 bg-primary-soft/60 text-ink hover:border-primary";
+  };
+
+  return (
+    <section>
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <h2 className="text-xl font-bold">{tr("أرقام الطوارئ والخدمات في رهط")}</h2>
+        <div className="flex items-center gap-2">
+          {RAHAT_EMERGENCY_FULL.length > 4 ? (
+            <button
+              type="button"
+              onClick={() => setShowAll((v) => !v)}
+              className="chip text-xs font-extrabold"
+            >
+              {showAll
+                ? tr("عرض أهم 4 أرقام فقط ▲")
+                : `${tr("عرض كل أرقام الطوارئ")} (${RAHAT_EMERGENCY_FULL.length}) ▼`}
+            </button>
+          ) : null}
+          <Link to="/today" className="text-sm font-bold text-primary-ink">
+            {tr("لوحة اليوم")} ‹
+          </Link>
+        </div>
+      </div>
+
+      <div
+        className={
+          isDark
+            ? "stamp border-[#F2C94C]/50 bg-[#14120E] p-3.5 text-white shadow-md"
+            : ""
+        }
+      >
+        {cfg.emergencyStyle === "compact_strip" ? (
+          <div className="flex flex-wrap gap-2">
+            {list.map((item) => (
+              <a
+                key={item.phone}
+                href={`tel:${item.phone}`}
+                className="stamp press inline-flex items-center gap-2 rounded-2xl px-3.5 py-2.5 text-xs font-extrabold hover:border-primary"
+              >
+                <span className="text-base" aria-hidden>{item.icon}</span>
+                <span>{trv(item.name)}</span>
+                <span dir="ltr" className="rounded-lg bg-primary px-2 py-0.5 font-mono text-xs font-extrabold text-ink">
+                  {item.phone}
+                </span>
+              </a>
+            ))}
+          </div>
+        ) : cfg.emergencyStyle === "list_rows" ? (
+          <div className="grid gap-2 sm:grid-cols-2">
+            {list.map((item) => (
+              <a
+                key={item.phone}
+                href={`tel:${item.phone}`}
+                className="stamp press flex items-center justify-between gap-3 px-3.5 py-3 hover:border-primary"
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary-soft text-lg" aria-hidden>
+                    {item.icon}
+                  </span>
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-extrabold text-ink">{trv(item.name)}</p>
+                    <p className="truncate text-xs font-semibold text-muted">{trv(item.sub)}</p>
+                  </div>
+                </div>
+                <span
+                  dir="ltr"
+                  className="shrink-0 rounded-xl bg-primary px-3 py-1.5 font-mono text-sm font-extrabold text-ink shadow-2xs"
+                >
+                  📞 {item.phone}
+                </span>
+              </a>
+            ))}
+          </div>
+        ) : (
+          /* modern_grid, color_coded, dark_gold, collapsible */
+          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-5">
+            {list.map((item) => (
+              <a
+                key={item.phone}
+                href={`tel:${item.phone}`}
+                className={`stamp press flex flex-col items-center justify-between rounded-2xl border px-3 py-3 text-center transition ${toneCls(
+                  item.tone,
+                )}`}
+              >
+                <span className="text-xl" aria-hidden>{item.icon}</span>
+                <span
+                  dir="ltr"
+                  className={`mt-1 font-mono text-xl font-extrabold leading-none ${
+                    isDark ? "text-[#F2C94C]" : "text-primary-ink"
+                  }`}
+                >
+                  {trv(item.phone)}
+                </span>
+                <span className="mt-1.5 line-clamp-1 text-xs font-extrabold">
+                  {trv(item.name)}
+                </span>
+                <span className={`text-[10px] font-semibold ${isDark ? "text-white/65" : "text-muted"}`}>
+                  {trv(item.sub)}
+                </span>
+              </a>
+            ))}
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+
+function HomeAppAndNotifySection() {
+  const [dismissedInApp, setDismissedInApp] = useState(false);
+
+  return (
+    <div className="space-y-2.5">
+      <InstallBanner />
+      <NotifyPrompt />
+      {!dismissedInApp ? (
+        <section
+          className="stamp border-2 border-primary/80 bg-gradient-to-l from-primary-soft/75 via-paper to-paper p-3.5 shadow-2xs"
+          aria-label={tr("تثبيت التطبيق والإشعارات")}
+        >
+          {/* Row 1: Icon + Full-Width Title/Description + Dismiss Button */}
+          <div className="flex items-start justify-between gap-2.5">
+            <div className="flex min-w-0 flex-1 items-start gap-3">
+              <img
+                src="/icons/icon-192.png"
+                alt=""
+                width={46}
+                height={46}
+                className="size-11 shrink-0 rounded-2xl border border-primary/50 shadow-2xs"
+              />
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="text-sm font-extrabold leading-snug text-ink sm:text-base">
+                    📲 {tr("تطبيق رهط بوست والإشعارات الفورية")}
+                  </span>
+                  <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-[#16A34A]/15 px-2 py-0.5 text-[10px] font-extrabold text-[#15803D]">
+                    ● {tr("متصل ومحدّث")}
+                  </span>
+                </div>
+                <p className="mt-1 text-xs font-semibold leading-relaxed text-muted">
+                  {tr("احصل على تنبيهات الأخبار العاجلة، مواعيد باصات غاليم، وأرقام الطوارئ في رهط مباشرة على هاتفك.")}
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setDismissedInApp(true)}
+              aria-label={tr("إخفاء")}
+              className="grid size-8 shrink-0 place-items-center rounded-xl text-xs font-extrabold text-muted hover:bg-surface hover:text-ink"
+            >
+              ✕
+            </button>
+          </div>
+
+          {/* Row 2: Action Buttons side-by-side */}
+          <div className="mt-3 grid grid-cols-2 gap-2 sm:flex sm:items-center sm:justify-end">
+            <Link
+              to="/app"
+              className="press inline-flex items-center justify-center gap-1.5 rounded-xl bg-primary px-3.5 py-2.5 text-xs font-extrabold text-ink shadow-2xs hover:bg-primary-hover"
+            >
+              🔔 {tr("التطبيق والإشعارات")}
+            </Link>
+            <Link
+              to="/today"
+              className="press inline-flex items-center justify-center gap-1.5 rounded-xl border border-line bg-surface px-3.5 py-2.5 text-xs font-extrabold text-ink hover:border-primary"
+            >
+              🚨 {tr("طوارئ رهط")}
+            </Link>
+          </div>
+        </section>
+      ) : null}
     </div>
   );
 }

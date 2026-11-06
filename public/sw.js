@@ -2,10 +2,10 @@
  *
  * Never cached: auth (/api/), server functions (/_serverFn), admin, login, account and submit
  * pages, POSTs, and anything cross-origin (publisher images, Google sign-in).
- * Public pages are network-first (so news stays fresh) with the last copy as an offline
+ * Public pages are network-first (so news & layout order stay fresh) with the last copy as an offline
  * fallback; hashed build assets are cache-first; everything else falls back to /offline.html.
  */
-const VERSION = "rp-v3";
+const VERSION = "rp-v9";
 const SHELL = `${VERSION}-shell`;
 const PAGES = `${VERSION}-pages`;
 const ASSETS = `${VERSION}-assets`;
@@ -66,14 +66,14 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
   if (NEVER.some((re) => re.test(url.pathname))) {
-    if (request.mode === "navigate") event.respondWith(fetch(request).catch(offline));
+    if (request.mode === "navigate") event.respondWith(fetch(request, { cache: "no-store" }).catch(offline));
     return;
   }
 
   if (request.mode === "navigate") {
     if (PUBLIC_PAGES.some((re) => re.test(url.pathname)))
       event.respondWith(networkFirstPage(request));
-    else event.respondWith(fetch(request).catch(offline));
+    else event.respondWith(fetch(request, { cache: "no-store" }).catch(offline));
     return;
   }
 
@@ -98,7 +98,7 @@ async function offline() {
 async function networkFirstPage(request) {
   const cache = await caches.open(PAGES);
   try {
-    const response = await fetch(request);
+    const response = await fetch(request, { cache: "no-store" });
     if (response.ok && response.type === "basic") {
       await cache.put(request, response.clone());
       trim(cache);

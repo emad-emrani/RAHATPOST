@@ -173,10 +173,53 @@ export const Route = createFileRoute("/news/")({
 
 const LOCAL = "رهط والنقب";
 
+function normalizeSecKey(s: string): string {
+  return s.replace(/\s+/g, "").replace(/[✨🎨👗📰]/g, "").trim();
+}
+
 function NewsPage() {
   const data = Route.useLoaderData();
   const now = useNow(data.now);
-  const [cat, setCat] = useState("الكل");
+  const allCategories = useMemo(() => {
+    const extra = (data as { customCatNames?: string[] }).customCatNames ?? ["فن و موضة"];
+    const base = [...newsCategories];
+    for (const c of extra) {
+      if (c && !base.some((b) => normalizeSecKey(b) === normalizeSecKey(c))) {
+        base.push(c as any);
+      }
+    }
+    return base;
+  }, [data]);
+
+  const resolveCatFromUrl = (): string => {
+    if (typeof window === "undefined") return "الكل";
+    try {
+      const sp = new URLSearchParams(window.location.search);
+      const raw = (sp.get("cat") || sp.get("section") || sp.get("q") || "").trim();
+      if (!raw) return "الكل";
+      const norm = normalizeSecKey(raw);
+      const match = ["الكل", LOCAL, ...allCategories].find((c) => normalizeSecKey(c) === norm);
+      if (match) return match;
+      if (/فن|موضة/.test(raw)) {
+        return allCategories.find((c) => /فن|موضة/.test(c)) ?? raw;
+      }
+      return raw;
+    } catch {
+      return "الكل";
+    }
+  };
+
+  const [cat, setCat] = useState<string>(() => resolveCatFromUrl());
+
+  useEffect(() => {
+    const syncFromUrl = () => {
+      const next = resolveCatFromUrl();
+      setCat(next);
+    };
+    syncFromUrl();
+    window.addEventListener("popstate", syncFromUrl);
+    return () => window.removeEventListener("popstate", syncFromUrl);
+  }, [allCategories]);
   const siteLang = getLang();
   const [txLang, setTxLang] = useState<"ar" | "he" | "en" | "orig">(
     siteLang === "he" ? "he" : siteLang === "en" ? "en" : "ar",
@@ -188,21 +231,14 @@ function NewsPage() {
     setTxLang(siteLang === "he" ? "he" : siteLang === "en" ? "en" : "ar");
   }, [siteLang]);
 
-  const allCategories = useMemo(() => {
-    const extra = (data as { customCatNames?: string[] }).customCatNames ?? ["فن و موضة"];
-    const base = [...newsCategories];
-    for (const c of extra) {
-      if (c && !base.includes(c as any)) base.push(c as any);
-    }
-    return base;
-  }, [data]);
+
 
   const rawFiltered = useMemo(
     () =>
       data.items.filter((item) => {
         if (cat === "الكل") return true;
         if (cat === LOCAL) return item.local;
-        if (cat === item.category) return true;
+        if (cat === item.category || normalizeSecKey(cat) === normalizeSecKey(item.category)) return true;
         if (/فن|موضة/.test(cat)) {
           return /فن|موضة|ثقافة|أزياء|مشاهير|جمال/.test(`${item.category} ${item.title} ${item.summary}`);
         }
@@ -259,9 +295,13 @@ function NewsPage() {
 
   return (
     <Shell>
-      <h1 className="mb-1 text-2xl font-bold">{tr("أخبار رهط والنقب")}</h1>
+      <h1 className="mb-1 text-2xl font-bold">
+        {cat !== "الكل" ? trSecLabel(cat, txLang === "orig" ? undefined : txLang) : tr("أخبار رهط والنقب")}
+      </h1>
       <p className="mb-3 font-semibold text-muted">
-        {tr("تغطية مستمرة لأخبار مدينة رهط وبلدات النقب والمجتمع المحلي على مدار الساعة.")}
+        {cat !== "الكل"
+          ? `${tr("أحدث أخبار ومقالات قسم")} ${trSecLabel(cat, txLang === "orig" ? undefined : txLang)}`
+          : tr("تغطية مستمرة لأخبار مدينة رهط وبلدات النقب والمجتمع المحلي على مدار الساعة.")}
       </p>
 
       {data.items.length === 0 ? (
@@ -273,8 +313,14 @@ function NewsPage() {
               <button
                 key={item}
                 type="button"
-                className={item === cat ? "chip chip-ink shrink-0" : "chip shrink-0"}
-                onClick={() => setCat(item)}
+                className={normalizeSecKey(item) === normalizeSecKey(cat) ? "chip chip-ink shrink-0" : "chip shrink-0"}
+                onClick={() => {
+                  setCat(item);
+                  if (typeof window !== "undefined") {
+                    const url = item === "الكل" ? "/news" : `/news?cat=${encodeURIComponent(item)}`;
+                    window.history.replaceState(null, "", url);
+                  }
+                }}
               >
                 {trSecLabel(item, txLang === "orig" ? undefined : txLang)}
               </button>

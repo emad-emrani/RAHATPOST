@@ -3,6 +3,14 @@
  * Shared by client and server: defaults + a strict sanitizer (unknown keys dropped).
  */
 
+export const DEFAULT_ADSENSE_PUB = "ca-pub-9063892572843254";
+
+export function normalizeAdsensePub(raw: unknown): string {
+  if (typeof raw !== "string") return "";
+  const m = raw.match(/(?:ca-)?pub-(\d{10,20})/i);
+  return m ? `ca-pub-${m[1]}` : "";
+}
+
 export const HOME_SECTIONS = {
   weather: "الطقس ومواقيت الصلاة",
   slider: "السلايدر",
@@ -10,38 +18,35 @@ export const HOME_SECTIONS = {
   tiles: "أيقونات الأقسام",
   quicklinks: "روابط سريعة",
   news: "آخر الأخبار",
-  matches: "نتائج المباريات المباشرة",
-  post: "أدلة خدمات رهط",
-  buses: "الباصات",
-  duty: "صيدلية المناوبة",
-  directory: "الدليل والمتجر",
-  ads: "جديد الحراج",
+  israel: "أخبار إسرائيل",
   sports: "رياضة",
   tech: "أخبار تقنية",
-  israel: "أخبار إسرائيل",
-  emergency: "أرقام الطوارئ",
+  post: "خدمة البريد",
   install: "تثبيت التطبيق والإشعارات",
+  buses: "الباصات",
+  directory: "من المتجر",
+  ads: "جديد الحراج",
+  duty: "صيدلية المناوبة",
+  emergency: "أرقام الطوارئ",
 } as const;
 export type HomeSectionId = keyof typeof HOME_SECTIONS;
 
 export const NAV_ITEMS = {
   "/": "الرئيسية",
   "/news": "الأخبار",
-  "/buses": "باصات",
-  "/directory": "الدليل",
-  "/haraj": "حراج",
   "/today": "اليوم",
+  "/buses": "باصات",
   "/store": "المتجر",
+  "/haraj": "حراج",
 } as const;
 export type NavId = keyof typeof NAV_ITEMS;
 
 export const TILE_ITEMS = {
   "/news": "الأخبار",
   "/buses": "الباصات",
-  "/directory": "الدليل",
+  "/store": "المتجر",
   "/haraj": "حراج",
   "/today": "اليوم",
-  "/store": "المتجر",
   "/submit": "أضف",
 } as const;
 export type TileId = keyof typeof TILE_ITEMS;
@@ -60,35 +65,6 @@ export type Slide =
 
 export type QuickLink = { id: string; title: string; subtitle: string; url: string; emoji: string };
 export type Toggle<T extends string> = { id: T; visible: boolean };
-
-/** A charging point the owner added. The public page also keeps the OpenStreetMap point. */
-export type RavKavPoint = {
-  id: string;
-  name: string;
-  address: string;
-  hours: string;
-  lat: number;
-  lon: number;
-};
-
-export type RavKavUi = {
-  /** Reserved for a buses-page shortcut. The public page still lists services. */
-  button: boolean;
-  /** Show the charging-point list and map. */
-  points: boolean;
-  /** Ids to hide, including the built-in map point. */
-  hidden: string[];
-};
-
-/** Thin bar under the site header. Visitors can dismiss one revision. */
-export type Announcement = {
-  enabled: boolean;
-  text: string;
-  link: string;
-  kind: "info" | "warning" | "urgent";
-  scope: "all" | "buses";
-  rev: string;
-};
 
 export const AD_PLACEMENTS = {
   home: "الصفحة الرئيسية (بين الأقسام)",
@@ -128,9 +104,6 @@ export type SiteSettings = {
   nav: Toggle<NavId>[];
   tiles: Toggle<TileId>[];
   quickLinks: QuickLink[];
-  ravkavPoints: RavKavPoint[];
-  ravkavUi: RavKavUi;
-  announce: Announcement;
 };
 
 export const THEME_DEFAULT = {
@@ -160,26 +133,24 @@ export const THEME_PRESETS: { name: string; theme: SiteSettings["theme"] }[] = [
   },
 ];
 
-export const DEFAULT_ADSENSE_PUB = "ca-pub-9063892572843254";
-
 export const DEFAULT_SETTINGS: SiteSettings = {
   google: {
     adsensePub: DEFAULT_ADSENSE_PUB,
     adsenseEnabled: true,
     autoAds: true,
     slots: [],
-    gaId: "G-2B1R786GM0",
-    gaEnabled: true,
+    gaId: "",
+    gaEnabled: false,
     gtmId: "",
-    gscCode: "gZirpZH5RWc4SxozAbvqJJPBxhk4DyFprqchBfkZhOU",
+    gscCode: "",
   },
   theme: THEME_DEFAULT,
   texts: {
     siteName: "رهط بوست",
-    tagline: "أخبار وخدمات رهط والنقب في مكان واحد",
+    tagline: "رهط والنقب",
     addButton: "أضف",
     footer:
-      "منصة رهط بوست — بوابة أخبار رهط والنقب، مواعيد باصات غاليم، دليل المصالح والخدمات، وحراج رهط. أرقام الطوارئ الوطنية حقيقية ومعتمدة.",
+      "أرقام الطوارئ الوطنية حقيقية. الأخبار والدليل والباصات من مصادر حقيقية مذكورة في كل صفحة.",
     contactEmail: "",
     harajName: "حراج رهط",
     harajNav: "حراج",
@@ -191,9 +162,6 @@ export const DEFAULT_SETTINGS: SiteSettings = {
   nav: (Object.keys(NAV_ITEMS) as NavId[]).map((id) => ({ id, visible: true })),
   tiles: (Object.keys(TILE_ITEMS) as TileId[]).map((id) => ({ id, visible: true })),
   quickLinks: [],
-  ravkavPoints: [],
-  ravkavUi: { button: true, points: true, hidden: [] },
-  announce: { enabled: false, text: "", link: "", kind: "info", scope: "all", rev: "1" },
 };
 
 const HEX = /^#[0-9a-f]{6}$/i;
@@ -207,7 +175,7 @@ const str = (v: unknown, max: number, fallback = "") =>
 
 /** Relative site path or https URL; anything else becomes "". */
 export function safeUrl(v: unknown): string {
-  const s = str(v, 300);
+  const s = str(v, 1500).replace(/\s+/g, "%20");
   if (/^\/(?!\/)[^\s]*$/.test(s)) return s;
   try {
     const u = new URL(s);
@@ -221,20 +189,13 @@ const safeEmail = (v: unknown) => {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s) ? s : "";
 };
 
-/** Extract and normalize an AdSense publisher ID from any format (ca-pub-XXX, pub-XXX, raw digits, <script>, or a full ads.txt line). */
-export function normalizeAdsensePub(v: unknown): string {
-  if (typeof v !== "string") return "";
-  const m = v.match(/(?:ca-)?pub-(\d{10,20})/i) ?? v.trim().match(/^(\d{10,20})$/);
-  return m ? `ca-pub-${m[1]}` : "";
-}
-
 /** Keep known ids once each, in the given order; append missing ones (visible). */
 function toggles<T extends string>(input: unknown, all: readonly T[]): Toggle<T>[] {
   const out: Toggle<T>[] = [];
   if (Array.isArray(input))
     for (const x of input) {
       const raw = (x as { id?: unknown })?.id;
-      const id = (raw === "/ads" ? "/haraj" : raw) as T;
+      const id = (raw === "/directory" ? "/store" : raw === "/ads" ? "/haraj" : raw) as T;
       if (all.includes(id) && !out.some((o) => o.id === id))
         out.push({ id, visible: (x as { visible?: unknown }).visible !== false });
     }
@@ -277,14 +238,14 @@ export function sanitizeSettings(input: unknown): SiteSettings {
     }
   const quickLinks: QuickLink[] = [];
   if (Array.isArray(i.quickLinks))
-    for (const q of i.quickLinks.slice(0, 48)) {
+    for (const q of i.quickLinks.slice(0, 30)) {
       const title = str(q?.title, 60);
       const url = safeUrl(q?.url);
       if (title && url && ID.test(String(q?.id)))
         quickLinks.push({
           id: String(q.id),
           title,
-          subtitle: str(q.subtitle, 240),
+          subtitle: str(q.subtitle, 300),
           url,
           emoji: str(q.emoji, 4),
         });
@@ -301,22 +262,17 @@ export function sanitizeSettings(input: unknown): SiteSettings {
       if (slot && ID.test(String(a?.id)) && a?.placement in AD_PLACEMENTS)
         slotsOut.push({ id: String(a.id), slot, placement: a.placement });
     }
-  const rawTagline = str(x.tagline, 60);
-  const cleanTagline =
-    !rawTagline || rawTagline === "جمع الاخبار في مكان واحد"
-      ? d.texts.tagline
-      : rawTagline;
-  const adsensePub = normalizeAdsensePub(g.adsensePub) || d.google.adsensePub;
+  const normPub = normalizeAdsensePub(g.adsensePub);
   return {
     google: {
-      adsensePub,
-      adsenseEnabled: g.adsenseEnabled !== undefined ? g.adsenseEnabled === true : d.google.adsenseEnabled,
-      autoAds: g.autoAds !== undefined ? g.autoAds === true : true,
+      adsensePub: normPub || pick(g.adsensePub, /^ca-pub-\d{10,20}$/) || DEFAULT_ADSENSE_PUB,
+      adsenseEnabled: g.adsenseEnabled !== false,
+      autoAds: g.autoAds !== false,
       slots: slotsOut,
-      gaId: pick(g.gaId, /^G-[A-Z0-9]{4,16}$/) || d.google.gaId,
-      gaEnabled: g.gaEnabled !== undefined ? g.gaEnabled === true : d.google.gaEnabled,
+      gaId: pick(g.gaId, /^G-[A-Z0-9]{4,16}$/),
+      gaEnabled: g.gaEnabled === true,
       gtmId: pick(g.gtmId, /^GTM-[A-Z0-9]{4,12}$/),
-      gscCode: pick(g.gscCode, /^[A-Za-z0-9_-]{10,100}$/) || d.google.gscCode,
+      gscCode: pick(g.gscCode, /^[A-Za-z0-9_-]{10,100}$/),
     },
     theme: {
       primary: color(t.primary, d.theme.primary),
@@ -326,9 +282,9 @@ export function sanitizeSettings(input: unknown): SiteSettings {
     },
     texts: {
       siteName: str(x.siteName, 40) || d.texts.siteName,
-      tagline: cleanTagline,
+      tagline: str(x.tagline, 60),
       addButton: str(x.addButton, 16) || d.texts.addButton,
-      footer: str(x.footer, 400) || d.texts.footer,
+      footer: str(x.footer, 400),
       contactEmail: safeEmail(x.contactEmail),
       harajName: str(x.harajName, 40) || d.texts.harajName,
       harajNav: str(x.harajNav, 16) || d.texts.harajNav,
@@ -340,68 +296,6 @@ export function sanitizeSettings(input: unknown): SiteSettings {
     nav: toggles(i.nav, Object.keys(NAV_ITEMS) as NavId[]),
     tiles: toggles(i.tiles, Object.keys(TILE_ITEMS) as TileId[]),
     quickLinks,
-    ravkavPoints: cleanRavkavPoints(i.ravkavPoints),
-    ravkavUi: cleanRavkavUi(i.ravkavUi),
-    announce: cleanAnnounce(i.announce),
-  };
-}
-
-function cleanAnnounce(input: unknown): Announcement {
-  const d = DEFAULT_SETTINGS.announce;
-  const a = (input && typeof input === "object" ? input : {}) as Record<string, unknown>;
-  const kind = a.kind === "warning" || a.kind === "urgent" || a.kind === "info" ? a.kind : d.kind;
-  const scope = a.scope === "buses" ? "buses" : "all";
-  const text = str(a.text, 180);
-  return {
-    enabled: a.enabled === true && Boolean(text),
-    text,
-    link: safeUrl(a.link),
-    kind,
-    scope,
-    rev: str(a.rev, 20) || d.rev,
-  };
-}
-
-const RAV_ID = /^[a-z0-9_-]{2,40}$/;
-
-function cleanRavkavPoints(input: unknown): RavKavPoint[] {
-  if (!Array.isArray(input)) return [];
-  const out: RavKavPoint[] = [];
-  for (const raw of input.slice(0, 40)) {
-    if (!raw || typeof raw !== "object") continue;
-    const p = raw as Record<string, unknown>;
-    const id = str(p.id, 40).toLowerCase();
-    const name = str(p.name, 80);
-    const lat = typeof p.lat === "number" ? p.lat : Number(p.lat);
-    const lon = typeof p.lon === "number" ? p.lon : Number(p.lon);
-    if (!RAV_ID.test(id) || !name || !Number.isFinite(lat) || !Number.isFinite(lon)) continue;
-    if (lat < 29.4 || lat > 33.5 || lon < 34.2 || lon > 35.95) continue;
-    if (out.some((o) => o.id === id)) continue;
-    out.push({
-      id,
-      name,
-      address: str(p.address, 160),
-      hours: str(p.hours, 80),
-      lat: Math.round(lat * 1e6) / 1e6,
-      lon: Math.round(lon * 1e6) / 1e6,
-    });
-  }
-  return out;
-}
-
-function cleanRavkavUi(input: unknown): RavKavUi {
-  const u = (input && typeof input === "object" ? input : {}) as Record<string, unknown>;
-  const hidden: string[] = [];
-  if (Array.isArray(u.hidden)) {
-    for (const h of u.hidden.slice(0, 40)) {
-      const id = str(h, 40).toLowerCase();
-      if (RAV_ID.test(id) && !hidden.includes(id)) hidden.push(id);
-    }
-  }
-  return {
-    button: u.button !== false,
-    points: u.points !== false,
-    hidden,
   };
 }
 

@@ -35,13 +35,15 @@ export const adTypes = [
 
 export const emergency = [
   { name: "الشرطة", phone: "100" },
-  { name: "الإسعاف", phone: "101" },
-  { name: "الإطفاء", phone: "102" },
-  { name: "طوارئ", phone: "112" },
-  { name: "اتحاد الإنقاذ", phone: "1221" },
-  { name: "الكهرباء", phone: "103" },
+  { name: "الإسعاف (نجمة داود)", phone: "101" },
+  { name: "الإطفاء والإنقاذ", phone: "102" },
+  { name: "طوارئ بلدية رهط", phone: "106" },
+  { name: "طوارئ الكهرباء", phone: "103" },
   { name: "الجبهة الداخلية", phone: "104" },
-  { name: "البلدية", phone: "106" },
+  { name: "اتحاد الإنقاذ", phone: "1221" },
+  { name: "الطوارئ الموحّد", phone: "112" },
+  { name: "بدالة بلدية رهط", phone: "08-9914800" },
+  { name: "استعلامات غاليم", phone: "08-6688700" },
 ];
 
 export const classifieds: Classified[] = [
