@@ -630,13 +630,6 @@ export async function saveMatchesSettingsToDb(input: unknown): Promise<MatchesSe
   return clean;
 }
 
-function formatYmd(d: Date): string {
-  const y = d.getUTCFullYear();
-  const m = String(d.getUTCMonth() + 1).padStart(2, "0");
-  const day = String(d.getUTCDate()).padStart(2, "0");
-  return `${y}${m}${day}`;
-}
-
 function israelDateKey(iso: string): string {
   try {
     return new Intl.DateTimeFormat("en-CA", {
@@ -648,6 +641,10 @@ function israelDateKey(iso: string): string {
   } catch {
     return iso.slice(0, 10);
   }
+}
+
+function formatYmd(d: Date): string {
+  return israelDateKey(d.toISOString()).replace(/-/g, "");
 }
 
 function formatTimeJerusalem(iso: string): string {
@@ -676,16 +673,25 @@ function formatShortDateAr(iso: string): string {
   }
 }
 
-function classifyDayKey(kickoffIso: string): MatchItem["dayKey"] {
+/**
+ * Classify a match's date in Asia/Jerusalem timezone:
+ * - Returns null if the match is older than Yesterday (so old finished matches from 2+ days ago never pollute Tomorrow or Upcoming!).
+ */
+function classifyDayKeyOrNull(
+  kickoffIso: string,
+  status?: "pre" | "in" | "post",
+): MatchItem["dayKey"] | null {
   const now = new Date();
   const todayKey = israelDateKey(now.toISOString());
   const yestKey = israelDateKey(new Date(now.getTime() - 86_400_000).toISOString());
   const tomKey = israelDateKey(new Date(now.getTime() + 86_400_000).toISOString());
   const dKey = israelDateKey(kickoffIso);
+  if (status === "in") return "today";
   if (dKey === todayKey) return "today";
   if (dKey === yestKey) return "yesterday";
   if (dKey === tomKey) return "tomorrow";
-  return "upcoming";
+  if (dKey > tomKey) return "upcoming";
+  return null;
 }
 
 /** Map league IDs to TheSportsDB league IDs for supplementary/fallback rounds (especially Israeli Ligat Ha'Al 4644). */
@@ -726,7 +732,7 @@ async function fetchSportsDbEvents(league: LeagueConfig): Promise<MatchItem[]> {
     }
 
     const out: MatchItem[] = [];
-    for (const ev of rawEvents.slice(0, 20)) {
+    for (const ev of rawEvents) {
       if (!ev?.strHomeTeam || !ev?.strAwayTeam) continue;
       const dateStr = String(ev.dateEvent ?? "");
       const timeStr = String(ev.strTime ?? "18:00:00").slice(0, 8);
@@ -736,7 +742,8 @@ async function fetchSportsDbEvents(league: LeagueConfig): Promise<MatchItem[]> {
       const rawStatus = String(ev.strStatus ?? "").toUpperCase();
       const isLive = rawStatus === "LIVE" || rawStatus === "1H" || rawStatus === "2H" || rawStatus === "HT";
       const status: "pre" | "in" | "post" = isLive ? "in" : hasScore ? "post" : "pre";
-      const dayKey = classifyDayKey(kickoffIso);
+      const dayKey = classifyDayKeyOrNull(kickoffIso, status);
+      if (!dayKey) continue;
 
       out.push({
         id: `sdb-${ev.idEvent ?? `${league.id}-${dateStr}-${ev.strHomeTeam}`}`,
@@ -781,7 +788,7 @@ async function fetchLeagueEvents(league: LeagueConfig, dateRangeParam: string): 
     const res = await fetch(url, {
       signal: ctrl.signal,
       headers: {
-        "user-agent": "Mozilla/5.0 (compatible; RahatPostBot/1.0; +https://rahatpost.com)",
+        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
         accept: "application/json",
       },
     });
@@ -790,7 +797,7 @@ async function fetchLeagueEvents(league: LeagueConfig, dateRangeParam: string): 
       const events = Array.isArray(json?.events) ? json.events : [];
       const now = new Date();
 
-      for (const ev of events.slice(0, 24)) {
+      for (const ev of events) {
         const comp = ev?.competitions?.[0];
         const competitors: any[] = Array.isArray(comp?.competitors) ? comp.competitors : [];
         const home = competitors.find((c) => c.homeAway === "home") ?? competitors[0];
@@ -803,7 +810,8 @@ async function fetchLeagueEvents(league: LeagueConfig, dateRangeParam: string): 
         const clock = String(ev?.status?.displayClock ?? comp?.status?.displayClock ?? "").trim();
         const detail = String(ev?.status?.type?.shortDetail ?? "").trim();
         const kickoffIso = String(ev?.date ?? comp?.date ?? now.toISOString());
-        const dayKey = classifyDayKey(kickoffIso);
+        const dayKey = classifyDayKeyOrNull(kickoffIso, status);
+      if (!dayKey) continue;
 
         let statusTextAr = formatTimeJerusalem(kickoffIso);
         if (status === "in") {
@@ -895,8 +903,8 @@ export async function loadMatchesBoard(forceFresh = false): Promise<MatchesBoard
     const enabledLeagues = settings.leagues.filter((l) => l.enabled);
     const now = new Date();
     // Fetch an 8-day window (-3 days to +5 days) so all weekend & mid-week rounds appear
-    const start = new Date(now.getTime() - 3 * 86_400_000);
-    const end = new Date(now.getTime() + 5 * 86_400_000);
+    const start = new Date(now.getTime() - 1 * 86_400_000);
+    const end = new Date(now.getTime() + 6 * 86_400_000);
     const rangeParam = `${formatYmd(start)}-${formatYmd(end)}`;
 
     const results = await Promise.all(

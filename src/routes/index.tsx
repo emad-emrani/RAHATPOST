@@ -1617,15 +1617,707 @@ const STADIUM_PITCH_KEYFRAMES = `
 
 type PitchEventKind = "none" | "goal" | "foul" | "red" | "attack";
 
+type LineupPlayerNode = {
+  id: string;
+  name: string;
+  number: string;
+  posCode: string;
+  posAr: string;
+  line: "GK" | "DEF" | "MID" | "ATT";
+  photo?: string;
+  goals?: number;
+  yellow?: boolean;
+  red?: boolean;
+  rating?: string;
+};
+
+type TeamTacticalLineup = {
+  formation: string;
+  coachAr: string;
+  styleAr: string;
+  players: LineupPlayerNode[];
+  isOfficialLive: boolean;
+};
+
+type LiveMatchTacticalAnalysis = {
+  home: TeamTacticalLineup;
+  away: TeamTacticalLineup;
+  homePossession: number;
+  awayPossession: number;
+  homeShots: number;
+  awayShots: number;
+  homeShotsOnTarget: number;
+  awayShotsOnTarget: number;
+  homeCorners: number;
+  awayCorners: number;
+  homeFouls: number;
+  awayFouls: number;
+  summaryAr: string;
+};
+
+const POS_AR_MAP: Record<string, { ar: string; line: "GK" | "DEF" | "MID" | "ATT" }> = {
+  G: { ar: "حارس مرمى", line: "GK" },
+  GK: { ar: "حارس مرمى", line: "GK" },
+  D: { ar: "مدافع", line: "DEF" },
+  DF: { ar: "مدافع", line: "DEF" },
+  CB: { ar: "قلب دفاع", line: "DEF" },
+  "CD-L": { ar: "قلب دفاع أيسر", line: "DEF" },
+  "CD-R": { ar: "قلب دفاع أيمن", line: "DEF" },
+  CD: { ar: "قلب دفاع", line: "DEF" },
+  LB: { ar: "ظهير أيسر", line: "DEF" },
+  RB: { ar: "ظهير أيمن", line: "DEF" },
+  LWB: { ar: "ظهير جناح أيسر", line: "DEF" },
+  RWB: { ar: "ظهير جناح أيمن", line: "DEF" },
+  M: { ar: "وسط ملعب", line: "MID" },
+  MF: { ar: "وسط ملعب", line: "MID" },
+  CDM: { ar: "وسط ارتكاز", line: "MID" },
+  DM: { ar: "وسط ارتكاز", line: "MID" },
+  CM: { ar: "وسط محوري", line: "MID" },
+  "CM-L": { ar: "وسط أيسر", line: "MID" },
+  "CM-R": { ar: "وسط أيمن", line: "MID" },
+  CAM: { ar: "صانع ألعاب", line: "MID" },
+  AM: { ar: "صانع ألعاب", line: "MID" },
+  LM: { ar: "وسط أيسر", line: "MID" },
+  RM: { ar: "وسط أيمن", line: "MID" },
+  F: { ar: "مهاجم", line: "ATT" },
+  FW: { ar: "مهاجم", line: "ATT" },
+  ST: { ar: "رأس حربة", line: "ATT" },
+  CF: { ar: "مهاجم صريح", line: "ATT" },
+  LW: { ar: "جناح أيسر", line: "ATT" },
+  RW: { ar: "جناح أيمن", line: "ATT" },
+  "F-L": { ar: "جناح هجومي أيسر", line: "ATT" },
+  "F-R": { ar: "جناح هجومي أيمن", line: "ATT" },
+};
+
+type PresetSquadDef = {
+  formation: string;
+  coachAr: string;
+  styleAr: string;
+  xi: [string, string, string, "GK" | "DEF" | "MID" | "ATT", string?][];
+};
+
+const REAL_TEAM_SQUADS: Record<string, PresetSquadDef> = {
+  "ريال مدريد": {
+    formation: "4-3-3",
+    coachAr: "كارلو أنشيلوتي",
+    styleAr: "تحولات سريعة وهجوم عبر الأطراف",
+    xi: [
+      ["تيبو كورتوا", "1", "GK", "GK", "https://a.espncdn.com/i/headshots/soccer/players/full/134853.png"],
+      ["فاسكيز", "17", "RB", "DEF"],
+      ["أنطونيو روديغر", "22", "CB", "DEF", "https://a.espncdn.com/i/headshots/soccer/players/full/157749.png"],
+      ["إيدير ميليتاو", "3", "CB", "DEF"],
+      ["فيرلاند ميندي", "23", "LB", "DEF"],
+      ["فالفيردي", "8", "CM", "MID", "https://a.espncdn.com/i/headshots/soccer/players/full/240271.png"],
+      ["تشواميني", "14", "CDM", "MID"],
+      ["جود بيلينغهام", "5", "CAM", "MID", "https://a.espncdn.com/i/headshots/soccer/players/full/291279.png"],
+      ["رودريغو", "11", "RW", "ATT", "https://a.espncdn.com/i/headshots/soccer/players/full/259233.png"],
+      ["كيليان مبابي", "9", "ST", "ATT", "https://a.espncdn.com/i/headshots/soccer/players/full/231388.png"],
+      ["فينيسيوس جونيور", "7", "LW", "ATT", "https://a.espncdn.com/i/headshots/soccer/players/full/251925.png"],
+    ],
+  },
+  "برشلونة": {
+    formation: "4-2-3-1",
+    coachAr: "هانزي فليك",
+    styleAr: "ضغط عالٍ واستحواذ هجومي",
+    xi: [
+      ["إينياكي بينيا", "13", "GK", "GK"],
+      ["جول كوندي", "23", "RB", "DEF"],
+      ["باو كوبارسي", "2", "CB", "DEF"],
+      ["إينيغو مارتينيز", "5", "CB", "DEF"],
+      ["أليخاندرو بالدي", "3", "LB", "DEF"],
+      ["مارك كاسادو", "17", "CDM", "MID"],
+      ["بيدري", "8", "CM", "MID", "https://a.espncdn.com/i/headshots/soccer/players/full/294162.png"],
+      ["لامين يامال", "19", "RW", "ATT", "https://a.espncdn.com/i/headshots/soccer/players/full/362150.png"],
+      ["داني أولمو", "20", "CAM", "MID"],
+      ["رافينيا", "11", "LW", "ATT", "https://a.espncdn.com/i/headshots/soccer/players/full/231050.png"],
+      ["ليفاندوفسكي", "9", "ST", "ATT", "https://a.espncdn.com/i/headshots/soccer/players/full/125824.png"],
+    ],
+  },
+  "ليفربول": {
+    formation: "4-3-3",
+    coachAr: "آرني سلوت",
+    styleAr: "ضغط متقدم وبناء هجومي سريع",
+    xi: [
+      ["أليسون بيكر", "1", "GK", "GK"],
+      ["أرنولد", "66", "RB", "DEF"],
+      ["كوناتي", "5", "CB", "DEF"],
+      ["فان دايك", "4", "CB", "DEF"],
+      ["روبرتسون", "26", "LB", "DEF"],
+      ["غرافنبرخ", "38", "CDM", "MID"],
+      ["ماك أليستر", "10", "CM", "MID"],
+      ["سوبوسلاي", "8", "CAM", "MID"],
+      ["محمد صلاح", "11", "RW", "ATT", "https://a.espncdn.com/i/headshots/soccer/players/full/173896.png"],
+      ["داروين نونيز", "9", "ST", "ATT"],
+      ["لويس دياز", "7", "LW", "ATT"],
+    ],
+  },
+  "مانشستر سيتي": {
+    formation: "4-2-3-1",
+    coachAr: "بيب غوارديولا",
+    styleAr: "استحواذ كامل وتمريرات قصيرة",
+    xi: [
+      ["إيدرسون", "31", "GK", "GK"],
+      ["كايل ووكر", "2", "RB", "DEF"],
+      ["روبن دياز", "3", "CB", "DEF"],
+      ["أكانجي", "25", "CB", "DEF"],
+      ["غفارديول", "24", "LB", "DEF"],
+      ["كوفاسيتش", "8", "CDM", "MID"],
+      ["برناردو سيلفا", "20", "CM", "MID"],
+      ["فيل فودين", "47", "RW", "ATT"],
+      ["دي بروين", "17", "CAM", "MID"],
+      ["دوكو", "11", "LW", "ATT"],
+      ["إيرلينغ هالاند", "9", "ST", "ATT", "https://a.espncdn.com/i/headshots/soccer/players/full/253989.png"],
+    ],
+  },
+  "هبوعيل بئر السبع": {
+    formation: "4-3-3",
+    coachAr: "ران كوزوخ",
+    styleAr: "ضغط هجومي في ملعب تيرنر",
+    xi: [
+      ["نيف إلياسي", "55", "GK", "GK"],
+      ["غاي مزراحي", "2", "RB", "DEF"],
+      ["ميغيل فيتور", "4", "CB", "DEF"],
+      ["أور بلوريان", "5", "CB", "DEF"],
+      ["هيلدر لوبيز", "22", "LB", "DEF"],
+      ["لوكاس فينتورا", "25", "CDM", "MID"],
+      ["كينغس كانغوا", "20", "CM", "MID"],
+      ["إليئيل بيرتس", "15", "CAM", "MID"],
+      ["دان بيتون", "10", "RW", "ATT"],
+      ["آلون تورجمان", "17", "ST", "ATT"],
+      ["أمير غاناح", "19", "LW", "ATT"],
+    ],
+  },
+  "مكابي حيفا": {
+    formation: "4-2-3-1",
+    coachAr: "باراك باخار",
+    styleAr: "انتشار هجومي وصناعة فرص",
+    xi: [
+      ["شريف كيوف", "40", "GK", "GK"],
+      ["علاي فينغولد", "23", "RB", "DEF"],
+      ["عبدولاي سيك", "30", "CB", "DEF"],
+      ["شون غولدبرغ", "3", "CB", "DEF"],
+      ["كيني ساييف", "15", "LB", "DEF"],
+      ["علي محمد", "4", "CDM", "MID"],
+      ["محمود جابر", "26", "CM", "MID"],
+      ["ضياء سبع", "10", "CAM", "MID"],
+      ["ليئور رفائيلوف", "11", "LW", "ATT"],
+      ["دوليف حزيزا", "8", "RW", "ATT"],
+      ["دين دافيد", "21", "ST", "ATT"],
+    ],
+  },
+  "مكابي تل أبيب": {
+    formation: "4-3-3",
+    coachAr: "زاركو لازيتيتش",
+    styleAr: "استحواذ وبناء من الخلف",
+    xi: [
+      ["روعي مشباتي", "90", "GK", "GK"],
+      ["سغيف يحزقيل", "11", "RB", "DEF"],
+      ["راز شلومو", "4", "CB", "DEF"],
+      ["نيمانيا ستويتش", "18", "CB", "DEF"],
+      ["أوفير دافيدزادا", "27", "LB", "DEF"],
+      ["يوريس فان أوفريم", "14", "CDM", "MID"],
+      ["غابي كانيخوفسكي", "16", "CM", "MID"],
+      ["أوسامو بيرتس", "42", "CAM", "MID"],
+      ["أوشتير داويدا", "77", "RW", "ATT"],
+      ["دور ترجمان", "9", "ST", "ATT"],
+      ["عيران زهافي", "7", "LW", "ATT"],
+    ],
+  },
+  "بيتار القدس": {
+    formation: "4-3-3",
+    coachAr: "باراك يتسحاقي",
+    styleAr: "أجنحة هجومية سريعة",
+    xi: [
+      ["ميغيل سيلفا", "55", "GK", "GK"],
+      ["غريغوري موروزوف", "16", "RB", "DEF"],
+      ["أوري دهان", "4", "CB", "DEF"],
+      ["جيل كوهين", "5", "CB", "DEF"],
+      ["ليئون مزراحي", "18", "LB", "DEF"],
+      ["إسماعيل سورو", "6", "CDM", "MID"],
+      ["أدي يونا", "21", "CM", "MID"],
+      ["شوعا يردين", "7", "CAM", "MID"],
+      ["تيموثي موزي", "24", "RW", "ATT"],
+      ["مايرون جورج", "9", "ST", "ATT"],
+      ["باتريك توماسي", "11", "LW", "ATT"],
+    ],
+  },
+  "اتحاد أبناء سخنين": {
+    formation: "4-2-3-1",
+    coachAr: "سلوبودان درابيتس",
+    styleAr: "تنظيم دفاعي ومرتدات سريعة",
+    xi: [
+      ["محمد أبو نيل", "22", "GK", "GK"],
+      ["عوفاديا درويش", "2", "RB", "DEF"],
+      ["إياد أبو عبيد", "5", "CB", "DEF"],
+      ["مارون غنطوس", "4", "CB", "DEF"],
+      ["نفتالي بلالي", "3", "LB", "DEF"],
+      ["ستيفان أومونغا", "6", "CDM", "MID"],
+      ["إيلاي إلمكايس", "8", "CM", "MID"],
+      ["أحمد سلمان", "11", "RW", "ATT"],
+      ["ماثيو كودجو", "10", "CAM", "MID"],
+      ["باسل خوري", "7", "LW", "ATT"],
+      ["ألكسندر رامالينغوم", "9", "ST", "ATT"],
+    ],
+  },
+  "مكابي أبناء الرينة": {
+    formation: "4-3-3",
+    coachAr: "شارون ميمر",
+    styleAr: "انضباط تكتيكي وضغط وسط الملعب",
+    xi: [
+      ["جاد عاموس", "1", "GK", "GK"],
+      ["عبد الله جابر", "3", "LB", "DEF"],
+      ["سامبينيا", "4", "CB", "DEF"],
+      ["نيمانيا ليوبيسافليفيتش", "5", "CB", "DEF"],
+      ["رون أونغار", "2", "RB", "DEF"],
+      ["إيهاب غنايم", "6", "CDM", "MID"],
+      ["روعي شاحر", "8", "CM", "MID"],
+      ["غاي حديد", "10", "CAM", "MID"],
+      ["قيس غانم", "9", "ST", "ATT"],
+      ["سعيد بصول", "11", "RW", "ATT"],
+      ["محمد شكر", "7", "LW", "ATT"],
+    ],
+  },
+};
+
+function buildDefaultTeamLineup(
+  teamName: string,
+  details: LiveMatchDetails,
+  isHome: boolean,
+): TeamTacticalLineup {
+  const cleanName = trv(teamName).trim();
+  const preset = REAL_TEAM_SQUADS[cleanName] ?? REAL_TEAM_SQUADS[teamName.trim()];
+  const goalsList = isHome ? details.homeGoals : details.awayGoals;
+  const cardsList = isHome ? details.homeCardEvents : details.awayCardEvents;
+
+  const xiSource: [string, string, string, "GK" | "DEF" | "MID" | "ATT", string?][] = preset
+    ? preset.xi
+    : [
+        ["حارس المرمى", "1", "GK", "GK"],
+        ["ظهير أيمن", "2", "RB", "DEF"],
+        ["قلب دفاع", "4", "CB", "DEF"],
+        ["قلب دفاع", "5", "CB", "DEF"],
+        ["ظهير أيسر", "3", "LB", "DEF"],
+        ["وسط ارتكاز", "6", "CDM", "MID"],
+        ["وسط محوري", "8", "CM", "MID"],
+        ["صانع ألعاب", "10", "CAM", "MID"],
+        ["جناح أيمن", "7", "RW", "ATT"],
+        ["رأس حربة", "9", "ST", "ATT"],
+        ["جناح أيسر", "11", "LW", "ATT"],
+      ];
+
+  const players: LineupPlayerNode[] = xiSource.map(([pName, num, posCode, line, photo], idx) => {
+    const posMeta = POS_AR_MAP[posCode] ?? { ar: posCode, line };
+    // Attach real goals/cards from the match details if the scorer matches or on attacking players
+    const matchedGoals = goalsList.filter(
+      (g) => g.scorer && (g.scorer.includes(pName) || pName.includes(g.scorer)),
+    ).length;
+    const hasYellow = cardsList.some(
+      (c) => c.card === "yellow" && c.player && (c.player.includes(pName) || pName.includes(c.player)),
+    );
+    const hasRed = cardsList.some(
+      (c) => c.card === "red" && c.player && (c.player.includes(pName) || pName.includes(c.player)),
+    );
+    return {
+      id: `${isHome ? "h" : "a"}-${idx}-${num}`,
+      name: pName,
+      number: num,
+      posCode,
+      posAr: posMeta.ar,
+      line,
+      photo,
+      goals: matchedGoals,
+      yellow: hasYellow,
+      red: hasRed,
+    };
+  });
+
+  // If the match has goals whose scorer wasn't in the preset name match, assign them to the striker/winger and update name!
+  if (goalsList.length > 0 && !players.some((p) => (p.goals ?? 0) > 0)) {
+    const firstGoal = goalsList[0];
+    const attIdx = players.findIndex((p) => p.line === "ATT");
+    if (attIdx !== -1 && firstGoal.scorer && firstGoal.scorer !== "هدف") {
+      players[attIdx] = {
+        ...players[attIdx],
+        name: trv(firstGoal.scorer),
+        goals: goalsList.length,
+      };
+    }
+  }
+
+  return {
+    formation: preset?.formation ?? "4-3-3",
+    coachAr: preset?.coachAr ?? "الجهاز الفني",
+    styleAr: preset?.styleAr ?? "تنظيم تكتيكي متوازن (4-3-3)",
+    players,
+    isOfficialLive: false,
+  };
+}
+
+const lineupCache = new Map<string, LiveMatchTacticalAnalysis>();
+
+async function fetchLiveMatchLineupAndAnalysis(
+  m: RichMatchItem,
+  details: LiveMatchDetails,
+): Promise<LiveMatchTacticalAnalysis> {
+  const cached = lineupCache.get(m.id);
+  if (cached) return cached;
+
+  const fallbackHome = buildDefaultTeamLineup(m.homeTeam, details, true);
+  const fallbackAway = buildDefaultTeamLineup(m.awayTeam, details, false);
+
+  const hs = m.homeScore ?? 0;
+  const as = m.awayScore ?? 0;
+  let homePoss = hs > as ? 54 : as > hs ? 46 : 51;
+  let awayPoss = 100 - homePoss;
+  let homeShots = Math.max(hs * 4 + 5, 7);
+  let awayShots = Math.max(as * 4 + 4, 6);
+  let homeShotsOnTarget = Math.max(hs + 2, 3);
+  let awayShotsOnTarget = Math.max(as + 2, 2);
+  let homeCorners = 5;
+  let awayCorners = 4;
+  let homeFouls = Math.max(details.homeYellowCards * 3 + 6, 8);
+  let awayFouls = Math.max(details.awayYellowCards * 3 + 5, 7);
+
+  const espnCode = m.leagueId === "sau.1" ? "ksa.1" : m.leagueId;
+  const numericEventId = String(m.id).replace(/^espn-/, "");
+
+  if (
+    /^\d+$/.test(numericEventId) &&
+    !espnCode.startsWith("isr.") &&
+    !espnCode.startsWith("local.")
+  ) {
+    try {
+      const res = await fetch(
+        `https://site.api.espn.com/apis/site/v2/sports/soccer/${encodeURIComponent(espnCode)}/summary?event=${encodeURIComponent(numericEventId)}`,
+        { headers: { accept: "application/json" } },
+      );
+      if (res.ok) {
+        const json = (await res.json()) as {
+          rosters?: any[];
+          boxscore?: { teams?: any[] };
+        };
+
+        // 1. Parse live team statistics from boxscore
+        const boxTeams: any[] = Array.isArray(json?.boxscore?.teams) ? json.boxscore.teams : [];
+        if (boxTeams.length >= 2) {
+          const getStat = (tObj: any, name: string, fallback: number) => {
+            const st = (tObj?.statistics ?? []).find(
+              (s: any) => s?.name === name || s?.abbreviation === name,
+            );
+            const v = parseFloat(String(st?.displayValue ?? st?.value ?? ""));
+            return Number.isFinite(v) ? Math.round(v) : fallback;
+          };
+          homePoss = getStat(boxTeams[0], "possessionPct", homePoss);
+          awayPoss = 100 - homePoss;
+          homeShots = getStat(boxTeams[0], "totalShots", homeShots);
+          awayShots = getStat(boxTeams[1], "totalShots", awayShots);
+          homeShotsOnTarget = getStat(boxTeams[0], "shotsOnTarget", homeShotsOnTarget);
+          awayShotsOnTarget = getStat(boxTeams[1], "shotsOnTarget", awayShotsOnTarget);
+          homeCorners = getStat(boxTeams[0], "wonCorners", homeCorners);
+          awayCorners = getStat(boxTeams[1], "wonCorners", awayCorners);
+          homeFouls = getStat(boxTeams[0], "foulsCommitted", homeFouls);
+          awayFouls = getStat(boxTeams[1], "foulsCommitted", awayFouls);
+        }
+
+        // 2. Parse live starting XI rosters & formations
+        const rosters: any[] = Array.isArray(json?.rosters) ? json.rosters : [];
+        const parseEspnRoster = (
+          rObj: any,
+          fb: TeamTacticalLineup,
+          isHome: boolean,
+        ): TeamTacticalLineup => {
+          const rawList: any[] = Array.isArray(rObj?.roster) ? rObj.roster : [];
+          const starters = rawList.filter((p) => p?.starter === true);
+          const picked = (starters.length >= 11 ? starters : rawList).slice(0, 11);
+          if (picked.length < 7) return fb;
+
+          const formation = String(rObj?.formation || fb.formation || "4-3-3").trim();
+          const fParts = formation
+            .split("-")
+            .map((n) => Number(n))
+            .filter((n) => Number.isFinite(n) && n > 0);
+          const defCount = fParts[0] || 4;
+          const attCount = fParts.length >= 2 ? fParts[fParts.length - 1] : 3;
+
+          const parsedPlayers: LineupPlayerNode[] = picked.map((entry, idx) => {
+            const ath = entry?.athlete ?? {};
+            const rawName = String(
+              ath.shortName || ath.displayName || ath.fullName || `لاعب ${idx + 1}`,
+            );
+            const name = trPlayerClient(rawName);
+            const number = String(entry?.jersey || idx + 1);
+            const abbr = String(entry?.position?.abbreviation || "").toUpperCase();
+            const mapped = POS_AR_MAP[abbr];
+
+            let line: "GK" | "DEF" | "MID" | "ATT" = mapped?.line ?? "MID";
+            if (!mapped) {
+              if (idx === 0) line = "GK";
+              else if (idx <= defCount) line = "DEF";
+              else if (idx >= 11 - attCount) line = "ATT";
+              else line = "MID";
+            }
+
+            const photo =
+              typeof ath?.headshot?.href === "string"
+                ? ath.headshot.href
+                : ath?.id
+                  ? `https://a.espncdn.com/i/headshots/soccer/players/full/${ath.id}.png`
+                  : undefined;
+
+            const pStats: any[] = Array.isArray(entry?.stats) ? entry.stats : [];
+            const gStat = pStats.find((s) => s?.name === "totalGoals" || s?.abbreviation === "G");
+            const yStat = pStats.find((s) => s?.name === "yellowCards" || s?.abbreviation === "YC");
+            const rStat = pStats.find((s) => s?.name === "redCards" || s?.abbreviation === "RC");
+
+            return {
+              id: String(ath?.id || `${isHome ? "h" : "a"}-${idx}`),
+              name,
+              number,
+              posCode: abbr || line,
+              posAr: mapped?.ar ?? (line === "GK" ? "حارس مرمى" : line === "DEF" ? "مدافع" : line === "ATT" ? "مهاجم" : "وسط ملعب"),
+              line,
+              photo,
+              goals: Number(gStat?.value ?? 0) || 0,
+              yellow: Number(yStat?.value ?? 0) > 0,
+              red: Number(rStat?.value ?? 0) > 0,
+            };
+          });
+
+          return {
+            formation,
+            coachAr: fb.coachAr,
+            styleAr: `خطة ${formation} الرسمية في الملعب`,
+            players: parsedPlayers,
+            isOfficialLive: true,
+          };
+        };
+
+        const homeRosterObj = rosters.find((r) => r?.homeAway === "home") ?? rosters[0];
+        const awayRosterObj = rosters.find((r) => r?.homeAway === "away") ?? rosters[1];
+        const homeLineup = homeRosterObj
+          ? parseEspnRoster(homeRosterObj, fallbackHome, true)
+          : fallbackHome;
+        const awayLineup = awayRosterObj
+          ? parseEspnRoster(awayRosterObj, fallbackAway, false)
+          : fallbackAway;
+
+        const result: LiveMatchTacticalAnalysis = {
+          home: homeLineup,
+          away: awayLineup,
+          homePossession: homePoss,
+          awayPossession: awayPoss,
+          homeShots,
+          awayShots,
+          homeShotsOnTarget,
+          awayShotsOnTarget,
+          homeCorners,
+          awayCorners,
+          homeFouls,
+          awayFouls,
+          summaryAr: `يعتمد ${trv(m.homeTeam)} على رسم تكتيكي (${homeLineup.formation}) بنسبة استحواذ ${homePoss}% مقابل (${awayLineup.formation}) لفريق ${trv(m.awayTeam)} مع ${homeShotsOnTarget + awayShotsOnTarget} تسديدات مباشرة بين الخشبات الثلاث.`,
+        };
+        lineupCache.set(m.id, result);
+        return result;
+      }
+    } catch {
+      // Fall back to preset tactical squad below
+    }
+  }
+
+  const fallbackResult: LiveMatchTacticalAnalysis = {
+    home: fallbackHome,
+    away: fallbackAway,
+    homePossession: homePoss,
+    awayPossession: awayPoss,
+    homeShots,
+    awayShots,
+    homeShotsOnTarget,
+    awayShotsOnTarget,
+    homeCorners,
+    awayCorners,
+    homeFouls,
+    awayFouls,
+    summaryAr: `يعتمد ${trv(m.homeTeam)} على خطة (${fallbackHome.formation}) بـ ${fallbackHome.styleAr}، في مواجهة خطة (${fallbackAway.formation}) لفريق ${trv(m.awayTeam)} (${fallbackAway.styleAr}).`,
+  };
+  lineupCache.set(m.id, fallbackResult);
+  return fallbackResult;
+}
+
+function PlayerPitchBadge({
+  p,
+  teamColor,
+}: {
+  p: LineupPlayerNode;
+  teamColor: "gold" | "sky";
+}) {
+  const [imgErr, setImgErr] = useState(false);
+  const ringCls =
+    teamColor === "gold"
+      ? "border-[#FACC15] bg-[#111827] text-[#FACC15]"
+      : "border-[#38BDF8] bg-[#0F172A] text-[#38BDF8]";
+
+  return (
+    <div className="flex flex-col items-center text-center group">
+      <div className="relative">
+        {p.photo && !imgErr ? (
+          <img
+            src={p.photo}
+            alt={p.name}
+            onError={() => setImgErr(true)}
+            loading="lazy"
+            className={`size-8 sm:size-10 rounded-full border-2 object-cover shadow-md ${ringCls}`}
+          />
+        ) : (
+          <span
+            className={`grid size-8 sm:size-10 place-items-center rounded-full border-2 font-mono text-[11px] sm:text-xs font-extrabold shadow-md ${ringCls}`}
+          >
+            {p.number}
+          </span>
+        )}
+        {/* Jersey Number Micro Badge */}
+        <span
+          dir="ltr"
+          className="absolute -bottom-1 -start-1 rounded-full bg-black/90 px-1 py-0.2 font-mono text-[8px] font-extrabold text-white ring-1 ring-white/40"
+        >
+          #{p.number}
+        </span>
+        {/* Live Goal / Card Indicators on Player */}
+        {(p.goals ?? 0) > 0 ? (
+          <span className="absolute -top-1.5 -end-1.5 rounded-full bg-[#22C55E] px-1 text-[8px] font-extrabold text-white shadow">
+            ⚽{p.goals! > 1 ? p.goals : ""}
+          </span>
+        ) : null}
+        {p.red ? (
+          <span className="absolute -top-1 -start-1 inline-block h-2.5 w-2 rounded-[1px] bg-[#EF4444] ring-1 ring-white" />
+        ) : p.yellow ? (
+          <span className="absolute -top-1 -start-1 inline-block h-2.5 w-2 rounded-[1px] bg-[#FACC15] ring-1 ring-black/40" />
+        ) : null}
+      </div>
+
+      <span className="mt-1 max-w-16 sm:max-w-20 truncate rounded bg-black/75 px-1.5 py-0.5 text-[9px] sm:text-[10px] leading-tight font-extrabold text-white shadow-2xs">
+        {trv(p.name)}
+      </span>
+      <span className="mt-0.5 rounded bg-white/15 px-1 text-[8px] leading-tight font-bold text-[#FEF08A]">
+        {trv(p.posAr)}
+      </span>
+    </div>
+  );
+}
+
+function SingleTeamTacticalPitch({
+  teamName,
+  teamLogo,
+  lineup,
+  teamColor,
+}: {
+  teamName: string;
+  teamLogo?: string;
+  lineup: TeamTacticalLineup;
+  teamColor: "gold" | "sky";
+}) {
+  const gk = lineup.players.filter((p) => p.line === "GK");
+  const defs = lineup.players.filter((p) => p.line === "DEF");
+  const mids = lineup.players.filter((p) => p.line === "MID");
+  const atts = lineup.players.filter((p) => p.line === "ATT");
+
+  return (
+    <div className="flex flex-col overflow-hidden rounded-2xl border border-white/20 bg-[#0A4D28] text-white shadow-md">
+      {/* Team Pitch Header */}
+      <div className="flex items-center justify-between gap-1.5 border-b border-white/15 bg-black/45 px-2.5 py-2">
+        <div className="flex min-w-0 items-center gap-1.5">
+          <div className="rounded-full bg-white p-0.5 shrink-0">
+            <TeamCrest name={teamName} logo={teamLogo} />
+          </div>
+          <div className="min-w-0">
+            <p className="truncate text-xs font-extrabold text-white sm:text-sm">{trv(teamName)}</p>
+            <p className="truncate text-[9px] font-bold text-white/75">{trv(lineup.styleAr)}</p>
+          </div>
+        </div>
+        <span
+          dir="ltr"
+          className={`shrink-0 rounded-lg px-2 py-0.5 font-mono text-[11px] font-extrabold ${
+            teamColor === "gold"
+              ? "bg-[#FACC15] text-[#111827]"
+              : "bg-[#38BDF8] text-[#0F172A]"
+          }`}
+        >
+          {lineup.formation}
+        </span>
+      </div>
+
+      {/* Tactical Vertical Football Pitch */}
+      <div
+        className="relative flex min-h-72 sm:min-h-80 flex-col justify-between px-2 py-3"
+        style={{
+          backgroundImage:
+            "repeating-linear-gradient(0deg, #0b532b 0px, #0b532b 24px, #0f6837 24px, #0f6837 48px)",
+        }}
+      >
+        {/* SVG Vertical Pitch Lines */}
+        <svg
+          viewBox="0 0 200 280"
+          preserveAspectRatio="none"
+          className="pointer-events-none absolute inset-0 h-full w-full opacity-35"
+          aria-hidden
+        >
+          <rect x="6" y="6" width="188" height="268" rx="4" fill="none" stroke="#ffffff" strokeWidth="1.5" />
+          <line x1="6" y1="140" x2="194" y2="140" stroke="#ffffff" strokeWidth="1.4" />
+          <circle cx="100" cy="140" r="24" fill="none" stroke="#ffffff" strokeWidth="1.4" />
+          <circle cx="100" cy="140" r="2.5" fill="#ffffff" />
+          {/* Top Penalty Box */}
+          <rect x="44" y="6" width="112" height="40" fill="none" stroke="#ffffff" strokeWidth="1.4" />
+          <rect x="68" y="6" width="64" height="16" fill="none" stroke="#ffffff" strokeWidth="1.2" />
+          {/* Bottom Penalty Box */}
+          <rect x="44" y="234" width="112" height="40" fill="none" stroke="#ffffff" strokeWidth="1.4" />
+          <rect x="68" y="258" width="64" height="16" fill="none" stroke="#ffffff" strokeWidth="1.2" />
+        </svg>
+
+        {/* Row 1: Attackers (Top of Pitch) */}
+        <div className="relative z-10 flex items-center justify-around gap-1">
+          {atts.map((p) => (
+            <PlayerPitchBadge key={p.id} p={p} teamColor={teamColor} />
+          ))}
+        </div>
+
+        {/* Row 2: Midfielders */}
+        <div className="relative z-10 flex items-center justify-around gap-1">
+          {mids.map((p) => (
+            <PlayerPitchBadge key={p.id} p={p} teamColor={teamColor} />
+          ))}
+        </div>
+
+        {/* Row 3: Defenders */}
+        <div className="relative z-10 flex items-center justify-around gap-1">
+          {defs.map((p) => (
+            <PlayerPitchBadge key={p.id} p={p} teamColor={teamColor} />
+          ))}
+        </div>
+
+        {/* Row 4: Goalkeeper (Bottom Goal Area) */}
+        <div className="relative z-10 flex items-center justify-center">
+          {gk.map((p) => (
+            <PlayerPitchBadge key={p.id} p={p} teamColor={teamColor} />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function MatchRowCard({ m, showLeagueBadge }: { m: RichMatchItem; showLeagueBadge?: boolean }) {
   const isLive = m.status === "in";
   const isDone = m.status === "post";
   const { streamUrl, channel, cleanNote, meta } = extractMatchStream(m);
   const details = useMemo(() => resolveMatchDetails(m, meta), [m, meta]);
   const [watchOpen, setWatchOpen] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [drawerTab, setDrawerTab] = useState<"summary" | "lineup">("summary");
+  const [sideBySidePitches, setSideBySidePitches] = useState(true);
+  const [tacticalData, setTacticalData] = useState<LiveMatchTacticalAnalysis | null>(null);
+  const [loadingLineup, setLoadingLineup] = useState(false);
   const embed = streamUrl ? toEmbedStreamUrl(streamUrl) : null;
 
-  // Live animated stadium event state ("goal" | "foul" | "red" | "attack" | "none")
+  // Live animated stadium event state ("goal" | "foul" | "red" | "attack" | "none") — active on live matches!
   const [pitchEvent, setPitchEvent] = useState<PitchEventKind>("none");
   const [pitchEventText, setPitchEventText] = useState<string>("");
   const [pitchEventSub, setPitchEventSub] = useState<string>("");
@@ -1684,7 +2376,24 @@ function MatchRowCard({ m, showLeagueBadge }: { m: RichMatchItem; showLeagueBadg
     };
   }, []);
 
-  // Automatically detect real-time score, yellow card, or red card changes and fire stadium animation!
+  // Load real/live tactical lineup & analysis whenever the bottom frame is opened
+  useEffect(() => {
+    if (!detailsOpen) return;
+    let active = true;
+    setLoadingLineup(true);
+    void fetchLiveMatchLineupAndAnalysis(m, details)
+      .then((res) => {
+        if (active) setTacticalData(res);
+      })
+      .finally(() => {
+        if (active) setLoadingLineup(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [detailsOpen, m, details]);
+
+  // Automatically detect real-time score, yellow card, or red card changes on LIVE matches!
   const prevMetricsRef = useRef<{
     id: string;
     hs: number;
@@ -1708,33 +2417,30 @@ function MatchRowCard({ m, showLeagueBadge }: { m: RichMatchItem; showLeagueBadg
 
     if (prev.id !== m.id) {
       prevMetricsRef.current = { id: m.id, hs: curHs, as: curAs, yc: curYc, rc: curRc };
-      // If switched to a match with goals or live action, show a brief welcome stadium event
-      if (curHs + curAs > 0 && isLive) {
+      if (isLive && curHs + curAs > 0) {
         triggerPitchEvent("goal");
-      } else if (curRc > 0 && isLive) {
-        triggerPitchEvent("red");
-      } else if (curYc > 0 && isLive) {
-        triggerPitchEvent("foul");
       }
       return;
     }
 
-    if (curHs > prev.hs) {
-      triggerPitchEvent(
-        "goal",
-        `⚽ ${tr("هـــدف لصالح")} ${trv(m.homeTeam)}!`,
-        `${curHs} - ${curAs}`,
-      );
-    } else if (curAs > prev.as) {
-      triggerPitchEvent(
-        "goal",
-        `⚽ ${tr("هـــدف لصالح")} ${trv(m.awayTeam)}!`,
-        `${curHs} - ${curAs}`,
-      );
-    } else if (curRc > prev.rc) {
-      triggerPitchEvent("red");
-    } else if (curYc > prev.yc) {
-      triggerPitchEvent("foul");
+    if (isLive) {
+      if (curHs > prev.hs) {
+        triggerPitchEvent(
+          "goal",
+          `⚽ ${tr("هـــدف لصالح")} ${trv(m.homeTeam)}!`,
+          `${curHs} - ${curAs}`,
+        );
+      } else if (curAs > prev.as) {
+        triggerPitchEvent(
+          "goal",
+          `⚽ ${tr("هـــدف لصالح")} ${trv(m.awayTeam)}!`,
+          `${curHs} - ${curAs}`,
+        );
+      } else if (curRc > prev.rc) {
+        triggerPitchEvent("red");
+      } else if (curYc > prev.yc) {
+        triggerPitchEvent("foul");
+      }
     }
 
     prevMetricsRef.current = { id: m.id, hs: curHs, as: curAs, yc: curYc, rc: curRc };
@@ -1798,464 +2504,773 @@ function MatchRowCard({ m, showLeagueBadge }: { m: RichMatchItem; showLeagueBadg
     return `${String(mins).padStart(2, "0")}:${secs}`;
   }, [isLive, details.isHalftime, details.liveMinuteText, m.statusTextAr, liveSec]);
 
-  const borderGlowCls =
-    pitchEvent === "goal"
-      ? "border-2 border-[#FACC15] shadow-[0_0_24px_rgba(250,204,21,0.55)]"
-      : pitchEvent === "foul"
-        ? "border-2 border-[#FDE047] shadow-[0_0_20px_rgba(253,224,71,0.45)]"
-        : pitchEvent === "red"
-          ? "border-2 border-[#EF4444] shadow-[0_0_22px_rgba(239,68,68,0.55)]"
-          : pitchEvent === "attack"
-            ? "border-2 border-[#38BDF8] shadow-[0_0_18px_rgba(56,189,248,0.45)]"
-            : isLive
-              ? "border-2 border-[#22C55E]/80 shadow-sm"
-              : "border border-[#15803D]/60 shadow-xs";
+  const totalGoalsCount = details.homeGoals.length + details.awayGoals.length;
+  const totalCardsCount =
+    details.homeYellowCards +
+    details.awayYellowCards +
+    details.homeRedCards +
+    details.awayRedCards;
 
   return (
-    <div
-      className={`relative overflow-hidden rounded-2xl px-3 py-2.5 text-white transition-all duration-300 ${borderGlowCls}`}
-      style={{
-        backgroundImage:
-          "radial-gradient(circle at 50% 0%, rgba(255,255,255,0.16) 0%, rgba(0,0,0,0.28) 90%), repeating-linear-gradient(90deg, #0b532b 0px, #0b532b 22px, #0f6837 22px, #0f6837 44px)",
-        backgroundSize: "200% 100%, 44px 100%",
-        animation: "rpTurfBreeze 9s ease-in-out infinite",
-      }}
-    >
-      <style>{STADIUM_PITCH_KEYFRAMES}</style>
-
-      {/* Animated Stadium Floodlight Beams */}
+    <div className="flex flex-col">
+      {/* Main Match Card: Animated Stadium Pitch ONLY when isLive === true; Clean Card when pre/post */}
       <div
-        className="pointer-events-none absolute -top-10 inset-x-0 h-28"
-        style={{
-          background:
-            "conic-gradient(from 180deg at 50% 0%, transparent 30%, rgba(255,255,255,0.22) 48%, rgba(250,204,21,0.18) 52%, transparent 70%)",
-          animation: "rpFloodlightSweep 6s ease-in-out infinite",
+        role="button"
+        tabIndex={0}
+        onClick={() => setDetailsOpen((v) => !v)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            setDetailsOpen((v) => !v);
+          }
         }}
-        aria-hidden
-      />
-
-      {/* Authentic SVG Football Pitch Markings & Animated Ball on Pitch */}
-      <svg
-        viewBox="0 0 400 130"
-        preserveAspectRatio="none"
-        className="pointer-events-none absolute inset-0 h-full w-full opacity-35"
-        aria-hidden
+        className={`relative cursor-pointer overflow-hidden rounded-2xl px-3 py-2.5 transition-all duration-300 ${
+          isLive
+            ? pitchEvent === "goal"
+              ? "border-2 border-[#FACC15] text-white shadow-[0_0_24px_rgba(250,204,21,0.55)]"
+              : pitchEvent === "foul"
+                ? "border-2 border-[#FDE047] text-white shadow-[0_0_20px_rgba(253,224,71,0.45)]"
+                : pitchEvent === "red"
+                  ? "border-2 border-[#EF4444] text-white shadow-[0_0_22px_rgba(239,68,68,0.55)]"
+                  : "border-2 border-[#22C55E] text-white shadow-sm"
+            : detailsOpen
+              ? "border-2 border-primary bg-primary-soft/25 text-ink shadow-xs"
+              : "border border-line bg-paper text-ink hover:border-primary/80 shadow-2xs"
+        }`}
+        style={
+          isLive
+            ? {
+                backgroundImage:
+                  "radial-gradient(circle at 50% 0%, rgba(255,255,255,0.16) 0%, rgba(0,0,0,0.28) 90%), repeating-linear-gradient(90deg, #0b532b 0px, #0b532b 22px, #0f6837 22px, #0f6837 44px)",
+                backgroundSize: "200% 100%, 44px 100%",
+                animation: "rpTurfBreeze 9s ease-in-out infinite",
+              }
+            : undefined
+        }
       >
-        {/* Outer Pitch Boundary */}
-        <rect x="6" y="6" width="388" height="118" rx="6" fill="none" stroke="#ffffff" strokeWidth="1.6" />
-        {/* Halfway Line */}
-        <line x1="200" y1="6" x2="200" y2="124" stroke="#ffffff" strokeWidth="1.5" />
-        {/* Center Circle & Spot */}
-        <circle cx="200" cy="65" r="24" fill="none" stroke="#ffffff" strokeWidth="1.5" />
-        <circle cx="200" cy="65" r="2.6" fill="#ffffff" />
-        {/* Left Penalty Area & 6-Yard Box */}
-        <rect x="6" y="28" width="48" height="74" fill="none" stroke="#ffffff" strokeWidth="1.5" />
-        <rect x="6" y="45" width="18" height="40" fill="none" stroke="#ffffff" strokeWidth="1.3" />
-        <path d="M 54 49 A 18 18 0 0 1 54 81" fill="none" stroke="#ffffff" strokeWidth="1.4" />
-        {/* Right Penalty Area & 6-Yard Box */}
-        <rect x="346" y="28" width="48" height="74" fill="none" stroke="#ffffff" strokeWidth="1.5" />
-        <rect x="376" y="45" width="18" height="40" fill="none" stroke="#ffffff" strokeWidth="1.3" />
-        <path d="M 346 49 A 18 18 0 0 0 346 81" fill="none" stroke="#ffffff" strokeWidth="1.4" />
-        {/* Corner Arcs */}
-        <path d="M 6 14 A 8 8 0 0 0 14 6" fill="none" stroke="#ffffff" strokeWidth="1.3" />
-        <path d="M 386 6 A 8 8 0 0 0 394 14" fill="none" stroke="#ffffff" strokeWidth="1.3" />
-        <path d="M 6 116 A 8 8 0 0 1 14 124" fill="none" stroke="#ffffff" strokeWidth="1.3" />
-        <path d="M 386 124 A 8 8 0 0 1 394 116" fill="none" stroke="#ffffff" strokeWidth="1.3" />
-      </svg>
+        {/* Animated Pitch Background & Floodlights ONLY on LIVE matches (isLive === true) */}
+        {isLive ? (
+          <>
+            <style>{STADIUM_PITCH_KEYFRAMES}</style>
+            <div
+              className="pointer-events-none absolute -top-10 inset-x-0 h-28"
+              style={{
+                background:
+                  "conic-gradient(from 180deg at 50% 0%, transparent 30%, rgba(255,255,255,0.22) 48%, rgba(250,204,21,0.18) 52%, transparent 70%)",
+                animation: "rpFloodlightSweep 6s ease-in-out infinite",
+              }}
+              aria-hidden
+            />
+            <svg
+              viewBox="0 0 400 130"
+              preserveAspectRatio="none"
+              className="pointer-events-none absolute inset-0 h-full w-full opacity-35"
+              aria-hidden
+            >
+              <rect x="6" y="6" width="388" height="118" rx="6" fill="none" stroke="#ffffff" strokeWidth="1.6" />
+              <line x1="200" y1="6" x2="200" y2="124" stroke="#ffffff" strokeWidth="1.5" />
+              <circle cx="200" cy="65" r="24" fill="none" stroke="#ffffff" strokeWidth="1.5" />
+              <circle cx="200" cy="65" r="2.6" fill="#ffffff" />
+              <rect x="6" y="28" width="48" height="74" fill="none" stroke="#ffffff" strokeWidth="1.5" />
+              <rect x="6" y="45" width="18" height="40" fill="none" stroke="#ffffff" strokeWidth="1.3" />
+              <path d="M 54 49 A 18 18 0 0 1 54 81" fill="none" stroke="#ffffff" strokeWidth="1.4" />
+              <rect x="346" y="28" width="48" height="74" fill="none" stroke="#ffffff" strokeWidth="1.5" />
+              <rect x="376" y="45" width="18" height="40" fill="none" stroke="#ffffff" strokeWidth="1.3" />
+              <path d="M 346 49 A 18 18 0 0 0 346 81" fill="none" stroke="#ffffff" strokeWidth="1.4" />
+            </svg>
+            <div
+              className="pointer-events-none absolute top-1/2 left-1/2 z-0 -translate-x-1/2 -translate-y-1/2"
+              aria-hidden
+            >
+              <div
+                className="relative flex items-center justify-center"
+                style={{ animation: "rpBallRoam 11s ease-in-out infinite" }}
+              >
+                <span
+                  className="absolute size-7 rounded-full border border-[#FACC15]/70 bg-[#FACC15]/20"
+                  style={{ animation: "rpRadarWave 1.8s ease-out infinite" }}
+                />
+                <span className="text-[11px] drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">⚽</span>
+              </div>
+            </div>
+          </>
+        ) : null}
 
-      {/* Moving Ball & Radar Pulse in the Pitch Background */}
-      <div
-        className="pointer-events-none absolute top-1/2 left-1/2 z-0 -translate-x-1/2 -translate-y-1/2"
-        aria-hidden
-      >
-        <div
-          className="relative flex items-center justify-center"
-          style={{
-            animation: "rpBallRoam 11s ease-in-out infinite",
-          }}
-        >
-          <span
-            className="absolute size-7 rounded-full border border-[#FACC15]/70 bg-[#FACC15]/20"
-            style={{ animation: "rpRadarWave 1.8s ease-out infinite" }}
-          />
-          <span className="text-[11px] drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">⚽</span>
+        {/* Live Match Event Overlay Banner (Goal / Foul / Red Card / Attack) */}
+        {isLive && pitchEvent !== "none" ? (
+          <div
+            onClick={(e) => {
+              e.stopPropagation();
+              setPitchEvent("none");
+            }}
+            className="absolute inset-0 z-20 flex cursor-pointer flex-col items-center justify-center bg-black/75 px-3 text-center backdrop-blur-[2px]"
+            style={{
+              animation:
+                pitchEvent === "goal"
+                  ? "rpGoalCelebration 4.5s ease-in-out forwards"
+                  : "rpCardFlipIn 4.5s ease-in-out forwards",
+            }}
+          >
+            {pitchEvent === "goal" ? (
+              <div className="flex flex-col items-center">
+                <div className="flex items-center gap-2 text-2xl sm:text-3xl">
+                  <span className="animate-bounce">⚽</span>
+                  <span className="rounded-2xl bg-gradient-to-r from-[#FACC15] via-[#FEF08A] to-[#FACC15] px-4 py-1 text-base font-extrabold text-[#111827] shadow-[0_0_25px_rgba(250,204,21,0.9)] sm:text-lg">
+                    {pitchEventText}
+                  </span>
+                  <span className="animate-bounce">🥅</span>
+                </div>
+                <p className="mt-1.5 text-xs font-extrabold text-[#FEF08A] sm:text-sm">
+                  🎉 {pitchEventSub}
+                </p>
+              </div>
+            ) : pitchEvent === "foul" ? (
+              <div className="flex flex-col items-center">
+                <div className="flex items-center gap-2">
+                  <span className="inline-block h-8 w-6 rounded-sm border-2 border-white bg-[#FACC15] shadow-[0_0_20px_rgba(250,204,21,0.95)]" />
+                  <span className="rounded-xl bg-[#FACC15] px-3.5 py-1 text-sm font-extrabold text-[#111827] shadow-lg">
+                    {pitchEventText}
+                  </span>
+                </div>
+                <p className="mt-1.5 text-xs font-extrabold text-white/95">
+                  ⚠️ {pitchEventSub}
+                </p>
+              </div>
+            ) : pitchEvent === "red" ? (
+              <div className="flex flex-col items-center">
+                <div className="flex items-center gap-2">
+                  <span className="inline-block h-8 w-6 rounded-sm border-2 border-white bg-[#EF4444] shadow-[0_0_24px_rgba(239,68,68,0.95)]" />
+                  <span className="rounded-xl bg-[#EF4444] px-3.5 py-1 text-sm font-extrabold text-white shadow-lg">
+                    {pitchEventText}
+                  </span>
+                </div>
+                <p className="mt-1.5 text-xs font-extrabold text-[#FECACA]">
+                  🚨 {pitchEventSub}
+                </p>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center">
+                <span className="rounded-xl bg-[#0284C7] px-3.5 py-1 text-sm font-extrabold text-white shadow-[0_0_20px_rgba(56,189,248,0.85)]">
+                  {pitchEventText}
+                </span>
+                <p className="mt-1.5 text-xs font-extrabold text-[#BAE6FD]">
+                  🔥 {pitchEventSub}
+                </p>
+              </div>
+            )}
+          </div>
+        ) : null}
+
+        {/* Foreground Content */}
+        <div className="relative z-10 flex flex-col gap-1.5">
+          {showLeagueBadge ? (
+            <div
+              className={`flex items-center justify-between text-[10px] leading-none font-extrabold ${
+                isLive ? "text-white/95" : "text-muted"
+              }`}
+            >
+              <span
+                className={`inline-flex items-center gap-1 truncate ${
+                  isLive ? "rounded-full bg-black/35 px-2 py-0.5 backdrop-blur-[1px]" : ""
+                }`}
+              >
+                <span>{m.leagueBadge}</span>
+                <span className="truncate">{trv(m.leagueNameAr)}</span>
+              </span>
+              <span
+                className={`shrink-0 ${
+                  isLive ? "rounded-full bg-black/35 px-2 py-0.5 text-[#FEF08A]" : "text-muted"
+                }`}
+              >
+                {m.dateLabelAr}
+              </span>
+            </div>
+          ) : null}
+
+          {/* Main Match Scoreboard Row */}
+          <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-1.5 py-0.5">
+            {/* Home team (Right in RTL) */}
+            <div className="flex min-w-0 items-center gap-1.5">
+              <div className={isLive ? "rounded-full bg-white/95 p-0.5 shadow-sm" : "shrink-0"}>
+                <TeamCrest name={m.homeTeam} logo={m.homeLogo} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1">
+                  <span
+                    className={`truncate text-xs font-extrabold sm:text-sm ${
+                      isLive
+                        ? "text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)]"
+                        : "text-ink"
+                    }`}
+                  >
+                    {trv(m.homeTeam)}
+                  </span>
+                  <span
+                    dir="ltr"
+                    className="inline-flex shrink-0 items-center gap-0.5 text-[9px] leading-none font-extrabold"
+                  >
+                    <span
+                      className={`inline-flex items-center rounded px-1 py-0.5 ${
+                        details.homeYellowCards > 0
+                          ? "bg-[#FEF08A] text-[#854D0E]"
+                          : isLive
+                            ? "bg-black/40 text-white/80"
+                            : "bg-surface text-muted/70"
+                      }`}
+                    >
+                      🟨{details.homeYellowCards}
+                    </span>
+                    {details.homeRedCards > 0 ? (
+                      <span className="inline-flex items-center rounded bg-[#EF4444] px-1 py-0.5 text-white">
+                        🟥{details.homeRedCards}
+                      </span>
+                    ) : null}
+                  </span>
+                </div>
+
+                {details.homeGoals.length > 0 ? (
+                  <div
+                    className={`mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[9px] leading-tight font-bold ${
+                      isLive ? "text-[#FEF08A]" : "text-muted"
+                    }`}
+                  >
+                    {details.homeGoals.map((g, idx) => (
+                      <span
+                        key={`hg-${idx}-${g.minute}-${g.scorer}`}
+                        className="inline-flex items-center gap-0.5 truncate"
+                      >
+                        <span className="text-[8px]">⚽</span>
+                        <span className={isLive ? "truncate text-white" : "truncate text-ink/90"}>
+                          {trv(g.scorer)}
+                        </span>
+                        {g.minute ? (
+                          <span
+                            dir="ltr"
+                            className={`font-extrabold ${isLive ? "text-[#FACC15]" : "text-primary-ink"}`}
+                          >
+                            {g.minute}
+                          </span>
+                        ) : null}
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            </div>
+
+            {/* Center Score / Kickoff + Live Match Clock */}
+            <div className="flex flex-col items-center justify-center px-1.5">
+              {m.status === "pre" ? (
+                <span
+                  dir="ltr"
+                  className="rounded-lg bg-surface px-2.5 py-0.5 text-xs font-extrabold text-ink"
+                >
+                  {m.kickoffTimeAr}
+                </span>
+              ) : (
+                <div
+                  dir="ltr"
+                  className={`flex items-center gap-1 rounded-xl px-2.5 py-0.5 text-sm leading-tight font-extrabold ${
+                    isLive
+                      ? "border border-[#FACC15] bg-[#DC2626] text-white shadow-sm"
+                      : "bg-surface text-ink"
+                  }`}
+                >
+                  <span>{m.homeScore ?? 0}</span>
+                  <span className={isLive ? "text-[#FACC15]" : "opacity-60"}>:</span>
+                  <span>{m.awayScore ?? 0}</span>
+                </div>
+              )}
+
+              <span
+                dir="ltr"
+                className={`mt-0.5 inline-flex items-center gap-1 text-[9px] leading-none font-extrabold ${
+                  isLive
+                    ? "rounded-full bg-black/45 px-2 py-0.5 text-[#FACC15]"
+                    : isDone
+                      ? "text-muted"
+                      : "text-primary-ink"
+                }`}
+              >
+                {isLive ? (
+                  <>
+                    <span className="size-1.5 animate-ping rounded-full bg-[#22C55E]" />
+                    <span>⏱️ {formattedLiveClock}</span>
+                  </>
+                ) : (
+                  <span>{trv(m.statusTextAr)}</span>
+                )}
+              </span>
+            </div>
+
+            {/* Away team (Left in RTL) */}
+            <div className="flex min-w-0 items-center justify-end gap-1.5 text-left">
+              <div className="min-w-0 flex-1 text-left">
+                <div className="flex items-center justify-end gap-1">
+                  <span
+                    dir="ltr"
+                    className="inline-flex shrink-0 items-center gap-0.5 text-[9px] leading-none font-extrabold"
+                  >
+                    {details.awayRedCards > 0 ? (
+                      <span className="inline-flex items-center rounded bg-[#EF4444] px-1 py-0.5 text-white">
+                        🟥{details.awayRedCards}
+                      </span>
+                    ) : null}
+                    <span
+                      className={`inline-flex items-center rounded px-1 py-0.5 ${
+                        details.awayYellowCards > 0
+                          ? "bg-[#FEF08A] text-[#854D0E]"
+                          : isLive
+                            ? "bg-black/40 text-white/80"
+                            : "bg-surface text-muted/70"
+                      }`}
+                    >
+                      🟨{details.awayYellowCards}
+                    </span>
+                  </span>
+                  <span
+                    className={`truncate text-xs font-extrabold sm:text-sm ${
+                      isLive
+                        ? "text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)]"
+                        : "text-ink"
+                    }`}
+                  >
+                    {trv(m.awayTeam)}
+                  </span>
+                </div>
+
+                {details.awayGoals.length > 0 ? (
+                  <div
+                    className={`mt-0.5 flex flex-wrap items-center justify-end gap-x-1.5 gap-y-0.5 text-[9px] leading-tight font-bold ${
+                      isLive ? "text-[#FEF08A]" : "text-muted"
+                    }`}
+                  >
+                    {details.awayGoals.map((g, idx) => (
+                      <span
+                        key={`ag-${idx}-${g.minute}-${g.scorer}`}
+                        className="inline-flex items-center gap-0.5 truncate"
+                      >
+                        {g.minute ? (
+                          <span
+                            dir="ltr"
+                            className={`font-extrabold ${isLive ? "text-[#FACC15]" : "text-primary-ink"}`}
+                          >
+                            {g.minute}
+                          </span>
+                        ) : null}
+                        <span className={isLive ? "truncate text-white" : "truncate text-ink/90"}>
+                          {trv(g.scorer)}
+                        </span>
+                        <span className="text-[8px]">⚽</span>
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+              <div className={isLive ? "rounded-full bg-white/95 p-0.5 shadow-sm" : "shrink-0"}>
+                <TeamCrest name={m.awayTeam} logo={m.awayLogo} />
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom Strip on Card: Live FX buttons (ONLY when isLive) + Details/Lineup Trigger + Channel/Stream */}
+          <div
+            className={`mt-0.5 flex flex-wrap items-center justify-between gap-1.5 border-t pt-1.5 ${
+              isLive ? "border-white/15" : "border-line/60"
+            }`}
+          >
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span
+                className={`inline-flex items-center gap-1 rounded-lg px-2 py-0.5 text-[10px] font-extrabold transition ${
+                  isLive
+                    ? "bg-black/45 text-[#FEF08A]"
+                    : detailsOpen
+                      ? "bg-ink text-primary"
+                      : "bg-surface text-ink hover:bg-primary-soft"
+                }`}
+              >
+                <span>{detailsOpen ? "▴" : "▾"}</span>
+                <span>
+                  {detailsOpen
+                    ? tr("إخفاء التفاصيل والتشكيلة")
+                    : tr("⚽ الأهداف والبطاقات وتشكيلة الملعب")}
+                </span>
+              </span>
+
+              {isLive ? (
+                <div
+                  className="flex flex-wrap items-center gap-1"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <button
+                    type="button"
+                    onClick={() => triggerPitchEvent("goal")}
+                    className="press inline-flex items-center gap-0.5 rounded-lg bg-black/40 px-1.5 py-0.5 text-[10px] font-extrabold text-[#FEF08A] hover:bg-[#FACC15] hover:text-[#111827]"
+                  >
+                    ⚽ {tr("هدف")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => triggerPitchEvent("foul")}
+                    className="press inline-flex items-center gap-0.5 rounded-lg bg-black/40 px-1.5 py-0.5 text-[10px] font-extrabold text-white/90 hover:bg-[#FACC15] hover:text-[#111827]"
+                  >
+                    🟨 {tr("فاول")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => triggerPitchEvent("red")}
+                    className="press inline-flex items-center gap-0.5 rounded-lg bg-black/40 px-1.5 py-0.5 text-[10px] font-extrabold text-[#FCA5A5] hover:bg-[#EF4444] hover:text-white"
+                  >
+                    🟥 {tr("طرد")}
+                  </button>
+                </div>
+              ) : null}
+            </div>
+
+            <div
+              className="flex flex-wrap items-center gap-1.5 text-[10px] leading-none font-bold"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {channel ? (
+                <span
+                  className={`rounded-lg px-2 py-0.5 font-extrabold ${
+                    isLive ? "bg-black/45 text-white" : "bg-surface text-ink"
+                  }`}
+                >
+                  📡 {trv(channel)}
+                </span>
+              ) : null}
+              {cleanNote ? (
+                <span className={`truncate ${isLive ? "text-white/85" : "text-muted"}`}>
+                  {trv(cleanNote)}
+                </span>
+              ) : null}
+              {streamUrl ? (
+                <button
+                  type="button"
+                  onClick={() => setWatchOpen((v) => !v)}
+                  className={`inline-flex items-center gap-1 rounded-lg px-2 py-0.5 text-[10px] font-extrabold text-white shadow-2xs transition ${
+                    watchOpen ? "bg-ink" : "bg-[#DC2626] hover:bg-[#B91C1C]"
+                  }`}
+                >
+                  <span className="size-1.5 animate-ping rounded-full bg-white" />
+                  {watchOpen ? tr("إغلاق ✕") : tr("📺 بث مباشر")}
+                </button>
+              ) : null}
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Live Match Event Overlay Banner (Goal / Foul / Red Card / Dangerous Attack) */}
-      {pitchEvent !== "none" ? (
-        <div
-          onClick={() => setPitchEvent("none")}
-          className="absolute inset-0 z-20 flex cursor-pointer flex-col items-center justify-center bg-black/75 px-3 text-center backdrop-blur-[2px]"
-          style={{
-            animation:
-              pitchEvent === "goal"
-                ? "rpGoalCelebration 4.5s ease-in-out forwards"
-                : "rpCardFlipIn 4.5s ease-in-out forwards",
-          }}
-        >
-          {pitchEvent === "goal" ? (
-            <div className="flex flex-col items-center">
-              <div className="flex items-center gap-2 text-2xl sm:text-3xl">
-                <span className="animate-bounce">⚽</span>
-                <span className="rounded-2xl bg-gradient-to-r from-[#FACC15] via-[#FEF08A] to-[#FACC15] px-4 py-1 text-base font-extrabold text-[#111827] shadow-[0_0_25px_rgba(250,204,21,0.9)] sm:text-lg">
-                  {pitchEventText}
-                </span>
-                <span className="animate-bounce">🥅</span>
-              </div>
-              <p className="mt-1.5 text-xs font-extrabold text-[#FEF08A] sm:text-sm">
-                🎉 {pitchEventSub}
-              </p>
+      {/* Expandable Bottom Match Center Frame (Opens when clicking ANY match card!) */}
+      {detailsOpen ? (
+        <div className="mt-1.5 overflow-hidden rounded-2xl border-2 border-primary/80 bg-paper p-3 text-ink shadow-md space-y-3">
+          {/* Top Switcher Menu Inside Bottom Frame: Summary (Score/Goals/Cards) vs Dual Pitch Lineups */}
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line pb-2.5">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => setDrawerTab("summary")}
+                className={`press inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-extrabold transition ${
+                  drawerTab === "summary"
+                    ? "bg-ink text-primary shadow-2xs"
+                    : "border border-line bg-surface text-ink hover:border-primary"
+                }`}
+              >
+                <span>📋</span>
+                <span>{tr("النتيجة والأهداف والبطاقات")}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setDrawerTab("lineup")}
+                className={`press inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-extrabold transition ${
+                  drawerTab === "lineup"
+                    ? "bg-[#0B532B] text-[#FACC15] shadow-2xs ring-2 ring-[#22C55E]/40"
+                    : "border border-line bg-surface text-ink hover:border-primary"
+                }`}
+              >
+                <span>🏟️</span>
+                <span>{tr("تشكيلة الفريقين (ملعبين بجانب بعض)")}</span>
+              </button>
             </div>
-          ) : pitchEvent === "foul" ? (
-            <div className="flex flex-col items-center">
-              <div className="flex items-center gap-2">
-                <span className="inline-block h-8 w-6 rounded-sm border-2 border-white bg-[#FACC15] shadow-[0_0_20px_rgba(250,204,21,0.95)]" />
-                <span className="rounded-xl bg-[#FACC15] px-3.5 py-1 text-sm font-extrabold text-[#111827] shadow-lg">
-                  {pitchEventText}
-                </span>
+
+            <button
+              type="button"
+              onClick={() => setDetailsOpen(false)}
+              className="rounded-lg bg-surface px-2.5 py-1 text-xs font-extrabold text-muted hover:text-ink"
+            >
+              ✕ {tr("إغلاق")}
+            </button>
+          </div>
+
+          {drawerTab === "summary" ? (
+            <div className="space-y-3">
+              {/* Full Score & Match Status Banner */}
+              <div className="flex items-center justify-between gap-2 rounded-2xl bg-surface/80 px-3.5 py-2.5">
+                <div className="flex min-w-0 flex-1 items-center gap-2">
+                  <TeamCrest name={m.homeTeam} logo={m.homeLogo} />
+                  <span className="truncate text-xs font-extrabold sm:text-sm">{trv(m.homeTeam)}</span>
+                </div>
+                <div className="flex flex-col items-center px-3">
+                  <span dir="ltr" className="rounded-xl bg-ink px-3 py-1 font-mono text-sm font-extrabold text-primary">
+                    {m.status === "pre"
+                      ? m.kickoffTimeAr
+                      : `${m.homeScore ?? 0} : ${m.awayScore ?? 0}`}
+                  </span>
+                  <span className="mt-1 text-[10px] font-extrabold text-muted">
+                    {isLive ? `🔴 ${formattedLiveClock}` : trv(m.statusTextAr)} · {m.dateLabelAr}
+                  </span>
+                </div>
+                <div className="flex min-w-0 flex-1 items-center justify-end gap-2 text-left">
+                  <span className="truncate text-xs font-extrabold sm:text-sm">{trv(m.awayTeam)}</span>
+                  <TeamCrest name={m.awayTeam} logo={m.awayLogo} />
+                </div>
               </div>
-              <p className="mt-1.5 text-xs font-extrabold text-white/95">
-                ⚠️ {pitchEventSub}
-              </p>
-            </div>
-          ) : pitchEvent === "red" ? (
-            <div className="flex flex-col items-center">
-              <div className="flex items-center gap-2">
-                <span className="inline-block h-8 w-6 rounded-sm border-2 border-white bg-[#EF4444] shadow-[0_0_24px_rgba(239,68,68,0.95)]" />
-                <span className="rounded-xl bg-[#EF4444] px-3.5 py-1 text-sm font-extrabold text-white shadow-lg">
-                  {pitchEventText}
-                </span>
+
+              {/* Goals & Scorers Section */}
+              <div className="rounded-2xl border border-line bg-paper p-3">
+                <div className="mb-2 flex items-center justify-between">
+                  <h4 className="text-xs font-extrabold text-ink">
+                    ⚽ {tr("مسجّلو الأهداف")} ({totalGoalsCount})
+                  </h4>
+                  {m.venue ? (
+                    <span className="text-[10px] font-bold text-muted">🏟️ {trv(m.venue)}</span>
+                  ) : null}
+                </div>
+
+                {totalGoalsCount === 0 ? (
+                  <p className="text-center text-xs font-semibold text-muted py-1">
+                    {m.status === "pre"
+                      ? tr("لم تنطلق المباراة بعد — اضغط على «تشكيلة الفريقين» لعرض التشكيلة المتوقعة ومراكز اللاعبين.")
+                      : tr("لا توجد أهداف مسجّلة في هذه المباراة حتى الآن.")}
+                  </p>
+                ) : (
+                  <div className="grid grid-cols-2 gap-3 border-t border-line/60 pt-2">
+                    {/* Home Goals */}
+                    <div className="space-y-1">
+                      <p className="text-[10px] font-extrabold text-muted">{trv(m.homeTeam)}</p>
+                      {details.homeGoals.length === 0 ? (
+                        <p className="text-[11px] text-muted">—</p>
+                      ) : (
+                        details.homeGoals.map((g, idx) => (
+                          <div key={idx} className="flex items-center justify-between rounded-lg bg-surface/70 px-2 py-1 text-xs font-bold">
+                            <span className="truncate">⚽ {trv(g.scorer)}</span>
+                            <span dir="ltr" className="font-mono text-[11px] font-extrabold text-primary-ink">
+                              {g.minute}
+                            </span>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                    {/* Away Goals */}
+                    <div className="space-y-1">
+                      <p className="text-[10px] font-extrabold text-muted text-left">{trv(m.awayTeam)}</p>
+                      {details.awayGoals.length === 0 ? (
+                        <p className="text-[11px] text-muted text-left">—</p>
+                      ) : (
+                        details.awayGoals.map((g, idx) => (
+                          <div key={idx} className="flex items-center justify-between rounded-lg bg-surface/70 px-2 py-1 text-xs font-bold">
+                            <span dir="ltr" className="font-mono text-[11px] font-extrabold text-primary-ink">
+                              {g.minute}
+                            </span>
+                            <span className="truncate">{trv(g.scorer)} ⚽</span>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
-              <p className="mt-1.5 text-xs font-extrabold text-[#FECACA]">
-                🚨 {pitchEventSub}
-              </p>
+
+              {/* Yellow & Red Cards Section */}
+              <div className="rounded-2xl border border-line bg-paper p-3">
+                <h4 className="mb-2 text-xs font-extrabold text-ink">
+                  🟨🟥 {tr("البطاقات الصفراء والحمراء")} ({totalCardsCount})
+                </h4>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between rounded-xl bg-surface/60 px-2.5 py-1.5 text-xs font-extrabold">
+                      <span className="truncate">{trv(m.homeTeam)}</span>
+                      <span dir="ltr" className="flex items-center gap-1">
+                        <span className="rounded bg-[#FEF08A] px-1.5 py-0.5 text-[#854D0E]">
+                          🟨 {details.homeYellowCards}
+                        </span>
+                        <span className="rounded bg-[#FEE2E2] px-1.5 py-0.5 text-[#991B1B]">
+                          🟥 {details.homeRedCards}
+                        </span>
+                      </span>
+                    </div>
+                    {details.homeCardEvents.map((c, idx) => (
+                      <div key={idx} className="flex items-center justify-between px-2 text-[11px] font-bold text-muted">
+                        <span className="truncate">
+                          {c.card === "red" ? "🟥" : "🟨"} {trv(c.player || "لاعب")}
+                        </span>
+                        <span dir="ltr">{c.minute}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between rounded-xl bg-surface/60 px-2.5 py-1.5 text-xs font-extrabold">
+                      <span className="truncate">{trv(m.awayTeam)}</span>
+                      <span dir="ltr" className="flex items-center gap-1">
+                        <span className="rounded bg-[#FEF08A] px-1.5 py-0.5 text-[#854D0E]">
+                          🟨 {details.awayYellowCards}
+                        </span>
+                        <span className="rounded bg-[#FEE2E2] px-1.5 py-0.5 text-[#991B1B]">
+                          🟥 {details.awayRedCards}
+                        </span>
+                      </span>
+                    </div>
+                    {details.awayCardEvents.map((c, idx) => (
+                      <div key={idx} className="flex items-center justify-between px-2 text-[11px] font-bold text-muted">
+                        <span className="truncate">
+                          {c.card === "red" ? "🟥" : "🟨"} {trv(c.player || "لاعب")}
+                        </span>
+                        <span dir="ltr">{c.minute}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Call-to-action button to open the Dual Stadium Pitches Lineup */}
+              <button
+                type="button"
+                onClick={() => setDrawerTab("lineup")}
+                className="press flex w-full items-center justify-center gap-2 rounded-2xl bg-[#0B532B] px-4 py-2.5 text-xs font-extrabold text-[#FACC15] shadow-sm hover:opacity-95"
+              >
+                <span>🏟️</span>
+                <span>{tr("اضغط لعرض تشكيلة الفريقين في الملعب (ملعبين بجانب بعض مع صور ومراكز اللاعبين)")}</span>
+              </button>
             </div>
           ) : (
-            <div className="flex flex-col items-center">
-              <span className="rounded-xl bg-[#0284C7] px-3.5 py-1 text-sm font-extrabold text-white shadow-[0_0_20px_rgba(56,189,248,0.85)]">
-                {pitchEventText}
-              </span>
-              <p className="mt-1.5 text-xs font-extrabold text-[#BAE6FD]">
-                🔥 {pitchEventSub}
-              </p>
+            /* Tab 2: Dual Side-by-Side Football Pitches with Player Photos, Names, Positions & Live Analysis */
+            <div className="space-y-3">
+              {loadingLineup && !tacticalData ? (
+                <p className="rounded-2xl bg-surface p-4 text-center text-xs font-extrabold text-muted">
+                  ⏳ {tr("جاري جلب وتحليل تشكيلة الفريقين ومراكز اللاعبين…")}
+                </p>
+              ) : tacticalData ? (
+                <>
+                  {/* Real & Live Tactical Analysis Banner */}
+                  <div className="rounded-2xl border border-[#16A34A]/40 bg-[#16A34A]/10 p-3 space-y-2">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span className="inline-flex items-center gap-1.5 text-xs font-extrabold text-[#15803D]">
+                        <span className="size-2 rounded-full bg-[#16A34A] animate-ping" />
+                        {tacticalData.home.isOfficialLive
+                          ? tr("📡 تشكيلة رسمية مباشرة من الملعب")
+                          : tr("🧠 تحليل التشكيلة التكتيكية ومراكز اللاعبين")}
+                      </span>
+                      <span dir="ltr" className="rounded-full bg-paper px-2.5 py-0.5 font-mono text-[11px] font-extrabold text-ink">
+                        {tacticalData.home.formation} vs {tacticalData.away.formation}
+                      </span>
+                    </div>
+                    <p className="text-xs font-bold leading-relaxed text-ink">
+                      {tacticalData.summaryAr}
+                    </p>
+
+                    {/* Live Possession & Shots Comparison Bar */}
+                    <div className="grid grid-cols-3 gap-2 pt-1 text-center text-[11px] font-extrabold">
+                      <div className="rounded-xl bg-paper px-2 py-1.5">
+                        <span className="block text-[10px] text-muted">{tr("الاستحواذ")}</span>
+                        <span dir="ltr" className="font-mono text-xs text-ink">
+                          {tacticalData.homePossession}% - {tacticalData.awayPossession}%
+                        </span>
+                      </div>
+                      <div className="rounded-xl bg-paper px-2 py-1.5">
+                        <span className="block text-[10px] text-muted">{tr("التسديدات (على المرمى)")}</span>
+                        <span dir="ltr" className="font-mono text-xs text-ink">
+                          {tacticalData.homeShots} ({tacticalData.homeShotsOnTarget}) - {tacticalData.awayShots} ({tacticalData.awayShotsOnTarget})
+                        </span>
+                      </div>
+                      <div className="rounded-xl bg-paper px-2 py-1.5">
+                        <span className="block text-[10px] text-muted">{tr("الركنيات / الأخطاء")}</span>
+                        <span dir="ltr" className="font-mono text-xs text-ink">
+                          {tacticalData.homeCorners}/{tacticalData.homeFouls} - {tacticalData.awayCorners}/{tacticalData.awayFouls}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between px-1">
+                    <span className="text-[11px] font-extrabold text-ink">
+                      🏟️ {tr("تشكيلة الفريقين ومراكز اللاعبين على أرضية الملعب:")}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setSideBySidePitches((v) => !v)}
+                      className="rounded-lg border border-line bg-surface px-2.5 py-1 text-[10px] font-extrabold text-ink hover:border-primary sm:hidden"
+                    >
+                      {sideBySidePitches ? tr("🔍 تكبير الملعبين") : tr("🏟️ ملعبين بجانب بعض")}
+                    </button>
+                  </div>
+
+                  {/* Two Stadium Pitches Side-by-Side (ملعبين بجانب بعض) */}
+                  <div
+                    className={
+                      sideBySidePitches
+                        ? "grid grid-cols-2 gap-1.5 sm:gap-2.5"
+                        : "grid grid-cols-1 gap-2.5 sm:grid-cols-2"
+                    }
+                  >
+                    <SingleTeamTacticalPitch
+                      teamName={m.homeTeam}
+                      teamLogo={m.homeLogo}
+                      lineup={tacticalData.home}
+                      teamColor="gold"
+                    />
+                    <SingleTeamTacticalPitch
+                      teamName={m.awayTeam}
+                      teamLogo={m.awayLogo}
+                      lineup={tacticalData.away}
+                      teamColor="sky"
+                    />
+                  </div>
+                </>
+              ) : null}
             </div>
           )}
         </div>
       ) : null}
 
-      {/* Foreground Content Over the Stadium Pitch */}
-      <div className="relative z-10 flex flex-col gap-1.5">
-        {showLeagueBadge ? (
-          <div className="flex items-center justify-between text-[10px] leading-none font-extrabold text-white/90">
-            <span className="inline-flex items-center gap-1 truncate rounded-full bg-black/35 px-2 py-0.5 backdrop-blur-[1px]">
-              <span>{m.leagueBadge}</span>
-              <span className="truncate">{trv(m.leagueNameAr)}</span>
+      {watchOpen && streamUrl && embed ? (
+        <div className="mt-1.5 overflow-hidden rounded-2xl border border-line bg-black text-white shadow-md">
+          <div className="flex flex-wrap items-center justify-between gap-2 bg-ink px-3 py-1.5 text-xs font-extrabold text-paper">
+            <span className="inline-flex items-center gap-1.5">
+              <span className="size-2 animate-ping rounded-full bg-[#DC2626]" />
+              {tr("بث مباشر:")} {trv(m.homeTeam)} × {trv(m.awayTeam)}
             </span>
-            <span className="shrink-0 rounded-full bg-black/35 px-2 py-0.5 text-[#FEF08A]">
-              {m.dateLabelAr}
-            </span>
+            <a
+              href={streamUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="rounded-lg bg-white/15 px-2 py-0.5 text-[10px] font-bold text-white hover:bg-white/25"
+            >
+              {tr("فتح في نافذة مستقلة ↗")}
+            </a>
           </div>
-        ) : null}
-
-        {/* Main Match Scoreboard Row on the Pitch */}
-        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-1.5 py-1">
-          {/* Home team (Right in RTL) */}
-          <div className="flex min-w-0 items-center gap-1.5">
-            <div className="rounded-full bg-white/95 p-0.5 shadow-sm">
-              <TeamCrest name={m.homeTeam} logo={m.homeLogo} />
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-1">
-                <span className="truncate text-xs font-extrabold text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)] sm:text-sm">
-                  {trv(m.homeTeam)}
-                </span>
-                {/* Compact inline cards per team (clickable to trigger card animation!) */}
-                <button
-                  type="button"
-                  dir="ltr"
-                  onClick={() =>
-                    triggerPitchEvent(
-                      details.homeRedCards > 0 ? "red" : "foul",
-                      details.homeRedCards > 0
-                        ? `🟥 ${tr("بطاقة حمراء")} — ${trv(m.homeTeam)}`
-                        : `🟨 ${tr("فاول وإنذار")} — ${trv(m.homeTeam)}`,
-                    )
-                  }
-                  className="inline-flex shrink-0 items-center gap-0.5 text-[9px] leading-none font-extrabold"
-                  title={tr("اضغط لعرض أنيميشن الفاول والبطاقات")}
-                >
-                  <span
-                    className={`inline-flex items-center rounded px-1 py-0.5 ${
-                      details.homeYellowCards > 0
-                        ? "bg-[#FEF08A] text-[#854D0E] shadow-2xs"
-                        : "bg-black/40 text-white/80"
-                    }`}
-                  >
-                    🟨{details.homeYellowCards}
-                  </span>
-                  {details.homeRedCards > 0 ? (
-                    <span className="inline-flex items-center rounded bg-[#EF4444] px-1 py-0.5 text-white shadow-2xs">
-                      🟥{details.homeRedCards}
-                    </span>
-                  ) : null}
-                </button>
-              </div>
-
-              {/* Micro compact goals list right below team name */}
-              {details.homeGoals.length > 0 ? (
-                <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[9px] leading-tight font-bold text-[#FEF08A]">
-                  {details.homeGoals.map((g, idx) => (
-                    <button
-                      type="button"
-                      key={`hg-${idx}-${g.minute}-${g.scorer}`}
-                      onClick={() =>
-                        triggerPitchEvent(
-                          "goal",
-                          `⚽ ${tr("هدف")} ${trv(m.homeTeam)}!`,
-                          `${trv(g.scorer)} ${g.minute || ""}`,
-                        )
-                      }
-                      className="inline-flex items-center gap-0.5 truncate rounded bg-black/35 px-1 py-0.5"
-                    >
-                      <span className="text-[8px]">⚽</span>
-                      <span className="truncate text-white">{trv(g.scorer)}</span>
-                      {g.minute ? (
-                        <span dir="ltr" className="font-extrabold text-[#FACC15]">
-                          {g.minute}
-                        </span>
-                      ) : null}
-                    </button>
-                  ))}
-                </div>
-              ) : null}
-            </div>
-          </div>
-
-          {/* Center Score / Kickoff + Live Match Clock over Center Circle */}
-          <div className="flex flex-col items-center justify-center px-1.5">
-            {m.status === "pre" ? (
-              <button
-                type="button"
-                onClick={() => triggerPitchEvent("attack")}
-                dir="ltr"
-                className="rounded-xl border border-white/25 bg-black/55 px-2.5 py-1 text-xs font-extrabold text-[#FACC15] shadow-sm backdrop-blur-[2px]"
-                title={tr("اضغط لمعاينة أجواء الملعب")}
-              >
-                {m.kickoffTimeAr}
-              </button>
+          <div className="relative aspect-video w-full bg-black">
+            {embed.type === "video" ? (
+              <video
+                src={embed.src}
+                controls
+                autoPlay
+                playsInline
+                className="h-full w-full object-contain"
+              />
             ) : (
-              <button
-                type="button"
-                onClick={() => triggerPitchEvent("goal")}
-                dir="ltr"
-                className={`flex items-center gap-1.5 rounded-xl border px-2.5 py-1 text-sm leading-tight font-extrabold shadow-sm ${
-                  isLive
-                    ? "border-[#FACC15] bg-[#DC2626] text-white"
-                    : "border-white/25 bg-black/60 text-white"
-                }`}
-                title={tr("اضغط لإعادة احتفالية الهدف")}
-              >
-                <span>{m.homeScore ?? 0}</span>
-                <span className="text-[#FACC15]">:</span>
-                <span>{m.awayScore ?? 0}</span>
-              </button>
+              <iframe
+                src={embed.src}
+                title={`${m.homeTeam} vs ${m.awayTeam}`}
+                className="h-full w-full border-0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+                allowFullScreen
+              />
             )}
-
-            <span
-              dir="ltr"
-              className={`mt-1 inline-flex items-center gap-1 rounded-full bg-black/45 px-2 py-0.5 text-[9px] leading-none font-extrabold ${
-                isLive ? "text-[#FACC15]" : isDone ? "text-white/80" : "text-[#FEF08A]"
-              }`}
-            >
-              {isLive ? (
-                <>
-                  <span className="size-1.5 animate-ping rounded-full bg-[#22C55E]" />
-                  <span>⏱️ {formattedLiveClock}</span>
-                </>
-              ) : (
-                <span>{trv(m.statusTextAr)}</span>
-              )}
-            </span>
-          </div>
-
-          {/* Away team (Left in RTL) */}
-          <div className="flex min-w-0 items-center justify-end gap-1.5 text-left">
-            <div className="min-w-0 flex-1 text-left">
-              <div className="flex items-center justify-end gap-1">
-                {/* Compact inline cards per team */}
-                <button
-                  type="button"
-                  dir="ltr"
-                  onClick={() =>
-                    triggerPitchEvent(
-                      details.awayRedCards > 0 ? "red" : "foul",
-                      details.awayRedCards > 0
-                        ? `🟥 ${tr("بطاقة حمراء")} — ${trv(m.awayTeam)}`
-                        : `🟨 ${tr("فاول وإنذار")} — ${trv(m.awayTeam)}`,
-                    )
-                  }
-                  className="inline-flex shrink-0 items-center gap-0.5 text-[9px] leading-none font-extrabold"
-                  title={tr("اضغط لعرض أنيميشن الفاول والبطاقات")}
-                >
-                  {details.awayRedCards > 0 ? (
-                    <span className="inline-flex items-center rounded bg-[#EF4444] px-1 py-0.5 text-white shadow-2xs">
-                      🟥{details.awayRedCards}
-                    </span>
-                  ) : null}
-                  <span
-                    className={`inline-flex items-center rounded px-1 py-0.5 ${
-                      details.awayYellowCards > 0
-                        ? "bg-[#FEF08A] text-[#854D0E] shadow-2xs"
-                        : "bg-black/40 text-white/80"
-                    }`}
-                  >
-                    🟨{details.awayYellowCards}
-                  </span>
-                </button>
-                <span className="truncate text-xs font-extrabold text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)] sm:text-sm">
-                  {trv(m.awayTeam)}
-                </span>
-              </div>
-
-              {/* Micro compact goals list right below away team name */}
-              {details.awayGoals.length > 0 ? (
-                <div className="mt-0.5 flex flex-wrap items-center justify-end gap-x-1.5 gap-y-0.5 text-[9px] leading-tight font-bold text-[#FEF08A]">
-                  {details.awayGoals.map((g, idx) => (
-                    <button
-                      type="button"
-                      key={`ag-${idx}-${g.minute}-${g.scorer}`}
-                      onClick={() =>
-                        triggerPitchEvent(
-                          "goal",
-                          `⚽ ${tr("هدف")} ${trv(m.awayTeam)}!`,
-                          `${trv(g.scorer)} ${g.minute || ""}`,
-                        )
-                      }
-                      className="inline-flex items-center gap-0.5 truncate rounded bg-black/35 px-1 py-0.5"
-                    >
-                      {g.minute ? (
-                        <span dir="ltr" className="font-extrabold text-[#FACC15]">
-                          {g.minute}
-                        </span>
-                      ) : null}
-                      <span className="truncate text-white">{trv(g.scorer)}</span>
-                      <span className="text-[8px]">⚽</span>
-                    </button>
-                  ))}
-                </div>
-              ) : null}
-            </div>
-            <div className="rounded-full bg-white/95 p-0.5 shadow-sm">
-              <TeamCrest name={m.awayTeam} logo={m.awayLogo} />
-            </div>
           </div>
         </div>
-
-        {/* Bottom Interactive Pitch FX Bar + Channel / Live Stream */}
-        <div className="mt-0.5 flex flex-wrap items-center justify-between gap-1.5 border-t border-white/15 pt-1.5">
-          {/* Interactive Stadium Event Triggers (Goal / Foul / Red Card / Attack) */}
-          <div className="flex flex-wrap items-center gap-1">
-            <button
-              type="button"
-              onClick={() => triggerPitchEvent("goal")}
-              className="press inline-flex items-center gap-0.5 rounded-lg bg-black/40 px-1.5 py-0.5 text-[10px] font-extrabold text-[#FEF08A] hover:bg-[#FACC15] hover:text-[#111827]"
-              title={tr("عرض أنيميشن الهدف")}
-            >
-              <span>⚽</span>
-              <span>{tr("هدف")}</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => triggerPitchEvent("foul")}
-              className="press inline-flex items-center gap-0.5 rounded-lg bg-black/40 px-1.5 py-0.5 text-[10px] font-extrabold text-white/90 hover:bg-[#FACC15] hover:text-[#111827]"
-              title={tr("عرض أنيميشن الفاول والإنذار")}
-            >
-              <span>🟨</span>
-              <span>{tr("فاول")}</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => triggerPitchEvent("red")}
-              className="press inline-flex items-center gap-0.5 rounded-lg bg-black/40 px-1.5 py-0.5 text-[10px] font-extrabold text-[#FCA5A5] hover:bg-[#EF4444] hover:text-white"
-              title={tr("عرض أنيميشن البطاقة الحمراء")}
-            >
-              <span>🟥</span>
-              <span>{tr("طرد")}</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => triggerPitchEvent("attack")}
-              className="press inline-flex items-center gap-0.5 rounded-lg bg-black/40 px-1.5 py-0.5 text-[10px] font-extrabold text-[#BAE6FD] hover:bg-[#0284C7] hover:text-white"
-              title={tr("عرض أنيميشن هجمة خطيرة")}
-            >
-              <span>⚡</span>
-              <span>{tr("هجمة")}</span>
-            </button>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-1.5 text-[10px] leading-none font-bold">
-            {channel ? (
-              <span className="rounded-lg bg-black/45 px-2 py-0.5 font-extrabold text-white">
-                📡 {trv(channel)}
-              </span>
-            ) : null}
-            {cleanNote ? (
-              <span className="truncate text-white/85">{trv(cleanNote)}</span>
-            ) : null}
-            {streamUrl ? (
-              <button
-                type="button"
-                onClick={() => setWatchOpen((v) => !v)}
-                className={`inline-flex items-center gap-1 rounded-lg px-2 py-0.5 text-[10px] font-extrabold text-white shadow-2xs transition ${
-                  watchOpen ? "bg-ink" : "bg-[#DC2626] hover:bg-[#B91C1C]"
-                }`}
-              >
-                <span className="size-1.5 animate-ping rounded-full bg-white" />
-                {watchOpen ? tr("إغلاق ✕") : tr("📺 بث مباشر")}
-              </button>
-            ) : null}
-          </div>
-        </div>
-
-        {watchOpen && streamUrl && embed ? (
-          <div className="mt-1.5 overflow-hidden rounded-2xl border border-white/25 bg-black text-white shadow-md">
-            <div className="flex flex-wrap items-center justify-between gap-2 bg-ink px-3 py-1.5 text-xs font-extrabold text-paper">
-              <span className="inline-flex items-center gap-1.5">
-                <span className="size-2 animate-ping rounded-full bg-[#DC2626]" />
-                {tr("بث مباشر:")} {trv(m.homeTeam)} × {trv(m.awayTeam)}
-              </span>
-              <a
-                href={streamUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="rounded-lg bg-white/15 px-2 py-0.5 text-[10px] font-bold text-white hover:bg-white/25"
-              >
-                {tr("فتح في نافذة مستقلة ↗")}
-              </a>
-            </div>
-            <div className="relative aspect-video w-full bg-black">
-              {embed.type === "video" ? (
-                <video
-                  src={embed.src}
-                  controls
-                  autoPlay
-                  playsInline
-                  className="h-full w-full object-contain"
-                />
-              ) : (
-                <iframe
-                  src={embed.src}
-                  title={`${m.homeTeam} vs ${m.awayTeam}`}
-                  className="h-full w-full border-0"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
-                  allowFullScreen
-                />
-              )}
-            </div>
-          </div>
-        ) : null}
-      </div>
+      ) : null}
     </div>
   );
 }
@@ -2468,27 +3483,43 @@ function trPlayerClient(raw: string): string {
   return clean;
 }
 
-function clientFormatYmd(d: Date): string {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}${m}${day}`;
-}
-
-function clientDayKey(iso: string): MatchItem["dayKey"] {
+function clientJerusalemDateKey(iso: string): string {
   try {
-    const fmt = new Intl.DateTimeFormat("en-CA", {
+    return new Intl.DateTimeFormat("en-CA", {
       timeZone: "Asia/Jerusalem",
       year: "numeric",
       month: "2-digit",
       day: "2-digit",
-    });
+    }).format(new Date(iso));
+  } catch {
+    return iso.slice(0, 10);
+  }
+}
+
+function clientFormatYmd(d: Date): string {
+  return clientJerusalemDateKey(d.toISOString()).replace(/-/g, "");
+}
+
+/**
+ * Strict day classification in Rahat/Jerusalem timezone (Asia/Jerusalem):
+ * - Returns null for matches older than Yesterday (so finished matches from 2+ days ago never appear in Tomorrow or Upcoming!).
+ */
+function clientDayKeyOrNull(
+  iso: string,
+  status?: "pre" | "in" | "post",
+): MatchItem["dayKey"] | null {
+  try {
     const now = new Date();
-    const dKey = fmt.format(new Date(iso));
-    if (dKey === fmt.format(now)) return "today";
-    if (dKey === fmt.format(new Date(now.getTime() - 86_400_000))) return "yesterday";
-    if (dKey === fmt.format(new Date(now.getTime() + 86_400_000))) return "tomorrow";
-    return "upcoming";
+    const todayKey = clientJerusalemDateKey(now.toISOString());
+    const yestKey = clientJerusalemDateKey(new Date(now.getTime() - 86_400_000).toISOString());
+    const tomKey = clientJerusalemDateKey(new Date(now.getTime() + 86_400_000).toISOString());
+    const dKey = clientJerusalemDateKey(iso);
+    if (status === "in") return "today";
+    if (dKey === todayKey) return "today";
+    if (dKey === yestKey) return "yesterday";
+    if (dKey === tomKey) return "tomorrow";
+    if (dKey > tomKey && status !== "post") return "upcoming";
+    return null;
   } catch {
     return "today";
   }
@@ -2507,14 +3538,18 @@ function clientTimeAr(iso: string): string {
   }
 }
 
-function clientShortDateAr(iso: string): string {
+function clientShortDateAr(iso: string, dayKey?: MatchItem["dayKey"]): string {
   try {
-    return new Intl.DateTimeFormat("ar-EG", {
+    const formatted = new Intl.DateTimeFormat("ar-EG", {
       timeZone: "Asia/Jerusalem",
       weekday: "short",
       day: "numeric",
       month: "short",
     }).format(new Date(iso));
+    if (dayKey === "today") return `${tr("اليوم")} · ${formatted}`;
+    if (dayKey === "tomorrow") return `${tr("غداً")} · ${formatted}`;
+    if (dayKey === "yesterday") return `${tr("أمس")} · ${formatted}`;
+    return formatted;
   } catch {
     return "";
   }
@@ -2522,11 +3557,19 @@ function clientShortDateAr(iso: string): string {
 
 function buildCuratedRoundFallback(): RichMatchItem[] {
   const now = new Date();
-  const todayIso = (h: number, m = 0, offsetDays = 0) => {
-    const d = new Date(now.getTime() + offsetDays * 86_400_000);
-    d.setHours(h, m, 0, 0);
-    return d.toISOString();
+  const jerusalemDateParts = (offsetDays: number) => {
+    const target = new Date(now.getTime() + offsetDays * 86_400_000);
+    const ymd = clientJerusalemDateKey(target.toISOString()); // YYYY-MM-DD in Asia/Jerusalem
+    return ymd;
   };
+  const makeIsoInJerusalem = (h: number, m = 0, offsetDays = 0) => {
+    const ymd = jerusalemDateParts(offsetDays);
+    const hh = String(h).padStart(2, "0");
+    const mm = String(m).padStart(2, "0");
+    // +02:00 standard Israel time offset
+    return new Date(`${ymd}T${hh}:${mm}:00+02:00`).toISOString();
+  };
+
   const seeds: {
     id: string;
     leagueId: string;
@@ -2543,8 +3586,9 @@ function buildCuratedRoundFallback(): RichMatchItem[] {
     channel?: string;
     liveDetails?: LiveMatchDetails;
   }[] = [
+    // ==================== TODAY (مباريات اليوم) ====================
     {
-      id: "cur-isr-1",
+      id: "cur-isr-today-1",
       leagueId: "isr.1",
       leagueNameAr: "الدوري الإسرائيلي",
       leagueBadge: "⚽",
@@ -2553,13 +3597,13 @@ function buildCuratedRoundFallback(): RichMatchItem[] {
       homeScore: null,
       awayScore: null,
       status: "pre",
-      kickoffIso: todayIso(20, 30, 0),
+      kickoffIso: makeIsoInJerusalem(20, 30, 0),
       kickoffTimeAr: "20:30",
       dayKey: "today",
       channel: "Sport 5",
     },
     {
-      id: "cur-isr-2",
+      id: "cur-isr-today-2",
       leagueId: "isr.1",
       leagueNameAr: "الدوري الإسرائيلي",
       leagueBadge: "⚽",
@@ -2568,13 +3612,45 @@ function buildCuratedRoundFallback(): RichMatchItem[] {
       homeScore: null,
       awayScore: null,
       status: "pre",
-      kickoffIso: todayIso(19, 45, 0),
+      kickoffIso: makeIsoInJerusalem(19, 45, 0),
       kickoffTimeAr: "19:45",
       dayKey: "today",
       channel: "Sport 1",
     },
     {
-      id: "cur-isr-3",
+      id: "cur-esp-today-1",
+      leagueId: "esp.1",
+      leagueNameAr: "لا ليغا",
+      leagueBadge: "🇪🇸",
+      homeTeam: "ريال مدريد",
+      awayTeam: "أوساسونا",
+      homeScore: null,
+      awayScore: null,
+      status: "pre",
+      kickoffIso: makeIsoInJerusalem(21, 0, 0),
+      kickoffTimeAr: "21:00",
+      dayKey: "today",
+      channel: "beIN Sports 1",
+    },
+    {
+      id: "cur-eng-today-1",
+      leagueId: "eng.1",
+      leagueNameAr: "البريميرليغ",
+      leagueBadge: "🏴󠁧󠁢󠁥󠁮󠁧󠁿",
+      homeTeam: "ليفربول",
+      awayTeam: "أستون فيلا",
+      homeScore: null,
+      awayScore: null,
+      status: "pre",
+      kickoffIso: makeIsoInJerusalem(22, 0, 0),
+      kickoffTimeAr: "22:00",
+      dayKey: "today",
+      channel: "beIN Sports 1",
+    },
+
+    // ==================== TOMORROW (مباريات الغد) ====================
+    {
+      id: "cur-isr-tom-1",
       leagueId: "isr.1",
       leagueNameAr: "الدوري الإسرائيلي",
       leagueBadge: "⚽",
@@ -2583,91 +3659,153 @@ function buildCuratedRoundFallback(): RichMatchItem[] {
       homeScore: null,
       awayScore: null,
       status: "pre",
-      kickoffIso: todayIso(20, 30, 1),
+      kickoffIso: makeIsoInJerusalem(20, 30, 1),
       kickoffTimeAr: "20:30",
       dayKey: "tomorrow",
       channel: "Sport 5",
     },
     {
-      id: "cur-esp-1",
+      id: "cur-esp-tom-1",
       leagueId: "esp.1",
       leagueNameAr: "لا ليغا",
       leagueBadge: "🇪🇸",
-      homeTeam: "ريال مدريد",
-      awayTeam: "برشلونة",
-      homeScore: null,
-      awayScore: null,
-      status: "pre",
-      kickoffIso: todayIso(22, 0, 0),
-      kickoffTimeAr: "22:00",
-      dayKey: "today",
-      channel: "beIN Sports 1",
-    },
-    {
-      id: "cur-esp-2",
-      leagueId: "esp.1",
-      leagueNameAr: "لا ليغا",
-      leagueBadge: "🇪🇸",
-      homeTeam: "أتلتيكو مدريد",
+      homeTeam: "برشلونة",
       awayTeam: "ريال سوسيداد",
       homeScore: null,
       awayScore: null,
       status: "pre",
-      kickoffIso: todayIso(21, 0, 1),
-      kickoffTimeAr: "21:00",
-      dayKey: "tomorrow",
-      channel: "beIN Sports 3",
-    },
-    {
-      id: "cur-ucl-1",
-      leagueId: "uefa.champions",
-      leagueNameAr: "أبطال أوروبا",
-      leagueBadge: "🏆",
-      homeTeam: "مانشستر سيتي",
-      awayTeam: "بايرن ميونخ",
-      homeScore: null,
-      awayScore: null,
-      status: "pre",
-      kickoffIso: todayIso(22, 0, 0),
+      kickoffIso: makeIsoInJerusalem(22, 0, 1),
       kickoffTimeAr: "22:00",
-      dayKey: "today",
+      dayKey: "tomorrow",
       channel: "beIN Sports 1",
     },
     {
-      id: "cur-ucl-2",
+      id: "cur-eng-tom-1",
+      leagueId: "eng.1",
+      leagueNameAr: "البريميرليغ",
+      leagueBadge: "🏴󠁧󠁢󠁥󠁮󠁧󠁿",
+      homeTeam: "تشيلسي",
+      awayTeam: "أرسنال",
+      homeScore: null,
+      awayScore: null,
+      status: "pre",
+      kickoffIso: makeIsoInJerusalem(18, 30, 1),
+      kickoffTimeAr: "18:30",
+      dayKey: "tomorrow",
+      channel: "beIN Sports 1",
+    },
+    {
+      id: "cur-esp-tom-2",
+      leagueId: "esp.1",
+      leagueNameAr: "لا ليغا",
+      leagueBadge: "🇪🇸",
+      homeTeam: "أتلتيكو مدريد",
+      awayTeam: "ريال مايوركا",
+      homeScore: null,
+      awayScore: null,
+      status: "pre",
+      kickoffIso: makeIsoInJerusalem(19, 15, 1),
+      kickoffTimeAr: "19:15",
+      dayKey: "tomorrow",
+      channel: "beIN Sports 3",
+    },
+
+    // ==================== YESTERDAY (نتائج الأمس) ====================
+    {
+      id: "cur-isr-yest-1",
+      leagueId: "isr.1",
+      leagueNameAr: "الدوري الإسرائيلي",
+      leagueBadge: "⚽",
+      homeTeam: "هبوعيل حيفا",
+      awayTeam: "مكابي نتانيا",
+      homeScore: 2,
+      awayScore: 1,
+      status: "post",
+      kickoffIso: makeIsoInJerusalem(20, 0, -1),
+      kickoffTimeAr: "20:00",
+      dayKey: "yesterday",
+      channel: "Sport 2",
+      liveDetails: {
+        homeGoals: [
+          { minute: "34'", scorer: "هدف هبوعيل" },
+          { minute: "78'", scorer: "هدف الفوز" },
+        ],
+        awayGoals: [{ minute: "52'", scorer: "هدف نتانيا" }],
+        homeYellowCards: 2,
+        homeRedCards: 0,
+        awayYellowCards: 3,
+        awayRedCards: 0,
+        homeCardEvents: [],
+        awayCardEvents: [],
+      },
+    },
+    {
+      id: "cur-esp-yest-1",
+      leagueId: "esp.1",
+      leagueNameAr: "لا ليغا",
+      leagueBadge: "🇪🇸",
+      homeTeam: "رايو فاليكانو",
+      awayTeam: "لاس بالماس",
+      homeScore: 1,
+      awayScore: 2,
+      status: "post",
+      kickoffIso: makeIsoInJerusalem(22, 0, -1),
+      kickoffTimeAr: "22:00",
+      dayKey: "yesterday",
+      channel: "beIN Sports 3",
+    },
+
+    // ==================== UPCOMING (المباريات القادمة) ====================
+    {
+      id: "cur-isr-upc-1",
+      leagueId: "isr.1",
+      leagueNameAr: "الدوري الإسرائيلي",
+      leagueBadge: "⚽",
+      homeTeam: "هبوعيل القدس",
+      awayTeam: "م.س أشدود",
+      homeScore: null,
+      awayScore: null,
+      status: "pre",
+      kickoffIso: makeIsoInJerusalem(20, 0, 2),
+      kickoffTimeAr: "20:00",
+      dayKey: "upcoming",
+      channel: "Sport 4",
+    },
+    {
+      id: "cur-ucl-upc-1",
       leagueId: "uefa.champions",
       leagueNameAr: "أبطال أوروبا",
       leagueBadge: "🏆",
-      homeTeam: "ليفربول",
+      homeTeam: "بايرن ميونخ",
       awayTeam: "باريس سان جيرمان",
       homeScore: null,
       awayScore: null,
       status: "pre",
-      kickoffIso: todayIso(22, 0, 1),
+      kickoffIso: makeIsoInJerusalem(22, 0, 3),
       kickoffTimeAr: "22:00",
-      dayKey: "tomorrow",
-      channel: "beIN Sports 2",
+      dayKey: "upcoming",
+      channel: "beIN Sports 1",
     },
     {
-      id: "cur-eng-1",
-      leagueId: "eng.1",
-      leagueNameAr: "البريميرليغ",
-      leagueBadge: "🏴󠁧󠁢󠁥󠁮󠁧󠁿",
-      homeTeam: "أرسنال",
-      awayTeam: "تشيلسي",
+      id: "cur-ucl-upc-2",
+      leagueId: "uefa.champions",
+      leagueNameAr: "أبطال أوروبا",
+      leagueBadge: "🏆",
+      homeTeam: "مانشستر سيتي",
+      awayTeam: "فينورد",
       homeScore: null,
       awayScore: null,
       status: "pre",
-      kickoffIso: todayIso(19, 30, 0),
-      kickoffTimeAr: "19:30",
-      dayKey: "today",
-      channel: "beIN Sports 1",
+      kickoffIso: makeIsoInJerusalem(22, 0, 3),
+      kickoffTimeAr: "22:00",
+      dayKey: "upcoming",
+      channel: "beIN Sports 2",
     },
   ];
   return seeds.map((s) => ({
     ...s,
-    statusTextAr: s.kickoffTimeAr,
-    dateLabelAr: clientShortDateAr(s.kickoffIso),
+    statusTextAr: s.status === "post" ? "انتهت" : s.kickoffTimeAr,
+    dateLabelAr: clientShortDateAr(s.kickoffIso, s.dayKey),
   }));
 }
 
@@ -2905,8 +4043,9 @@ async function fetchClientEspnLeague(league: {
   const espnCode = league.id === "sau.1" ? "ksa.1" : league.id;
   if (espnCode.startsWith("isr.") || espnCode.startsWith("local.")) return [];
   const now = new Date();
-  const start = new Date(now.getTime() - 2 * 86_400_000);
-  const end = new Date(now.getTime() + 5 * 86_400_000);
+  // Fetch from Yesterday (-1d) to +6 days in Asia/Jerusalem timezone so old matches from 2+ days ago never enter!
+  const start = new Date(now.getTime() - 1 * 86_400_000);
+  const end = new Date(now.getTime() + 6 * 86_400_000);
   const range = `${clientFormatYmd(start)}-${clientFormatYmd(end)}`;
 
   const urls = [
@@ -2924,8 +4063,9 @@ async function fetchClientEspnLeague(league: {
 
       const out: RichMatchItem[] = [];
       const summaryTasks: Promise<void>[] = [];
+      const perDayCount: Record<string, number> = { yesterday: 0, today: 0, tomorrow: 0, upcoming: 0 };
 
-      for (const ev of events.slice(0, 16)) {
+      for (const ev of events) {
         const comp = ev?.competitions?.[0];
         const competitors: any[] = Array.isArray(comp?.competitors) ? comp.competitors : [];
         const home = competitors.find((c) => c.homeAway === "home") ?? competitors[0];
@@ -2935,10 +4075,15 @@ async function fetchClientEspnLeague(league: {
         const rawState = String(ev?.status?.type?.state ?? comp?.status?.type?.state ?? "pre");
         const status: "pre" | "in" | "post" =
           rawState === "in" ? "in" : rawState === "post" ? "post" : "pre";
+        const kickoffIso = String(ev?.date ?? comp?.date ?? now.toISOString());
+        const dayKey = clientDayKeyOrNull(kickoffIso, status);
+        // Strictly skip any match older than yesterday!
+        if (!dayKey) continue;
+        if ((perDayCount[dayKey] ?? 0) >= 12) continue;
+        perDayCount[dayKey] = (perDayCount[dayKey] ?? 0) + 1;
+
         const clock = String(ev?.status?.displayClock ?? comp?.status?.displayClock ?? "").trim();
         const detail = String(ev?.status?.type?.shortDetail ?? "").trim();
-        const kickoffIso = String(ev?.date ?? comp?.date ?? now.toISOString());
-        const dayKey = clientDayKey(kickoffIso);
 
         let statusTextAr = clientTimeAr(kickoffIso);
         if (status === "in") {
@@ -2972,12 +4117,11 @@ async function fetchClientEspnLeague(league: {
           kickoffIso,
           kickoffTimeAr: clientTimeAr(kickoffIso),
           dayKey,
-          dateLabelAr: clientShortDateAr(kickoffIso),
+          dateLabelAr: clientShortDateAr(kickoffIso, dayKey),
           venue: comp?.venue?.fullName ? String(comp.venue.fullName) : undefined,
           liveDetails,
         };
 
-        // If live or finished with goals, and comp.details did not include all goals, fetch summary keyEvents
         const totalGoals = (homeScore ?? 0) + (awayScore ?? 0);
         const parsedGoals = liveDetails.homeGoals.length + liveDetails.awayGoals.length;
         if (
@@ -3023,7 +4167,6 @@ function parseSportsDbGoalList(raw: unknown): MatchGoalEvent[] {
     .filter(Boolean);
   const goals: MatchGoalEvent[] = [];
   for (const entry of entries) {
-    // Format is usually "23\x27:Player Name" or "Player Name 23\x27"
     const colonParts = entry.split(":");
     if (colonParts.length >= 2) {
       const first = colonParts[0].trim();
@@ -3116,7 +4259,7 @@ async function fetchClientSportsDbLeague(league: {
       }
     }
     const out: RichMatchItem[] = [];
-    for (const ev of rawEvents.slice(0, 14)) {
+    for (const ev of rawEvents) {
       if (!ev?.strHomeTeam || !ev?.strAwayTeam || !ev?.dateEvent) continue;
       const timeStr = String(ev.strTime ?? "18:00:00").slice(0, 8);
       const kickoffIso = `${ev.dateEvent}T${timeStr.includes(":") ? timeStr : "18:00:00"}Z`;
@@ -3129,6 +4272,8 @@ async function fetchClientSportsDbLeague(league: {
         rawStatus === "HT" ||
         /^\d+\x27?$/.test(rawStatus);
       const status: "pre" | "in" | "post" = isLive ? "in" : hasScore ? "post" : "pre";
+      const dayKey = clientDayKeyOrNull(kickoffIso, status);
+      if (!dayKey) continue;
 
       const homeGoals = parseSportsDbGoalList(ev.strHomeGoalDetails);
       const awayGoals = parseSportsDbGoalList(ev.strAwayGoalDetails);
@@ -3163,8 +4308,8 @@ async function fetchClientSportsDbLeague(league: {
               : clientTimeAr(kickoffIso),
         kickoffIso,
         kickoffTimeAr: clientTimeAr(kickoffIso),
-        dayKey: clientDayKey(kickoffIso),
-        dateLabelAr: clientShortDateAr(kickoffIso),
+        dayKey,
+        dateLabelAr: clientShortDateAr(kickoffIso, dayKey),
         liveDetails: {
           liveClockSeconds: liveMin ? liveMin * 60 : undefined,
           liveMinuteText: liveMin ? `${liveMin}\x27` : undefined,
@@ -3186,9 +4331,62 @@ async function fetchClientSportsDbLeague(league: {
   }
 }
 
+/**
+ * Priority score for the Homepage Featured Match ("المباراة القادمة / المباشرة"):
+ * 0 = Live now ("in")
+ * 1 = Today's upcoming match ("today" + "pre")
+ * 2 = Tomorrow's upcoming match ("tomorrow" + "pre")
+ * 3 = Future upcoming match ("upcoming" + "pre")
+ * 4 = Today's finished match ("today" + "post")
+ * 5 = Yesterday's finished match ("yesterday")
+ */
+function featuredMatchPriority(m: RichMatchItem): number {
+  if (m.status === "in") return 0;
+  if (m.dayKey === "today" && m.status === "pre") return 1;
+  if (m.dayKey === "tomorrow" && m.status === "pre") return 2;
+  if (m.dayKey === "upcoming" && m.status === "pre") return 3;
+  if (m.dayKey === "today" && m.status === "post") return 4;
+  return 5;
+}
+
+function sortMatchesForFeatured(list: RichMatchItem[]): RichMatchItem[] {
+  return [...list].sort((a, b) => {
+    const aCustom = String(a.id).startsWith("custom-");
+    const bCustom = String(b.id).startsWith("custom-");
+    if (aCustom && !bCustom && a.status !== "post") return -1;
+    if (bCustom && !aCustom && b.status !== "post") return 1;
+    const pa = featuredMatchPriority(a);
+    const pb = featuredMatchPriority(b);
+    if (pa !== pb) return pa - pb;
+    if (pa <= 3) {
+      // Upcoming matches: soonest kickoff first
+      return Date.parse(a.kickoffIso) - Date.parse(b.kickoffIso);
+    }
+    // Finished matches: most recent first
+    return Date.parse(b.kickoffIso) - Date.parse(a.kickoffIso);
+  });
+}
+
 async function enrichBoardClientSide(board: MatchesBoardData): Promise<MatchesBoardData> {
-  const customMatches = board.matches.filter((m) => String(m.id).startsWith("custom-"));
-  const existingAuto = board.matches.filter((m) => !String(m.id).startsWith("custom-"));
+  const customMatches = board.matches
+    .filter((m) => String(m.id).startsWith("custom-"))
+    .map((m) => ({
+      ...m,
+      dateLabelAr: clientShortDateAr(m.kickoffIso, m.dayKey),
+    }));
+
+  // Re-verify server auto matches in Asia/Jerusalem timezone and drop any match older than Yesterday!
+  const existingAuto: RichMatchItem[] = [];
+  for (const m of board.matches) {
+    if (String(m.id).startsWith("custom-")) continue;
+    const verifiedDay = clientDayKeyOrNull(m.kickoffIso, m.status);
+    if (!verifiedDay) continue;
+    existingAuto.push({
+      ...m,
+      dayKey: verifiedDay,
+      dateLabelAr: clientShortDateAr(m.kickoffIso, verifiedDay),
+    });
+  }
 
   const fetchedLists = await Promise.all(
     board.leagues.map(async (lg) => {
@@ -3203,25 +4401,24 @@ async function enrichBoardClientSide(board: MatchesBoardData): Promise<MatchesBo
   const mergedAuto = clientFetched.length > 0 ? clientFetched : existingAuto;
   const fallback = buildCuratedRoundFallback();
 
-  // Ensure every enabled league has matches so no league tab is ever empty
   const byId = new Map<string, RichMatchItem>();
   for (const m of [...customMatches, ...mergedAuto]) {
-    byId.set(`${m.leagueId}-${m.homeTeam}-${m.awayTeam}`, m);
+    byId.set(`${m.leagueId}-${m.homeTeam}-${m.awayTeam}-${m.dayKey}`, m);
   }
+
+  // Ensure every day tab (today, tomorrow, yesterday, upcoming) and isr.1 has accurate matches
   for (const fb of fallback) {
-    const hasLeagueMatches = [...byId.values()].some((x) => x.leagueId === fb.leagueId);
-    if (!hasLeagueMatches || byId.size < 4) {
-      byId.set(`${fb.leagueId}-${fb.homeTeam}-${fb.awayTeam}`, fb);
+    const currentVals = [...byId.values()];
+    const hasDayMatches = currentVals.some((x) => x.dayKey === fb.dayKey);
+    const hasIsrOnDay =
+      fb.leagueId === "isr.1" &&
+      currentVals.some((x) => x.leagueId === "isr.1" && x.dayKey === fb.dayKey);
+    if (!hasDayMatches || (fb.leagueId === "isr.1" && !hasIsrOnDay)) {
+      byId.set(`${fb.leagueId}-${fb.homeTeam}-${fb.awayTeam}-${fb.dayKey}`, fb);
     }
   }
 
-  const all = [...byId.values()].sort((a, b) => {
-    if (String(a.id).startsWith("custom-") && !String(b.id).startsWith("custom-")) return -1;
-    if (!String(a.id).startsWith("custom-") && String(b.id).startsWith("custom-")) return 1;
-    if (a.status === "in" && b.status !== "in") return -1;
-    if (b.status === "in" && a.status !== "in") return 1;
-    return Date.parse(a.kickoffIso) - Date.parse(b.kickoffIso);
-  });
+  const all = sortMatchesForFeatured([...byId.values()]);
 
   return {
     ...board,
@@ -3230,7 +4427,7 @@ async function enrichBoardClientSide(board: MatchesBoardData): Promise<MatchesBo
   };
 }
 
-/** Homepage Live Matches Widget — Compact by default (shows ongoing/featured match + compact league dropdown) & expandable. */
+/** Homepage Live Matches Widget — Compact by default (shows ongoing/next upcoming match + compact league dropdown) & expandable. */
 export function HomeMatchesWidget({ initial }: { initial: MatchesBoardData | null }) {
   const [board, setBoard] = useState<MatchesBoardData | null>(initial);
   const [refreshing, setRefreshing] = useState(false);
@@ -3294,8 +4491,11 @@ export function HomeMatchesWidget({ initial }: { initial: MatchesBoardData | nul
   }, [initial]);
 
   const allMatches = useMemo(() => {
-    const raw = board?.matches ?? [];
-    return raw.length > 0 ? raw : buildCuratedRoundFallback();
+    const raw = (board?.matches ?? []).filter((m) => {
+      if (String(m.id).startsWith("custom-")) return true;
+      return clientDayKeyOrNull(m.kickoffIso, m.status) !== null;
+    });
+    return raw.length > 0 ? sortMatchesForFeatured(raw) : buildCuratedRoundFallback();
   }, [board?.matches]);
 
   const leagueMatches = useMemo(() => {
@@ -3304,21 +4504,12 @@ export function HomeMatchesWidget({ initial }: { initial: MatchesBoardData | nul
         ? allMatches
         : allMatches.filter((m) => m.leagueId === selectedLeague);
     const list = filtered.length > 0 ? filtered : allMatches;
-    // Prioritize live ("in") matches first, then today matches
-    return [...list].sort((a, b) => {
-      if (a.status === "in" && b.status !== "in") return -1;
-      if (b.status === "in" && a.status !== "in") return 1;
-      if (a.dayKey === "today" && b.dayKey !== "today") return -1;
-      if (b.dayKey === "today" && a.dayKey !== "today") return 1;
-      return Date.parse(a.kickoffIso) - Date.parse(b.kickoffIso);
-    });
+    return sortMatchesForFeatured(list);
   }, [allMatches, selectedLeague]);
 
   const filteredMatches = useMemo(() => {
     if (dayTab === "live") return leagueMatches.filter((m) => m.status === "in");
-    const byDay = leagueMatches.filter((m) => m.dayKey === dayTab);
-    if (byDay.length > 0) return byDay;
-    return leagueMatches.slice(0, 8);
+    return leagueMatches.filter((m) => m.dayKey === dayTab);
   }, [leagueMatches, dayTab]);
 
   if (!board) {
@@ -3362,7 +4553,7 @@ export function HomeMatchesWidget({ initial }: { initial: MatchesBoardData | nul
 
   return (
     <section className="stamp px-3 py-2.5" aria-label={tr("نتائج المباريات المباشرة")}>
-      {/* Compact Header Row: Title + Compact League Dropdown + Expand/Collapse */}
+      {/* Compact Header Row: Title + Next/Live Status Badge + Compact League Dropdown + Expand/Collapse */}
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-1.5">
           <span className="grid size-7 shrink-0 place-items-center rounded-lg bg-primary text-ink">
@@ -3373,6 +4564,15 @@ export function HomeMatchesWidget({ initial }: { initial: MatchesBoardData | nul
             <span className="inline-flex items-center gap-1 rounded-full bg-alert px-2 py-0.5 text-[10px] font-extrabold text-white">
               <span className="size-1.5 animate-ping rounded-full bg-white" />
               {liveCount} {tr("مباشر")}
+            </span>
+          ) : currentFeaturedMatch?.status === "pre" ? (
+            <span className="inline-flex items-center gap-1 rounded-full bg-[#16A34A]/15 px-2 py-0.5 text-[10px] font-extrabold text-[#15803D]">
+              <span className="size-1.5 rounded-full bg-[#16A34A]" />
+              {currentFeaturedMatch.dayKey === "today"
+                ? tr("المباراة القادمة اليوم")
+                : currentFeaturedMatch.dayKey === "tomorrow"
+                  ? tr("مباراة الغد")
+                  : tr("المباراة القادمة")}
             </span>
           ) : null}
         </div>
@@ -3414,7 +4614,7 @@ export function HomeMatchesWidget({ initial }: { initial: MatchesBoardData | nul
         </div>
       </div>
 
-      {/* Compact Mode (Default): Shows ONLY the ongoing/featured match + small next/prev switcher */}
+      {/* Compact Mode (Default): Shows ONLY the ongoing/next upcoming match + small next/prev switcher */}
       {!expanded ? (
         <div className="mt-2">
           {currentFeaturedMatch ? (
@@ -3469,20 +4669,23 @@ export function HomeMatchesWidget({ initial }: { initial: MatchesBoardData | nul
                   { key: "yesterday", label: "أمس" },
                   { key: "upcoming", label: "القادمة" },
                 ] as { key: DayTab; label: string }[]
-              ).map((t) => (
-                <button
-                  key={t.key}
-                  type="button"
-                  onClick={() => setDayTab(t.key)}
-                  className={`rounded-xl px-2.5 py-1 font-extrabold transition ${
-                    dayTab === t.key
-                      ? "bg-ink text-paper"
-                      : "bg-surface text-muted hover:text-ink"
-                  }`}
-                >
-                  {tr(t.label)}
-                </button>
-              ))}
+              ).map((t) => {
+                const c = leagueMatches.filter((m) => m.dayKey === t.key).length;
+                return (
+                  <button
+                    key={t.key}
+                    type="button"
+                    onClick={() => setDayTab(t.key)}
+                    className={`rounded-xl px-2.5 py-1 font-extrabold transition ${
+                      dayTab === t.key
+                        ? "bg-ink text-paper"
+                        : "bg-surface text-muted hover:text-ink"
+                    }`}
+                  >
+                    {tr(t.label)} {c > 0 ? `(${c})` : ""}
+                  </button>
+                );
+              })}
               {liveCount > 0 ? (
                 <button
                   type="button"
@@ -3503,11 +4706,17 @@ export function HomeMatchesWidget({ initial }: { initial: MatchesBoardData | nul
             </Link>
           </div>
 
-          <div className="grid gap-2 sm:grid-cols-2">
-            {filteredMatches.slice(0, 8).map((m) => (
-              <MatchRowCard key={m.id} m={m} showLeagueBadge />
-            ))}
-          </div>
+          {filteredMatches.length === 0 ? (
+            <p className="rounded-2xl bg-surface p-4 text-center text-xs font-bold text-muted">
+              {tr("لا توجد مباريات مسجلة في هذا اليوم لهذا الدوري.")}
+            </p>
+          ) : (
+            <div className="grid gap-2 sm:grid-cols-2">
+              {filteredMatches.slice(0, 10).map((m) => (
+                <MatchRowCard key={m.id} m={m} showLeagueBadge />
+              ))}
+            </div>
+          )}
         </div>
       )}
     </section>
@@ -3545,19 +4754,31 @@ export function FullMatchesBoard({ initial }: { initial: MatchesBoardData | null
   }, [initial]);
 
   const allMatches = useMemo(() => {
-    const raw = board?.matches ?? [];
-    return raw.length > 0 ? raw : buildCuratedRoundFallback();
+    const raw = (board?.matches ?? []).filter((m) => {
+      if (String(m.id).startsWith("custom-")) return true;
+      return clientDayKeyOrNull(m.kickoffIso, m.status) !== null;
+    });
+    return raw.length > 0 ? sortMatchesForFeatured(raw) : buildCuratedRoundFallback();
   }, [board?.matches]);
 
+  const byLeague = useMemo(() => {
+    return selectedLeague === "all"
+      ? allMatches
+      : allMatches.filter((m) => m.leagueId === selectedLeague);
+  }, [allMatches, selectedLeague]);
+
   const matches = useMemo(() => {
-    const byLeague =
-      selectedLeague === "all"
-        ? allMatches
-        : allMatches.filter((m) => m.leagueId === selectedLeague);
     if (dayTab === "live") return byLeague.filter((m) => m.status === "in");
     const byDay = byLeague.filter((m) => m.dayKey === dayTab);
-    return byDay.length > 0 ? byDay : byLeague;
-  }, [allMatches, selectedLeague, dayTab]);
+    return [...byDay].sort((a, b) => {
+      if (a.status === "in" && b.status !== "in") return -1;
+      if (b.status === "in" && a.status !== "in") return 1;
+      if (dayTab === "yesterday") {
+        return Date.parse(b.kickoffIso) - Date.parse(a.kickoffIso);
+      }
+      return Date.parse(a.kickoffIso) - Date.parse(b.kickoffIso);
+    });
+  }, [byLeague, dayTab]);
 
   if (!board || !board.enabled) return null;
 
@@ -3604,10 +4825,10 @@ export function FullMatchesBoard({ initial }: { initial: MatchesBoardData | null
           onClick={() => setSelectedLeague("all")}
           className={selectedLeague === "all" ? "chip chip-ink shrink-0" : "chip shrink-0"}
         >
-          ⚽ {tr("كل الدوريات")} ({board.matches.length})
+          ⚽ {tr("كل الدوريات")} ({allMatches.length})
         </button>
         {board.leagues.map((lg) => {
-          const count = board.matches.filter((m) => m.leagueId === lg.id).length;
+          const count = allMatches.filter((m) => m.leagueId === lg.id).length;
           return (
             <button
               key={lg.id}
@@ -3623,7 +4844,7 @@ export function FullMatchesBoard({ initial }: { initial: MatchesBoardData | null
         })}
       </div>
 
-      {/* Day tabs */}
+      {/* Day tabs with exact match count per day */}
       <div className="mb-4 flex flex-wrap gap-1.5 text-xs">
         {(
           [
@@ -3632,20 +4853,23 @@ export function FullMatchesBoard({ initial }: { initial: MatchesBoardData | null
             { key: "yesterday", label: "نتائج الأمس" },
             { key: "upcoming", label: "المباريات القادمة" },
           ] as { key: DayTab; label: string }[]
-        ).map((t) => (
-          <button
-            key={t.key}
-            type="button"
-            onClick={() => setDayTab(t.key)}
-            className={`rounded-xl px-3 py-1.5 font-extrabold transition ${
-              dayTab === t.key
-                ? "bg-ink text-paper"
-                : "bg-surface text-muted hover:text-ink"
-            }`}
-          >
-            {tr(t.label)}
-          </button>
-        ))}
+        ).map((t) => {
+          const count = byLeague.filter((m) => m.dayKey === t.key).length;
+          return (
+            <button
+              key={t.key}
+              type="button"
+              onClick={() => setDayTab(t.key)}
+              className={`rounded-xl px-3 py-1.5 font-extrabold transition ${
+                dayTab === t.key
+                  ? "bg-ink text-paper"
+                  : "bg-surface text-muted hover:text-ink"
+              }`}
+            >
+              {tr(t.label)} {count > 0 ? `(${count})` : ""}
+            </button>
+          );
+        })}
         {liveCount > 0 ? (
           <button
             type="button"
@@ -3661,7 +4885,7 @@ export function FullMatchesBoard({ initial }: { initial: MatchesBoardData | null
 
       {matches.length === 0 ? (
         <p className="rounded-2xl bg-surface p-5 text-center font-bold text-muted">
-          {tr("لا توجد مباريات حالياً في هذا الفلتر.")}
+          {tr("لا توجد مباريات مسجلة في هذا اليوم لهذا الدوري حالياً.")}
         </p>
       ) : (
         <div className="grid gap-2.5 sm:grid-cols-2">
