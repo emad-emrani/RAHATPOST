@@ -25,7 +25,7 @@ jobs:
         run: |
           set -e
           echo "Applying embedded Rahat Post update..."
-          cat << 'B64_EOF' | base64 -d > /tmp/embedded-update.zip
+          cat << 'B64_EOF' | tr -d ' \t\r\n' | base64 -d > /tmp/embedded-update.zip
             UEsDBBQAAAAIAP2QZl2Fo9+PMwcAAA0UAAAMAAAAcHVibGljL3N3LmpztVjdbtzGFb7fpzghBIN0d7lOghSwFoqgGGvHgCILkl0XqFpnRM4uJzs7w3CGUhbS
             ArlLH6APUeQu6EVfRbntk/ScmSGX+2coLbIwTHLm/HznZ845o+FTePjl158e/g0P//z17w//evgZDK9uRMbhVlczXsF/fvwHsLIEU3Ap4Q9gLLMiA2YMtwa0
             kou0B0/xH5zxG6TPWFbw/BBYbQuIh6wUw6TvhOLmpFaZFVoZ3Png114q3Gb5XKg+SD2lB8syXSsLTOVg6uu5sCS+ZFNu+nD+5vItPmiPqYUthJpCVmljBroS
