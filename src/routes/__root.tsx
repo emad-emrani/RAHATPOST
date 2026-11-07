@@ -416,6 +416,12 @@ export const Route = createRootRoute({
     return { settings, i18n };
   },
   staleTime: 0,
+  headers: () => ({
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "SAMEORIGIN",
+    "Referrer-Policy": "strict-origin-when-cross-origin",
+    "Permissions-Policy": "geolocation=(self), microphone=(), camera=()",
+  }),
   head: ({ loaderData }) => {
     const st = loaderData?.settings ?? DEFAULT_SETTINGS;
     const base = baseHead();
@@ -639,9 +645,60 @@ function isLightHexColor(hex: string): boolean {
  * 2) Displays a harmonious, modern launch loading screen with the site logo & progress bar
  *    on initial open, handing off cleanly from the native SplashScreen.
  */
+function SecurityAndCopyrightShield() {
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    // 1. Prevent image drag-and-drop theft
+    const onDragStart = (e: DragEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target && target.tagName === "IMG") {
+        e.preventDefault();
+      }
+    };
+
+    // 2. Append official Rahat Post source attribution when copying article text (> 75 chars)
+    const onCopy = (e: ClipboardEvent) => {
+      try {
+        const target = e.target as HTMLElement | null;
+        if (
+          target &&
+          (target.tagName === "INPUT" ||
+            target.tagName === "TEXTAREA" ||
+            target.isContentEditable ||
+            window.location.pathname.startsWith("/admin"))
+        ) {
+          return;
+        }
+        const sel = window.getSelection()?.toString() ?? "";
+        if (sel.trim().length > 75 && e.clipboardData) {
+          const attribution = `\n\n— المصدر: منصة رهط بوست (Rahat Post) | جميع الحقوق محفوظة © ${new Date().getFullYear()}\n🔗 ${window.location.href}`;
+          e.clipboardData.setData("text/plain", sel + attribution);
+          e.preventDefault();
+        }
+      } catch {
+        /* ignore */
+      }
+    };
+
+    document.addEventListener("dragstart", onDragStart);
+    document.addEventListener("copy", onCopy);
+    return () => {
+      document.removeEventListener("dragstart", onDragStart);
+      document.removeEventListener("copy", onCopy);
+    };
+  }, []);
+
+  return null;
+}
+
 function AppLaunchSplashAndStatusBarBridge() {
   const st = useSiteSettings();
-  const isRouteLoading = useRouterState({ select: (s) => s.isLoading });
+  const location = useLocation();
+  const isRouteLoading = useRouterState({
+    select: (s) => s.isLoading || s.status === "pending",
+  });
+  const [navOverlay, setNavOverlay] = useState(false);
   const [showLaunch, setShowLaunch] = useState<boolean>(() => {
     if (typeof window === "undefined") return false;
     try {
@@ -657,15 +714,65 @@ function AppLaunchSplashAndStatusBarBridge() {
   const tagline = st.texts?.tagline || "أخبار وخدمات رهط والنقب في مكان واحد";
   const logoSrc = st.logoKey ? mediaUrl(st.logoKey) : "/icons/icon-192.png";
 
+  // Instant Page Transition Loading Screen (eliminates any perceived freeze between pages)
+  useEffect(() => {
+    if (isRouteLoading) {
+      const tShow = setTimeout(() => setNavOverlay(true), 45);
+      const tMax = setTimeout(() => setNavOverlay(false), 2200);
+      return () => {
+        clearTimeout(tShow);
+        clearTimeout(tMax);
+      };
+    }
+    const tHide = setTimeout(() => setNavOverlay(false), 90);
+    return () => clearTimeout(tHide);
+  }, [isRouteLoading, location.pathname, location.searchStr]);
+
+  // Also trigger immediate visual feedback when tapping internal navigation links on mobile/app
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    let safetyTimer: ReturnType<typeof setTimeout> | null = null;
+    const onDocClick = (e: MouseEvent) => {
+      if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey)
+        return;
+      const anchor = (e.target as HTMLElement | null)?.closest?.("a");
+      if (!anchor) return;
+      const href = anchor.getAttribute("href") || "";
+      const targetAttr = anchor.getAttribute("target");
+      if (
+        !href ||
+        targetAttr === "_blank" ||
+        href.startsWith("#") ||
+        href.startsWith("http") ||
+        href.startsWith("mailto:") ||
+        href.startsWith("tel:") ||
+        href.startsWith("whatsapp:")
+      ) {
+        return;
+      }
+      const currentFull = window.location.pathname + window.location.search;
+      if (href !== currentFull && href.startsWith("/")) {
+        setNavOverlay(true);
+        if (safetyTimer) clearTimeout(safetyTimer);
+        safetyTimer = setTimeout(() => setNavOverlay(false), 1600);
+      }
+    };
+    document.addEventListener("click", onDocClick, true);
+    return () => {
+      document.removeEventListener("click", onDocClick, true);
+      if (safetyTimer) clearTimeout(safetyTimer);
+    };
+  }, []);
+
   // Sync phone StatusBar color (Capacitor Native + Mobile Browser meta theme-color)
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
-      // 1. Update browser <meta name="theme-color"> & msapplication-navbutton-color
-      const metas = document.querySelectorAll('meta[name="theme-color"], meta[name="msapplication-navbutton-color"]');
+      const metas = document.querySelectorAll(
+        'meta[name="theme-color"], meta[name="msapplication-navbutton-color"]',
+      );
       metas.forEach((m) => m.setAttribute("content", primaryColor));
 
-      // 2. Update Capacitor Native StatusBar on Android & iOS
       const win = window as unknown as {
         Capacitor?: {
           Plugins?: {
@@ -687,7 +794,6 @@ function AppLaunchSplashAndStatusBarBridge() {
         void statusBar.setBackgroundColor?.({ color: primaryColor }).catch(() => {});
         void statusBar.setStyle?.({ style: isLight ? "LIGHT" : "DARK" }).catch(() => {});
       }
-      // Hide raw native splash so our harmonious themed UI is visible immediately
       void win.Capacitor?.Plugins?.SplashScreen?.hide?.({ fadeOutDuration: 0 }).catch(() => {});
     } catch {
       /* ignore */
@@ -697,7 +803,7 @@ function AppLaunchSplashAndStatusBarBridge() {
   // Smoothly dismiss launch screen once hydrated
   useEffect(() => {
     if (!showLaunch) return;
-    const t1 = setTimeout(() => setFadingOut(true), 320);
+    const t1 = setTimeout(() => setFadingOut(true), 280);
     const t2 = setTimeout(() => {
       setShowLaunch(false);
       try {
@@ -705,12 +811,14 @@ function AppLaunchSplashAndStatusBarBridge() {
       } catch {
         /* ignore */
       }
-    }, 620);
+    }, 540);
     return () => {
       clearTimeout(t1);
       clearTimeout(t2);
     };
   }, [showLaunch]);
+
+  const showPageTransitionScreen = (isRouteLoading || navOverlay) && !showLaunch;
 
   return (
     <>
@@ -723,21 +831,52 @@ function AppLaunchSplashAndStatusBarBridge() {
           0% { transform: translateX(100%); }
           100% { transform: translateX(-100%); }
         }
+        @keyframes rpSpinRing {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
       `}</style>
 
-      {/* Top 3px Theme Status Bar Accent & Route Loading Indicator */}
+      {/* Top 3.5px Theme Status Bar Accent & Instant Route Loading Bar */}
       <div
         aria-hidden
         className="fixed inset-x-0 top-0 z-50 h-1 overflow-hidden transition-colors duration-300"
         style={{ backgroundColor: primaryColor }}
       >
-        {isRouteLoading ? (
+        {isRouteLoading || navOverlay ? (
           <div
-            className="h-full w-1/2 bg-ink/40"
-            style={{ animation: "rpProgressSlide 0.9s infinite linear" }}
+            className="h-full w-1/2 bg-ink/55"
+            style={{ animation: "rpProgressSlide 0.65s infinite linear" }}
           />
         ) : null}
       </div>
+
+      {/* Smooth Page-to-Page Loading Screen (التخلص من التعليق بين الصفحات بشاشة لودينج) */}
+      {showPageTransitionScreen ? (
+        <div
+          id="rp-page-transition-loader"
+          aria-live="polite"
+          className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center bg-surface/45 backdrop-blur-[3px] transition-opacity duration-150"
+        >
+          <div className="flex items-center gap-3 rounded-3xl border border-primary-deep/60 bg-paper/95 px-5 py-3.5 shadow-2xl">
+            <div className="relative flex size-11 items-center justify-center">
+              <span
+                className="absolute inset-0 rounded-full border-3 border-primary/30 border-t-primary-deep"
+                style={{ animation: "rpSpinRing 0.65s infinite linear" }}
+              />
+              <img
+                src={logoSrc}
+                alt=""
+                className="size-8 rounded-full object-cover"
+              />
+            </div>
+            <div className="text-start">
+              <p className="text-sm font-extrabold text-ink">{trv(siteName)}</p>
+              <p className="text-[11px] font-bold text-muted">{tr("جاري فتح الصفحة…")}</p>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {/* Harmonious Initial Launch Splash Overlay */}
       {showLaunch ? (
@@ -904,6 +1043,7 @@ function RootComponent() {
   return (
     <html lang={i18n.lang} dir={i18n.dir} suppressHydrationWarning>
       <head>
+        <script dangerouslySetInnerHTML={{ __html: '(function(){try{var d=localStorage.getItem("rp_dark_mode");if(d==="1"||d==="true"||d==="dark"){document.documentElement.setAttribute("data-theme","dark");document.documentElement.classList.add("dark");}}catch(e){}})();' }} />
         <script dangerouslySetInnerHTML={{ __html: langRedirectScript(i18n.lang, defLang, i18n.langs.map((l) => l.code)) }} />
         <meta name="google-mobile-ads-android-app-id" content={mobileAdsCfg.androidAppId} />
         <meta name="google-mobile-ads-ios-app-id" content={mobileAdsCfg.iosAppId} />
@@ -935,6 +1075,7 @@ function RootComponent() {
         ) : null}
         <SiteSettingsProvider value={settings}>
           <AppLaunchSplashAndStatusBarBridge />
+          <SecurityAndCopyrightShield />
           <PreviewHostBridge />
           <ServiceWorkerRegistration />
           <GoogleMobileAdsBridge

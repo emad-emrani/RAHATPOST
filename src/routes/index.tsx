@@ -1,3 +1,5 @@
+import { SocialVipFeedAndTrendsSection, parseSocialHubConfig } from "@/components/social-vip-feed";
+import { parseWeatherPrayerStyleConfig } from "@/components/today-cards";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Bus, ChevronDown, ChevronLeft, ChevronRight, Cpu, Globe, House, MapPin, Megaphone, Newspaper, Plus, RefreshCw, Search, Siren, Sparkles, Store, Trophy, Tv, type LucideIcon } from "lucide-react";
 import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
@@ -782,7 +784,8 @@ function Home() {
       </section>
     ),
     duty: board.dutyVisible === false ? null : <DutyCard duty={board.duty} />,
-    emergency: <InteractiveEmergencyHomeSection />, 
+    emergency: <InteractiveEmergencyHomeSection />,
+    socialvip: <SocialVipFeedAndTrendsSection />,
   };
 
   // Build the homepage section order from slidercfg (/hord) + settings.home + all visibleCustomSections
@@ -854,6 +857,21 @@ function Home() {
         working.splice(hasLive ? newsIdx : newsIdx + 1, 0, "matches");
       } else {
         working.unshift("matches");
+      }
+    }
+
+    // Inject Social VIP section (تواصل اجتماعي) if enabled in socialhubcfg
+    const socialHubCfg = parseSocialHubConfig(settings.quickLinks);
+    if (
+      socialHubCfg.vipSectionEnabled &&
+      !working.includes("socialvip" as ExtendedHomeSectionId) &&
+      !hiddenByHord.has("socialvip")
+    ) {
+      const newsIdx = working.indexOf("news");
+      if (newsIdx !== -1) {
+        working.splice(newsIdx + 1, 0, "socialvip" as ExtendedHomeSectionId);
+      } else {
+        working.push("socialvip" as ExtendedHomeSectionId);
       }
     }
 
@@ -5515,6 +5533,8 @@ function AnimatedWeatherPrayerBar({
   weather: Weather | null;
   serverNow: number;
 }) {
+  const st = useSiteSettings();
+  const wCfg = useMemo(() => parseWeatherPrayerStyleConfig(st.quickLinks), [st.quickLinks]);
   const [now, setNow] = useState(serverNow);
   useEffect(() => {
     setNow(Date.now());
@@ -5540,10 +5560,30 @@ function AnimatedWeatherPrayerBar({
     }
   }, [now]);
 
-  const isNight = weather ? !weather.isDay : localHour >= 18 || localHour < 6;
+  const naturalNight = weather ? !weather.isDay : localHour >= 18 || localHour < 6;
   const kind = weather ? weatherKind(weather.code) : "clear";
-  const isRainy = kind === "rain" || kind === "storm" || (weather?.rainChance ?? 0) >= 40;
+  const naturalRainy = kind === "rain" || kind === "storm" || (weather?.rainChance ?? 0) >= 40;
+
+  const isRainy =
+    wCfg.fx === "rain" ||
+    wCfg.fx === "storm" ||
+    (wCfg.fx === "auto" && naturalRainy);
+  const isNight =
+    wCfg.fx === "night" ||
+    (wCfg.fx === "auto" && naturalNight && !isRainy);
   const isCloudy = kind === "partly" || kind === "cloudy" || kind === "fog";
+
+  const isDarkThemeBar =
+    wCfg.style === "night-radar" ||
+    wCfg.style === "mosque-gold" ||
+    (wCfg.style === "scene-animated" && isRainy);
+
+  const barWrapCls =
+    wCfg.style === "mosque-gold"
+      ? "relative flex flex-nowrap items-center justify-between gap-1.5 overflow-x-auto rounded-2xl border-2 border-[#d9a92a] bg-gradient-to-r from-[#111827] via-[#1f2937] to-[#111827] px-2.5 py-2 text-[10.5px] font-bold text-white shadow-md [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:gap-3 sm:px-4 sm:py-2.5 sm:text-xs"
+      : isDarkThemeBar
+        ? "relative flex flex-nowrap items-center justify-between gap-1.5 overflow-x-auto rounded-2xl border border-sky-400/35 bg-gradient-to-r from-[#0c223d] via-[#133357] to-[#0f2547] px-2.5 py-2 text-[10.5px] font-bold text-white shadow-md [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:gap-3 sm:px-4 sm:py-2.5 sm:text-xs"
+        : "stamp relative flex flex-nowrap items-center justify-between gap-1.5 overflow-x-auto rounded-2xl border border-line bg-paper px-2.5 py-2 text-[10.5px] font-bold text-ink [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:gap-3 sm:px-4 sm:py-2.5 sm:text-xs";
 
   return (
     <div className="-mt-1 w-full sm:mt-0">
@@ -5573,21 +5613,47 @@ function AnimatedWeatherPrayerBar({
           0%, 100% { transform: translateX(-1px); opacity: 0.75; }
           50% { transform: translateX(1.5px); opacity: 1; }
         }
+        @keyframes rpBarRainDrop {
+          0% { transform: translateY(-10px) translateX(0px) rotate(14deg); opacity: 0; }
+          30% { opacity: 0.75; }
+          100% { transform: translateY(46px) translateX(-8px) rotate(14deg); opacity: 0; }
+        }
       `}</style>
 
-      {/* Single-Row Harmonious Card — Fits 100% on one line on mobile & desktop in exact Image 2 RTL order */}
-      <div className="stamp flex flex-nowrap items-center justify-between gap-1.5 overflow-x-auto rounded-2xl border border-line bg-paper px-2.5 py-2 text-[10.5px] font-bold text-ink [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:gap-3 sm:px-4 sm:py-2.5 sm:text-xs">
+      <div className={barWrapCls}>
+        {/* Animated Falling Raindrops across the Bar when Rainy */}
+        {isRainy ? (
+          <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl">
+            {[6, 14, 23, 31, 42, 51, 60, 69, 78, 86, 93].map((leftPct, i) => (
+              <span
+                key={i}
+                className={`absolute top-0 h-3 w-[1.5px] rounded-full ${
+                  isDarkThemeBar ? "bg-sky-300/70" : "bg-sky-500/45"
+                }`}
+                style={{
+                  left: `${leftPct}%`,
+                  animation: `rpBarRainDrop ${(0.65 + (i % 4) * 0.14).toFixed(2)}s ${((i * 0.13) % 0.9).toFixed(2)}s infinite linear`,
+                }}
+              />
+            ))}
+          </div>
+        ) : null}
+
         {/* Right Side (in RTL): Weather Icon + Temp + Condition + Wind + Day/Night Live Time */}
         <Link
           to="/today"
-          className="inline-flex min-w-0 shrink-0 items-center gap-1 whitespace-nowrap transition hover:opacity-80 sm:gap-2"
+          className="relative z-10 inline-flex min-w-0 shrink-0 items-center gap-1 whitespace-nowrap transition hover:opacity-80 sm:gap-2"
           aria-label={
             weather
               ? tr("الطقس في رهط: {0} درجة، {1}", weather.temp, weatherLabel(weather.code))
               : tr("الطقس في رهط")
           }
         >
-          <span className="relative inline-flex size-5 shrink-0 items-center justify-center rounded-full bg-primary-soft text-xs leading-none sm:size-6 sm:text-sm">
+          <span
+            className={`relative inline-flex size-5 shrink-0 items-center justify-center rounded-full text-xs leading-none sm:size-6 sm:text-sm ${
+              isDarkThemeBar ? "bg-white/15" : "bg-primary-soft"
+            }`}
+          >
             {isRainy ? (
               <span style={{ animation: "rpRainBounce 1.4s infinite ease-in-out" }}>🌧️</span>
             ) : isNight ? (
@@ -5609,14 +5675,23 @@ function AnimatedWeatherPrayerBar({
 
           {weather ? (
             <>
-              <bdi dir="ltr" className="text-[11px] font-extrabold text-ink sm:text-sm">
+              <bdi
+                dir="ltr"
+                className={`text-[11px] font-extrabold sm:text-sm ${
+                  isDarkThemeBar ? "text-white" : "text-ink"
+                }`}
+              >
                 {trv(weather.temp)}°
               </bdi>
-              <span className="font-bold text-ink/85">{weatherLabel(weather.code)}</span>
+              <span className={`font-bold ${isDarkThemeBar ? "text-sky-100" : "text-ink/85"}`}>
+                {wCfg.fx === "rain" ? tr("أجواء ماطرة") : weatherLabel(weather.code)}
+              </span>
 
               {weather.wind !== null ? (
                 <span
-                  className="inline-flex items-center gap-0.5 text-[10px] font-bold text-muted sm:text-xs"
+                  className={`inline-flex items-center gap-0.5 text-[10px] font-bold sm:text-xs ${
+                    isDarkThemeBar ? "text-white/75" : "text-muted"
+                  }`}
                   title={tr("سرعة الرياح")}
                 >
                   <span
@@ -5630,13 +5705,17 @@ function AnimatedWeatherPrayerBar({
                 </span>
               ) : null}
 
-              {weather.rainChance !== null && weather.rainChance > 0 ? (
+              {(weather.rainChance !== null && weather.rainChance > 0) || isRainy ? (
                 <span
-                  className="inline-flex items-center gap-0.5 text-[10px] font-bold text-primary-ink sm:text-xs"
+                  className={`inline-flex items-center gap-0.5 text-[10px] font-bold sm:text-xs ${
+                    isDarkThemeBar ? "text-sky-200" : "text-primary-ink"
+                  }`}
                   title={tr("احتمال المطر")}
                 >
                   <span style={{ animation: "rpRainBounce 1.6s infinite ease-in-out" }}>💧</span>
-                  <bdi dir="ltr">{trv(weather.rainChance)}%</bdi>
+                  <bdi dir="ltr">
+                    {weather.rainChance && weather.rainChance > 0 ? trv(weather.rainChance) : "80"}%
+                  </bdi>
                 </span>
               ) : null}
             </>
@@ -5645,37 +5724,55 @@ function AnimatedWeatherPrayerBar({
           )}
 
           {/* Day / Night Live Time Indicator */}
-          <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-muted sm:gap-1 sm:text-xs">
-            <span className="text-line">·</span>
+          <span
+            className={`inline-flex items-center gap-0.5 text-[10px] font-bold sm:gap-1 sm:text-xs ${
+              isDarkThemeBar ? "text-white/75" : "text-muted"
+            }`}
+          >
+            <span className={isDarkThemeBar ? "text-white/30" : "text-line"}>·</span>
             <span>{isNight ? tr("ليلاً") : tr("نهاراً")}</span>
-            <bdi dir="ltr" className="font-mono font-extrabold text-ink">
+            <bdi
+              dir="ltr"
+              className={`font-mono font-extrabold ${isDarkThemeBar ? "text-amber-300" : "text-ink"}`}
+            >
               {timeStr}
             </bdi>
           </span>
         </Link>
 
         {/* Subtle Vertical Divider */}
-        <span className="h-3.5 w-px shrink-0 bg-line" aria-hidden />
+        <span
+          className={`relative z-10 h-3.5 w-px shrink-0 ${
+            isDarkThemeBar ? "bg-white/20" : "bg-line"
+          }`}
+          aria-hidden
+        />
 
         {/* Left Side (in RTL): Mosque Icon + Next Prayer Name & Time + Countdown */}
         <Link
           to="/today"
-          className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap transition hover:opacity-80 sm:gap-1.5"
+          className="relative z-10 inline-flex shrink-0 items-center gap-1 whitespace-nowrap transition hover:opacity-80 sm:gap-1.5"
         >
           <span
-            className="inline-flex size-5 shrink-0 items-center justify-center rounded-full bg-primary-soft text-xs leading-none sm:size-6 sm:text-sm"
+            className={`inline-flex size-5 shrink-0 items-center justify-center rounded-full text-xs leading-none sm:size-6 sm:text-sm ${
+              isDarkThemeBar ? "bg-amber-400/20" : "bg-primary-soft"
+            }`}
             style={{ animation: "rpMoonFloat 3.6s infinite ease-in-out" }}
             aria-hidden
           >
             🕌
           </span>
-          <span className="font-extrabold text-ink">
+          <span className={`font-extrabold ${isDarkThemeBar ? "text-white" : "text-ink"}`}>
             {trv(next.name)}{" "}
-            <bdi dir="ltr" className="text-primary-ink">
+            <bdi dir="ltr" className={isDarkThemeBar ? "text-[#f2c94c]" : "text-primary-ink"}>
               {formatPrayerTime(next.at)}
             </bdi>
           </span>
-          <span className="text-[10px] font-semibold text-muted sm:text-xs">
+          <span
+            className={`text-[10px] font-semibold sm:text-xs ${
+              isDarkThemeBar ? "text-white/75" : "text-muted"
+            }`}
+          >
             {countdownAr(next.at - now)}
           </span>
         </Link>

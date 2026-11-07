@@ -127,6 +127,8 @@ const json = (status: number, body: unknown) =>
     status,
     headers: {
       "content-type": "application/json; charset=utf-8",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "SAMEORIGIN",
       "cache-control": "private, no-store, no-cache, must-revalidate, max-age=0",
       pragma: "no-cache",
       expires: "0",
@@ -634,6 +636,8 @@ export const Route = createFileRoute("/api/media")({
               status: 200,
               headers: {
                 "content-type": "application/json; charset=utf-8",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "SAMEORIGIN",
                 "cache-control": "private, no-store, no-cache, must-revalidate, max-age=0",
                 "pragma": "no-cache",
                 "expires": "0",
@@ -690,6 +694,8 @@ export const Route = createFileRoute("/api/media")({
               status: 200,
               headers: {
                 "content-type": "application/json; charset=utf-8",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "SAMEORIGIN",
                 "cache-control": "private, no-store, no-cache, must-revalidate, max-age=0",
                 "access-control-allow-origin": "*",
               },

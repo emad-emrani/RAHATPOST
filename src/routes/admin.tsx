@@ -1,3 +1,4 @@
+import { SocialHubAndNewslettersAdmin, type PublishableArticleItem } from "@/components/admin/social-hub-admin";
 import {
   Activity,
   AlertTriangle,
@@ -774,7 +775,8 @@ type Section =
   | "sec-israel"
   | "sec-sports"
   | "sec-tech"
-  | "sec-weather";
+  | "sec-weather"
+  | "social-hub";
 
 const ALL_TABS: { key: Section; label: string; icon: LucideIcon }[] = [
   { key: "home", label: "نظرة عامة", icon: House },
@@ -782,6 +784,7 @@ const ALL_TABS: { key: Section; label: string; icon: LucideIcon }[] = [
   { key: "review", label: "طابور المراجعة", icon: ClipboardCheck },
   { key: "stats", label: "الإحصائيات والزوار", icon: BarChart3 },
   { key: "publish", label: "نشر مقال / فيديو / بث مباشر", icon: PenSquare },
+  { key: "social-hub", label: "التواصل والنشرات", icon: Globe },
   { key: "sec-add", label: "إضافة قسم جديد", icon: FolderPlus },
   { key: "sec-manage", label: "إدارة الأقسام", icon: LayoutGrid },
   { key: "auto", label: "الجلب التلقائي والترجمة", icon: Rss },
@@ -837,7 +840,7 @@ const GROUPS: { id: string; label: string; desc: string; icon: LucideIcon; keys:
     label: "الأخبار والمحتوى",
     desc: "نشر الأخبار، الجلب التلقائي، ومصادر الأخبار",
     icon: Newspaper,
-    keys: ["publish", "auto", "news", "sec-news", "sec-israel", "sec-sports", "sec-tech", "sec-weather"],
+    keys: ["social-hub", "publish", "auto", "news", "sec-news", "sec-israel", "sec-sports", "sec-tech", "sec-weather"],
   },
   {
     id: "store-hub",
@@ -865,7 +868,7 @@ const GROUPS: { id: string; label: string; desc: string; icon: LucideIcon; keys:
     label: "التنبيهات والتسويق وSEO",
     desc: "الأخبار العاجلة، الإشعارات، وإعدادات جوجل",
     icon: Siren,
-    keys: ["alerts", "push", "popups", "set-google", "emails"],
+    keys: ["social-hub", "alerts", "push", "popups", "set-google", "emails"],
   },
   {
     id: "members",
@@ -2619,6 +2622,7 @@ function AdminPage() {
     comments: "moderate_comments",
     directory: "moderate_directory",
     publish: "write_news",
+    "social-hub": "write_news",
   };
   const isMod = level === "moderator" && ["moderate_haraj", "moderate_news", "moderate_comments"].some((p) => perms.includes(p));
   const tabs = ALL_TABS.filter(({ key }) =>
@@ -2760,6 +2764,18 @@ function AdminPage() {
               </button>
               <button
                 type="button"
+                onClick={() => go("social-hub")}
+                className={`flex items-center justify-center gap-2 rounded-2xl px-3 py-3 text-xs font-extrabold shadow-xs transition ${
+                  current === "social-hub"
+                    ? "bg-ink text-paper ring-2 ring-ink/30"
+                    : "bg-[#1877F2] text-white hover:bg-[#1d4ed8]"
+                }`}
+              >
+                <Globe className="size-4 shrink-0" aria-hidden />
+                <span>{tr("📱 التواصل والنشرات")}</span>
+              </button>
+              <button
+                type="button"
                 onClick={() => setMenuOpen(true)}
                 className=" col-span-2 sm:col-span-1 flex items-center justify-center gap-2 rounded-2xl border border-line bg-paper px-3 py-3 text-xs font-extrabold text-ink shadow-xs transition hover:bg-primary-soft lg:hidden"
               >
@@ -2845,6 +2861,8 @@ function AdminPage() {
             </div>
           ) : current === "review" ? (
             <ReviewQueue onCount={setReviewCount} />
+          ) : current === "social-hub" ? (
+            <SocialHubAdminConnected />
           ) : current === "publish" ? (
             <PublishAdmin />
           ) : current === "matches" ? (
@@ -2903,6 +2921,7 @@ function AdminPage() {
             </div>
           ) : current.startsWith("sec-") ? (
             <div className="space-y-4">
+              {current === "sec-weather" ? <SocialHubAdminConnected defaultWeatherTab /> : null}
               <StaggeredRssScheduleCard />
               <QuickCustomSectionsBar
                 mode="manage"
@@ -14653,6 +14672,83 @@ function BusLinesAdmin() {
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+
+function SocialHubAdminConnected({ defaultWeatherTab = false }: { defaultWeatherTab?: boolean }) {
+  const router = useRouter();
+  const ctxSettings = useSiteSettings();
+  const [draft, setDraft] = useState<SiteSettings>(ctxSettings ?? DEFAULT_SETTINGS);
+  const [busy, setBusy] = useState(false);
+  const [articles, setArticles] = useState<PublishableArticleItem[]>([]);
+
+  useEffect(() => {
+    void adminGetSiteSettings()
+      .then((r) => {
+        if (r?.authed && r.settings) setDraft(r.settings);
+      })
+      .catch(() => {});
+
+    void adminListAutoNews()
+      .then((res) => {
+        if (res?.items && Array.isArray(res.items)) {
+          setArticles(
+            res.items.slice(0, 15).map((it) => ({
+              slug: it.slug,
+              title: it.title,
+              summary: it.summary,
+              category: it.category || "أخبار رهط",
+              imageUrl: it.image,
+              publishedAt: it.publishedAt,
+            })),
+          );
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const saveNow = async (nextSettings: SiteSettings) => {
+    setBusy(true);
+    try {
+      setDraft(nextSettings);
+      const [res, apiRes] = await Promise.all([
+        adminSaveSiteSettings({ data: nextSettings }).catch(() => ({
+          ok: false,
+          settings: undefined,
+        })),
+        fetch("/api/media?kind=live-settings", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ settings: nextSettings }),
+        })
+          .then((r) => (r.ok ? r.json() : null))
+          .catch(() => null),
+      ]);
+      const saved = res?.settings ?? apiRes?.settings ?? nextSettings;
+      setDraft(saved);
+      try {
+        window.localStorage.setItem("rp_latest_site_settings", JSON.stringify(saved));
+        window.dispatchEvent(new CustomEvent("rp-site-settings-updated", { detail: saved }));
+      } catch {
+        /* ignore */
+      }
+      await router.invalidate().catch(() => {});
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div key={defaultWeatherTab ? "weather-hub" : "social-hub"}>
+      <SocialHubAndNewslettersAdmin
+        draft={draft}
+        setDraft={setDraft}
+        saveNow={saveNow}
+        busy={busy}
+        articles={articles}
+      />
     </div>
   );
 }

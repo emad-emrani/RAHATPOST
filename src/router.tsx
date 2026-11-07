@@ -5,6 +5,12 @@ import { routeTree } from "./routeTree.gen";
 export function getRouter() {
   return createRouter({
     routeTree,
+    defaultPreload: "intent",
+    defaultPreloadDelay: 35,
+    defaultPreloadStaleTime: 30_000,
+    defaultPendingMs: 0,
+    defaultPendingMinMs: 160,
+    scrollRestoration: true,
     defaultErrorComponent: AppErrorComponent,
     defaultNotFoundComponent: AppNotFoundComponent,
   });

@@ -179,6 +179,15 @@ export function Shell({ children, wide = false }: { children: ReactNode; wide?: 
             ) : null}
           </div>
           {t.footer ? <p className="mt-2 text-xs text-muted">{trv(t.footer)}</p> : null}
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-surface/80 px-3.5 py-2 text-[11px] font-bold text-muted">
+            <span>
+              🛡️ {tr("جميع الحقوق محفوظة ©")} {new Date().getFullYear()} {trv(t.siteName)} (Rahat Post) ·{" "}
+              {tr("يُمنع نسخ أو إعادة نشر المحتوى أو التصميم أو التطبيق دون إذن خطي.")}
+            </span>
+            <span dir="ltr" className="font-extrabold text-primary-ink">
+              Protected by RahatPost IP Shield
+            </span>
+          </div>
         </div>
       </footer>
 
