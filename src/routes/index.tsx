@@ -5830,7 +5830,7 @@ function getBranchLiveStatus(branch: InteractivePostBranch, nowMs: number): {
   }
 }
 
-function InteractiveRahatServicesHub({ now }: { now: number }) {
+export function InteractiveRahatServicesHub({ now = Date.now() }: { now?: number }) {
   const [mainTab, setMainTab] = useState<"post" | "municipality" | "health" | "transport" | null>(null);
   const [postSubTab, setPostSubTab] = useState<"branches" | "pay" | "track" | "bank">("branches");
   const [selectedBranchId, setSelectedBranchId] = useState<string | null>(null);

@@ -22,6 +22,7 @@ import { categoryOrder, osmEntries, type DirectoryEntry } from "@/lib/directory/
 import { tr, trv } from "@/lib/i18n/core";
 import { mediaUrl } from "@/lib/media/types";
 import { breadcrumbLd, seo } from "@/lib/seo";
+import { InteractiveRahatServicesHub } from "./index";
 
 type DirectoryStyleMode = "cards" | "showcase" | "grid" | "carousel" | "compact" | "dark_gold";
 
@@ -241,7 +242,7 @@ function DirectoryPage() {
       <div className="flex flex-col gap-5">
         {/* Hero Header Banner */}
         <header className="stamp overflow-hidden border-2 border-primary bg-gradient-to-b from-primary-soft/75 via-paper to-paper p-4 sm:p-5 shadow-xs">
-          <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="flex flex-col gap-3.5">
             <div className="flex items-center gap-3">
               <span className="grid size-13 shrink-0 place-items-center rounded-2xl bg-ink text-primary shadow-sm">
                 <Store className="size-7" aria-hidden />
@@ -256,23 +257,49 @@ function DirectoryPage() {
               </div>
             </div>
 
-            <div className="flex flex-wrap gap-2">
+            {/* Two Equal Large Action Buttons Side-by-Side */}
+            <div className="grid grid-cols-2 gap-2.5">
               <button
                 type="button"
                 onClick={() => setShowGuides((v) => !v)}
-                className="btn btn-ghost py-2 text-xs font-extrabold"
+                aria-expanded={showGuides}
+                className={`btn w-full justify-center py-3 text-xs font-extrabold shadow-xs transition sm:text-sm ${
+                  showGuides
+                    ? "border-ink bg-ink text-primary"
+                    : "border-primary-deep bg-primary-soft text-ink hover:bg-primary"
+                }`}
               >
-                📮 {showGuides ? tr("إخفاء أدلة الخدمات") : tr("أدلة البريد والخدمات")}
+                <span>📮</span>
+                <span>{showGuides ? tr("إخفاء البريد والخدمات ▴") : tr("البريد والخدمات ▾")}</span>
               </button>
               <Link
                 to="/submit"
                 search={{ mode: "نشاط" }}
-                className="btn py-2 text-xs font-extrabold"
+                className="btn w-full justify-center py-3 text-xs font-extrabold shadow-xs sm:text-sm"
               >
-                <Plus className="size-4" aria-hidden />
-                {tr("أضف محلك مجاناً")}
+                <Plus className="size-4 shrink-0" aria-hidden />
+                <span>{tr("أضف محلك مجاناً")}</span>
               </Link>
             </div>
+
+            {/* Inline Expandable Rahat Post & Services Hub right below the button */}
+            {showGuides ? (
+              <div className="pt-1">
+                <div className="mb-2 flex items-center justify-between px-1">
+                  <h2 className="text-base font-extrabold text-ink sm:text-lg">
+                    📮 {tr("دليل البريد والخدمات في رهط")}
+                  </h2>
+                  <Link
+                    to="/directory/guide/$guide"
+                    params={{ guide: "post" }}
+                    className="rounded-full bg-primary-soft px-3 py-1 text-xs font-extrabold text-primary-ink hover:bg-primary"
+                  >
+                    {tr("الدليل الكامل ‹")}
+                  </Link>
+                </div>
+                <InteractiveRahatServicesHub />
+              </div>
+            ) : null}
           </div>
 
           {/* Search Input */}
@@ -316,18 +343,7 @@ function DirectoryPage() {
           </div>
         </header>
 
-        {/* Expandable Official Service Guides */}
-        {showGuides ? (
-          <section aria-label={tr("أدلة الخدمات")}>
-            <ul className="grid gap-3 sm:grid-cols-2">
-              {guides.map((g) => (
-                <li key={g.slug}>
-                  <GuideCard guide={g} />
-                </li>
-              ))}
-            </ul>
-          </section>
-        ) : null}
+
 
         {/* Active Promotional Campaigns Across Rahat Shops */}
         {activeOffersAcrossShops.length > 0 ? (
