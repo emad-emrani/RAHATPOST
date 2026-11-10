@@ -10,7 +10,6 @@ permissions:
 
 jobs:
   unpack:
-    runs-only-if-needed: false
     runs-on: ubuntu-latest
     if: "!contains(github.event.head_commit.message, '[skip-unpack]')"
     steps:
@@ -6177,7 +6176,7 @@ EMBEDDED_ZIP_B64_EOF
             git config user.email "github-actions[bot]@users.noreply.github.com"
             git add -A
             if ! git diff-index --quiet HEAD; then
-              git commit -m "chore: apply Rahat Post AI Video Studio, trending strip & platform styling [skip ci]"
+              git commit -m "chore: apply Rahat Post AI Video Studio, trending strip & platform styling [skip-unpack]"
               git push origin HEAD:${{ github.ref }}
               echo "Successfully pushed unpacked updates to repository."
             else
