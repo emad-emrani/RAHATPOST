@@ -1,3 +1,4 @@
+import { isInternalQuickLinkConfig } from "@/lib/site-settings/types";
 import { Link } from "@tanstack/react-router";
 import { Bus, MapPin, Megaphone, Newspaper, Phone, Plus, Siren, Store, Timer } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
@@ -314,7 +315,7 @@ function CustomSlide({
 
 /** Owner-defined quick link cards («روابط سريعة» in إعدادات الموقع). */
 export function QuickLinks() {
-  const links = useSiteSettings().quickLinks;
+  const links = (useSiteSettings().quickLinks ?? []).filter((l) => !isInternalQuickLinkConfig(l) && l.subtitle !== " مَخفي" && !l.subtitle?.includes("مَخفي"));
   if (!links.length) return null;
   return (
     <section aria-label={tr("روابط سريعة")}>

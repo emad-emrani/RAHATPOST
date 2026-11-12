@@ -13,6 +13,7 @@ import {
   BUILTIN_SLIDES,
   DEFAULT_SETTINGS,
   HOME_SECTIONS,
+  isInternalQuickLinkConfig,
   NAV_ITEMS,
   THEME_DEFAULT,
   THEME_PRESETS,

@@ -18,6 +18,8 @@ export const HOME_SECTIONS = {
   tiles: "أيقونات الأقسام",
   quicklinks: "روابط سريعة",
   news: "آخر الأخبار",
+  matches: "جدول ونتائج المباريات",
+  social: "سوشيال وتريند المشاهير",
   israel: "أخبار إسرائيل",
   sports: "رياضة",
   tech: "أخبار تقنية",
@@ -29,6 +31,53 @@ export const HOME_SECTIONS = {
   duty: "صيدلية المناوبة",
   emergency: "أرقام الطوارئ",
 } as const;
+
+export function isInternalQuickLinkConfig(
+  l: { id?: string; title?: string; subtitle?: string; url?: string } | null | undefined,
+): boolean {
+  if (!l) return true;
+  const id = String(l.id ?? "").trim();
+  const title = String(l.title ?? "").trim();
+  const sub = String(l.subtitle ?? "").trim();
+  const url = String(l.url ?? "").trim();
+  if (!id || !title || !url) return true;
+  if (
+    id === "tilelive" ||
+    id === "slidercfg" ||
+    id === "topbarcfg" ||
+    id === "botbarcfg" ||
+    id === "botbarcss" ||
+    id === "txsecscfg" ||
+    id === "busemergcfg" ||
+    id === "dirhubcfg" ||
+    id === "socialhubcfg" ||
+    id === "socialvipposts" ||
+    id === "sociallocalfigs" ||
+    id === "socialhub" ||
+    id === "social2" ||
+    id === "maintcfg" ||
+    id === "maintmode" ||
+    id.startsWith("sec") ||
+    /(cfg|css|social|vip|dirhub|busemerg|topbar|botbar|slider|txsecs|tilelive|maint)/i.test(id)
+  ) {
+    return true;
+  }
+  if (url.startsWith("/__")) return true;
+  if (
+    /^(busemergcfg|dirhubcfg|socialhub|social2|slidercfg|topbarcfg|botbarcfg|botbarcss|txsecscfg|tilelive)/i.test(
+      title,
+    ) ||
+    /(^style:|^vip:|^json:|^eyJ|homeItems:|radar:|scope:global|scope:local|fb:auto|tt:auto)/i.test(
+      title,
+    ) ||
+    /(^style:|^vip:|^json:|^eyJ|homeItems:|radar:|scope:global|scope:local|fb:auto|tt:auto|^socialhub$)/i.test(
+      sub,
+    )
+  ) {
+    return true;
+  }
+  return false;
+}
 export type HomeSectionId = keyof typeof HOME_SECTIONS;
 
 export const NAV_ITEMS = {
@@ -177,7 +226,7 @@ const str = (v: unknown, max: number, fallback = "") =>
 
 /** Relative site path or https URL; anything else becomes "". */
 export function safeUrl(v: unknown): string {
-  const s = str(v, 1500).replace(/\s+/g, "%20");
+  const s = str(v, 8000).replace(/\s+/g, "%20");
   if (/^\/(?!\/)[^\s]*$/.test(s)) return s;
   try {
     const u = new URL(s);
@@ -240,14 +289,18 @@ export function sanitizeSettings(input: unknown): SiteSettings {
     }
   const quickLinks: QuickLink[] = [];
   if (Array.isArray(i.quickLinks))
-    for (const q of i.quickLinks.slice(0, 30)) {
-      const title = str(q?.title, 60);
+    for (const q of i.quickLinks.slice(0, 60)) {
+      const idStr = String(q?.id ?? "");
+      const isCfg =
+        /(cfg|css|social|vip|dirhub|busemerg|topbar|botbar|slider|txsecs|tilelive|maint|^sec)/i.test(idStr) ||
+        String(q?.url ?? "").startsWith("/__");
+      const title = str(q?.title, isCfg ? 300 : 60);
       const url = safeUrl(q?.url);
-      if (title && url && ID.test(String(q?.id)))
+      if (title && url && ID.test(idStr))
         quickLinks.push({
-          id: String(q.id),
+          id: idStr,
           title,
-          subtitle: str(q.subtitle, 300),
+          subtitle: str(q.subtitle, isCfg ? 4000 : 300),
           url,
           emoji: str(q.emoji, 4),
         });

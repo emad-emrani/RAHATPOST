@@ -1,0 +1,19 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls",
+      "delegate_permission/common.get_login_creds"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.rahatpost.app",
+      "sha256_cert_fingerprints": [
+        "5B:B6:CF:15:3C:23:25:2E:18:61:52:B9:AE:6D:05:B8:DC:B2:0E:72:A2:3A:2C:45:DB:40:24:FC:61:3B:02:E4",
+        "F0:09:2D:F3:CF:AC:0C:FF:7A:66:F2:85:62:7C:AF:68:7F:0F:06:CB:F7:08:34:97:C1:90:A4:3D:90:70:84:84",
+        "4B:97:CD:0A:0B:56:AC:20:11:A5:D5:0F:D4:9F:5B:7E:3E:08:47:1B:F1:02:1F:C3:EB:8E:3C:2F:05:24:D4:81",
+        "9E:BC:19:C9:B7:6E:FF:5A:21:45:8A:B5:44:3D:95:B8:5E:26:67:33:84:F5:95:71:6F:D9:DA:68:6E:3B:73:19",
+        "CB:31:DB:CB:14:9B:C9:91:A0:BE:64:29:B8:1F:7B:3C:3B:2C:11:98:53:67:28:4B:80:B5:CE:E0:2F:37:54:2A"
+      ]
+    }
+  }
+]

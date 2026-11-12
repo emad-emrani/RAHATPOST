@@ -92,7 +92,12 @@ function handleLink(url: string): void {
   } catch {
     return;
   }
-  if (link.protocol === `${APP_SCHEME}:`) {
+  const isAuthScheme = link.protocol === `${APP_SCHEME}:`;
+  const isAuthHttps =
+    link.protocol === "https:" &&
+    SITE_HOSTS.has(link.hostname) &&
+    (link.pathname === "/auth" || link.pathname === "/app-auth/finish");
+  if (isAuthScheme || isAuthHttps) {
     const token = link.searchParams.get("token") ?? "";
     if (!/^[A-Za-z0-9_-]{16,128}$/.test(token)) return;
     const redirect = safeAppRedirect(link.searchParams.get("redirect"));

@@ -18,6 +18,15 @@ const dir = join(dirname(fileURLToPath(import.meta.url)), "store-samples");
 const client = new pg.Client({ connectionString: db });
 try {
   await client.connect();
+  try {
+    await client.query(
+      `INSERT INTO shop_hub_configs (slug, data, updated_at)
+       VALUES ('__maintenance_state__', $1::jsonb, now())
+       ON CONFLICT (slug) DO UPDATE SET data = EXCLUDED.data, updated_at = now()`,
+      [JSON.stringify({ active: false, mode: "auto", reason: "", startedAt: 0, expiresAt: 0 })]
+    );
+  } catch {}
+
   const { rows } = await client.query(
     "select image_key from store_products where is_sample and image_key is not null",
   );

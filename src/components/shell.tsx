@@ -17,6 +17,7 @@ const NAV = [
   { to: "/buses", label: "باصات", icon: Bus, exact: true },
   { to: "/directory", label: "الدليل", icon: MapPin, exact: false },
   { to: "/haraj", label: "حراج", icon: Megaphone, exact: false },
+  { to: "/social", label: "تواصل", icon: Globe, exact: true },
   { to: "/today", label: "اليوم", icon: Siren, exact: true },
   { to: "/store", label: "المتجر", icon: Store, exact: false },
 ] as const;
@@ -30,7 +31,7 @@ export function Shell({ children, wide = false }: { children: ReactNode; wide?: 
     .filter((x): x is (typeof NAV)[number] => Boolean(x));
 
   // Keep mobile bottom bar comfortable with the 5 most essential destinations
-  const mobilePriority = ["/", "/news", "/buses", "/directory", "/haraj"];
+  const mobilePriority = ["/", "/news", "/social", "/today", "/buses", "/directory", "/haraj"];
   const mobileNav = [
     ...mobilePriority.map((id) => nav.find((n) => n.to === id)).filter((x): x is (typeof NAV)[number] => Boolean(x)),
     ...nav.filter((n) => !mobilePriority.includes(n.to)),
@@ -179,15 +180,6 @@ export function Shell({ children, wide = false }: { children: ReactNode; wide?: 
             ) : null}
           </div>
           {t.footer ? <p className="mt-2 text-xs text-muted">{trv(t.footer)}</p> : null}
-          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-surface/80 px-3.5 py-2 text-[11px] font-bold text-muted">
-            <span>
-              🛡️ {tr("جميع الحقوق محفوظة ©")} {new Date().getFullYear()} {trv(t.siteName)} (Rahat Post) ·{" "}
-              {tr("يُمنع نسخ أو إعادة نشر المحتوى أو التصميم أو التطبيق دون إذن خطي.")}
-            </span>
-            <span dir="ltr" className="font-extrabold text-primary-ink">
-              Protected by RahatPost IP Shield
-            </span>
-          </div>
         </div>
       </footer>
 
@@ -232,6 +224,7 @@ export function SectionTitle({
     | "/israel-news"
     | "/sports-news"
     | "/tech-news"
+    | "/social"
     | "/today"
     | "/buses"
     | "/directory"
