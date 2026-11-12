@@ -2,9 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { MEDIA_KEY_RE } from "@/lib/media/types";
 
 /**
- * Serves user and shop photos from Postgres (shop_media_blobs) or the Blob store.
- * Photos of approved ads/businesses, staff articles, site settings, store products,
- * popups, and directory shop logos/covers/products/campaigns are public (CDN-cacheable).
+ * Serves user photos from the private Blob store. Photos of approved ads/businesses are public
+ * (CDN-cacheable); photos of pending/rejected posts only for their uploader or a signed-in admin.
  */
 const notFound = () =>
   new Response("Not found", { status: 404, headers: { "cache-control": "no-store" } });
@@ -16,36 +15,43 @@ export const Route = createFileRoute("/media/$key")({
         const key = params.key;
         if (!MEDIA_KEY_RE.test(key)) return notFound();
         try {
-          // 1. Check Postgres shop_media_blobs first (stores shop logos, covers, products, campaigns & staff uploads reliably)
-          const { getSql } = await import("@/lib/db");
-          const sql = await getSql();
-          const pgRows = await sql<{ content_type: string; bytes: Uint8Array | Buffer }>`
-            SELECT content_type, bytes FROM shop_media_blobs WHERE key = ${key} LIMIT 1
-          `.catch(() => []);
-          if (pgRows.length > 0 && pgRows[0].bytes) {
-            const rawBytes = new Uint8Array(pgRows[0].bytes);
-            return new Response(rawBytes as unknown as BodyInit, {
-              headers: {
-                "content-type": pgRows[0].content_type || (key.endsWith(".jpg") ? "image/jpeg" : "image/webp"),
-                "x-content-type-options": "nosniff",
-                "content-security-policy": "default-src 'none'; sandbox",
-                "cache-control": "public, max-age=3600, s-maxage=3600, stale-while-revalidate=600",
-                "content-length": String(rawBytes.byteLength),
-              },
-            });
-          }
-
-          // 2. Check media_uploads access control (for user-submitted classifieds/businesses)
           const { mediaAccess } = await import("@/lib/media/store.server");
           let access = await mediaAccess(key);
           if (!access) {
-            // Any key not restricted in media_uploads (staff articles, site settings, store products, popups, shop logos/covers) is public
-            access = {
-              contentType: key.endsWith(".jpg") ? "image/jpeg" : "image/webp",
-              isPublic: true,
-              userId: "",
-            };
+            // Photos of articles the team published from /admin are always public.
+            const { staffImageType } = await import("@/lib/staff-news/store.server");
+            const type = await staffImageType(key);
+            if (type) access = { contentType: type, isPublic: true, userId: "" };
           }
+          if (!access) {
+            // Logo, favicon and slider photos set in «إعدادات الموقع» are public too.
+            const { loadSettings } = await import("@/lib/site-settings/store.server");
+            const { settingsImageKeys } = await import("@/lib/site-settings/types");
+            if (settingsImageKeys(await loadSettings()).includes(key))
+              access = {
+                contentType: key.endsWith(".jpg") ? "image/jpeg" : "image/webp",
+                isPublic: true,
+                userId: "",
+              };
+          }
+          if (!access) {
+            // Store product photos are public.
+            const { isProductImage } = await import("@/lib/store/store.server");
+            if (await isProductImage(key))
+              access = {
+                contentType: key.endsWith(".jpg") ? "image/jpeg" : "image/webp",
+                isPublic: true,
+                userId: "",
+              };
+          }
+          if (!access) {
+            // Images of enabled popup ads («الإعلانات المنبثقة») are public.
+            const { getSql } = await import("@/lib/db");
+            const rows = await (await getSql()).query(`select 1 from popups where data->>'image' = $1 and (data->>'enabled')::boolean`, [key]);
+            if (rows.length)
+              access = { contentType: key.endsWith(".jpg") ? "image/jpeg" : "image/webp", isPublic: true, userId: "" };
+          }
+          if (!access) return notFound();
           if (!access.isPublic) {
             const { isAdmin } = await import("@/lib/admin-auth");
             let allowed = await isAdmin();
@@ -62,6 +68,7 @@ export const Route = createFileRoute("/media/$key")({
             "content-type": access.contentType,
             "x-content-type-options": "nosniff",
             "content-security-policy": "default-src 'none'; sandbox",
+            // Keys are random and never reused; a deleted photo disappears from the CDN within an hour.
             "cache-control": access.isPublic
               ? "public, max-age=3600, s-maxage=3600, stale-while-revalidate=600"
               : "private, no-store",

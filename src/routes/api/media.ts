@@ -2,138 +2,16 @@ import { createFileRoute } from "@tanstack/react-router";
 import { MAX_MEDIA_BYTES, MAX_MEDIA_SIDE, MEDIA_KEY_RE, mediaUrl } from "@/lib/media/types";
 
 /**
- * Photo upload & Shop Hub API for signed-in users, shop supervisors, and admins.
- *   POST   /api/media?kind=ad|business       body: image bytes (JPEG/WebP, ≤ 3 MB)
- *   POST   /api/media?kind=staff             body: image bytes (admin cookie)
- *   POST   /api/media?kind=shop-upload&slug= body: image bytes (admin or shop supervisor)
- *   GET    /api/media?kind=shop-hub          returns all shop configs (logos, supervisors, products, campaigns) + viewer role
- *   POST   /api/media?kind=shop-hub          updates shop logo/profile, supervisor assignment, products, or promo campaigns
- *   DELETE /api/media?key=<key>              remove an unsaved upload
+ * Photo upload for signed-in users (same session + same-site checks as the create functions).
+ *   POST   /api/media?kind=ad|business   body: the image bytes (JPEG/WebP, ≤ 3 MB)
+ *   DELETE /api/media?key=<key>          remove an upload that was not saved with a post
+ * The body is sniffed, size-checked and stripped of EXIF/XMP before it is stored.
  */
-
-export type ShopProductItem = {
-  id: string;
-  name: string;
-  price: string;
-  oldPrice?: string;
-  badge?: string;
-  description?: string;
-  imageKey?: string;
-  inStock?: boolean;
-  createdAt: string;
-};
-
-export type ShopPromoCampaign = {
-  id: string;
-  title: string;
-  subtitle: string;
-  discountBadge: string;
-  validUntil?: string;
-  imageKey?: string;
-  active: boolean;
-  createdAt: string;
-};
-
-export type ShopHubEntryConfig = {
-  slug: string;
-  isCustomShop?: boolean;
-  customName?: string;
-  customCategory?: string;
-  customArea?: string;
-  customAddress?: string;
-  customPhone?: string;
-  customWhatsapp?: string;
-  customOpeningHours?: string;
-  customDescription?: string;
-  customWebsite?: string;
-  logoKey?: string;
-  coverKey?: string;
-  verified?: boolean;
-  featured?: boolean;
-  supervisorUserId?: string;
-  supervisorEmail?: string;
-  supervisorName?: string;
-  products: ShopProductItem[];
-  campaigns: ShopPromoCampaign[];
-  updatedAt?: string;
-};
-
-export type DirectoryGlobalSettings = {
-  directoryStyle: "cards" | "showcase" | "grid" | "carousel" | "compact" | "dark_gold";
-  showOfficialStoreOnHome: boolean;
-  showCategoryFilterOnHome: boolean;
-  homeItemsCount: number;
-};
-
-const GLOBAL_SETTINGS_SLUG = "__global_settings__";
-
-const DEFAULT_GLOBAL_SETTINGS: DirectoryGlobalSettings = {
-  directoryStyle: "cards",
-  showOfficialStoreOnHome: false,
-  showCategoryFilterOnHome: true,
-  homeItemsCount: 6,
-};
-
-function normalizeGlobalSettings(raw: unknown): DirectoryGlobalSettings {
-  if (!raw || typeof raw !== "object") return { ...DEFAULT_GLOBAL_SETTINGS };
-  const obj = raw as Record<string, unknown>;
-  const validStyles = ["cards", "showcase", "grid", "carousel", "compact", "dark_gold"] as const;
-  const st = String(obj.directoryStyle ?? "cards");
-  const directoryStyle = (validStyles as readonly string[]).includes(st)
-    ? (st as DirectoryGlobalSettings["directoryStyle"])
-    : "cards";
-  const showOfficialStoreOnHome = obj.showOfficialStoreOnHome === true;
-  const showCategoryFilterOnHome = obj.showCategoryFilterOnHome !== false;
-  const cnt = Number(obj.homeItemsCount ?? 6);
-  const homeItemsCount = [4, 6, 8, 12].includes(cnt) ? cnt : 6;
-  return {
-    directoryStyle,
-    showOfficialStoreOnHome,
-    showCategoryFilterOnHome,
-    homeItemsCount,
-  };
-}
-
-async function loadDirectoryGlobalSettings(): Promise<DirectoryGlobalSettings> {
-  try {
-    const sql = await ensureShopHubTable();
-    const rows = await sql<{ data: unknown }>`
-      SELECT data FROM shop_hub_configs WHERE slug = ${GLOBAL_SETTINGS_SLUG} LIMIT 1
-    `;
-    if (!rows[0]) return { ...DEFAULT_GLOBAL_SETTINGS };
-    const parsed = typeof rows[0].data === "string" ? JSON.parse(rows[0].data) : rows[0].data;
-    return normalizeGlobalSettings(parsed);
-  } catch {
-    return { ...DEFAULT_GLOBAL_SETTINGS };
-  }
-}
-
-async function saveDirectoryGlobalSettings(patch: Partial<DirectoryGlobalSettings>): Promise<DirectoryGlobalSettings> {
-  const sql = await ensureShopHubTable();
-  const cur = await loadDirectoryGlobalSettings();
-  const next = normalizeGlobalSettings({ ...cur, ...patch });
-  await sql`
-    INSERT INTO shop_hub_configs (slug, data, updated_at)
-    VALUES (${GLOBAL_SETTINGS_SLUG}, ${JSON.stringify(next)}::jsonb, now())
-    ON CONFLICT (slug) DO UPDATE
-      SET data = EXCLUDED.data,
-          updated_at = now()
-  `;
-  return next;
-}
 
 const json = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), {
     status,
-    headers: {
-      "content-type": "application/json; charset=utf-8",
-      "x-content-type-options": "nosniff",
-      "x-frame-options": "SAMEORIGIN",
-      "cache-control": "private, no-store, no-cache, must-revalidate, max-age=0",
-      pragma: "no-cache",
-      expires: "0",
-      "access-control-allow-origin": "*",
-    },
+    headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" },
   });
 
 const hits = new Map<string, number[]>();
@@ -157,260 +35,17 @@ async function sessionUser() {
   return getSessionUser();
 }
 
-let tableReady = false;
-async function ensureShopHubTable() {
-  const { getSql } = await import("@/lib/db");
-  const sql = await getSql();
-  if (!tableReady) {
-    await sql`
-      CREATE TABLE IF NOT EXISTS shop_hub_configs (
-        slug TEXT PRIMARY KEY,
-        data JSONB NOT NULL,
-        updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-      )
-    `;
-    await sql`
-      CREATE TABLE IF NOT EXISTS shop_media_blobs (
-        key TEXT PRIMARY KEY,
-        content_type TEXT NOT NULL,
-        bytes BYTEA NOT NULL,
-        created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-      )
-    `;
-    tableReady = true;
-  }
-  return sql;
-}
-
-function cleanImageRef(v: unknown): string | undefined {
-  if (typeof v !== "string") return undefined;
-  const s = v.trim();
-  if (!s) return undefined;
-  if (MEDIA_KEY_RE.test(s)) return s;
-  if (s.startsWith("/media/") && MEDIA_KEY_RE.test(s.slice(7))) return s.slice(7);
-  if (s.startsWith("data:image/") && s.length <= 4_000_000) return s;
-  if ((s.startsWith("https://") || s.startsWith("http://") || s.startsWith("/")) && s.length <= 1500)
-    return s;
-  return undefined;
-}
-
-function normalizeShopConfig(slug: string, raw: unknown): ShopHubEntryConfig {
-  const obj = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
-  const str = (v: unknown, max = 200) =>
-    typeof v === "string" ? v.replace(/[<>]/g, "").trim().slice(0, max) : "";
-  const products: ShopProductItem[] = Array.isArray(obj.products)
-    ? obj.products
-        .map((p: any) => ({
-          id: str(p?.id, 40) || Math.random().toString(36).slice(2, 10),
-          name: str(p?.name, 100),
-          price: str(p?.price, 40),
-          oldPrice: str(p?.oldPrice, 40) || undefined,
-          badge: str(p?.badge, 40) || undefined,
-          description: str(p?.description, 300) || undefined,
-          imageKey: cleanImageRef(p?.imageKey),
-          inStock: p?.inStock !== false,
-          createdAt: str(p?.createdAt, 40) || new Date().toISOString(),
-        }))
-        .filter((p) => p.name.length > 0)
-        .slice(0, 60)
-    : [];
-  const campaigns: ShopPromoCampaign[] = Array.isArray(obj.campaigns)
-    ? obj.campaigns
-        .map((c: any) => ({
-          id: str(c?.id, 40) || Math.random().toString(36).slice(2, 10),
-          title: str(c?.title, 120),
-          subtitle: str(c?.subtitle, 400),
-          discountBadge: str(c?.discountBadge, 50) || "عرض خاص",
-          validUntil: str(c?.validUntil, 60) || undefined,
-          imageKey: cleanImageRef(c?.imageKey),
-          active: c?.active !== false,
-          createdAt: str(c?.createdAt, 40) || new Date().toISOString(),
-        }))
-        .filter((c) => c.title.length > 0)
-        .slice(0, 30)
-    : [];
-  return {
-    slug,
-    isCustomShop: obj.isCustomShop === true,
-    customName: str(obj.customName, 100) || undefined,
-    customCategory: str(obj.customCategory, 50) || undefined,
-    customArea: str(obj.customArea, 80) || undefined,
-    customAddress: str(obj.customAddress, 140) || undefined,
-    customPhone: str(obj.customPhone, 40) || undefined,
-    customWhatsapp: str(obj.customWhatsapp, 40) || undefined,
-    customOpeningHours: str(obj.customOpeningHours, 100) || undefined,
-    customDescription: str(obj.customDescription, 500) || undefined,
-    customWebsite: str(obj.customWebsite, 200) || undefined,
-    logoKey: cleanImageRef(obj.logoKey),
-    coverKey: cleanImageRef(obj.coverKey),
-    verified: obj.verified === true ? true : obj.verified === false ? false : undefined,
-    featured: obj.featured === true,
-    supervisorUserId: str(obj.supervisorUserId, 80) || undefined,
-    supervisorEmail: str(obj.supervisorEmail, 120).toLowerCase() || undefined,
-    supervisorName: str(obj.supervisorName, 80) || undefined,
-    products,
-    campaigns,
-    updatedAt: str(obj.updatedAt, 40) || new Date().toISOString(),
-  };
-}
-
-async function loadAllShopConfigs(): Promise<Record<string, ShopHubEntryConfig>> {
+/** Photo for an article published from /admin (admin cookie only; no media_uploads row). */
+async function staffUpload(request: Request): Promise<Response> {
+  const { assertSameSiteRequest } = await import("@/lib/auth/isolation.server");
+  const { getAdminAccess } = await import("@/lib/admin-auth");
   try {
-    const sql = await ensureShopHubTable();
-    const rows = await sql<{ slug: string; data: unknown }>`
-      SELECT slug, data FROM shop_hub_configs ORDER BY updated_at DESC LIMIT 1000
-    `;
-    const out: Record<string, ShopHubEntryConfig> = {};
-    const keysToHydrate = new Set<string>();
-
-    for (const r of rows) {
-      if (r.slug === GLOBAL_SETTINGS_SLUG) continue;
-      const parsed = typeof r.data === "string" ? JSON.parse(r.data) : r.data;
-      const cfg = normalizeShopConfig(r.slug, parsed);
-      out[r.slug] = cfg;
-      if (cfg.logoKey && MEDIA_KEY_RE.test(cfg.logoKey)) keysToHydrate.add(cfg.logoKey);
-      if (cfg.coverKey && MEDIA_KEY_RE.test(cfg.coverKey)) keysToHydrate.add(cfg.coverKey);
-      for (const p of cfg.products) {
-        if (p.imageKey && MEDIA_KEY_RE.test(p.imageKey)) keysToHydrate.add(p.imageKey);
-      }
-      for (const c of cfg.campaigns) {
-        if (c.imageKey && MEDIA_KEY_RE.test(c.imageKey)) keysToHydrate.add(c.imageKey);
-      }
-    }
-
-    if (keysToHydrate.size > 0) {
-      try {
-        const keyList = Array.from(keysToHydrate);
-        const blobRows = await sql.query<{ key: string; content_type: string; bytes: Uint8Array | Buffer }>(
-          `SELECT key, content_type, bytes FROM shop_media_blobs WHERE key = ANY($1::text[])`,
-          [keyList],
-        );
-        const dataUrlMap = new Map<string, string>();
-        for (const b of blobRows) {
-          if (b.bytes) {
-            const b64 = Buffer.from(b.bytes).toString("base64");
-            const ct = b.content_type || (b.key.endsWith(".jpg") ? "image/jpeg" : "image/webp");
-            dataUrlMap.set(b.key, `data:${ct};base64,${b64}`);
-          }
-        }
-        for (const cfg of Object.values(out)) {
-          if (cfg.logoKey && dataUrlMap.has(cfg.logoKey)) cfg.logoKey = dataUrlMap.get(cfg.logoKey);
-          if (cfg.coverKey && dataUrlMap.has(cfg.coverKey)) cfg.coverKey = dataUrlMap.get(cfg.coverKey);
-          for (const p of cfg.products) {
-            if (p.imageKey && dataUrlMap.has(p.imageKey)) p.imageKey = dataUrlMap.get(p.imageKey);
-          }
-          for (const c of cfg.campaigns) {
-            if (c.imageKey && dataUrlMap.has(c.imageKey)) c.imageKey = dataUrlMap.get(c.imageKey);
-          }
-        }
-      } catch (err) {
-        console.warn("[shop-hub] key hydration warning", err);
-      }
-    }
-
-    return out;
-  } catch (e) {
-    console.error("[shop-hub] load failed", e);
-    return {};
-  }
-}
-
-async function saveShopConfig(slug: string, cfg: ShopHubEntryConfig): Promise<void> {
-  const sql = await ensureShopHubTable();
-  const normalized = normalizeShopConfig(slug, { ...cfg, updatedAt: new Date().toISOString() });
-  await sql`
-    INSERT INTO shop_hub_configs (slug, data, updated_at)
-    VALUES (${slug}, ${JSON.stringify(normalized)}::jsonb, now())
-    ON CONFLICT (slug) DO UPDATE
-      SET data = EXCLUDED.data,
-          updated_at = now()
-  `;
-}
-
-async function deleteShopConfig(slug: string): Promise<void> {
-  const sql = await ensureShopHubTable();
-  await sql`DELETE FROM shop_hub_configs WHERE slug = ${slug}`;
-}
-
-async function checkViewerRoles(request?: Request) {
-  const { getAdminAccess, isAdmin: checkIsAdmin, isOwner: checkIsOwner, masterEmails } = await import("@/lib/admin-auth");
-  const { getSessionUser } = await import("@/lib/auth/verify.server");
-  const { ADMIN_COOKIE, verifySession } = await import("@/lib/directory/auth.server");
-
-  let cookieAdmin = false;
-  if (request) {
-    const rawCookie = request.headers.get("cookie") || "";
-    const match = rawCookie.match(new RegExp(`(?:^|;\\s*)${ADMIN_COOKIE}=([^;]+)`));
-    if (match?.[1]) {
-      try {
-        cookieAdmin = verifySession(decodeURIComponent(match[1].trim()));
-      } catch {}
-    }
-  }
-
-  const [adminAccess, adm, own, user] = await Promise.all([
-    getAdminAccess().catch(() => null),
-    checkIsAdmin().catch(() => false),
-    checkIsOwner().catch(() => false),
-    getSessionUser().catch(() => null),
-  ]);
-  const userEmail = (user?.email ?? "").toLowerCase();
-  const isMaster = Boolean(userEmail && masterEmails().includes(userEmail));
-  const isAdmin = Boolean(
-    cookieAdmin ||
-      isMaster ||
-      adm ||
-      own ||
-      (adminAccess &&
-        (adminAccess.level === "owner" ||
-          adminAccess.level === "moderator")),
-  );
-  return {
-    isAdmin,
-    signedIn: Boolean(user || isAdmin),
-    userId: user?.id ?? "",
-    email: userEmail,
-    name: user?.name ?? (isAdmin ? "مدير الموقع" : ""),
-  };
-}
-
-function isSupervisorOfShop(
-  viewer: Awaited<ReturnType<typeof checkViewerRoles>>,
-  cfg: ShopHubEntryConfig | undefined,
-): boolean {
-  if (viewer.isAdmin) return true;
-  if (!viewer.signedIn || !cfg) return false;
-  if (cfg.supervisorUserId && viewer.userId && cfg.supervisorUserId === viewer.userId) return true;
-  if (
-    cfg.supervisorEmail &&
-    viewer.email &&
-    cfg.supervisorEmail.toLowerCase() === viewer.email.toLowerCase()
-  ) {
-    return true;
-  }
-  return false;
-}
-
-/** Photo upload for an article or shop asset (admin or shop supervisor). */
-async function staffOrShopUpload(request: Request, isShopUpload: boolean): Promise<Response> {
-  const secSite = request.headers.get("sec-fetch-site");
-  if (secSite && secSite !== "same-origin" && secSite !== "same-site" && secSite !== "none") {
+    assertSameSiteRequest();
+  } catch {
     return json(403, { ok: false, message: "طلب غير صحيح." });
   }
-  const viewer = await checkViewerRoles(request);
-  if (isShopUpload) {
-    const slug = (new URL(request.url).searchParams.get("slug") ?? "").trim();
-    const all = await loadAllShopConfigs();
-    const cfg = all[slug];
-    if (!viewer.isAdmin && !isSupervisorOfShop(viewer, cfg)) {
-      return json(401, { ok: false, message: "غير مصرح لك برفع صور لهذا المحل." });
-    }
-  } else {
-    const { getAdminAccess } = await import("@/lib/admin-auth");
-    if (!(await getAdminAccess()))
-      return json(401, { ok: false, message: "سجّل دخول الإدارة أولاً." });
-  }
-
+  if (!(await getAdminAccess()))
+    return json(401, { ok: false, message: "سجّل دخول الإدارة أولاً." });
   if (Number(request.headers.get("content-length") ?? 0) > MAX_MEDIA_BYTES)
     return json(413, { ok: false, message: "الصورة كبيرة جداً (الحد 3 ميغابايت)." });
   const raw = new Uint8Array(await request.arrayBuffer());
@@ -425,292 +60,24 @@ async function staffOrShopUpload(request: Request, isShopUpload: boolean): Promi
   }
   try {
     const { randomBytes } = await import("node:crypto");
-    const key = `${randomBytes(16).toString("hex")}.${image.ext}`;
-    // 1. Always store in Postgres shop_media_blobs so /media/$key works even if Blob token is absent
-    const sql = await ensureShopHubTable();
-    await sql`
-      INSERT INTO shop_media_blobs (key, content_type, bytes)
-      VALUES (${key}, ${image.contentType}, ${Buffer.from(image.bytes)})
-      ON CONFLICT (key) DO NOTHING
-    `;
-    // 2. Also store in Blob/local storage if configured
     const { putMedia } = await import("@/lib/media/storage.server");
-    await putMedia(key, image.bytes, image.contentType).catch(() => {});
-    const dataUrl = `data:${image.contentType};base64,${Buffer.from(image.bytes).toString("base64")}`; return json(200, { ok: true, key, url: `/api/media?kind=blob&key=${key}`, dataUrl });
+    const key = `${randomBytes(16).toString("hex")}.${image.ext}`;
+    await putMedia(key, image.bytes, image.contentType);
+    return json(200, { ok: true, key });
   } catch (error) {
-    console.error("[media] upload failed", error);
+    console.error("[media] staff upload failed", error);
     return json(500, { ok: false, message: "تعذّر رفع الصورة الآن." });
   }
-}
-
-async function handleShopHubPost(request: Request): Promise<Response> {
-  const secSite = request.headers.get("sec-fetch-site");
-  if (secSite && secSite !== "same-origin" && secSite !== "same-site" && secSite !== "none") {
-    return json(403, { ok: false, message: "طلب غير صحيح." });
-  }
-  let body: any;
-  try {
-    body = await request.json();
-  } catch {
-    return json(400, { ok: false, message: "بيانات غير صالحة." });
-  }
-  const action = String(body?.action ?? "");
-  if (action === "save_global_settings") {
-    const viewer = await checkViewerRoles(request);
-    if (!viewer.isAdmin) {
-      return json(403, { ok: false, message: "تغيير مظهر الدليل متاح لإدارة الموقع فقط." });
-    }
-    const patch = (body?.settings ?? body?.payload ?? {}) as Partial<DirectoryGlobalSettings>;
-    const globalSettings = await saveDirectoryGlobalSettings(patch);
-    const shops = await loadAllShopConfigs();
-    return json(200, { ok: true, globalSettings, shops });
-  }
-
-  const slug = String(body?.slug ?? "")
-    .trim()
-    .replace(/[^a-zA-Z0-9_-]/g, "")
-    .slice(0, 64);
-  if (!slug || slug.length < 3) {
-    return json(400, { ok: false, message: "معرّف المحل غير صالح." });
-  }
-
-  const viewer = await checkViewerRoles(request);
-  const all = await loadAllShopConfigs();
-  const current: ShopHubEntryConfig = all[slug] ?? {
-    slug,
-    products: [],
-    campaigns: [],
-  };
-
-  const canManageShop = viewer.isAdmin || isSupervisorOfShop(viewer, current);
-  if (!canManageShop) {
-    return json(403, { ok: false, message: "ليس لديك صلاحية الإشراف على هذا المحل." });
-  }
-
-  if (action === "delete_shop") {
-    if (!viewer.isAdmin) return json(403, { ok: false, message: "للإدارة فقط." });
-    await deleteShopConfig(slug);
-    const updatedAll = await loadAllShopConfigs();
-    return json(200, { ok: true, shops: updatedAll });
-  }
-
-  if (action === "assign_supervisor") {
-    if (!viewer.isAdmin) return json(403, { ok: false, message: "تعيين المشرف متاح لإدارة الموقع فقط." });
-    const next: ShopHubEntryConfig = {
-      ...current,
-      supervisorUserId: String(body?.supervisorUserId ?? "").trim() || undefined,
-      supervisorEmail: String(body?.supervisorEmail ?? "").trim().toLowerCase() || undefined,
-      supervisorName: String(body?.supervisorName ?? "").trim() || undefined,
-    };
-    await saveShopConfig(slug, next);
-    const updatedAll = await loadAllShopConfigs();
-    return json(200, { ok: true, shop: updatedAll[slug], shops: updatedAll });
-  }
-
-  if (action === "update_profile") {
-    const p = (body?.payload ?? {}) as Record<string, any>;
-    const next: ShopHubEntryConfig = {
-      ...current,
-      ...(p.isCustomShop !== undefined && viewer.isAdmin ? { isCustomShop: Boolean(p.isCustomShop) } : {}),
-      ...(p.customName !== undefined ? { customName: String(p.customName ?? "").trim() || undefined } : {}),
-      ...(p.customCategory !== undefined ? { customCategory: String(p.customCategory ?? "").trim() || undefined } : {}),
-      ...(p.customArea !== undefined ? { customArea: String(p.customArea ?? "").trim() || undefined } : {}),
-      ...(p.customAddress !== undefined ? { customAddress: String(p.customAddress ?? "").trim() || undefined } : {}),
-      ...(p.customPhone !== undefined ? { customPhone: String(p.customPhone ?? "").trim() || undefined } : {}),
-      ...(p.customWhatsapp !== undefined ? { customWhatsapp: String(p.customWhatsapp ?? "").trim() || undefined } : {}),
-      ...(p.customOpeningHours !== undefined ? { customOpeningHours: String(p.customOpeningHours ?? "").trim() || undefined } : {}),
-      ...(p.customDescription !== undefined ? { customDescription: String(p.customDescription ?? "").trim() || undefined } : {}),
-      ...(p.customWebsite !== undefined ? { customWebsite: String(p.customWebsite ?? "").trim() || undefined } : {}),
-      ...(p.logoKey !== undefined ? { logoKey: cleanImageRef(p.logoKey) } : {}),
-      ...(p.coverKey !== undefined ? { coverKey: cleanImageRef(p.coverKey) } : {}),
-      ...(p.verified !== undefined && viewer.isAdmin ? { verified: Boolean(p.verified) } : {}),
-      ...(p.featured !== undefined && viewer.isAdmin ? { featured: Boolean(p.featured) } : {}),
-    };
-    await saveShopConfig(slug, next);
-    const updatedAll = await loadAllShopConfigs();
-    return json(200, { ok: true, shop: updatedAll[slug], shops: updatedAll });
-  }
-
-  if (action === "save_product") {
-    const prod = (body?.product ?? {}) as Record<string, any>;
-    const name = String(prod.name ?? "").trim();
-    if (!name) return json(400, { ok: false, message: "اكتب اسم المنتج." });
-    const id = String(prod.id ?? "").trim() || `prd_${Date.now().toString(36)}`;
-    const newItem: ShopProductItem = {
-      id,
-      name,
-      price: String(prod.price ?? "").trim(),
-      oldPrice: String(prod.oldPrice ?? "").trim() || undefined,
-      badge: String(prod.badge ?? "").trim() || undefined,
-      description: String(prod.description ?? "").trim() || undefined,
-      imageKey: cleanImageRef(prod.imageKey),
-      inStock: prod.inStock !== false,
-      createdAt: String(prod.createdAt ?? "") || new Date().toISOString(),
-    };
-    const exists = current.products.some((x) => x.id === id);
-    const nextProducts = exists
-      ? current.products.map((x) => (x.id === id ? newItem : x))
-      : [newItem, ...current.products];
-    await saveShopConfig(slug, { ...current, products: nextProducts });
-    const updatedAll = await loadAllShopConfigs();
-    return json(200, { ok: true, shop: updatedAll[slug], shops: updatedAll });
-  }
-
-  if (action === "delete_product") {
-    const prodId = String(body?.productId ?? "").trim();
-    const nextProducts = current.products.filter((x) => x.id !== prodId);
-    await saveShopConfig(slug, { ...current, products: nextProducts });
-    const updatedAll = await loadAllShopConfigs();
-    return json(200, { ok: true, shop: updatedAll[slug], shops: updatedAll });
-  }
-
-  if (action === "save_campaign") {
-    const camp = (body?.campaign ?? {}) as Record<string, any>;
-    const title = String(camp.title ?? "").trim();
-    if (!title) return json(400, { ok: false, message: "اكتب عنوان الإعلان أو حملة العروض." });
-    const id = String(camp.id ?? "").trim() || `cmp_${Date.now().toString(36)}`;
-    const newCamp: ShopPromoCampaign = {
-      id,
-      title,
-      subtitle: String(camp.subtitle ?? "").trim(),
-      discountBadge: String(camp.discountBadge ?? "").trim() || "عرض خاص",
-      validUntil: String(camp.validUntil ?? "").trim() || undefined,
-      imageKey: cleanImageRef(camp.imageKey),
-      active: camp.active !== false,
-      createdAt: String(camp.createdAt ?? "") || new Date().toISOString(),
-    };
-    const exists = current.campaigns.some((x) => x.id === id);
-    const nextCampaigns = exists
-      ? current.campaigns.map((x) => (x.id === id ? newCamp : x))
-      : [newCamp, ...current.campaigns];
-    await saveShopConfig(slug, { ...current, campaigns: nextCampaigns });
-    const updatedAll = await loadAllShopConfigs();
-    return json(200, { ok: true, shop: updatedAll[slug], shops: updatedAll });
-  }
-
-  if (action === "delete_campaign") {
-    const campId = String(body?.campaignId ?? "").trim();
-    const nextCampaigns = current.campaigns.filter((x) => x.id !== campId);
-    await saveShopConfig(slug, { ...current, campaigns: nextCampaigns });
-    const updatedAll = await loadAllShopConfigs();
-    return json(200, { ok: true, shop: updatedAll[slug], shops: updatedAll });
-  }
-
-  return json(400, { ok: false, message: "إجراء غير معروف." });
 }
 
 export const Route = createFileRoute("/api/media")({
   server: {
     handlers: {
-      GET: async ({ request }) => {
-        const u = new URL(request.url);
-        if (u.searchParams.get("kind") === "blob") {
-          const key = (u.searchParams.get("key") ?? "").trim();
-          if (!MEDIA_KEY_RE.test(key)) return new Response("Not found", { status: 404 });
-          try {
-            const sql = await ensureShopHubTable();
-            const rows = await sql<{ content_type: string; bytes: Uint8Array | Buffer }>`
-              SELECT content_type, bytes FROM shop_media_blobs WHERE key = ${key} LIMIT 1
-            `;
-            if (rows.length > 0 && rows[0].bytes) {
-              const rawBytes = new Uint8Array(rows[0].bytes);
-              return new Response(rawBytes as unknown as BodyInit, {
-                status: 200,
-                headers: {
-                  "content-type": rows[0].content_type || (key.endsWith(".jpg") ? "image/jpeg" : "image/webp"),
-                  "cache-control": "public, max-age=31536000, immutable",
-                  "content-length": String(rawBytes.byteLength),
-                },
-              });
-            }
-          } catch (e) {
-            console.error("[media blob] failed", e);
-          }
-          return new Response("Not found", { status: 404 });
-        }
-        if (u.searchParams.get("kind") === "live-settings") {
-          try {
-            const { loadSettings } = await import("@/lib/site-settings/store.server");
-            const settings = await loadSettings();
-            return new Response(JSON.stringify({ ok: true, settings, ts: Date.now() }), {
-              status: 200,
-              headers: {
-                "content-type": "application/json; charset=utf-8",
-      "x-content-type-options": "nosniff",
-      "x-frame-options": "SAMEORIGIN",
-                "cache-control": "private, no-store, no-cache, must-revalidate, max-age=0",
-                "pragma": "no-cache",
-                "expires": "0",
-                "access-control-allow-origin": "*",
-              },
-            });
-          } catch (error) {
-            console.error("[live-settings] GET failed", error);
-            return json(500, { ok: false });
-          }
-        }
-        if (u.searchParams.get("kind") === "shop-hub") {
-          const [shops, globalSettings, viewer] = await Promise.all([
-            loadAllShopConfigs(),
-            loadDirectoryGlobalSettings(),
-            checkViewerRoles(request),
-          ]);
-          const slug = u.searchParams.get("slug");
-          if (slug) {
-            const shop = shops[slug] ?? { slug, products: [], campaigns: [] };
-            return json(200, {
-              ok: true,
-              shop,
-              shops,
-              globalSettings,
-              viewer,
-              canManage: viewer.isAdmin || isSupervisorOfShop(viewer, shops[slug]),
-            });
-          }
-          return json(200, { ok: true, shops, globalSettings, viewer });
-        }
-        return json(400, { ok: false });
-      },
       POST: async ({ request }) => {
-        const kind = new URL(request.url).searchParams.get("kind");
-        if (kind === "live-settings") {
-          const viewer = await checkViewerRoles(request);
-          const { isAdmin, isOwner } = await import("@/lib/admin-auth");
-          const [adm, own] = await Promise.all([
-            isAdmin().catch(() => false),
-            isOwner().catch(() => false),
-          ]);
-          if (!viewer.isAdmin && !adm && !own) {
-            return json(401, { ok: false, message: "غير مصرح." });
-          }
-          try {
-            const body = await request.json().catch(() => ({}));
-            const rawSettings = body?.settings ?? body?.data ?? body;
-            const { sanitizeSettings } = await import("@/lib/site-settings/types");
-            const { saveSettings } = await import("@/lib/site-settings/store.server");
-            const settings = sanitizeSettings(rawSettings);
-            await saveSettings(settings);
-            return new Response(JSON.stringify({ ok: true, settings, ts: Date.now() }), {
-              status: 200,
-              headers: {
-                "content-type": "application/json; charset=utf-8",
-      "x-content-type-options": "nosniff",
-      "x-frame-options": "SAMEORIGIN",
-                "cache-control": "private, no-store, no-cache, must-revalidate, max-age=0",
-                "access-control-allow-origin": "*",
-              },
-            });
-          } catch (error) {
-            console.error("[live-settings] POST failed", error);
-            return json(500, { ok: false, message: "تعذّر حفظ الإعدادات." });
-          }
-        }
-        if (kind === "staff") return staffOrShopUpload(request, false);
-        if (kind === "shop-upload") return staffOrShopUpload(request, true);
-        if (kind === "shop-hub") return handleShopHubPost(request);
-
+        if (new URL(request.url).searchParams.get("kind") === "staff") return staffUpload(request);
         const user = await sessionUser();
         if (!user) return json(401, { ok: false, message: "سجّل الدخول أولاً." });
+        const kind = new URL(request.url).searchParams.get("kind");
         if (kind !== "ad" && kind !== "business")
           return json(400, { ok: false, message: "طلب غير صحيح." });
         const declared = Number(request.headers.get("content-length") ?? 0);
@@ -745,13 +112,7 @@ export const Route = createFileRoute("/api/media")({
               message: "لديك صور كثيرة لم تُحفظ بعد. أرسل منشورك أو احذف بعضها.",
             });
           const key = `${randomBytes(16).toString("hex")}.${image.ext}`;
-          const sql = await ensureShopHubTable();
-          await sql`
-            INSERT INTO shop_media_blobs (key, content_type, bytes)
-            VALUES (${key}, ${image.contentType}, ${Buffer.from(image.bytes)})
-            ON CONFLICT (key) DO NOTHING
-          `.catch(() => {});
-          await putMedia(key, image.bytes, image.contentType).catch(() => {});
+          await putMedia(key, image.bytes, image.contentType);
           await store.recordUpload({
             key,
             userId: user.id,
@@ -761,7 +122,7 @@ export const Route = createFileRoute("/api/media")({
             width: image.width,
             height: image.height,
           });
-          const dataUrl = `data:${image.contentType};base64,${Buffer.from(image.bytes).toString("base64")}`; return json(200, { ok: true, key, url: `/api/media?kind=blob&key=${key}`, dataUrl });
+          return json(200, { ok: true, key, url: mediaUrl(key) });
         } catch (error) {
           console.error("[media] upload failed", error);
           return json(500, { ok: false, message: "تعذّر رفع الصورة الآن. حاول مرة أخرى." });

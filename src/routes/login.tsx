@@ -17,7 +17,6 @@ import {
 import { useEffect, useRef, useState } from "react";
 import logoUrl from "@/assets/logo.jpg";
 import { LangSwitcher } from "@/components/lang-switcher";
-import { DarkModeProfileSwitch } from "@/components/user-menu";
 import type { AuthConfig } from "@/components/sign-in";
 import { getAuthConfig } from "@/lib/auth/api";
 import { authClient, signInWith, type SocialProvider } from "@/lib/auth/client";
@@ -520,7 +519,6 @@ function LoginPage() {
               {tr("أنت مسجّل الدخول باسم")}{" "}
               <span className="text-ink">{trv(user.displayName)}</span>
             </p>
-            <div className="mt-4 text-start"><DarkModeProfileSwitch /></div>
             <div className="mt-6 flex flex-col gap-2.5">
               <Link
                 to="/"
@@ -1378,8 +1376,6 @@ function LoginPage() {
             </div>
           </div>
         )}
-
-        <div className="mt-4 w-full max-w-md"><DarkModeProfileSwitch /></div>
 
         {/* Terms & Privacy Footer */}
         <footer className="mt-5 max-w-xl px-4 text-center text-xs font-semibold text-muted">

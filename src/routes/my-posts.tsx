@@ -1,10 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { PhotoStrip } from "@/components/photo-picker";
-import { Plus, Trash2, UserRound } from "lucide-react";
+import { Pencil, Plus, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
+import { AdForm } from "@/components/ad-form";
 import { DeleteAccount } from "@/components/delete-account";
 import { Shell } from "@/components/shell";
-import { DarkModeProfileSwitch } from "@/components/user-menu";
+import { deleteMyAd, listMyAds, updateMyAd } from "@/lib/ads/api";
 import { deleteMyBusiness, listMyBusinesses } from "@/lib/directory/api";
 import type { BusinessSubmission } from "@/lib/directory/types";
 import { deleteMyNews, listMyNews } from "@/lib/reader-news/api";
@@ -15,7 +16,7 @@ import { tr, trv } from "@/lib/i18n/core";
 
 export const Route = createFileRoute("/my-posts")({
   head: () => ({
-    meta: [{ title: tr("ملفي الشخصي ومنشوراتي · رهط بوست") }, { name: "robots", content: "noindex" }],
+    meta: [{ title: tr("منشوراتي · رهط بوست") }, { name: "robots", content: "noindex" }],
   }),
   component: MyPostsPage,
 });
@@ -28,19 +29,23 @@ const STATUS_CHIP: Record<OwnAd["status"], string> = {
 
 function MyPostsPage() {
   const { user, isPending } = useCurrentUserState();
+  const [ads, setAds] = useState<OwnAd[] | null>(null);
   const [news, setNews] = useState<OwnReaderNews[] | null>(null);
   const [businesses, setBusinesses] = useState<BusinessSubmission[] | null>(null);
   const [error, setError] = useState("");
+  const [editing, setEditing] = useState("");
   const [busyId, setBusyId] = useState("");
 
   const refresh = useCallback(async () => {
     try {
-      const [n, b] = await Promise.all([listMyNews(), listMyBusinesses()]);
+      const [a, n, b] = await Promise.all([listMyAds(), listMyNews(), listMyBusinesses()]);
+      setAds(a);
       setNews(n);
       setBusinesses(b);
       setError("");
     } catch {
       setError(tr("تعذّر تحميل منشوراتك."));
+      setAds([]);
       setNews([]);
       setBusinesses([]);
     }
@@ -62,11 +67,7 @@ function MyPostsPage() {
   if (!user) {
     return (
       <Shell>
-        <h1 className="mb-3 text-2xl font-bold">{tr("ملفي الشخصي ومنشوراتي")}</h1>
-        <div className="stamp mb-4 p-4">
-          <h2 className="mb-2 text-base font-extrabold">{tr("إعدادات المظهر")}</h2>
-          <DarkModeProfileSwitch />
-        </div>
+        <h1 className="mb-3 text-2xl font-bold">{tr("منشوراتي")}</h1>
         <div className="stamp flex flex-col gap-3 p-4">
           <p className="font-semibold">{tr("سجّل الدخول لترى أخبارك وإعلاناتك وطلبات نشاطك وحالتها.")}</p>
           <Link to="/login" search={{ redirect: "/my-posts" }} className="btn">
@@ -77,47 +78,15 @@ function MyPostsPage() {
     );
   }
 
-  const initial = user.displayName.trim().charAt(0) || "؟";
-
   return (
     <Shell>
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold">{tr("ملفي الشخصي ومنشوراتي")}</h1>
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <h1 className="text-2xl font-bold">{tr("منشوراتي")}</h1>
         <Link to="/submit" className="btn px-4">
           <Plus className="size-4" aria-hidden />
           {tr("أضف")}
         </Link>
       </div>
-
-      {/* User Profile Card + Dark Mode Toggle */}
-      <section className="stamp mb-6 p-4">
-        <div className="mb-3 flex items-center gap-3">
-          {user.image ? (
-            <img
-              src={user.image}
-              alt=""
-              width={52}
-              height={52}
-              referrerPolicy="no-referrer"
-              className="size-13 rounded-2xl border border-primary-deep object-cover"
-            />
-          ) : (
-            <span className="grid size-13 place-items-center rounded-2xl border border-primary-deep bg-primary text-lg font-extrabold text-[#111827]">
-              {trv(initial)}
-            </span>
-          )}
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-lg font-extrabold text-ink">{trv(user.displayName)}</p>
-            <p className="inline-flex items-center gap-1 text-xs font-bold text-muted">
-              <UserRound className="size-3.5 text-primary-ink" aria-hidden />
-              {tr("حساب موثّق في رهط بوست")}
-            </p>
-          </div>
-        </div>
-
-        <DarkModeProfileSwitch />
-      </section>
-
       {error ? <p className="stamp mb-3 p-3 font-bold">{trv(error)}</p> : null}
       <h2 className="mb-3 text-xl font-bold">{tr("إعلاناتي")}</h2>
       <Link to="/haraj/mine" className="stamp press block p-4 font-bold">

@@ -5,7 +5,6 @@ import {
   Outlet,
   Scripts,
   useLocation,
-  useRouterState,
 } from "@tanstack/react-router";
 import {
   Bus,
@@ -23,7 +22,7 @@ import {
   Tv,
   type LucideIcon,
 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, type CSSProperties } from "react";
 import { AuthProvider } from "@/lib/auth/provider";
 import { PreviewHostBridge } from "@/components/preview-host-bridge";
 import { ServiceWorkerRegistration } from "@/components/install-app";
@@ -259,18 +258,11 @@ function GlobalCustomBottomBar() {
         <div className="mx-auto flex max-w-xl items-center justify-around">
           {btns.map((item, idx) => {
             const Icon = BOT_ICON_MAP[item.icon] ?? House;
-            const cleanLbl = item.label.trim();
-            const isGenNews = cleanLbl === "الأخبار" || cleanLbl === "أخبار" || cleanLbl === "أخبار رهط";
-            const isCustomSec =
-              item.to.includes("?cat=") ||
-              item.to.includes("?q=") ||
-              (item.to === "/news" && Boolean(cleanLbl) && !isGenNews);
-            const resolvedCat = item.to.includes("?cat=")
-              ? decodeURIComponent(item.to.split("?cat=")[1] ?? cleanLbl)
-              : cleanLbl || decodeURIComponent(item.to.split("?q=")[1] ?? "");
-            const hasQuery = isCustomSec;
-            const linkTo = (isCustomSec ? "/news" : item.to.split("?")[0] || "/") as "/";
-            const linkSearch = isCustomSec ? ({ cat: resolvedCat } as never) : undefined;
+            const hasQuery = item.to.includes("?q=");
+            const linkTo = (hasQuery ? item.to.split("?q=")[0] || "/" : item.to) as "/";
+            const linkSearch = hasQuery
+              ? { q: decodeURIComponent(item.to.split("?q=")[1] ?? "") }
+              : undefined;
             const exact = item.to === "/";
             const isActive = exact
               ? pathname === "/" && !hasQuery
@@ -415,13 +407,8 @@ export const Route = createRootRoute({
     setI18nState(i18n);
     return { settings, i18n };
   },
-  staleTime: 0,
-  headers: () => ({
-    "X-Content-Type-Options": "nosniff",
-    "X-Frame-Options": "SAMEORIGIN",
-    "Referrer-Policy": "strict-origin-when-cross-origin",
-    "Permissions-Policy": "geolocation=(self), microphone=(), camera=()",
-  }),
+  staleTime: 30_000,
+  shouldReload: false,
   head: ({ loaderData }) => {
     const st = loaderData?.settings ?? DEFAULT_SETTINGS;
     const base = baseHead();
@@ -440,7 +427,6 @@ export const Route = createRootRoute({
           ? [{ name: "google-site-verification", content: gsc }]
           : []),
         { name: "google-adsense-account", content: adsensePub },
-        { name: "msapplication-navbutton-color", content: st.theme.primary },
       ],
       links: st.faviconKey
         ? [
@@ -627,410 +613,10 @@ function GoogleMobileAdsBridge({
   return null;
 }
 
-
-function isLightHexColor(hex: string): boolean {
-  const clean = (hex || "#f2c94c").replace("#", "").trim();
-  if (clean.length !== 6) return true;
-  const r = parseInt(clean.slice(0, 2), 16) || 242;
-  const g = parseInt(clean.slice(2, 4), 16) || 201;
-  const b = parseInt(clean.slice(4, 6), 16) || 76;
-  // Relative luminance formula
-  const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-  return lum > 0.55;
-}
-
-/**
- * 1) Syncs the phone's top StatusBar (Capacitor Android/iOS + Mobile Browser theme-color)
- *    dynamically with `settings.theme.primary` whenever the theme color changes.
- * 2) Displays a harmonious, modern launch loading screen with the site logo & progress bar
- *    on initial open, handing off cleanly from the native SplashScreen.
- */
-function SecurityAndCopyrightShield() {
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    // 1. Prevent image drag-and-drop theft
-    const onDragStart = (e: DragEvent) => {
-      const target = e.target as HTMLElement | null;
-      if (target && target.tagName === "IMG") {
-        e.preventDefault();
-      }
-    };
-
-    // 2. Append official Rahat Post source attribution when copying article text (> 75 chars)
-    const onCopy = (e: ClipboardEvent) => {
-      try {
-        const target = e.target as HTMLElement | null;
-        if (
-          target &&
-          (target.tagName === "INPUT" ||
-            target.tagName === "TEXTAREA" ||
-            target.isContentEditable ||
-            window.location.pathname.startsWith("/admin"))
-        ) {
-          return;
-        }
-        const sel = window.getSelection()?.toString() ?? "";
-        if (sel.trim().length > 75 && e.clipboardData) {
-          const attribution = `\n\n— المصدر: منصة رهط بوست (Rahat Post) | جميع الحقوق محفوظة © ${new Date().getFullYear()}\n🔗 ${window.location.href}`;
-          e.clipboardData.setData("text/plain", sel + attribution);
-          e.preventDefault();
-        }
-      } catch {
-        /* ignore */
-      }
-    };
-
-    document.addEventListener("dragstart", onDragStart);
-    document.addEventListener("copy", onCopy);
-    return () => {
-      document.removeEventListener("dragstart", onDragStart);
-      document.removeEventListener("copy", onCopy);
-    };
-  }, []);
-
-  return null;
-}
-
-function AppLaunchSplashAndStatusBarBridge() {
-  const st = useSiteSettings();
-  const location = useLocation();
-  const isRouteLoading = useRouterState({
-    select: (s) => s.isLoading || s.status === "pending",
-  });
-  const [navOverlay, setNavOverlay] = useState(false);
-  const [showLaunch, setShowLaunch] = useState<boolean>(() => {
-    if (typeof window === "undefined") return false;
-    try {
-      return !sessionStorage.getItem("rp_launch_done");
-    } catch {
-      return false;
-    }
-  });
-  const [fadingOut, setFadingOut] = useState(false);
-
-  const primaryColor = st.theme?.primary || "#f2c94c";
-  const siteName = st.texts?.siteName || "رهط بوست";
-  const tagline = st.texts?.tagline || "أخبار وخدمات رهط والنقب في مكان واحد";
-  const logoSrc = st.logoKey ? mediaUrl(st.logoKey) : "/icons/icon-192.png";
-
-  // Instant Page Transition Loading Screen (eliminates any perceived freeze between pages)
-  useEffect(() => {
-    if (isRouteLoading) {
-      const tShow = setTimeout(() => setNavOverlay(true), 45);
-      const tMax = setTimeout(() => setNavOverlay(false), 2200);
-      return () => {
-        clearTimeout(tShow);
-        clearTimeout(tMax);
-      };
-    }
-    const tHide = setTimeout(() => setNavOverlay(false), 90);
-    return () => clearTimeout(tHide);
-  }, [isRouteLoading, location.pathname, location.searchStr]);
-
-  // Also trigger immediate visual feedback when tapping internal navigation links on mobile/app
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    let safetyTimer: ReturnType<typeof setTimeout> | null = null;
-    const onDocClick = (e: MouseEvent) => {
-      if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey)
-        return;
-      const anchor = (e.target as HTMLElement | null)?.closest?.("a");
-      if (!anchor) return;
-      const href = anchor.getAttribute("href") || "";
-      const targetAttr = anchor.getAttribute("target");
-      if (
-        !href ||
-        targetAttr === "_blank" ||
-        href.startsWith("#") ||
-        href.startsWith("http") ||
-        href.startsWith("mailto:") ||
-        href.startsWith("tel:") ||
-        href.startsWith("whatsapp:")
-      ) {
-        return;
-      }
-      const currentFull = window.location.pathname + window.location.search;
-      if (href !== currentFull && href.startsWith("/")) {
-        setNavOverlay(true);
-        if (safetyTimer) clearTimeout(safetyTimer);
-        safetyTimer = setTimeout(() => setNavOverlay(false), 1600);
-      }
-    };
-    document.addEventListener("click", onDocClick, true);
-    return () => {
-      document.removeEventListener("click", onDocClick, true);
-      if (safetyTimer) clearTimeout(safetyTimer);
-    };
-  }, []);
-
-  // Sync phone StatusBar color (Capacitor Native + Mobile Browser meta theme-color)
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    try {
-      const metas = document.querySelectorAll(
-        'meta[name="theme-color"], meta[name="msapplication-navbutton-color"]',
-      );
-      metas.forEach((m) => m.setAttribute("content", primaryColor));
-
-      const win = window as unknown as {
-        Capacitor?: {
-          Plugins?: {
-            StatusBar?: {
-              setBackgroundColor?: (opts: { color: string }) => Promise<void>;
-              setStyle?: (opts: { style: "DARK" | "LIGHT" | "DEFAULT" }) => Promise<void>;
-              setOverlaysWebView?: (opts: { overlay: boolean }) => Promise<void>;
-            };
-            SplashScreen?: {
-              hide?: (opts?: { fadeOutDuration?: number }) => Promise<void>;
-            };
-          };
-        };
-      };
-      const statusBar = win.Capacitor?.Plugins?.StatusBar;
-      if (statusBar) {
-        const isLight = isLightHexColor(primaryColor);
-        void statusBar.setOverlaysWebView?.({ overlay: false }).catch(() => {});
-        void statusBar.setBackgroundColor?.({ color: primaryColor }).catch(() => {});
-        void statusBar.setStyle?.({ style: isLight ? "LIGHT" : "DARK" }).catch(() => {});
-      }
-      void win.Capacitor?.Plugins?.SplashScreen?.hide?.({ fadeOutDuration: 0 }).catch(() => {});
-    } catch {
-      /* ignore */
-    }
-  }, [primaryColor]);
-
-  // Smoothly dismiss launch screen once hydrated
-  useEffect(() => {
-    if (!showLaunch) return;
-    const t1 = setTimeout(() => setFadingOut(true), 280);
-    const t2 = setTimeout(() => {
-      setShowLaunch(false);
-      try {
-        sessionStorage.setItem("rp_launch_done", "1");
-      } catch {
-        /* ignore */
-      }
-    }, 540);
-    return () => {
-      clearTimeout(t1);
-      clearTimeout(t2);
-    };
-  }, [showLaunch]);
-
-  const showPageTransitionScreen = (isRouteLoading || navOverlay) && !showLaunch;
-
-  return (
-    <>
-      <style>{`
-        @keyframes rpSplashPulse {
-          0%, 100% { transform: scale(1); opacity: 0.35; }
-          50% { transform: scale(1.16); opacity: 0.12; }
-        }
-        @keyframes rpProgressSlide {
-          0% { transform: translateX(100%); }
-          100% { transform: translateX(-100%); }
-        }
-        @keyframes rpSpinRing {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-      `}</style>
-
-      {/* Top 3.5px Theme Status Bar Accent & Instant Route Loading Bar */}
-      <div
-        aria-hidden
-        className="fixed inset-x-0 top-0 z-50 h-1 overflow-hidden transition-colors duration-300"
-        style={{ backgroundColor: primaryColor }}
-      >
-        {isRouteLoading || navOverlay ? (
-          <div
-            className="h-full w-1/2 bg-ink/55"
-            style={{ animation: "rpProgressSlide 0.65s infinite linear" }}
-          />
-        ) : null}
-      </div>
-
-      {/* Smooth Page-to-Page Loading Screen (التخلص من التعليق بين الصفحات بشاشة لودينج) */}
-      {showPageTransitionScreen ? (
-        <div
-          id="rp-page-transition-loader"
-          aria-live="polite"
-          className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center bg-surface/45 backdrop-blur-[3px] transition-opacity duration-150"
-        >
-          <div className="flex items-center gap-3 rounded-3xl border border-primary-deep/60 bg-paper/95 px-5 py-3.5 shadow-2xl">
-            <div className="relative flex size-11 items-center justify-center">
-              <span
-                className="absolute inset-0 rounded-full border-3 border-primary/30 border-t-primary-deep"
-                style={{ animation: "rpSpinRing 0.65s infinite linear" }}
-              />
-              <img
-                src={logoSrc}
-                alt=""
-                className="size-8 rounded-full object-cover"
-              />
-            </div>
-            <div className="text-start">
-              <p className="text-sm font-extrabold text-ink">{trv(siteName)}</p>
-              <p className="text-[11px] font-bold text-muted">{tr("جاري فتح الصفحة…")}</p>
-            </div>
-          </div>
-        </div>
-      ) : null}
-
-      {/* Harmonious Initial Launch Splash Overlay */}
-      {showLaunch ? (
-        <div
-          id="rp-app-launch-splash"
-          aria-hidden
-          className={`fixed inset-0 z-50 flex flex-col items-center justify-center px-6 transition-opacity duration-300 ${
-            fadingOut ? "pointer-events-none opacity-0" : "opacity-100"
-          }`}
-          style={{
-            background: `radial-gradient(circle at 50% 38%, ${primaryColor}33 0%, var(--color-surface, #f1f2f4) 72%)`,
-            backgroundColor: "var(--color-surface, #f1f2f4)",
-          }}
-        >
-          <div className="relative flex items-center justify-center">
-            <span
-              className="absolute size-28 rounded-full"
-              style={{
-                backgroundColor: primaryColor,
-                animation: "rpSplashPulse 1.8s infinite ease-in-out",
-              }}
-            />
-            <div
-              className="relative flex size-22 items-center justify-center overflow-hidden rounded-3xl bg-paper p-2 shadow-xl"
-              style={{ border: `3px solid ${primaryColor}` }}
-            >
-              <img
-                src={logoSrc}
-                alt={siteName}
-                className="size-full rounded-2xl object-contain"
-              />
-            </div>
-          </div>
-
-          <p className="mt-4 text-xl font-extrabold tracking-tight text-ink">{trv(siteName)}</p>
-          <p className="mt-1 max-w-xs text-center text-xs font-bold text-muted">{trv(tagline)}</p>
-
-          <div className="mt-5 h-1.5 w-36 overflow-hidden rounded-full bg-line/70">
-            <div
-              className="h-full w-2/3 rounded-full"
-              style={{
-                backgroundColor: primaryColor,
-                animation: "rpProgressSlide 1.1s infinite ease-in-out",
-              }}
-            />
-          </div>
-        </div>
-      ) : null}
-    </>
-  );
-}
-
 function RootComponent() {
-  const { settings: loaderSettings, i18n } = Route.useLoaderData();
-  const [liveSettings, setLiveSettings] = useState<typeof loaderSettings>(loaderSettings);
+  const { settings, i18n } = Route.useLoaderData();
   const location = useLocation();
   const pathname = location.pathname || "/";
-
-  useEffect(() => {
-    setLiveSettings(loaderSettings);
-  }, [loaderSettings]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    // 1. Immediately apply any fresher settings saved in localStorage from /admin (0ms delay)
-    try {
-      const rawLocal = window.localStorage.getItem("rp_latest_site_settings");
-      if (rawLocal) {
-        const parsed = JSON.parse(rawLocal);
-        if (parsed && typeof parsed === "object" && Array.isArray(parsed.home)) {
-          setLiveSettings(parsed);
-        }
-      }
-    } catch {}
-
-    // 2. Proactively update Service Worker so mobile app clears stale rp-v3 caches
-    try {
-      if ("serviceWorker" in navigator) {
-        void navigator.serviceWorker
-          .getRegistrations()
-          .then((regs) => regs.forEach((r) => void r.update().catch(() => {})))
-          .catch(() => {});
-      }
-    } catch {}
-
-    // 3. Always fetch fresh uncached settings via /api/media?kind=live-settings (bypasses SW & WebView cache)
-    let active = true;
-    const applyFresh = (fresh: typeof loaderSettings | null | undefined) => {
-      if (!active || !fresh || !Array.isArray(fresh.home)) return;
-      setLiveSettings((prev) => {
-        const prevJson = JSON.stringify(prev);
-        const nextJson = JSON.stringify(fresh);
-        return prevJson === nextJson ? prev : fresh;
-      });
-      try {
-        window.localStorage.setItem("rp_latest_site_settings", JSON.stringify(fresh));
-      } catch {}
-    };
-
-    const refreshLive = () => {
-      void fetch(`/api/media?kind=live-settings&_t=${Date.now()}`, {
-        method: "GET",
-        cache: "no-store",
-        headers: { "cache-control": "no-cache", pragma: "no-cache" },
-      })
-        .then((r) => (r.ok ? r.json() : null))
-        .then((data) => {
-          if (data?.ok && data?.settings && Array.isArray(data.settings.home)) {
-            applyFresh(data.settings);
-          } else {
-            return getSiteSettings().then((s) => applyFresh(s));
-          }
-        })
-        .catch(() => {
-          void getSiteSettings()
-            .then((s) => applyFresh(s))
-            .catch(() => {});
-        });
-    };
-    refreshLive();
-
-    // Poll every 8s while visible so mobile app reflects admin changes in real time
-    const pollTimer = window.setInterval(() => {
-      if (document.visibilityState === "visible") refreshLive();
-    }, 8000);
-
-    const onCustomUpdate = (e: Event) => {
-      const detail = (e as CustomEvent).detail;
-      if (detail && Array.isArray(detail.home)) {
-        applyFresh(detail);
-      } else {
-        refreshLive();
-      }
-    };
-    const onFocusOrVis = () => {
-      if (document.visibilityState === "visible") refreshLive();
-    };
-    window.addEventListener("rp-site-settings-updated", onCustomUpdate);
-    window.addEventListener("focus", onFocusOrVis);
-    window.addEventListener("resume", refreshLive);
-    window.addEventListener("pageshow", refreshLive);
-    document.addEventListener("visibilitychange", onFocusOrVis);
-    return () => {
-      active = false;
-      window.clearInterval(pollTimer);
-      window.removeEventListener("rp-site-settings-updated", onCustomUpdate);
-      window.removeEventListener("focus", onFocusOrVis);
-      window.removeEventListener("resume", refreshLive);
-      window.removeEventListener("pageshow", refreshLive);
-      document.removeEventListener("visibilitychange", onFocusOrVis);
-    };
-  }, [pathname]);
-
-  const settings = liveSettings ?? loaderSettings;
   setI18nState(i18n);
   const css = themeCss(settings.theme);
   const defLang = i18n.langs.find((l) => l.isDefault)?.code ?? "ar";
@@ -1043,7 +629,6 @@ function RootComponent() {
   return (
     <html lang={i18n.lang} dir={i18n.dir} suppressHydrationWarning>
       <head>
-        <script dangerouslySetInnerHTML={{ __html: '(function(){try{var d=localStorage.getItem("rp_dark_mode");if(d==="1"||d==="true"||d==="dark"){document.documentElement.setAttribute("data-theme","dark");document.documentElement.classList.add("dark");}}catch(e){}})();' }} />
         <script dangerouslySetInnerHTML={{ __html: langRedirectScript(i18n.lang, defLang, i18n.langs.map((l) => l.code)) }} />
         <meta name="google-mobile-ads-android-app-id" content={mobileAdsCfg.androidAppId} />
         <meta name="google-mobile-ads-ios-app-id" content={mobileAdsCfg.iosAppId} />
@@ -1074,8 +659,6 @@ function RootComponent() {
           <amp-auto-ads type="adsense" data-ad-client={adsensePub} />
         ) : null}
         <SiteSettingsProvider value={settings}>
-          <AppLaunchSplashAndStatusBarBridge />
-          <SecurityAndCopyrightShield />
           <PreviewHostBridge />
           <ServiceWorkerRegistration />
           <GoogleMobileAdsBridge

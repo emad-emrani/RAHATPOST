@@ -1,5 +1,3 @@
-import { SocialVipFeedAndTrendsSection, parseSocialHubConfig } from "@/components/social-vip-feed";
-import { parseWeatherPrayerStyleConfig } from "@/components/today-cards";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Bus, ChevronDown, ChevronLeft, ChevronRight, Cpu, Globe, House, MapPin, Megaphone, Newspaper, Plus, RefreshCw, Search, Siren, Sparkles, Store, Trophy, Tv, type LucideIcon } from "lucide-react";
 import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
@@ -83,11 +81,11 @@ export const Route = createFileRoute("/")({
   },
   // New items must show up within a minute or two: short CDN cache, revalidated in the background.
   headers: () => ({ "Cache-Control": HOME_CACHE }),
-  staleTime: 0,
+  staleTime: 60_000,
   component: Home,
 });
 
-const HOME_CACHE = "public, max-age=0, s-maxage=1, stale-while-revalidate=5";
+const HOME_CACHE = "public, max-age=0, s-maxage=60, stale-while-revalidate=180";
 
 const ISRAEL_HOME_WAIT_MS = 3_500;
 async function israelNewsForHome(): Promise<IsraelNewsResult | null> {
@@ -550,17 +548,34 @@ function Home() {
     };
   }, [query, news.items, places, classifieds, israelItems]);
 
-  const filteredStoreProducts = useMemo(
-    () => store.products.filter((p) => p.slug !== "hub-cfg-main" && !p.slug.startsWith("offer-")),
-    [store.products],
-  );
-  const directoryPreview = (
-    <InteractiveDirectoryHomeSection
-      places={places}
-      storeProducts={filteredStoreProducts}
-      storeCurrency={store.settings.currency}
-    />
-  );
+  const directoryPreview = places.length ? (
+    <section>
+      <SectionTitle title={tr("دليل محلات وخدمات رهط")} to="/directory" more={tr("كل الدليل")} />
+      <ul className="grid gap-3 sm:grid-cols-2">
+        {places.slice(0, 6).map((place) => (
+          <li key={place.slug}>
+            <Link
+              to="/directory/$slug"
+              params={{ slug: place.slug }}
+              className="stamp press flex items-center gap-3 px-4 py-3"
+            >
+              <span className="icon-badge shrink-0">
+                <MapPin className="size-5" aria-hidden />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block font-bold leading-snug">{trv(place.name)}</span>
+                <span className="text-sm font-semibold text-muted">
+                  {trv(place.category)}
+                  {place.address || place.area ? ` · ${trv(place.address ?? place.area ?? "")}` : ""}
+                </span>
+              </span>
+              <ChevronLeft className="size-5 shrink-0 text-muted" aria-hidden />
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </section>
+  ) : null;
 
   type ExtendedHomeSectionId = HomeSectionId | "matches" | `csec~${string}`;
   const customSectionBlocks: Record<string, ReactNode> = {};
@@ -572,12 +587,7 @@ function Home() {
         now={now}
       />
     );
-    const rName = cs.rawName.trim();
-    const compactName = rName.replace(/\s*و\s*/g, " و");
-    const spacedName = rName.replace(/\s*و\s*/g, " و ");
-    customSectionBlocks[`csec~${rName}`] = blockEl;
-    customSectionBlocks[`csec~${compactName}`] = blockEl;
-    customSectionBlocks[`csec~${spacedName}`] = blockEl;
+    customSectionBlocks[`csec~${cs.rawName}`] = blockEl;
     customSectionBlocks[`csec~${cs.id}`] = blockEl;
   }
 
@@ -630,22 +640,6 @@ function Home() {
                     >
                       <NewsImage item={item} className="size-16 rounded-xl" />
                       <span className="min-w-0 flex-1">
-                        <span className="flex flex-wrap items-center gap-1.5">
-                          {item.pinned ? (
-                            <span className="rounded-full bg-primary px-2 py-0.5 text-[10px] font-extrabold text-ink">
-                              📌 {tr("مثبّت")}
-                            </span>
-                          ) : null}
-                          {item.sourceUrl === "live" ? (
-                            <span className="rounded-full bg-alert px-2 py-0.5 text-[10px] font-extrabold text-white">
-                              🔴 {tr("بث مباشر")}
-                            </span>
-                          ) : item.sourceUrl === "video" ? (
-                            <span className="rounded-full bg-ink px-2 py-0.5 text-[10px] font-extrabold text-paper">
-                              🎬 {tr("فيديو")}
-                            </span>
-                          ) : null}
-                        </span>
                         <span className="block font-bold leading-snug">{trv(item.title)}</span>
                         <span className="text-sm font-semibold text-muted">
                           {trv(item.category)} · {relativeTimeAr(item.publishedAt, now)} ·{" "}
@@ -743,9 +737,49 @@ function Home() {
         <InteractiveRahatServicesHub now={now} />
       </section>
     ) : null,
-    install: <HomeAppAndNotifySection />,
-    buses: <InteractiveGalimBusesHomeSection />, 
-    directory: directoryPreview,
+    install: (
+      <>
+        <InstallBanner />
+        <NotifyPrompt />
+      </>
+    ),
+    buses: (
+      <section>
+        <SectionTitle title={tr("باصات غاليم")} to="/buses" more={tr("كل المواعيد")} />
+        <Link to="/buses" className="stamp press flex items-center gap-3 p-4">
+          <span className="icon-badge">
+            <Bus className="size-6" aria-hidden />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block font-bold">{tr("خطوط المدينة 1 حتى 6، وبئر السبع وما حولها")}</span>
+            <span className="text-sm font-semibold text-muted">
+              {tr("شركة גלים · أوقات مباشرة وجدول اليوم")}
+            </span>
+          </span>
+          <ChevronLeft className="size-5 text-muted" aria-hidden />
+        </Link>
+      </section>
+    ),
+    directory: (
+      <>
+        {store.products.filter((p) => p.slug !== "hub-cfg-main" && !p.slug.startsWith("offer-")).length ? (
+          <section>
+            <SectionTitle title={tr("من المتجر الرسمي")} to="/store" more={tr("كل المتجر")} />
+            <ul className="scroll-row -mx-4 px-4 pb-2 sm:mx-0 sm:px-0">
+              {store.products
+                .filter((p) => p.slug !== "hub-cfg-main" && !p.slug.startsWith("offer-"))
+                .slice(0, 8)
+                .map((p) => (
+                  <li key={p.id} className="w-48 shrink-0">
+                    <ProductCard p={p} currency={store.settings.currency} />
+                  </li>
+                ))}
+            </ul>
+          </section>
+        ) : null}
+        {directoryPreview}
+      </>
+    ),
     ads: (
       <section>
         <SectionTitle title={tr("جديد {0}", settings.texts.harajName)} to="/haraj" more={tr("كل الإعلانات")} />
@@ -784,8 +818,23 @@ function Home() {
       </section>
     ),
     duty: board.dutyVisible === false ? null : <DutyCard duty={board.duty} />,
-    emergency: <InteractiveEmergencyHomeSection />,
-    socialvip: <SocialVipFeedAndTrendsSection />,
+    emergency: (
+      <section>
+        <SectionTitle title={tr("أرقام الطوارئ في رهط")} to="/today" more={tr("كل الأرقام")} />
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {emergency.slice(0, 4).map((item) => (
+            <a
+              key={item.phone}
+              href={`tel:${item.phone}`}
+              className="stamp press flex flex-col items-center px-3 py-3.5 text-center"
+            >
+              <span className="text-2xl font-extrabold leading-none text-primary-ink">{trv(item.phone)}</span>
+              <span className="mt-1.5 text-sm font-bold">{trv(item.name)}</span>
+            </a>
+          ))}
+        </div>
+      </section>
+    ),
   };
 
   // Build the homepage section order from slidercfg (/hord) + settings.home + all visibleCustomSections
@@ -860,22 +909,13 @@ function Home() {
       }
     }
 
-    // Inject Social VIP section (تواصل اجتماعي) if enabled in socialhubcfg
-    const socialHubCfg = parseSocialHubConfig(settings.quickLinks);
-    if (
-      socialHubCfg.vipSectionEnabled &&
-      !working.includes("socialvip" as ExtendedHomeSectionId) &&
-      !hiddenByHord.has("socialvip")
-    ) {
-      const newsIdx = working.indexOf("news");
-      if (newsIdx !== -1) {
-        working.splice(newsIdx + 1, 0, "socialvip" as ExtendedHomeSectionId);
-      } else {
-        working.push("socialvip" as ExtendedHomeSectionId);
-      }
+    // Keep install banner at bottom
+    if (working.includes("install")) {
+      working = [
+        ...working.filter((id) => id !== "install"),
+        "install",
+      ];
     }
-
-    // Respect exact admin section position for install and all sections
 
     return working;
   })();
@@ -933,6 +973,8 @@ function Home() {
               {order.map((id) => (
                 <Fragment key={id}>{trv(blocks[id])}</Fragment>
               ))}
+              {!order.includes("matches") ? blocks.matches : null}
+              {!order.includes("directory") ? directoryPreview : null}
             </>
           )}
         </div>
@@ -1228,17 +1270,11 @@ function CustomSectionTranslatedBlock({
 
   return (
     <section>
-      <div className="mb-3 flex items-baseline justify-between gap-2">
-        <h2 className="text-xl font-bold">{displayTitle}</h2>
-        <Link
-          to="/news"
-          search={{ cat: cs.rawName.trim() } as never}
-          className="inline-flex min-h-10 items-center gap-0.5 text-sm font-bold text-primary-ink"
-        >
-          <span>{tr("كل الأخبار")}</span>
-          <ChevronLeft className="size-4 rtl:rotate-0 ltr:rotate-180" aria-hidden />
-        </Link>
-      </div>
+      <SectionTitle
+        title={displayTitle}
+        to="/news"
+        more={tr("كل الأخبار")}
+      />
       {resolvedItems.length > 0 ? (
         <div className="grid gap-4 lg:grid-cols-12">
           <div className="lg:col-span-6">
@@ -1596,884 +1632,13 @@ function resolveMatchDetails(m: RichMatchItem, meta?: CustomMatchMetaPayload): L
   return base;
 }
 
-const STADIUM_PITCH_KEYFRAMES = `
-@keyframes rpTurfBreeze {
-  0%, 100% { background-position: 0% 50%, 0 0; }
-  50% { background-position: 100% 50%, 24px 0; }
-}
-@keyframes rpFloodlightSweep {
-  0%, 100% { transform: translateX(-30%) rotate(-12deg); opacity: 0.22; }
-  50% { transform: translateX(30%) rotate(12deg); opacity: 0.38; }
-}
-@keyframes rpBallRoam {
-  0%   { transform: translate(0px, 0px) scale(1); }
-  20%  { transform: translate(58px, -14px) scale(1.08); }
-  45%  { transform: translate(110px, 10px) scale(0.96); }
-  70%  { transform: translate(-65px, -12px) scale(1.08); }
-  88%  { transform: translate(-112px, 8px) scale(1.12); }
-  100% { transform: translate(0px, 0px) scale(1); }
-}
-@keyframes rpGoalCelebration {
-  0%   { transform: scale(0.75); opacity: 0; }
-  15%  { transform: scale(1.06); opacity: 1; }
-  30%  { transform: scale(0.98); opacity: 1; }
-  85%  { transform: scale(1); opacity: 1; }
-  100% { transform: scale(0.92); opacity: 0; }
-}
-@keyframes rpCardFlipIn {
-  0%   { transform: perspective(400px) rotateY(90deg) scale(0.6); opacity: 0; }
-  25%  { transform: perspective(400px) rotateY(-12deg) scale(1.08); opacity: 1; }
-  45%  { transform: perspective(400px) rotateY(0deg) scale(1); opacity: 1; }
-  85%  { transform: perspective(400px) rotateY(0deg) scale(1); opacity: 1; }
-  100% { transform: perspective(400px) rotateY(-45deg) scale(0.85); opacity: 0; }
-}
-@keyframes rpRadarWave {
-  0%   { transform: scale(0.5); opacity: 0.85; }
-  100% { transform: scale(2.4); opacity: 0; }
-}
-`;
-
-type PitchEventKind = "none" | "goal" | "foul" | "red" | "attack";
-
-type LineupPlayerNode = {
-  id: string;
-  name: string;
-  number: string;
-  posCode: string;
-  posAr: string;
-  line: "GK" | "DEF" | "MID" | "ATT";
-  photo?: string;
-  goals?: number;
-  yellow?: boolean;
-  red?: boolean;
-  rating?: string;
-};
-
-type TeamTacticalLineup = {
-  formation: string;
-  coachAr: string;
-  styleAr: string;
-  players: LineupPlayerNode[];
-  isOfficialLive: boolean;
-};
-
-type LiveMatchTacticalAnalysis = {
-  home: TeamTacticalLineup;
-  away: TeamTacticalLineup;
-  homePossession: number;
-  awayPossession: number;
-  homeShots: number;
-  awayShots: number;
-  homeShotsOnTarget: number;
-  awayShotsOnTarget: number;
-  homeCorners: number;
-  awayCorners: number;
-  homeFouls: number;
-  awayFouls: number;
-  summaryAr: string;
-};
-
-const POS_AR_MAP: Record<string, { ar: string; line: "GK" | "DEF" | "MID" | "ATT" }> = {
-  G: { ar: "حارس مرمى", line: "GK" },
-  GK: { ar: "حارس مرمى", line: "GK" },
-  D: { ar: "مدافع", line: "DEF" },
-  DF: { ar: "مدافع", line: "DEF" },
-  CB: { ar: "قلب دفاع", line: "DEF" },
-  "CD-L": { ar: "قلب دفاع أيسر", line: "DEF" },
-  "CD-R": { ar: "قلب دفاع أيمن", line: "DEF" },
-  CD: { ar: "قلب دفاع", line: "DEF" },
-  LB: { ar: "ظهير أيسر", line: "DEF" },
-  RB: { ar: "ظهير أيمن", line: "DEF" },
-  LWB: { ar: "ظهير جناح أيسر", line: "DEF" },
-  RWB: { ar: "ظهير جناح أيمن", line: "DEF" },
-  M: { ar: "وسط ملعب", line: "MID" },
-  MF: { ar: "وسط ملعب", line: "MID" },
-  CDM: { ar: "وسط ارتكاز", line: "MID" },
-  DM: { ar: "وسط ارتكاز", line: "MID" },
-  CM: { ar: "وسط محوري", line: "MID" },
-  "CM-L": { ar: "وسط أيسر", line: "MID" },
-  "CM-R": { ar: "وسط أيمن", line: "MID" },
-  CAM: { ar: "صانع ألعاب", line: "MID" },
-  AM: { ar: "صانع ألعاب", line: "MID" },
-  LM: { ar: "وسط أيسر", line: "MID" },
-  RM: { ar: "وسط أيمن", line: "MID" },
-  F: { ar: "مهاجم", line: "ATT" },
-  FW: { ar: "مهاجم", line: "ATT" },
-  ST: { ar: "رأس حربة", line: "ATT" },
-  CF: { ar: "مهاجم صريح", line: "ATT" },
-  LW: { ar: "جناح أيسر", line: "ATT" },
-  RW: { ar: "جناح أيمن", line: "ATT" },
-  "F-L": { ar: "جناح هجومي أيسر", line: "ATT" },
-  "F-R": { ar: "جناح هجومي أيمن", line: "ATT" },
-};
-
-type PresetSquadDef = {
-  formation: string;
-  coachAr: string;
-  styleAr: string;
-  xi: [string, string, string, "GK" | "DEF" | "MID" | "ATT", string?][];
-};
-
-const REAL_TEAM_SQUADS: Record<string, PresetSquadDef> = {
-  "ريال مدريد": {
-    formation: "4-3-3",
-    coachAr: "كارلو أنشيلوتي",
-    styleAr: "تحولات سريعة وهجوم عبر الأطراف",
-    xi: [
-      ["تيبو كورتوا", "1", "GK", "GK", "https://a.espncdn.com/i/headshots/soccer/players/full/134853.png"],
-      ["فاسكيز", "17", "RB", "DEF"],
-      ["أنطونيو روديغر", "22", "CB", "DEF", "https://a.espncdn.com/i/headshots/soccer/players/full/157749.png"],
-      ["إيدير ميليتاو", "3", "CB", "DEF"],
-      ["فيرلاند ميندي", "23", "LB", "DEF"],
-      ["فالفيردي", "8", "CM", "MID", "https://a.espncdn.com/i/headshots/soccer/players/full/240271.png"],
-      ["تشواميني", "14", "CDM", "MID"],
-      ["جود بيلينغهام", "5", "CAM", "MID", "https://a.espncdn.com/i/headshots/soccer/players/full/291279.png"],
-      ["رودريغو", "11", "RW", "ATT", "https://a.espncdn.com/i/headshots/soccer/players/full/259233.png"],
-      ["كيليان مبابي", "9", "ST", "ATT", "https://a.espncdn.com/i/headshots/soccer/players/full/231388.png"],
-      ["فينيسيوس جونيور", "7", "LW", "ATT", "https://a.espncdn.com/i/headshots/soccer/players/full/251925.png"],
-    ],
-  },
-  "برشلونة": {
-    formation: "4-2-3-1",
-    coachAr: "هانزي فليك",
-    styleAr: "ضغط عالٍ واستحواذ هجومي",
-    xi: [
-      ["إينياكي بينيا", "13", "GK", "GK"],
-      ["جول كوندي", "23", "RB", "DEF"],
-      ["باو كوبارسي", "2", "CB", "DEF"],
-      ["إينيغو مارتينيز", "5", "CB", "DEF"],
-      ["أليخاندرو بالدي", "3", "LB", "DEF"],
-      ["مارك كاسادو", "17", "CDM", "MID"],
-      ["بيدري", "8", "CM", "MID", "https://a.espncdn.com/i/headshots/soccer/players/full/294162.png"],
-      ["لامين يامال", "19", "RW", "ATT", "https://a.espncdn.com/i/headshots/soccer/players/full/362150.png"],
-      ["داني أولمو", "20", "CAM", "MID"],
-      ["رافينيا", "11", "LW", "ATT", "https://a.espncdn.com/i/headshots/soccer/players/full/231050.png"],
-      ["ليفاندوفسكي", "9", "ST", "ATT", "https://a.espncdn.com/i/headshots/soccer/players/full/125824.png"],
-    ],
-  },
-  "ليفربول": {
-    formation: "4-3-3",
-    coachAr: "آرني سلوت",
-    styleAr: "ضغط متقدم وبناء هجومي سريع",
-    xi: [
-      ["أليسون بيكر", "1", "GK", "GK"],
-      ["أرنولد", "66", "RB", "DEF"],
-      ["كوناتي", "5", "CB", "DEF"],
-      ["فان دايك", "4", "CB", "DEF"],
-      ["روبرتسون", "26", "LB", "DEF"],
-      ["غرافنبرخ", "38", "CDM", "MID"],
-      ["ماك أليستر", "10", "CM", "MID"],
-      ["سوبوسلاي", "8", "CAM", "MID"],
-      ["محمد صلاح", "11", "RW", "ATT", "https://a.espncdn.com/i/headshots/soccer/players/full/173896.png"],
-      ["داروين نونيز", "9", "ST", "ATT"],
-      ["لويس دياز", "7", "LW", "ATT"],
-    ],
-  },
-  "مانشستر سيتي": {
-    formation: "4-2-3-1",
-    coachAr: "بيب غوارديولا",
-    styleAr: "استحواذ كامل وتمريرات قصيرة",
-    xi: [
-      ["إيدرسون", "31", "GK", "GK"],
-      ["كايل ووكر", "2", "RB", "DEF"],
-      ["روبن دياز", "3", "CB", "DEF"],
-      ["أكانجي", "25", "CB", "DEF"],
-      ["غفارديول", "24", "LB", "DEF"],
-      ["كوفاسيتش", "8", "CDM", "MID"],
-      ["برناردو سيلفا", "20", "CM", "MID"],
-      ["فيل فودين", "47", "RW", "ATT"],
-      ["دي بروين", "17", "CAM", "MID"],
-      ["دوكو", "11", "LW", "ATT"],
-      ["إيرلينغ هالاند", "9", "ST", "ATT", "https://a.espncdn.com/i/headshots/soccer/players/full/253989.png"],
-    ],
-  },
-  "هبوعيل بئر السبع": {
-    formation: "4-3-3",
-    coachAr: "ران كوزوخ",
-    styleAr: "ضغط هجومي في ملعب تيرنر",
-    xi: [
-      ["نيف إلياسي", "55", "GK", "GK"],
-      ["غاي مزراحي", "2", "RB", "DEF"],
-      ["ميغيل فيتور", "4", "CB", "DEF"],
-      ["أور بلوريان", "5", "CB", "DEF"],
-      ["هيلدر لوبيز", "22", "LB", "DEF"],
-      ["لوكاس فينتورا", "25", "CDM", "MID"],
-      ["كينغس كانغوا", "20", "CM", "MID"],
-      ["إليئيل بيرتس", "15", "CAM", "MID"],
-      ["دان بيتون", "10", "RW", "ATT"],
-      ["آلون تورجمان", "17", "ST", "ATT"],
-      ["أمير غاناح", "19", "LW", "ATT"],
-    ],
-  },
-  "مكابي حيفا": {
-    formation: "4-2-3-1",
-    coachAr: "باراك باخار",
-    styleAr: "انتشار هجومي وصناعة فرص",
-    xi: [
-      ["شريف كيوف", "40", "GK", "GK"],
-      ["علاي فينغولد", "23", "RB", "DEF"],
-      ["عبدولاي سيك", "30", "CB", "DEF"],
-      ["شون غولدبرغ", "3", "CB", "DEF"],
-      ["كيني ساييف", "15", "LB", "DEF"],
-      ["علي محمد", "4", "CDM", "MID"],
-      ["محمود جابر", "26", "CM", "MID"],
-      ["ضياء سبع", "10", "CAM", "MID"],
-      ["ليئور رفائيلوف", "11", "LW", "ATT"],
-      ["دوليف حزيزا", "8", "RW", "ATT"],
-      ["دين دافيد", "21", "ST", "ATT"],
-    ],
-  },
-  "مكابي تل أبيب": {
-    formation: "4-3-3",
-    coachAr: "زاركو لازيتيتش",
-    styleAr: "استحواذ وبناء من الخلف",
-    xi: [
-      ["روعي مشباتي", "90", "GK", "GK"],
-      ["سغيف يحزقيل", "11", "RB", "DEF"],
-      ["راز شلومو", "4", "CB", "DEF"],
-      ["نيمانيا ستويتش", "18", "CB", "DEF"],
-      ["أوفير دافيدزادا", "27", "LB", "DEF"],
-      ["يوريس فان أوفريم", "14", "CDM", "MID"],
-      ["غابي كانيخوفسكي", "16", "CM", "MID"],
-      ["أوسامو بيرتس", "42", "CAM", "MID"],
-      ["أوشتير داويدا", "77", "RW", "ATT"],
-      ["دور ترجمان", "9", "ST", "ATT"],
-      ["عيران زهافي", "7", "LW", "ATT"],
-    ],
-  },
-  "بيتار القدس": {
-    formation: "4-3-3",
-    coachAr: "باراك يتسحاقي",
-    styleAr: "أجنحة هجومية سريعة",
-    xi: [
-      ["ميغيل سيلفا", "55", "GK", "GK"],
-      ["غريغوري موروزوف", "16", "RB", "DEF"],
-      ["أوري دهان", "4", "CB", "DEF"],
-      ["جيل كوهين", "5", "CB", "DEF"],
-      ["ليئون مزراحي", "18", "LB", "DEF"],
-      ["إسماعيل سورو", "6", "CDM", "MID"],
-      ["أدي يونا", "21", "CM", "MID"],
-      ["شوعا يردين", "7", "CAM", "MID"],
-      ["تيموثي موزي", "24", "RW", "ATT"],
-      ["مايرون جورج", "9", "ST", "ATT"],
-      ["باتريك توماسي", "11", "LW", "ATT"],
-    ],
-  },
-  "اتحاد أبناء سخنين": {
-    formation: "4-2-3-1",
-    coachAr: "سلوبودان درابيتس",
-    styleAr: "تنظيم دفاعي ومرتدات سريعة",
-    xi: [
-      ["محمد أبو نيل", "22", "GK", "GK"],
-      ["عوفاديا درويش", "2", "RB", "DEF"],
-      ["إياد أبو عبيد", "5", "CB", "DEF"],
-      ["مارون غنطوس", "4", "CB", "DEF"],
-      ["نفتالي بلالي", "3", "LB", "DEF"],
-      ["ستيفان أومونغا", "6", "CDM", "MID"],
-      ["إيلاي إلمكايس", "8", "CM", "MID"],
-      ["أحمد سلمان", "11", "RW", "ATT"],
-      ["ماثيو كودجو", "10", "CAM", "MID"],
-      ["باسل خوري", "7", "LW", "ATT"],
-      ["ألكسندر رامالينغوم", "9", "ST", "ATT"],
-    ],
-  },
-  "مكابي أبناء الرينة": {
-    formation: "4-3-3",
-    coachAr: "شارون ميمر",
-    styleAr: "انضباط تكتيكي وضغط وسط الملعب",
-    xi: [
-      ["جاد عاموس", "1", "GK", "GK"],
-      ["عبد الله جابر", "3", "LB", "DEF"],
-      ["سامبينيا", "4", "CB", "DEF"],
-      ["نيمانيا ليوبيسافليفيتش", "5", "CB", "DEF"],
-      ["رون أونغار", "2", "RB", "DEF"],
-      ["إيهاب غنايم", "6", "CDM", "MID"],
-      ["روعي شاحر", "8", "CM", "MID"],
-      ["غاي حديد", "10", "CAM", "MID"],
-      ["قيس غانم", "9", "ST", "ATT"],
-      ["سعيد بصول", "11", "RW", "ATT"],
-      ["محمد شكر", "7", "LW", "ATT"],
-    ],
-  },
-};
-
-function buildDefaultTeamLineup(
-  teamName: string,
-  details: LiveMatchDetails,
-  isHome: boolean,
-): TeamTacticalLineup {
-  const cleanName = trv(teamName).trim();
-  const preset = REAL_TEAM_SQUADS[cleanName] ?? REAL_TEAM_SQUADS[teamName.trim()];
-  const goalsList = isHome ? details.homeGoals : details.awayGoals;
-  const cardsList = isHome ? details.homeCardEvents : details.awayCardEvents;
-
-  const xiSource: [string, string, string, "GK" | "DEF" | "MID" | "ATT", string?][] = preset
-    ? preset.xi
-    : [
-        ["حارس المرمى", "1", "GK", "GK"],
-        ["ظهير أيمن", "2", "RB", "DEF"],
-        ["قلب دفاع", "4", "CB", "DEF"],
-        ["قلب دفاع", "5", "CB", "DEF"],
-        ["ظهير أيسر", "3", "LB", "DEF"],
-        ["وسط ارتكاز", "6", "CDM", "MID"],
-        ["وسط محوري", "8", "CM", "MID"],
-        ["صانع ألعاب", "10", "CAM", "MID"],
-        ["جناح أيمن", "7", "RW", "ATT"],
-        ["رأس حربة", "9", "ST", "ATT"],
-        ["جناح أيسر", "11", "LW", "ATT"],
-      ];
-
-  const players: LineupPlayerNode[] = xiSource.map(([pName, num, posCode, line, photo], idx) => {
-    const posMeta = POS_AR_MAP[posCode] ?? { ar: posCode, line };
-    // Attach real goals/cards from the match details if the scorer matches or on attacking players
-    const matchedGoals = goalsList.filter(
-      (g) => g.scorer && (g.scorer.includes(pName) || pName.includes(g.scorer)),
-    ).length;
-    const hasYellow = cardsList.some(
-      (c) => c.card === "yellow" && c.player && (c.player.includes(pName) || pName.includes(c.player)),
-    );
-    const hasRed = cardsList.some(
-      (c) => c.card === "red" && c.player && (c.player.includes(pName) || pName.includes(c.player)),
-    );
-    return {
-      id: `${isHome ? "h" : "a"}-${idx}-${num}`,
-      name: pName,
-      number: num,
-      posCode,
-      posAr: posMeta.ar,
-      line,
-      photo,
-      goals: matchedGoals,
-      yellow: hasYellow,
-      red: hasRed,
-    };
-  });
-
-  // If the match has goals whose scorer wasn't in the preset name match, assign them to the striker/winger and update name!
-  if (goalsList.length > 0 && !players.some((p) => (p.goals ?? 0) > 0)) {
-    const firstGoal = goalsList[0];
-    const attIdx = players.findIndex((p) => p.line === "ATT");
-    if (attIdx !== -1 && firstGoal.scorer && firstGoal.scorer !== "هدف") {
-      players[attIdx] = {
-        ...players[attIdx],
-        name: trv(firstGoal.scorer),
-        goals: goalsList.length,
-      };
-    }
-  }
-
-  return {
-    formation: preset?.formation ?? "4-3-3",
-    coachAr: preset?.coachAr ?? "الجهاز الفني",
-    styleAr: preset?.styleAr ?? "تنظيم تكتيكي متوازن (4-3-3)",
-    players,
-    isOfficialLive: false,
-  };
-}
-
-const lineupCache = new Map<string, LiveMatchTacticalAnalysis>();
-
-async function fetchLiveMatchLineupAndAnalysis(
-  m: RichMatchItem,
-  details: LiveMatchDetails,
-): Promise<LiveMatchTacticalAnalysis> {
-  const cached = lineupCache.get(m.id);
-  if (cached) return cached;
-
-  const fallbackHome = buildDefaultTeamLineup(m.homeTeam, details, true);
-  const fallbackAway = buildDefaultTeamLineup(m.awayTeam, details, false);
-
-  const hs = m.homeScore ?? 0;
-  const as = m.awayScore ?? 0;
-  let homePoss = hs > as ? 54 : as > hs ? 46 : 51;
-  let awayPoss = 100 - homePoss;
-  let homeShots = Math.max(hs * 4 + 5, 7);
-  let awayShots = Math.max(as * 4 + 4, 6);
-  let homeShotsOnTarget = Math.max(hs + 2, 3);
-  let awayShotsOnTarget = Math.max(as + 2, 2);
-  let homeCorners = 5;
-  let awayCorners = 4;
-  let homeFouls = Math.max(details.homeYellowCards * 3 + 6, 8);
-  let awayFouls = Math.max(details.awayYellowCards * 3 + 5, 7);
-
-  const espnCode = m.leagueId === "sau.1" ? "ksa.1" : m.leagueId;
-  const numericEventId = String(m.id).replace(/^espn-/, "");
-
-  if (
-    /^\d+$/.test(numericEventId) &&
-    !espnCode.startsWith("isr.") &&
-    !espnCode.startsWith("local.")
-  ) {
-    try {
-      const res = await fetch(
-        `https://site.api.espn.com/apis/site/v2/sports/soccer/${encodeURIComponent(espnCode)}/summary?event=${encodeURIComponent(numericEventId)}`,
-        { headers: { accept: "application/json" } },
-      );
-      if (res.ok) {
-        const json = (await res.json()) as {
-          rosters?: any[];
-          boxscore?: { teams?: any[] };
-        };
-
-        // 1. Parse live team statistics from boxscore
-        const boxTeams: any[] = Array.isArray(json?.boxscore?.teams) ? json.boxscore.teams : [];
-        if (boxTeams.length >= 2) {
-          const getStat = (tObj: any, name: string, fallback: number) => {
-            const st = (tObj?.statistics ?? []).find(
-              (s: any) => s?.name === name || s?.abbreviation === name,
-            );
-            const v = parseFloat(String(st?.displayValue ?? st?.value ?? ""));
-            return Number.isFinite(v) ? Math.round(v) : fallback;
-          };
-          homePoss = getStat(boxTeams[0], "possessionPct", homePoss);
-          awayPoss = 100 - homePoss;
-          homeShots = getStat(boxTeams[0], "totalShots", homeShots);
-          awayShots = getStat(boxTeams[1], "totalShots", awayShots);
-          homeShotsOnTarget = getStat(boxTeams[0], "shotsOnTarget", homeShotsOnTarget);
-          awayShotsOnTarget = getStat(boxTeams[1], "shotsOnTarget", awayShotsOnTarget);
-          homeCorners = getStat(boxTeams[0], "wonCorners", homeCorners);
-          awayCorners = getStat(boxTeams[1], "wonCorners", awayCorners);
-          homeFouls = getStat(boxTeams[0], "foulsCommitted", homeFouls);
-          awayFouls = getStat(boxTeams[1], "foulsCommitted", awayFouls);
-        }
-
-        // 2. Parse live starting XI rosters & formations
-        const rosters: any[] = Array.isArray(json?.rosters) ? json.rosters : [];
-        const parseEspnRoster = (
-          rObj: any,
-          fb: TeamTacticalLineup,
-          isHome: boolean,
-        ): TeamTacticalLineup => {
-          const rawList: any[] = Array.isArray(rObj?.roster) ? rObj.roster : [];
-          const starters = rawList.filter((p) => p?.starter === true);
-          const picked = (starters.length >= 11 ? starters : rawList).slice(0, 11);
-          if (picked.length < 7) return fb;
-
-          const formation = String(rObj?.formation || fb.formation || "4-3-3").trim();
-          const fParts = formation
-            .split("-")
-            .map((n) => Number(n))
-            .filter((n) => Number.isFinite(n) && n > 0);
-          const defCount = fParts[0] || 4;
-          const attCount = fParts.length >= 2 ? fParts[fParts.length - 1] : 3;
-
-          const parsedPlayers: LineupPlayerNode[] = picked.map((entry, idx) => {
-            const ath = entry?.athlete ?? {};
-            const rawName = String(
-              ath.shortName || ath.displayName || ath.fullName || `لاعب ${idx + 1}`,
-            );
-            const name = trPlayerClient(rawName);
-            const number = String(entry?.jersey || idx + 1);
-            const abbr = String(entry?.position?.abbreviation || "").toUpperCase();
-            const mapped = POS_AR_MAP[abbr];
-
-            let line: "GK" | "DEF" | "MID" | "ATT" = mapped?.line ?? "MID";
-            if (!mapped) {
-              if (idx === 0) line = "GK";
-              else if (idx <= defCount) line = "DEF";
-              else if (idx >= 11 - attCount) line = "ATT";
-              else line = "MID";
-            }
-
-            const photo =
-              typeof ath?.headshot?.href === "string"
-                ? ath.headshot.href
-                : ath?.id
-                  ? `https://a.espncdn.com/i/headshots/soccer/players/full/${ath.id}.png`
-                  : undefined;
-
-            const pStats: any[] = Array.isArray(entry?.stats) ? entry.stats : [];
-            const gStat = pStats.find((s) => s?.name === "totalGoals" || s?.abbreviation === "G");
-            const yStat = pStats.find((s) => s?.name === "yellowCards" || s?.abbreviation === "YC");
-            const rStat = pStats.find((s) => s?.name === "redCards" || s?.abbreviation === "RC");
-
-            return {
-              id: String(ath?.id || `${isHome ? "h" : "a"}-${idx}`),
-              name,
-              number,
-              posCode: abbr || line,
-              posAr: mapped?.ar ?? (line === "GK" ? "حارس مرمى" : line === "DEF" ? "مدافع" : line === "ATT" ? "مهاجم" : "وسط ملعب"),
-              line,
-              photo,
-              goals: Number(gStat?.value ?? 0) || 0,
-              yellow: Number(yStat?.value ?? 0) > 0,
-              red: Number(rStat?.value ?? 0) > 0,
-            };
-          });
-
-          return {
-            formation,
-            coachAr: fb.coachAr,
-            styleAr: `خطة ${formation} الرسمية في الملعب`,
-            players: parsedPlayers,
-            isOfficialLive: true,
-          };
-        };
-
-        const homeRosterObj = rosters.find((r) => r?.homeAway === "home") ?? rosters[0];
-        const awayRosterObj = rosters.find((r) => r?.homeAway === "away") ?? rosters[1];
-        const homeLineup = homeRosterObj
-          ? parseEspnRoster(homeRosterObj, fallbackHome, true)
-          : fallbackHome;
-        const awayLineup = awayRosterObj
-          ? parseEspnRoster(awayRosterObj, fallbackAway, false)
-          : fallbackAway;
-
-        const result: LiveMatchTacticalAnalysis = {
-          home: homeLineup,
-          away: awayLineup,
-          homePossession: homePoss,
-          awayPossession: awayPoss,
-          homeShots,
-          awayShots,
-          homeShotsOnTarget,
-          awayShotsOnTarget,
-          homeCorners,
-          awayCorners,
-          homeFouls,
-          awayFouls,
-          summaryAr: `يعتمد ${trv(m.homeTeam)} على رسم تكتيكي (${homeLineup.formation}) بنسبة استحواذ ${homePoss}% مقابل (${awayLineup.formation}) لفريق ${trv(m.awayTeam)} مع ${homeShotsOnTarget + awayShotsOnTarget} تسديدات مباشرة بين الخشبات الثلاث.`,
-        };
-        lineupCache.set(m.id, result);
-        return result;
-      }
-    } catch {
-      // Fall back to preset tactical squad below
-    }
-  }
-
-  const fallbackResult: LiveMatchTacticalAnalysis = {
-    home: fallbackHome,
-    away: fallbackAway,
-    homePossession: homePoss,
-    awayPossession: awayPoss,
-    homeShots,
-    awayShots,
-    homeShotsOnTarget,
-    awayShotsOnTarget,
-    homeCorners,
-    awayCorners,
-    homeFouls,
-    awayFouls,
-    summaryAr: `يعتمد ${trv(m.homeTeam)} على خطة (${fallbackHome.formation}) بـ ${fallbackHome.styleAr}، في مواجهة خطة (${fallbackAway.formation}) لفريق ${trv(m.awayTeam)} (${fallbackAway.styleAr}).`,
-  };
-  lineupCache.set(m.id, fallbackResult);
-  return fallbackResult;
-}
-
-function PlayerPitchBadge({
-  p,
-  teamColor,
-}: {
-  p: LineupPlayerNode;
-  teamColor: "gold" | "sky";
-}) {
-  const [imgErr, setImgErr] = useState(false);
-  const ringCls =
-    teamColor === "gold"
-      ? "border-[#FACC15] bg-[#111827] text-[#FACC15]"
-      : "border-[#38BDF8] bg-[#0F172A] text-[#38BDF8]";
-
-  return (
-    <div className="flex flex-col items-center text-center group">
-      <div className="relative">
-        {p.photo && !imgErr ? (
-          <img
-            src={p.photo}
-            alt={p.name}
-            onError={() => setImgErr(true)}
-            loading="lazy"
-            className={`size-8 sm:size-10 rounded-full border-2 object-cover shadow-md ${ringCls}`}
-          />
-        ) : (
-          <span
-            className={`grid size-8 sm:size-10 place-items-center rounded-full border-2 font-mono text-[11px] sm:text-xs font-extrabold shadow-md ${ringCls}`}
-          >
-            {p.number}
-          </span>
-        )}
-        {/* Jersey Number Micro Badge */}
-        <span
-          dir="ltr"
-          className="absolute -bottom-1 -start-1 rounded-full bg-black/90 px-1 py-0.2 font-mono text-[8px] font-extrabold text-white ring-1 ring-white/40"
-        >
-          #{p.number}
-        </span>
-        {/* Live Goal / Card Indicators on Player */}
-        {(p.goals ?? 0) > 0 ? (
-          <span className="absolute -top-1.5 -end-1.5 rounded-full bg-[#22C55E] px-1 text-[8px] font-extrabold text-white shadow">
-            ⚽{p.goals! > 1 ? p.goals : ""}
-          </span>
-        ) : null}
-        {p.red ? (
-          <span className="absolute -top-1 -start-1 inline-block h-2.5 w-2 rounded-[1px] bg-[#EF4444] ring-1 ring-white" />
-        ) : p.yellow ? (
-          <span className="absolute -top-1 -start-1 inline-block h-2.5 w-2 rounded-[1px] bg-[#FACC15] ring-1 ring-black/40" />
-        ) : null}
-      </div>
-
-      <span className="mt-1 max-w-16 sm:max-w-20 truncate rounded bg-black/75 px-1.5 py-0.5 text-[9px] sm:text-[10px] leading-tight font-extrabold text-white shadow-2xs">
-        {trv(p.name)}
-      </span>
-      <span className="mt-0.5 rounded bg-white/15 px-1 text-[8px] leading-tight font-bold text-[#FEF08A]">
-        {trv(p.posAr)}
-      </span>
-    </div>
-  );
-}
-
-function SingleTeamTacticalPitch({
-  teamName,
-  teamLogo,
-  lineup,
-  teamColor,
-}: {
-  teamName: string;
-  teamLogo?: string;
-  lineup: TeamTacticalLineup;
-  teamColor: "gold" | "sky";
-}) {
-  const gk = lineup.players.filter((p) => p.line === "GK");
-  const defs = lineup.players.filter((p) => p.line === "DEF");
-  const mids = lineup.players.filter((p) => p.line === "MID");
-  const atts = lineup.players.filter((p) => p.line === "ATT");
-
-  return (
-    <div className="flex flex-col overflow-hidden rounded-2xl border border-white/20 bg-[#0A4D28] text-white shadow-md">
-      {/* Team Pitch Header */}
-      <div className="flex items-center justify-between gap-1.5 border-b border-white/15 bg-black/45 px-2.5 py-2">
-        <div className="flex min-w-0 items-center gap-1.5">
-          <div className="rounded-full bg-white p-0.5 shrink-0">
-            <TeamCrest name={teamName} logo={teamLogo} />
-          </div>
-          <div className="min-w-0">
-            <p className="truncate text-xs font-extrabold text-white sm:text-sm">{trv(teamName)}</p>
-            <p className="truncate text-[9px] font-bold text-white/75">{trv(lineup.styleAr)}</p>
-          </div>
-        </div>
-        <span
-          dir="ltr"
-          className={`shrink-0 rounded-lg px-2 py-0.5 font-mono text-[11px] font-extrabold ${
-            teamColor === "gold"
-              ? "bg-[#FACC15] text-[#111827]"
-              : "bg-[#38BDF8] text-[#0F172A]"
-          }`}
-        >
-          {lineup.formation}
-        </span>
-      </div>
-
-      {/* Tactical Vertical Football Pitch */}
-      <div
-        className="relative flex min-h-72 sm:min-h-80 flex-col justify-between px-2 py-3"
-        style={{
-          backgroundImage:
-            "repeating-linear-gradient(0deg, #0b532b 0px, #0b532b 24px, #0f6837 24px, #0f6837 48px)",
-        }}
-      >
-        {/* SVG Vertical Pitch Lines */}
-        <svg
-          viewBox="0 0 200 280"
-          preserveAspectRatio="none"
-          className="pointer-events-none absolute inset-0 h-full w-full opacity-35"
-          aria-hidden
-        >
-          <rect x="6" y="6" width="188" height="268" rx="4" fill="none" stroke="#ffffff" strokeWidth="1.5" />
-          <line x1="6" y1="140" x2="194" y2="140" stroke="#ffffff" strokeWidth="1.4" />
-          <circle cx="100" cy="140" r="24" fill="none" stroke="#ffffff" strokeWidth="1.4" />
-          <circle cx="100" cy="140" r="2.5" fill="#ffffff" />
-          {/* Top Penalty Box */}
-          <rect x="44" y="6" width="112" height="40" fill="none" stroke="#ffffff" strokeWidth="1.4" />
-          <rect x="68" y="6" width="64" height="16" fill="none" stroke="#ffffff" strokeWidth="1.2" />
-          {/* Bottom Penalty Box */}
-          <rect x="44" y="234" width="112" height="40" fill="none" stroke="#ffffff" strokeWidth="1.4" />
-          <rect x="68" y="258" width="64" height="16" fill="none" stroke="#ffffff" strokeWidth="1.2" />
-        </svg>
-
-        {/* Row 1: Attackers (Top of Pitch) */}
-        <div className="relative z-10 flex items-center justify-around gap-1">
-          {atts.map((p) => (
-            <PlayerPitchBadge key={p.id} p={p} teamColor={teamColor} />
-          ))}
-        </div>
-
-        {/* Row 2: Midfielders */}
-        <div className="relative z-10 flex items-center justify-around gap-1">
-          {mids.map((p) => (
-            <PlayerPitchBadge key={p.id} p={p} teamColor={teamColor} />
-          ))}
-        </div>
-
-        {/* Row 3: Defenders */}
-        <div className="relative z-10 flex items-center justify-around gap-1">
-          {defs.map((p) => (
-            <PlayerPitchBadge key={p.id} p={p} teamColor={teamColor} />
-          ))}
-        </div>
-
-        {/* Row 4: Goalkeeper (Bottom Goal Area) */}
-        <div className="relative z-10 flex items-center justify-center">
-          {gk.map((p) => (
-            <PlayerPitchBadge key={p.id} p={p} teamColor={teamColor} />
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function MatchRowCard({ m, showLeagueBadge }: { m: RichMatchItem; showLeagueBadge?: boolean }) {
   const isLive = m.status === "in";
   const isDone = m.status === "post";
   const { streamUrl, channel, cleanNote, meta } = extractMatchStream(m);
   const details = useMemo(() => resolveMatchDetails(m, meta), [m, meta]);
   const [watchOpen, setWatchOpen] = useState(false);
-  const [detailsOpen, setDetailsOpen] = useState(false);
-  const [drawerTab, setDrawerTab] = useState<"summary" | "lineup">("summary");
-  const [sideBySidePitches, setSideBySidePitches] = useState(true);
-  const [tacticalData, setTacticalData] = useState<LiveMatchTacticalAnalysis | null>(null);
-  const [loadingLineup, setLoadingLineup] = useState(false);
   const embed = streamUrl ? toEmbedStreamUrl(streamUrl) : null;
-
-  // Live animated stadium event state ("goal" | "foul" | "red" | "attack" | "none") — active on live matches!
-  const [pitchEvent, setPitchEvent] = useState<PitchEventKind>("none");
-  const [pitchEventText, setPitchEventText] = useState<string>("");
-  const [pitchEventSub, setPitchEventSub] = useState<string>("");
-  const eventTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const triggerPitchEvent = (kind: PitchEventKind, customTitle?: string, customSub?: string) => {
-    if (eventTimerRef.current) clearTimeout(eventTimerRef.current);
-    setPitchEvent(kind);
-    if (kind === "goal") {
-      const lastGoal =
-        details.homeGoals[details.homeGoals.length - 1] ??
-        details.awayGoals[details.awayGoals.length - 1];
-      const scorerText = lastGoal
-        ? `${trv(lastGoal.scorer)} ${lastGoal.minute ? `(${lastGoal.minute})` : ""}`
-        : `${trv(m.homeTeam)} × ${trv(m.awayTeam)}`;
-      setPitchEventText(customTitle || tr("⚽ هـــــدف! GOOOAL!"));
-      setPitchEventSub(customSub || scorerText);
-    } else if (kind === "foul") {
-      const lastYellow =
-        details.homeCardEvents.filter((c) => c.card === "yellow").slice(-1)[0] ??
-        details.awayCardEvents.filter((c) => c.card === "yellow").slice(-1)[0];
-      setPitchEventText(customTitle || tr("📢 صافرة الحكم: فاول وبطاقة صفراء!"));
-      setPitchEventSub(
-        customSub ||
-          (lastYellow?.player
-            ? `${trv(lastYellow.player)} ${lastYellow.minute ? `(${lastYellow.minute})` : ""}`
-            : `${tr("خطأ تكتيكي في وسط الملعب")} · ${trv(m.homeTeam)} × ${trv(m.awayTeam)}`),
-      );
-    } else if (kind === "red") {
-      const lastRed =
-        details.homeCardEvents.filter((c) => c.card === "red").slice(-1)[0] ??
-        details.awayCardEvents.filter((c) => c.card === "red").slice(-1)[0];
-      setPitchEventText(customTitle || tr("🟥 قرار حاسم: بطاقة حمراء وطرد!"));
-      setPitchEventSub(
-        customSub ||
-          (lastRed?.player
-            ? `${trv(lastRed.player)} ${lastRed.minute ? `(${lastRed.minute})` : ""}`
-            : `${tr("تدخل قوي ومراجعة الحكم")} · ${trv(m.homeTeam)} × ${trv(m.awayTeam)}`),
-      );
-    } else if (kind === "attack") {
-      setPitchEventText(customTitle || tr("⚡ هجمة خطيرة داخل منطقة الجزاء!"));
-      setPitchEventSub(
-        customSub || `${tr("ضغط هجومي متواصل على المرمى")} · ${trv(m.homeTeam)} × ${trv(m.awayTeam)}`,
-      );
-    }
-    if (kind !== "none") {
-      eventTimerRef.current = setTimeout(() => {
-        setPitchEvent("none");
-      }, 4600);
-    }
-  };
-
-  useEffect(() => {
-    return () => {
-      if (eventTimerRef.current) clearTimeout(eventTimerRef.current);
-    };
-  }, []);
-
-  // Load real/live tactical lineup & analysis whenever the bottom frame is opened
-  useEffect(() => {
-    if (!detailsOpen) return;
-    let active = true;
-    setLoadingLineup(true);
-    void fetchLiveMatchLineupAndAnalysis(m, details)
-      .then((res) => {
-        if (active) setTacticalData(res);
-      })
-      .finally(() => {
-        if (active) setLoadingLineup(false);
-      });
-    return () => {
-      active = false;
-    };
-  }, [detailsOpen, m, details]);
-
-  // Automatically detect real-time score, yellow card, or red card changes on LIVE matches!
-  const prevMetricsRef = useRef<{
-    id: string;
-    hs: number;
-    as: number;
-    yc: number;
-    rc: number;
-  }>({
-    id: m.id,
-    hs: m.homeScore ?? 0,
-    as: m.awayScore ?? 0,
-    yc: details.homeYellowCards + details.awayYellowCards,
-    rc: details.homeRedCards + details.awayRedCards,
-  });
-
-  useEffect(() => {
-    const curHs = m.homeScore ?? 0;
-    const curAs = m.awayScore ?? 0;
-    const curYc = details.homeYellowCards + details.awayYellowCards;
-    const curRc = details.homeRedCards + details.awayRedCards;
-    const prev = prevMetricsRef.current;
-
-    if (prev.id !== m.id) {
-      prevMetricsRef.current = { id: m.id, hs: curHs, as: curAs, yc: curYc, rc: curRc };
-      if (isLive && curHs + curAs > 0) {
-        triggerPitchEvent("goal");
-      }
-      return;
-    }
-
-    if (isLive) {
-      if (curHs > prev.hs) {
-        triggerPitchEvent(
-          "goal",
-          `⚽ ${tr("هـــدف لصالح")} ${trv(m.homeTeam)}!`,
-          `${curHs} - ${curAs}`,
-        );
-      } else if (curAs > prev.as) {
-        triggerPitchEvent(
-          "goal",
-          `⚽ ${tr("هـــدف لصالح")} ${trv(m.awayTeam)}!`,
-          `${curHs} - ${curAs}`,
-        );
-      } else if (curRc > prev.rc) {
-        triggerPitchEvent("red");
-      } else if (curYc > prev.yc) {
-        triggerPitchEvent("foul");
-      }
-    }
-
-    prevMetricsRef.current = { id: m.id, hs: curHs, as: curAs, yc: curYc, rc: curRc };
-  }, [
-    m.id,
-    m.homeScore,
-    m.awayScore,
-    m.homeTeam,
-    m.awayTeam,
-    isLive,
-    details.homeYellowCards,
-    details.awayYellowCards,
-    details.homeRedCards,
-    details.awayRedCards,
-  ]);
 
   // Compute initial live seconds for the real-time match clock
   const initialLiveSeconds = useMemo(() => {
@@ -2522,733 +1687,195 @@ function MatchRowCard({ m, showLeagueBadge }: { m: RichMatchItem; showLeagueBadg
     return `${String(mins).padStart(2, "0")}:${secs}`;
   }, [isLive, details.isHalftime, details.liveMinuteText, m.statusTextAr, liveSec]);
 
-  const totalGoalsCount = details.homeGoals.length + details.awayGoals.length;
-  const totalCardsCount =
-    details.homeYellowCards +
-    details.awayYellowCards +
-    details.homeRedCards +
-    details.awayRedCards;
-
   return (
-    <div className="flex flex-col">
-      {/* Main Match Card: Animated Stadium Pitch ONLY when isLive === true; Clean Card when pre/post */}
-      <div
-        role="button"
-        tabIndex={0}
-        onClick={() => setDetailsOpen((v) => !v)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            setDetailsOpen((v) => !v);
-          }
-        }}
-        className={`relative cursor-pointer overflow-hidden rounded-2xl px-3 py-2.5 transition-all duration-300 ${
-          isLive
-            ? pitchEvent === "goal"
-              ? "border-2 border-[#FACC15] text-white shadow-[0_0_24px_rgba(250,204,21,0.55)]"
-              : pitchEvent === "foul"
-                ? "border-2 border-[#FDE047] text-white shadow-[0_0_20px_rgba(253,224,71,0.45)]"
-                : pitchEvent === "red"
-                  ? "border-2 border-[#EF4444] text-white shadow-[0_0_22px_rgba(239,68,68,0.55)]"
-                  : "border-2 border-[#22C55E] text-white shadow-sm"
-            : detailsOpen
-              ? "border-2 border-primary bg-primary-soft/25 text-ink shadow-xs"
-              : "border border-line bg-paper text-ink hover:border-primary/80 shadow-2xs"
-        }`}
-        style={
-          isLive
-            ? {
-                backgroundImage:
-                  "radial-gradient(circle at 50% 0%, rgba(255,255,255,0.16) 0%, rgba(0,0,0,0.28) 90%), repeating-linear-gradient(90deg, #0b532b 0px, #0b532b 22px, #0f6837 22px, #0f6837 44px)",
-                backgroundSize: "200% 100%, 44px 100%",
-                animation: "rpTurfBreeze 9s ease-in-out infinite",
-              }
-            : undefined
-        }
-      >
-        {/* Animated Pitch Background & Floodlights ONLY on LIVE matches (isLive === true) */}
-        {isLive ? (
-          <>
-            <style>{STADIUM_PITCH_KEYFRAMES}</style>
-            <div
-              className="pointer-events-none absolute -top-10 inset-x-0 h-28"
-              style={{
-                background:
-                  "conic-gradient(from 180deg at 50% 0%, transparent 30%, rgba(255,255,255,0.22) 48%, rgba(250,204,21,0.18) 52%, transparent 70%)",
-                animation: "rpFloodlightSweep 6s ease-in-out infinite",
-              }}
-              aria-hidden
-            />
-            <svg
-              viewBox="0 0 400 130"
-              preserveAspectRatio="none"
-              className="pointer-events-none absolute inset-0 h-full w-full opacity-35"
-              aria-hidden
-            >
-              <rect x="6" y="6" width="388" height="118" rx="6" fill="none" stroke="#ffffff" strokeWidth="1.6" />
-              <line x1="200" y1="6" x2="200" y2="124" stroke="#ffffff" strokeWidth="1.5" />
-              <circle cx="200" cy="65" r="24" fill="none" stroke="#ffffff" strokeWidth="1.5" />
-              <circle cx="200" cy="65" r="2.6" fill="#ffffff" />
-              <rect x="6" y="28" width="48" height="74" fill="none" stroke="#ffffff" strokeWidth="1.5" />
-              <rect x="6" y="45" width="18" height="40" fill="none" stroke="#ffffff" strokeWidth="1.3" />
-              <path d="M 54 49 A 18 18 0 0 1 54 81" fill="none" stroke="#ffffff" strokeWidth="1.4" />
-              <rect x="346" y="28" width="48" height="74" fill="none" stroke="#ffffff" strokeWidth="1.5" />
-              <rect x="376" y="45" width="18" height="40" fill="none" stroke="#ffffff" strokeWidth="1.3" />
-              <path d="M 346 49 A 18 18 0 0 0 346 81" fill="none" stroke="#ffffff" strokeWidth="1.4" />
-            </svg>
-            <div
-              className="pointer-events-none absolute top-1/2 left-1/2 z-0 -translate-x-1/2 -translate-y-1/2"
-              aria-hidden
-            >
-              <div
-                className="relative flex items-center justify-center"
-                style={{ animation: "rpBallRoam 11s ease-in-out infinite" }}
-              >
-                <span
-                  className="absolute size-7 rounded-full border border-[#FACC15]/70 bg-[#FACC15]/20"
-                  style={{ animation: "rpRadarWave 1.8s ease-out infinite" }}
-                />
-                <span className="text-[11px] drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">⚽</span>
-              </div>
-            </div>
-          </>
-        ) : null}
+    <div
+      className={`flex flex-col gap-1 rounded-2xl border px-2.5 py-2 transition ${
+        isLive
+          ? "border-alert/50 bg-alert/5 shadow-xs"
+          : "border-line bg-paper hover:border-ink/25"
+      }`}
+    >
+      {showLeagueBadge ? (
+        <div className="flex items-center justify-between text-[10px] leading-none font-bold text-muted">
+          <span className="inline-flex items-center gap-1 truncate">
+            <span>{m.leagueBadge}</span>
+            <span className="truncate">{trv(m.leagueNameAr)}</span>
+          </span>
+          <span className="shrink-0">{m.dateLabelAr}</span>
+        </div>
+      ) : null}
 
-        {/* Live Match Event Overlay Banner (Goal / Foul / Red Card / Attack) */}
-        {isLive && pitchEvent !== "none" ? (
-          <div
-            onClick={(e) => {
-              e.stopPropagation();
-              setPitchEvent("none");
-            }}
-            className="absolute inset-0 z-20 flex cursor-pointer flex-col items-center justify-center bg-black/75 px-3 text-center backdrop-blur-[2px]"
-            style={{
-              animation:
-                pitchEvent === "goal"
-                  ? "rpGoalCelebration 4.5s ease-in-out forwards"
-                  : "rpCardFlipIn 4.5s ease-in-out forwards",
-            }}
-          >
-            {pitchEvent === "goal" ? (
-              <div className="flex flex-col items-center">
-                <div className="flex items-center gap-2 text-2xl sm:text-3xl">
-                  <span className="animate-bounce">⚽</span>
-                  <span className="rounded-2xl bg-gradient-to-r from-[#FACC15] via-[#FEF08A] to-[#FACC15] px-4 py-1 text-base font-extrabold text-[#111827] shadow-[0_0_25px_rgba(250,204,21,0.9)] sm:text-lg">
-                    {pitchEventText}
-                  </span>
-                  <span className="animate-bounce">🥅</span>
-                </div>
-                <p className="mt-1.5 text-xs font-extrabold text-[#FEF08A] sm:text-sm">
-                  🎉 {pitchEventSub}
-                </p>
-              </div>
-            ) : pitchEvent === "foul" ? (
-              <div className="flex flex-col items-center">
-                <div className="flex items-center gap-2">
-                  <span className="inline-block h-8 w-6 rounded-sm border-2 border-white bg-[#FACC15] shadow-[0_0_20px_rgba(250,204,21,0.95)]" />
-                  <span className="rounded-xl bg-[#FACC15] px-3.5 py-1 text-sm font-extrabold text-[#111827] shadow-lg">
-                    {pitchEventText}
-                  </span>
-                </div>
-                <p className="mt-1.5 text-xs font-extrabold text-white/95">
-                  ⚠️ {pitchEventSub}
-                </p>
-              </div>
-            ) : pitchEvent === "red" ? (
-              <div className="flex flex-col items-center">
-                <div className="flex items-center gap-2">
-                  <span className="inline-block h-8 w-6 rounded-sm border-2 border-white bg-[#EF4444] shadow-[0_0_24px_rgba(239,68,68,0.95)]" />
-                  <span className="rounded-xl bg-[#EF4444] px-3.5 py-1 text-sm font-extrabold text-white shadow-lg">
-                    {pitchEventText}
-                  </span>
-                </div>
-                <p className="mt-1.5 text-xs font-extrabold text-[#FECACA]">
-                  🚨 {pitchEventSub}
-                </p>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center">
-                <span className="rounded-xl bg-[#0284C7] px-3.5 py-1 text-sm font-extrabold text-white shadow-[0_0_20px_rgba(56,189,248,0.85)]">
-                  {pitchEventText}
-                </span>
-                <p className="mt-1.5 text-xs font-extrabold text-[#BAE6FD]">
-                  🔥 {pitchEventSub}
-                </p>
-              </div>
-            )}
-          </div>
-        ) : null}
-
-        {/* Foreground Content */}
-        <div className="relative z-10 flex flex-col gap-1.5">
-          {showLeagueBadge ? (
-            <div
-              className={`flex items-center justify-between text-[10px] leading-none font-extrabold ${
-                isLive ? "text-white/95" : "text-muted"
-              }`}
-            >
-              <span
-                className={`inline-flex items-center gap-1 truncate ${
-                  isLive ? "rounded-full bg-black/35 px-2 py-0.5 backdrop-blur-[1px]" : ""
-                }`}
-              >
-                <span>{m.leagueBadge}</span>
-                <span className="truncate">{trv(m.leagueNameAr)}</span>
+      {/* Compact single-height match row: Team + inline cards + micro goals under name */}
+      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-1.5">
+        {/* Home team (Right in RTL) */}
+        <div className="flex min-w-0 items-center gap-1.5">
+          <TeamCrest name={m.homeTeam} logo={m.homeLogo} />
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1">
+              <span className="truncate text-xs font-extrabold text-ink sm:text-sm">
+                {trv(m.homeTeam)}
               </span>
-              <span
-                className={`shrink-0 ${
-                  isLive ? "rounded-full bg-black/35 px-2 py-0.5 text-[#FEF08A]" : "text-muted"
-                }`}
-              >
-                {m.dateLabelAr}
-              </span>
-            </div>
-          ) : null}
-
-          {/* Main Match Scoreboard Row */}
-          <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-1.5 py-0.5">
-            {/* Home team (Right in RTL) */}
-            <div className="flex min-w-0 items-center gap-1.5">
-              <div className={isLive ? "rounded-full bg-white/95 p-0.5 shadow-sm" : "shrink-0"}>
-                <TeamCrest name={m.homeTeam} logo={m.homeLogo} />
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-1">
-                  <span
-                    className={`truncate text-xs font-extrabold sm:text-sm ${
-                      isLive
-                        ? "text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)]"
-                        : "text-ink"
-                    }`}
-                  >
-                    {trv(m.homeTeam)}
-                  </span>
-                  <span
-                    dir="ltr"
-                    className="inline-flex shrink-0 items-center gap-0.5 text-[9px] leading-none font-extrabold"
-                  >
-                    <span
-                      className={`inline-flex items-center rounded px-1 py-0.5 ${
-                        details.homeYellowCards > 0
-                          ? "bg-[#FEF08A] text-[#854D0E]"
-                          : isLive
-                            ? "bg-black/40 text-white/80"
-                            : "bg-surface text-muted/70"
-                      }`}
-                    >
-                      🟨{details.homeYellowCards}
-                    </span>
-                    {details.homeRedCards > 0 ? (
-                      <span className="inline-flex items-center rounded bg-[#EF4444] px-1 py-0.5 text-white">
-                        🟥{details.homeRedCards}
-                      </span>
-                    ) : null}
-                  </span>
-                </div>
-
-                {details.homeGoals.length > 0 ? (
-                  <div
-                    className={`mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[9px] leading-tight font-bold ${
-                      isLive ? "text-[#FEF08A]" : "text-muted"
-                    }`}
-                  >
-                    {details.homeGoals.map((g, idx) => (
-                      <span
-                        key={`hg-${idx}-${g.minute}-${g.scorer}`}
-                        className="inline-flex items-center gap-0.5 truncate"
-                      >
-                        <span className="text-[8px]">⚽</span>
-                        <span className={isLive ? "truncate text-white" : "truncate text-ink/90"}>
-                          {trv(g.scorer)}
-                        </span>
-                        {g.minute ? (
-                          <span
-                            dir="ltr"
-                            className={`font-extrabold ${isLive ? "text-[#FACC15]" : "text-primary-ink"}`}
-                          >
-                            {g.minute}
-                          </span>
-                        ) : null}
-                      </span>
-                    ))}
-                  </div>
-                ) : null}
-              </div>
-            </div>
-
-            {/* Center Score / Kickoff + Live Match Clock */}
-            <div className="flex flex-col items-center justify-center px-1.5">
-              {m.status === "pre" ? (
-                <span
-                  dir="ltr"
-                  className="rounded-lg bg-surface px-2.5 py-0.5 text-xs font-extrabold text-ink"
-                >
-                  {m.kickoffTimeAr}
-                </span>
-              ) : (
-                <div
-                  dir="ltr"
-                  className={`flex items-center gap-1 rounded-xl px-2.5 py-0.5 text-sm leading-tight font-extrabold ${
-                    isLive
-                      ? "border border-[#FACC15] bg-[#DC2626] text-white shadow-sm"
-                      : "bg-surface text-ink"
-                  }`}
-                >
-                  <span>{m.homeScore ?? 0}</span>
-                  <span className={isLive ? "text-[#FACC15]" : "opacity-60"}>:</span>
-                  <span>{m.awayScore ?? 0}</span>
-                </div>
-              )}
-
+              {/* Compact inline cards per team */}
               <span
                 dir="ltr"
-                className={`mt-0.5 inline-flex items-center gap-1 text-[9px] leading-none font-extrabold ${
-                  isLive
-                    ? "rounded-full bg-black/45 px-2 py-0.5 text-[#FACC15]"
-                    : isDone
-                      ? "text-muted"
-                      : "text-primary-ink"
-                }`}
+                className="inline-flex shrink-0 items-center gap-0.5 text-[9px] leading-none font-extrabold"
+                title={tr("البطاقات الصفراء والحمراء")}
               >
-                {isLive ? (
-                  <>
-                    <span className="size-1.5 animate-ping rounded-full bg-[#22C55E]" />
-                    <span>⏱️ {formattedLiveClock}</span>
-                  </>
-                ) : (
-                  <span>{trv(m.statusTextAr)}</span>
-                )}
+                <span
+                  className={`inline-flex items-center rounded px-1 py-0.5 ${
+                    details.homeYellowCards > 0
+                      ? "bg-[#FEF08A] text-[#854D0E]"
+                      : "bg-surface text-muted/70"
+                  }`}
+                >
+                  🟨{details.homeYellowCards}
+                </span>
+                {details.homeRedCards > 0 ? (
+                  <span className="inline-flex items-center rounded bg-[#FEE2E2] px-1 py-0.5 text-[#991B1B]">
+                    🟥{details.homeRedCards}
+                  </span>
+                ) : null}
               </span>
             </div>
 
-            {/* Away team (Left in RTL) */}
-            <div className="flex min-w-0 items-center justify-end gap-1.5 text-left">
-              <div className="min-w-0 flex-1 text-left">
-                <div className="flex items-center justify-end gap-1">
+            {/* Micro compact goals list right below team name without increasing box height */}
+            {details.homeGoals.length > 0 ? (
+              <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[9px] leading-tight font-bold text-muted">
+                {details.homeGoals.map((g, idx) => (
                   <span
-                    dir="ltr"
-                    className="inline-flex shrink-0 items-center gap-0.5 text-[9px] leading-none font-extrabold"
+                    key={`hg-${idx}-${g.minute}-${g.scorer}`}
+                    className="inline-flex items-center gap-0.5 truncate"
                   >
-                    {details.awayRedCards > 0 ? (
-                      <span className="inline-flex items-center rounded bg-[#EF4444] px-1 py-0.5 text-white">
-                        🟥{details.awayRedCards}
+                    <span className="text-[8px]">⚽</span>
+                    <span className="truncate text-ink/90">{trv(g.scorer)}</span>
+                    {g.minute ? (
+                      <span dir="ltr" className="font-extrabold text-primary-ink">
+                        {g.minute}
                       </span>
                     ) : null}
-                    <span
-                      className={`inline-flex items-center rounded px-1 py-0.5 ${
-                        details.awayYellowCards > 0
-                          ? "bg-[#FEF08A] text-[#854D0E]"
-                          : isLive
-                            ? "bg-black/40 text-white/80"
-                            : "bg-surface text-muted/70"
-                      }`}
-                    >
-                      🟨{details.awayYellowCards}
-                    </span>
                   </span>
-                  <span
-                    className={`truncate text-xs font-extrabold sm:text-sm ${
-                      isLive
-                        ? "text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)]"
-                        : "text-ink"
-                    }`}
-                  >
-                    {trv(m.awayTeam)}
-                  </span>
-                </div>
-
-                {details.awayGoals.length > 0 ? (
-                  <div
-                    className={`mt-0.5 flex flex-wrap items-center justify-end gap-x-1.5 gap-y-0.5 text-[9px] leading-tight font-bold ${
-                      isLive ? "text-[#FEF08A]" : "text-muted"
-                    }`}
-                  >
-                    {details.awayGoals.map((g, idx) => (
-                      <span
-                        key={`ag-${idx}-${g.minute}-${g.scorer}`}
-                        className="inline-flex items-center gap-0.5 truncate"
-                      >
-                        {g.minute ? (
-                          <span
-                            dir="ltr"
-                            className={`font-extrabold ${isLive ? "text-[#FACC15]" : "text-primary-ink"}`}
-                          >
-                            {g.minute}
-                          </span>
-                        ) : null}
-                        <span className={isLive ? "truncate text-white" : "truncate text-ink/90"}>
-                          {trv(g.scorer)}
-                        </span>
-                        <span className="text-[8px]">⚽</span>
-                      </span>
-                    ))}
-                  </div>
-                ) : null}
+                ))}
               </div>
-              <div className={isLive ? "rounded-full bg-white/95 p-0.5 shadow-sm" : "shrink-0"}>
-                <TeamCrest name={m.awayTeam} logo={m.awayLogo} />
-              </div>
-            </div>
+            ) : null}
           </div>
+        </div>
 
-          {/* Bottom Strip on Card: Live FX buttons (ONLY when isLive) + Details/Lineup Trigger + Channel/Stream */}
-          <div
-            className={`mt-0.5 flex flex-wrap items-center justify-between gap-1.5 border-t pt-1.5 ${
-              isLive ? "border-white/15" : "border-line/60"
+        {/* Center score / kickoff + micro live match clock */}
+        <div className="flex flex-col items-center justify-center px-1.5">
+          {m.status === "pre" ? (
+            <span
+              dir="ltr"
+              className="rounded-lg bg-surface px-2 py-0.5 text-[11px] font-extrabold text-ink"
+            >
+              {m.kickoffTimeAr}
+            </span>
+          ) : (
+            <div
+              dir="ltr"
+              className={`flex items-center gap-1 rounded-lg px-2 py-0.5 text-sm leading-tight font-extrabold ${
+                isLive ? "bg-alert text-white" : "bg-surface text-ink"
+              }`}
+            >
+              <span>{m.homeScore ?? 0}</span>
+              <span className="opacity-60">:</span>
+              <span>{m.awayScore ?? 0}</span>
+            </div>
+          )}
+
+          <span
+            dir="ltr"
+            className={`mt-0.5 inline-flex items-center gap-1 text-[9px] leading-none font-extrabold ${
+              isLive ? "text-alert" : isDone ? "text-muted" : "text-primary-ink"
             }`}
           >
-            <div className="flex flex-wrap items-center gap-1.5">
+            {isLive ? (
+              <>
+                <span className="size-1.5 animate-ping rounded-full bg-alert" />
+                <span>⏱️ {formattedLiveClock}</span>
+              </>
+            ) : (
+              <span>{trv(m.statusTextAr)}</span>
+            )}
+          </span>
+        </div>
+
+        {/* Away team (Left in RTL) */}
+        <div className="flex min-w-0 items-center justify-end gap-1.5 text-left">
+          <div className="min-w-0 flex-1 text-left">
+            <div className="flex items-center justify-end gap-1">
+              {/* Compact inline cards per team */}
               <span
-                className={`inline-flex items-center gap-1 rounded-lg px-2 py-0.5 text-[10px] font-extrabold transition ${
-                  isLive
-                    ? "bg-black/45 text-[#FEF08A]"
-                    : detailsOpen
-                      ? "bg-ink text-primary"
-                      : "bg-surface text-ink hover:bg-primary-soft"
-                }`}
+                dir="ltr"
+                className="inline-flex shrink-0 items-center gap-0.5 text-[9px] leading-none font-extrabold"
+                title={tr("البطاقات الصفراء والحمراء")}
               >
-                <span>{detailsOpen ? "▴" : "▾"}</span>
-                <span>
-                  {detailsOpen
-                    ? tr("إخفاء التفاصيل والتشكيلة")
-                    : tr("⚽ الأهداف والبطاقات وتشكيلة الملعب")}
+                {details.awayRedCards > 0 ? (
+                  <span className="inline-flex items-center rounded bg-[#FEE2E2] px-1 py-0.5 text-[#991B1B]">
+                    🟥{details.awayRedCards}
+                  </span>
+                ) : null}
+                <span
+                  className={`inline-flex items-center rounded px-1 py-0.5 ${
+                    details.awayYellowCards > 0
+                      ? "bg-[#FEF08A] text-[#854D0E]"
+                      : "bg-surface text-muted/70"
+                  }`}
+                >
+                  🟨{details.awayYellowCards}
                 </span>
               </span>
-
-              {isLive ? (
-                <div
-                  className="flex flex-wrap items-center gap-1"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <button
-                    type="button"
-                    onClick={() => triggerPitchEvent("goal")}
-                    className="press inline-flex items-center gap-0.5 rounded-lg bg-black/40 px-1.5 py-0.5 text-[10px] font-extrabold text-[#FEF08A] hover:bg-[#FACC15] hover:text-[#111827]"
-                  >
-                    ⚽ {tr("هدف")}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => triggerPitchEvent("foul")}
-                    className="press inline-flex items-center gap-0.5 rounded-lg bg-black/40 px-1.5 py-0.5 text-[10px] font-extrabold text-white/90 hover:bg-[#FACC15] hover:text-[#111827]"
-                  >
-                    🟨 {tr("فاول")}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => triggerPitchEvent("red")}
-                    className="press inline-flex items-center gap-0.5 rounded-lg bg-black/40 px-1.5 py-0.5 text-[10px] font-extrabold text-[#FCA5A5] hover:bg-[#EF4444] hover:text-white"
-                  >
-                    🟥 {tr("طرد")}
-                  </button>
-                </div>
-              ) : null}
+              <span className="truncate text-xs font-extrabold text-ink sm:text-sm">
+                {trv(m.awayTeam)}
+              </span>
             </div>
 
-            <div
-              className="flex flex-wrap items-center gap-1.5 text-[10px] leading-none font-bold"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {channel ? (
-                <span
-                  className={`rounded-lg px-2 py-0.5 font-extrabold ${
-                    isLive ? "bg-black/45 text-white" : "bg-surface text-ink"
-                  }`}
-                >
-                  📡 {trv(channel)}
-                </span>
-              ) : null}
-              {cleanNote ? (
-                <span className={`truncate ${isLive ? "text-white/85" : "text-muted"}`}>
-                  {trv(cleanNote)}
-                </span>
-              ) : null}
-              {streamUrl ? (
-                <button
-                  type="button"
-                  onClick={() => setWatchOpen((v) => !v)}
-                  className={`inline-flex items-center gap-1 rounded-lg px-2 py-0.5 text-[10px] font-extrabold text-white shadow-2xs transition ${
-                    watchOpen ? "bg-ink" : "bg-[#DC2626] hover:bg-[#B91C1C]"
-                  }`}
-                >
-                  <span className="size-1.5 animate-ping rounded-full bg-white" />
-                  {watchOpen ? tr("إغلاق ✕") : tr("📺 بث مباشر")}
-                </button>
-              ) : null}
-            </div>
+            {/* Micro compact goals list right below away team name */}
+            {details.awayGoals.length > 0 ? (
+              <div className="mt-0.5 flex flex-wrap items-center justify-end gap-x-1.5 gap-y-0.5 text-[9px] leading-tight font-bold text-muted">
+                {details.awayGoals.map((g, idx) => (
+                  <span
+                    key={`ag-${idx}-${g.minute}-${g.scorer}`}
+                    className="inline-flex items-center gap-0.5 truncate"
+                  >
+                    {g.minute ? (
+                      <span dir="ltr" className="font-extrabold text-primary-ink">
+                        {g.minute}
+                      </span>
+                    ) : null}
+                    <span className="truncate text-ink/90">{trv(g.scorer)}</span>
+                    <span className="text-[8px]">⚽</span>
+                  </span>
+                ))}
+              </div>
+            ) : null}
           </div>
+          <TeamCrest name={m.awayTeam} logo={m.awayLogo} />
         </div>
       </div>
 
-      {/* Expandable Bottom Match Center Frame (Opens when clicking ANY match card!) */}
-      {detailsOpen ? (
-        <div className="mt-1.5 overflow-hidden rounded-2xl border-2 border-primary/80 bg-paper p-3 text-ink shadow-md space-y-3">
-          {/* Top Switcher Menu Inside Bottom Frame: Summary (Score/Goals/Cards) vs Dual Pitch Lineups */}
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line pb-2.5">
-            <div className="flex flex-wrap items-center gap-1.5">
-              <button
-                type="button"
-                onClick={() => setDrawerTab("summary")}
-                className={`press inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-extrabold transition ${
-                  drawerTab === "summary"
-                    ? "bg-ink text-primary shadow-2xs"
-                    : "border border-line bg-surface text-ink hover:border-primary"
-                }`}
-              >
-                <span>📋</span>
-                <span>{tr("النتيجة والأهداف والبطاقات")}</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setDrawerTab("lineup")}
-                className={`press inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-extrabold transition ${
-                  drawerTab === "lineup"
-                    ? "bg-[#0B532B] text-[#FACC15] shadow-2xs ring-2 ring-[#22C55E]/40"
-                    : "border border-line bg-surface text-ink hover:border-primary"
-                }`}
-              >
-                <span>🏟️</span>
-                <span>{tr("تشكيلة الفريقين (ملعبين بجانب بعض)")}</span>
-              </button>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setDetailsOpen(false)}
-              className="rounded-lg bg-surface px-2.5 py-1 text-xs font-extrabold text-muted hover:text-ink"
-            >
-              ✕ {tr("إغلاق")}
-            </button>
+      {channel || cleanNote || streamUrl ? (
+        <div className="mt-0.5 flex flex-wrap items-center justify-between gap-1.5 border-t border-line/50 pt-1">
+          <div className="flex flex-wrap items-center gap-1 text-[10px] leading-none font-bold text-muted">
+            {channel ? (
+              <span className="rounded bg-surface px-1.5 py-0.5 font-extrabold text-ink">
+                📡 {trv(channel)}
+              </span>
+            ) : null}
+            {cleanNote ? <span className="truncate">{trv(cleanNote)}</span> : null}
           </div>
 
-          {drawerTab === "summary" ? (
-            <div className="space-y-3">
-              {/* Full Score & Match Status Banner */}
-              <div className="flex items-center justify-between gap-2 rounded-2xl bg-surface/80 px-3.5 py-2.5">
-                <div className="flex min-w-0 flex-1 items-center gap-2">
-                  <TeamCrest name={m.homeTeam} logo={m.homeLogo} />
-                  <span className="truncate text-xs font-extrabold sm:text-sm">{trv(m.homeTeam)}</span>
-                </div>
-                <div className="flex flex-col items-center px-3">
-                  <span dir="ltr" className="rounded-xl bg-ink px-3 py-1 font-mono text-sm font-extrabold text-primary">
-                    {m.status === "pre"
-                      ? m.kickoffTimeAr
-                      : `${m.homeScore ?? 0} : ${m.awayScore ?? 0}`}
-                  </span>
-                  <span className="mt-1 text-[10px] font-extrabold text-muted">
-                    {isLive ? `🔴 ${formattedLiveClock}` : trv(m.statusTextAr)} · {m.dateLabelAr}
-                  </span>
-                </div>
-                <div className="flex min-w-0 flex-1 items-center justify-end gap-2 text-left">
-                  <span className="truncate text-xs font-extrabold sm:text-sm">{trv(m.awayTeam)}</span>
-                  <TeamCrest name={m.awayTeam} logo={m.awayLogo} />
-                </div>
-              </div>
-
-              {/* Goals & Scorers Section */}
-              <div className="rounded-2xl border border-line bg-paper p-3">
-                <div className="mb-2 flex items-center justify-between">
-                  <h4 className="text-xs font-extrabold text-ink">
-                    ⚽ {tr("مسجّلو الأهداف")} ({totalGoalsCount})
-                  </h4>
-                  {m.venue ? (
-                    <span className="text-[10px] font-bold text-muted">🏟️ {trv(m.venue)}</span>
-                  ) : null}
-                </div>
-
-                {totalGoalsCount === 0 ? (
-                  <p className="text-center text-xs font-semibold text-muted py-1">
-                    {m.status === "pre"
-                      ? tr("لم تنطلق المباراة بعد — اضغط على «تشكيلة الفريقين» لعرض التشكيلة المتوقعة ومراكز اللاعبين.")
-                      : tr("لا توجد أهداف مسجّلة في هذه المباراة حتى الآن.")}
-                  </p>
-                ) : (
-                  <div className="grid grid-cols-2 gap-3 border-t border-line/60 pt-2">
-                    {/* Home Goals */}
-                    <div className="space-y-1">
-                      <p className="text-[10px] font-extrabold text-muted">{trv(m.homeTeam)}</p>
-                      {details.homeGoals.length === 0 ? (
-                        <p className="text-[11px] text-muted">—</p>
-                      ) : (
-                        details.homeGoals.map((g, idx) => (
-                          <div key={idx} className="flex items-center justify-between rounded-lg bg-surface/70 px-2 py-1 text-xs font-bold">
-                            <span className="truncate">⚽ {trv(g.scorer)}</span>
-                            <span dir="ltr" className="font-mono text-[11px] font-extrabold text-primary-ink">
-                              {g.minute}
-                            </span>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                    {/* Away Goals */}
-                    <div className="space-y-1">
-                      <p className="text-[10px] font-extrabold text-muted text-left">{trv(m.awayTeam)}</p>
-                      {details.awayGoals.length === 0 ? (
-                        <p className="text-[11px] text-muted text-left">—</p>
-                      ) : (
-                        details.awayGoals.map((g, idx) => (
-                          <div key={idx} className="flex items-center justify-between rounded-lg bg-surface/70 px-2 py-1 text-xs font-bold">
-                            <span dir="ltr" className="font-mono text-[11px] font-extrabold text-primary-ink">
-                              {g.minute}
-                            </span>
-                            <span className="truncate">{trv(g.scorer)} ⚽</span>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Yellow & Red Cards Section */}
-              <div className="rounded-2xl border border-line bg-paper p-3">
-                <h4 className="mb-2 text-xs font-extrabold text-ink">
-                  🟨🟥 {tr("البطاقات الصفراء والحمراء")} ({totalCardsCount})
-                </h4>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                    <div className="flex items-center justify-between rounded-xl bg-surface/60 px-2.5 py-1.5 text-xs font-extrabold">
-                      <span className="truncate">{trv(m.homeTeam)}</span>
-                      <span dir="ltr" className="flex items-center gap-1">
-                        <span className="rounded bg-[#FEF08A] px-1.5 py-0.5 text-[#854D0E]">
-                          🟨 {details.homeYellowCards}
-                        </span>
-                        <span className="rounded bg-[#FEE2E2] px-1.5 py-0.5 text-[#991B1B]">
-                          🟥 {details.homeRedCards}
-                        </span>
-                      </span>
-                    </div>
-                    {details.homeCardEvents.map((c, idx) => (
-                      <div key={idx} className="flex items-center justify-between px-2 text-[11px] font-bold text-muted">
-                        <span className="truncate">
-                          {c.card === "red" ? "🟥" : "🟨"} {trv(c.player || "لاعب")}
-                        </span>
-                        <span dir="ltr">{c.minute}</span>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <div className="flex items-center justify-between rounded-xl bg-surface/60 px-2.5 py-1.5 text-xs font-extrabold">
-                      <span className="truncate">{trv(m.awayTeam)}</span>
-                      <span dir="ltr" className="flex items-center gap-1">
-                        <span className="rounded bg-[#FEF08A] px-1.5 py-0.5 text-[#854D0E]">
-                          🟨 {details.awayYellowCards}
-                        </span>
-                        <span className="rounded bg-[#FEE2E2] px-1.5 py-0.5 text-[#991B1B]">
-                          🟥 {details.awayRedCards}
-                        </span>
-                      </span>
-                    </div>
-                    {details.awayCardEvents.map((c, idx) => (
-                      <div key={idx} className="flex items-center justify-between px-2 text-[11px] font-bold text-muted">
-                        <span className="truncate">
-                          {c.card === "red" ? "🟥" : "🟨"} {trv(c.player || "لاعب")}
-                        </span>
-                        <span dir="ltr">{c.minute}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* Call-to-action button to open the Dual Stadium Pitches Lineup */}
-              <button
-                type="button"
-                onClick={() => setDrawerTab("lineup")}
-                className="press flex w-full items-center justify-center gap-2 rounded-2xl bg-[#0B532B] px-4 py-2.5 text-xs font-extrabold text-[#FACC15] shadow-sm hover:opacity-95"
-              >
-                <span>🏟️</span>
-                <span>{tr("اضغط لعرض تشكيلة الفريقين في الملعب (ملعبين بجانب بعض مع صور ومراكز اللاعبين)")}</span>
-              </button>
-            </div>
-          ) : (
-            /* Tab 2: Dual Side-by-Side Football Pitches with Player Photos, Names, Positions & Live Analysis */
-            <div className="space-y-3">
-              {loadingLineup && !tacticalData ? (
-                <p className="rounded-2xl bg-surface p-4 text-center text-xs font-extrabold text-muted">
-                  ⏳ {tr("جاري جلب وتحليل تشكيلة الفريقين ومراكز اللاعبين…")}
-                </p>
-              ) : tacticalData ? (
-                <>
-                  {/* Real & Live Tactical Analysis Banner */}
-                  <div className="rounded-2xl border border-[#16A34A]/40 bg-[#16A34A]/10 p-3 space-y-2">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <span className="inline-flex items-center gap-1.5 text-xs font-extrabold text-[#15803D]">
-                        <span className="size-2 rounded-full bg-[#16A34A] animate-ping" />
-                        {tacticalData.home.isOfficialLive
-                          ? tr("📡 تشكيلة رسمية مباشرة من الملعب")
-                          : tr("🧠 تحليل التشكيلة التكتيكية ومراكز اللاعبين")}
-                      </span>
-                      <span dir="ltr" className="rounded-full bg-paper px-2.5 py-0.5 font-mono text-[11px] font-extrabold text-ink">
-                        {tacticalData.home.formation} vs {tacticalData.away.formation}
-                      </span>
-                    </div>
-                    <p className="text-xs font-bold leading-relaxed text-ink">
-                      {tacticalData.summaryAr}
-                    </p>
-
-                    {/* Live Possession & Shots Comparison Bar */}
-                    <div className="grid grid-cols-3 gap-2 pt-1 text-center text-[11px] font-extrabold">
-                      <div className="rounded-xl bg-paper px-2 py-1.5">
-                        <span className="block text-[10px] text-muted">{tr("الاستحواذ")}</span>
-                        <span dir="ltr" className="font-mono text-xs text-ink">
-                          {tacticalData.homePossession}% - {tacticalData.awayPossession}%
-                        </span>
-                      </div>
-                      <div className="rounded-xl bg-paper px-2 py-1.5">
-                        <span className="block text-[10px] text-muted">{tr("التسديدات (على المرمى)")}</span>
-                        <span dir="ltr" className="font-mono text-xs text-ink">
-                          {tacticalData.homeShots} ({tacticalData.homeShotsOnTarget}) - {tacticalData.awayShots} ({tacticalData.awayShotsOnTarget})
-                        </span>
-                      </div>
-                      <div className="rounded-xl bg-paper px-2 py-1.5">
-                        <span className="block text-[10px] text-muted">{tr("الركنيات / الأخطاء")}</span>
-                        <span dir="ltr" className="font-mono text-xs text-ink">
-                          {tacticalData.homeCorners}/{tacticalData.homeFouls} - {tacticalData.awayCorners}/{tacticalData.awayFouls}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between px-1">
-                    <span className="text-[11px] font-extrabold text-ink">
-                      🏟️ {tr("تشكيلة الفريقين ومراكز اللاعبين على أرضية الملعب:")}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setSideBySidePitches((v) => !v)}
-                      className="rounded-lg border border-line bg-surface px-2.5 py-1 text-[10px] font-extrabold text-ink hover:border-primary sm:hidden"
-                    >
-                      {sideBySidePitches ? tr("🔍 تكبير الملعبين") : tr("🏟️ ملعبين بجانب بعض")}
-                    </button>
-                  </div>
-
-                  {/* Two Stadium Pitches Side-by-Side (ملعبين بجانب بعض) */}
-                  <div
-                    className={
-                      sideBySidePitches
-                        ? "grid grid-cols-2 gap-1.5 sm:gap-2.5"
-                        : "grid grid-cols-1 gap-2.5 sm:grid-cols-2"
-                    }
-                  >
-                    <SingleTeamTacticalPitch
-                      teamName={m.homeTeam}
-                      teamLogo={m.homeLogo}
-                      lineup={tacticalData.home}
-                      teamColor="gold"
-                    />
-                    <SingleTeamTacticalPitch
-                      teamName={m.awayTeam}
-                      teamLogo={m.awayLogo}
-                      lineup={tacticalData.away}
-                      teamColor="sky"
-                    />
-                  </div>
-                </>
-              ) : null}
-            </div>
-          )}
+          {streamUrl ? (
+            <button
+              type="button"
+              onClick={() => setWatchOpen((v) => !v)}
+              className={`inline-flex items-center gap-1 rounded-lg px-2 py-0.5 text-[10px] font-extrabold text-white shadow-2xs transition ${
+                watchOpen ? "bg-ink" : "bg-[#DC2626] hover:bg-[#B91C1C]"
+              }`}
+            >
+              <span className="size-1.5 animate-ping rounded-full bg-white" />
+              {watchOpen ? tr("إغلاق ✕") : tr("📺 بث مباشر")}
+            </button>
+          ) : null}
         </div>
       ) : null}
 
@@ -3501,43 +2128,27 @@ function trPlayerClient(raw: string): string {
   return clean;
 }
 
-function clientJerusalemDateKey(iso: string): string {
+function clientFormatYmd(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}${m}${day}`;
+}
+
+function clientDayKey(iso: string): MatchItem["dayKey"] {
   try {
-    return new Intl.DateTimeFormat("en-CA", {
+    const fmt = new Intl.DateTimeFormat("en-CA", {
       timeZone: "Asia/Jerusalem",
       year: "numeric",
       month: "2-digit",
       day: "2-digit",
-    }).format(new Date(iso));
-  } catch {
-    return iso.slice(0, 10);
-  }
-}
-
-function clientFormatYmd(d: Date): string {
-  return clientJerusalemDateKey(d.toISOString()).replace(/-/g, "");
-}
-
-/**
- * Strict day classification in Rahat/Jerusalem timezone (Asia/Jerusalem):
- * - Returns null for matches older than Yesterday (so finished matches from 2+ days ago never appear in Tomorrow or Upcoming!).
- */
-function clientDayKeyOrNull(
-  iso: string,
-  status?: "pre" | "in" | "post",
-): MatchItem["dayKey"] | null {
-  try {
+    });
     const now = new Date();
-    const todayKey = clientJerusalemDateKey(now.toISOString());
-    const yestKey = clientJerusalemDateKey(new Date(now.getTime() - 86_400_000).toISOString());
-    const tomKey = clientJerusalemDateKey(new Date(now.getTime() + 86_400_000).toISOString());
-    const dKey = clientJerusalemDateKey(iso);
-    if (status === "in") return "today";
-    if (dKey === todayKey) return "today";
-    if (dKey === yestKey) return "yesterday";
-    if (dKey === tomKey) return "tomorrow";
-    if (dKey > tomKey && status !== "post") return "upcoming";
-    return null;
+    const dKey = fmt.format(new Date(iso));
+    if (dKey === fmt.format(now)) return "today";
+    if (dKey === fmt.format(new Date(now.getTime() - 86_400_000))) return "yesterday";
+    if (dKey === fmt.format(new Date(now.getTime() + 86_400_000))) return "tomorrow";
+    return "upcoming";
   } catch {
     return "today";
   }
@@ -3556,18 +2167,14 @@ function clientTimeAr(iso: string): string {
   }
 }
 
-function clientShortDateAr(iso: string, dayKey?: MatchItem["dayKey"]): string {
+function clientShortDateAr(iso: string): string {
   try {
-    const formatted = new Intl.DateTimeFormat("ar-EG", {
+    return new Intl.DateTimeFormat("ar-EG", {
       timeZone: "Asia/Jerusalem",
       weekday: "short",
       day: "numeric",
       month: "short",
     }).format(new Date(iso));
-    if (dayKey === "today") return `${tr("اليوم")} · ${formatted}`;
-    if (dayKey === "tomorrow") return `${tr("غداً")} · ${formatted}`;
-    if (dayKey === "yesterday") return `${tr("أمس")} · ${formatted}`;
-    return formatted;
   } catch {
     return "";
   }
@@ -3575,19 +2182,11 @@ function clientShortDateAr(iso: string, dayKey?: MatchItem["dayKey"]): string {
 
 function buildCuratedRoundFallback(): RichMatchItem[] {
   const now = new Date();
-  const jerusalemDateParts = (offsetDays: number) => {
-    const target = new Date(now.getTime() + offsetDays * 86_400_000);
-    const ymd = clientJerusalemDateKey(target.toISOString()); // YYYY-MM-DD in Asia/Jerusalem
-    return ymd;
+  const todayIso = (h: number, m = 0, offsetDays = 0) => {
+    const d = new Date(now.getTime() + offsetDays * 86_400_000);
+    d.setHours(h, m, 0, 0);
+    return d.toISOString();
   };
-  const makeIsoInJerusalem = (h: number, m = 0, offsetDays = 0) => {
-    const ymd = jerusalemDateParts(offsetDays);
-    const hh = String(h).padStart(2, "0");
-    const mm = String(m).padStart(2, "0");
-    // +02:00 standard Israel time offset
-    return new Date(`${ymd}T${hh}:${mm}:00+02:00`).toISOString();
-  };
-
   const seeds: {
     id: string;
     leagueId: string;
@@ -3604,9 +2203,8 @@ function buildCuratedRoundFallback(): RichMatchItem[] {
     channel?: string;
     liveDetails?: LiveMatchDetails;
   }[] = [
-    // ==================== TODAY (مباريات اليوم) ====================
     {
-      id: "cur-isr-today-1",
+      id: "cur-isr-1",
       leagueId: "isr.1",
       leagueNameAr: "الدوري الإسرائيلي",
       leagueBadge: "⚽",
@@ -3615,13 +2213,13 @@ function buildCuratedRoundFallback(): RichMatchItem[] {
       homeScore: null,
       awayScore: null,
       status: "pre",
-      kickoffIso: makeIsoInJerusalem(20, 30, 0),
+      kickoffIso: todayIso(20, 30, 0),
       kickoffTimeAr: "20:30",
       dayKey: "today",
       channel: "Sport 5",
     },
     {
-      id: "cur-isr-today-2",
+      id: "cur-isr-2",
       leagueId: "isr.1",
       leagueNameAr: "الدوري الإسرائيلي",
       leagueBadge: "⚽",
@@ -3630,45 +2228,13 @@ function buildCuratedRoundFallback(): RichMatchItem[] {
       homeScore: null,
       awayScore: null,
       status: "pre",
-      kickoffIso: makeIsoInJerusalem(19, 45, 0),
+      kickoffIso: todayIso(19, 45, 0),
       kickoffTimeAr: "19:45",
       dayKey: "today",
       channel: "Sport 1",
     },
     {
-      id: "cur-esp-today-1",
-      leagueId: "esp.1",
-      leagueNameAr: "لا ليغا",
-      leagueBadge: "🇪🇸",
-      homeTeam: "ريال مدريد",
-      awayTeam: "أوساسونا",
-      homeScore: null,
-      awayScore: null,
-      status: "pre",
-      kickoffIso: makeIsoInJerusalem(21, 0, 0),
-      kickoffTimeAr: "21:00",
-      dayKey: "today",
-      channel: "beIN Sports 1",
-    },
-    {
-      id: "cur-eng-today-1",
-      leagueId: "eng.1",
-      leagueNameAr: "البريميرليغ",
-      leagueBadge: "🏴󠁧󠁢󠁥󠁮󠁧󠁿",
-      homeTeam: "ليفربول",
-      awayTeam: "أستون فيلا",
-      homeScore: null,
-      awayScore: null,
-      status: "pre",
-      kickoffIso: makeIsoInJerusalem(22, 0, 0),
-      kickoffTimeAr: "22:00",
-      dayKey: "today",
-      channel: "beIN Sports 1",
-    },
-
-    // ==================== TOMORROW (مباريات الغد) ====================
-    {
-      id: "cur-isr-tom-1",
+      id: "cur-isr-3",
       leagueId: "isr.1",
       leagueNameAr: "الدوري الإسرائيلي",
       leagueBadge: "⚽",
@@ -3677,153 +2243,91 @@ function buildCuratedRoundFallback(): RichMatchItem[] {
       homeScore: null,
       awayScore: null,
       status: "pre",
-      kickoffIso: makeIsoInJerusalem(20, 30, 1),
+      kickoffIso: todayIso(20, 30, 1),
       kickoffTimeAr: "20:30",
       dayKey: "tomorrow",
       channel: "Sport 5",
     },
     {
-      id: "cur-esp-tom-1",
+      id: "cur-esp-1",
       leagueId: "esp.1",
       leagueNameAr: "لا ليغا",
       leagueBadge: "🇪🇸",
-      homeTeam: "برشلونة",
-      awayTeam: "ريال سوسيداد",
+      homeTeam: "ريال مدريد",
+      awayTeam: "برشلونة",
       homeScore: null,
       awayScore: null,
       status: "pre",
-      kickoffIso: makeIsoInJerusalem(22, 0, 1),
+      kickoffIso: todayIso(22, 0, 0),
       kickoffTimeAr: "22:00",
-      dayKey: "tomorrow",
+      dayKey: "today",
       channel: "beIN Sports 1",
     },
     {
-      id: "cur-eng-tom-1",
-      leagueId: "eng.1",
-      leagueNameAr: "البريميرليغ",
-      leagueBadge: "🏴󠁧󠁢󠁥󠁮󠁧󠁿",
-      homeTeam: "تشيلسي",
-      awayTeam: "أرسنال",
-      homeScore: null,
-      awayScore: null,
-      status: "pre",
-      kickoffIso: makeIsoInJerusalem(18, 30, 1),
-      kickoffTimeAr: "18:30",
-      dayKey: "tomorrow",
-      channel: "beIN Sports 1",
-    },
-    {
-      id: "cur-esp-tom-2",
+      id: "cur-esp-2",
       leagueId: "esp.1",
       leagueNameAr: "لا ليغا",
       leagueBadge: "🇪🇸",
       homeTeam: "أتلتيكو مدريد",
-      awayTeam: "ريال مايوركا",
+      awayTeam: "ريال سوسيداد",
       homeScore: null,
       awayScore: null,
       status: "pre",
-      kickoffIso: makeIsoInJerusalem(19, 15, 1),
-      kickoffTimeAr: "19:15",
+      kickoffIso: todayIso(21, 0, 1),
+      kickoffTimeAr: "21:00",
       dayKey: "tomorrow",
       channel: "beIN Sports 3",
     },
-
-    // ==================== YESTERDAY (نتائج الأمس) ====================
     {
-      id: "cur-isr-yest-1",
-      leagueId: "isr.1",
-      leagueNameAr: "الدوري الإسرائيلي",
-      leagueBadge: "⚽",
-      homeTeam: "هبوعيل حيفا",
-      awayTeam: "مكابي نتانيا",
-      homeScore: 2,
-      awayScore: 1,
-      status: "post",
-      kickoffIso: makeIsoInJerusalem(20, 0, -1),
-      kickoffTimeAr: "20:00",
-      dayKey: "yesterday",
-      channel: "Sport 2",
-      liveDetails: {
-        homeGoals: [
-          { minute: "34'", scorer: "هدف هبوعيل" },
-          { minute: "78'", scorer: "هدف الفوز" },
-        ],
-        awayGoals: [{ minute: "52'", scorer: "هدف نتانيا" }],
-        homeYellowCards: 2,
-        homeRedCards: 0,
-        awayYellowCards: 3,
-        awayRedCards: 0,
-        homeCardEvents: [],
-        awayCardEvents: [],
-      },
-    },
-    {
-      id: "cur-esp-yest-1",
-      leagueId: "esp.1",
-      leagueNameAr: "لا ليغا",
-      leagueBadge: "🇪🇸",
-      homeTeam: "رايو فاليكانو",
-      awayTeam: "لاس بالماس",
-      homeScore: 1,
-      awayScore: 2,
-      status: "post",
-      kickoffIso: makeIsoInJerusalem(22, 0, -1),
-      kickoffTimeAr: "22:00",
-      dayKey: "yesterday",
-      channel: "beIN Sports 3",
-    },
-
-    // ==================== UPCOMING (المباريات القادمة) ====================
-    {
-      id: "cur-isr-upc-1",
-      leagueId: "isr.1",
-      leagueNameAr: "الدوري الإسرائيلي",
-      leagueBadge: "⚽",
-      homeTeam: "هبوعيل القدس",
-      awayTeam: "م.س أشدود",
-      homeScore: null,
-      awayScore: null,
-      status: "pre",
-      kickoffIso: makeIsoInJerusalem(20, 0, 2),
-      kickoffTimeAr: "20:00",
-      dayKey: "upcoming",
-      channel: "Sport 4",
-    },
-    {
-      id: "cur-ucl-upc-1",
-      leagueId: "uefa.champions",
-      leagueNameAr: "أبطال أوروبا",
-      leagueBadge: "🏆",
-      homeTeam: "بايرن ميونخ",
-      awayTeam: "باريس سان جيرمان",
-      homeScore: null,
-      awayScore: null,
-      status: "pre",
-      kickoffIso: makeIsoInJerusalem(22, 0, 3),
-      kickoffTimeAr: "22:00",
-      dayKey: "upcoming",
-      channel: "beIN Sports 1",
-    },
-    {
-      id: "cur-ucl-upc-2",
+      id: "cur-ucl-1",
       leagueId: "uefa.champions",
       leagueNameAr: "أبطال أوروبا",
       leagueBadge: "🏆",
       homeTeam: "مانشستر سيتي",
-      awayTeam: "فينورد",
+      awayTeam: "بايرن ميونخ",
       homeScore: null,
       awayScore: null,
       status: "pre",
-      kickoffIso: makeIsoInJerusalem(22, 0, 3),
+      kickoffIso: todayIso(22, 0, 0),
       kickoffTimeAr: "22:00",
-      dayKey: "upcoming",
+      dayKey: "today",
+      channel: "beIN Sports 1",
+    },
+    {
+      id: "cur-ucl-2",
+      leagueId: "uefa.champions",
+      leagueNameAr: "أبطال أوروبا",
+      leagueBadge: "🏆",
+      homeTeam: "ليفربول",
+      awayTeam: "باريس سان جيرمان",
+      homeScore: null,
+      awayScore: null,
+      status: "pre",
+      kickoffIso: todayIso(22, 0, 1),
+      kickoffTimeAr: "22:00",
+      dayKey: "tomorrow",
       channel: "beIN Sports 2",
+    },
+    {
+      id: "cur-eng-1",
+      leagueId: "eng.1",
+      leagueNameAr: "البريميرليغ",
+      leagueBadge: "🏴󠁧󠁢󠁥󠁮󠁧󠁿",
+      homeTeam: "أرسنال",
+      awayTeam: "تشيلسي",
+      homeScore: null,
+      awayScore: null,
+      status: "pre",
+      kickoffIso: todayIso(19, 30, 0),
+      kickoffTimeAr: "19:30",
+      dayKey: "today",
+      channel: "beIN Sports 1",
     },
   ];
   return seeds.map((s) => ({
     ...s,
-    statusTextAr: s.status === "post" ? "انتهت" : s.kickoffTimeAr,
-    dateLabelAr: clientShortDateAr(s.kickoffIso, s.dayKey),
+    statusTextAr: s.kickoffTimeAr,
+    dateLabelAr: clientShortDateAr(s.kickoffIso),
   }));
 }
 
@@ -4061,9 +2565,8 @@ async function fetchClientEspnLeague(league: {
   const espnCode = league.id === "sau.1" ? "ksa.1" : league.id;
   if (espnCode.startsWith("isr.") || espnCode.startsWith("local.")) return [];
   const now = new Date();
-  // Fetch from Yesterday (-1d) to +6 days in Asia/Jerusalem timezone so old matches from 2+ days ago never enter!
-  const start = new Date(now.getTime() - 1 * 86_400_000);
-  const end = new Date(now.getTime() + 6 * 86_400_000);
+  const start = new Date(now.getTime() - 2 * 86_400_000);
+  const end = new Date(now.getTime() + 5 * 86_400_000);
   const range = `${clientFormatYmd(start)}-${clientFormatYmd(end)}`;
 
   const urls = [
@@ -4081,9 +2584,8 @@ async function fetchClientEspnLeague(league: {
 
       const out: RichMatchItem[] = [];
       const summaryTasks: Promise<void>[] = [];
-      const perDayCount: Record<string, number> = { yesterday: 0, today: 0, tomorrow: 0, upcoming: 0 };
 
-      for (const ev of events) {
+      for (const ev of events.slice(0, 16)) {
         const comp = ev?.competitions?.[0];
         const competitors: any[] = Array.isArray(comp?.competitors) ? comp.competitors : [];
         const home = competitors.find((c) => c.homeAway === "home") ?? competitors[0];
@@ -4093,15 +2595,10 @@ async function fetchClientEspnLeague(league: {
         const rawState = String(ev?.status?.type?.state ?? comp?.status?.type?.state ?? "pre");
         const status: "pre" | "in" | "post" =
           rawState === "in" ? "in" : rawState === "post" ? "post" : "pre";
-        const kickoffIso = String(ev?.date ?? comp?.date ?? now.toISOString());
-        const dayKey = clientDayKeyOrNull(kickoffIso, status);
-        // Strictly skip any match older than yesterday!
-        if (!dayKey) continue;
-        if ((perDayCount[dayKey] ?? 0) >= 12) continue;
-        perDayCount[dayKey] = (perDayCount[dayKey] ?? 0) + 1;
-
         const clock = String(ev?.status?.displayClock ?? comp?.status?.displayClock ?? "").trim();
         const detail = String(ev?.status?.type?.shortDetail ?? "").trim();
+        const kickoffIso = String(ev?.date ?? comp?.date ?? now.toISOString());
+        const dayKey = clientDayKey(kickoffIso);
 
         let statusTextAr = clientTimeAr(kickoffIso);
         if (status === "in") {
@@ -4135,11 +2632,12 @@ async function fetchClientEspnLeague(league: {
           kickoffIso,
           kickoffTimeAr: clientTimeAr(kickoffIso),
           dayKey,
-          dateLabelAr: clientShortDateAr(kickoffIso, dayKey),
+          dateLabelAr: clientShortDateAr(kickoffIso),
           venue: comp?.venue?.fullName ? String(comp.venue.fullName) : undefined,
           liveDetails,
         };
 
+        // If live or finished with goals, and comp.details did not include all goals, fetch summary keyEvents
         const totalGoals = (homeScore ?? 0) + (awayScore ?? 0);
         const parsedGoals = liveDetails.homeGoals.length + liveDetails.awayGoals.length;
         if (
@@ -4185,6 +2683,7 @@ function parseSportsDbGoalList(raw: unknown): MatchGoalEvent[] {
     .filter(Boolean);
   const goals: MatchGoalEvent[] = [];
   for (const entry of entries) {
+    // Format is usually "23\x27:Player Name" or "Player Name 23\x27"
     const colonParts = entry.split(":");
     if (colonParts.length >= 2) {
       const first = colonParts[0].trim();
@@ -4277,7 +2776,7 @@ async function fetchClientSportsDbLeague(league: {
       }
     }
     const out: RichMatchItem[] = [];
-    for (const ev of rawEvents) {
+    for (const ev of rawEvents.slice(0, 14)) {
       if (!ev?.strHomeTeam || !ev?.strAwayTeam || !ev?.dateEvent) continue;
       const timeStr = String(ev.strTime ?? "18:00:00").slice(0, 8);
       const kickoffIso = `${ev.dateEvent}T${timeStr.includes(":") ? timeStr : "18:00:00"}Z`;
@@ -4290,8 +2789,6 @@ async function fetchClientSportsDbLeague(league: {
         rawStatus === "HT" ||
         /^\d+\x27?$/.test(rawStatus);
       const status: "pre" | "in" | "post" = isLive ? "in" : hasScore ? "post" : "pre";
-      const dayKey = clientDayKeyOrNull(kickoffIso, status);
-      if (!dayKey) continue;
 
       const homeGoals = parseSportsDbGoalList(ev.strHomeGoalDetails);
       const awayGoals = parseSportsDbGoalList(ev.strAwayGoalDetails);
@@ -4326,8 +2823,8 @@ async function fetchClientSportsDbLeague(league: {
               : clientTimeAr(kickoffIso),
         kickoffIso,
         kickoffTimeAr: clientTimeAr(kickoffIso),
-        dayKey,
-        dateLabelAr: clientShortDateAr(kickoffIso, dayKey),
+        dayKey: clientDayKey(kickoffIso),
+        dateLabelAr: clientShortDateAr(kickoffIso),
         liveDetails: {
           liveClockSeconds: liveMin ? liveMin * 60 : undefined,
           liveMinuteText: liveMin ? `${liveMin}\x27` : undefined,
@@ -4349,62 +2846,9 @@ async function fetchClientSportsDbLeague(league: {
   }
 }
 
-/**
- * Priority score for the Homepage Featured Match ("المباراة القادمة / المباشرة"):
- * 0 = Live now ("in")
- * 1 = Today's upcoming match ("today" + "pre")
- * 2 = Tomorrow's upcoming match ("tomorrow" + "pre")
- * 3 = Future upcoming match ("upcoming" + "pre")
- * 4 = Today's finished match ("today" + "post")
- * 5 = Yesterday's finished match ("yesterday")
- */
-function featuredMatchPriority(m: RichMatchItem): number {
-  if (m.status === "in") return 0;
-  if (m.dayKey === "today" && m.status === "pre") return 1;
-  if (m.dayKey === "tomorrow" && m.status === "pre") return 2;
-  if (m.dayKey === "upcoming" && m.status === "pre") return 3;
-  if (m.dayKey === "today" && m.status === "post") return 4;
-  return 5;
-}
-
-function sortMatchesForFeatured(list: RichMatchItem[]): RichMatchItem[] {
-  return [...list].sort((a, b) => {
-    const aCustom = String(a.id).startsWith("custom-");
-    const bCustom = String(b.id).startsWith("custom-");
-    if (aCustom && !bCustom && a.status !== "post") return -1;
-    if (bCustom && !aCustom && b.status !== "post") return 1;
-    const pa = featuredMatchPriority(a);
-    const pb = featuredMatchPriority(b);
-    if (pa !== pb) return pa - pb;
-    if (pa <= 3) {
-      // Upcoming matches: soonest kickoff first
-      return Date.parse(a.kickoffIso) - Date.parse(b.kickoffIso);
-    }
-    // Finished matches: most recent first
-    return Date.parse(b.kickoffIso) - Date.parse(a.kickoffIso);
-  });
-}
-
 async function enrichBoardClientSide(board: MatchesBoardData): Promise<MatchesBoardData> {
-  const customMatches = board.matches
-    .filter((m) => String(m.id).startsWith("custom-"))
-    .map((m) => ({
-      ...m,
-      dateLabelAr: clientShortDateAr(m.kickoffIso, m.dayKey),
-    }));
-
-  // Re-verify server auto matches in Asia/Jerusalem timezone and drop any match older than Yesterday!
-  const existingAuto: RichMatchItem[] = [];
-  for (const m of board.matches) {
-    if (String(m.id).startsWith("custom-")) continue;
-    const verifiedDay = clientDayKeyOrNull(m.kickoffIso, m.status);
-    if (!verifiedDay) continue;
-    existingAuto.push({
-      ...m,
-      dayKey: verifiedDay,
-      dateLabelAr: clientShortDateAr(m.kickoffIso, verifiedDay),
-    });
-  }
+  const customMatches = board.matches.filter((m) => String(m.id).startsWith("custom-"));
+  const existingAuto = board.matches.filter((m) => !String(m.id).startsWith("custom-"));
 
   const fetchedLists = await Promise.all(
     board.leagues.map(async (lg) => {
@@ -4419,24 +2863,25 @@ async function enrichBoardClientSide(board: MatchesBoardData): Promise<MatchesBo
   const mergedAuto = clientFetched.length > 0 ? clientFetched : existingAuto;
   const fallback = buildCuratedRoundFallback();
 
+  // Ensure every enabled league has matches so no league tab is ever empty
   const byId = new Map<string, RichMatchItem>();
   for (const m of [...customMatches, ...mergedAuto]) {
-    byId.set(`${m.leagueId}-${m.homeTeam}-${m.awayTeam}-${m.dayKey}`, m);
+    byId.set(`${m.leagueId}-${m.homeTeam}-${m.awayTeam}`, m);
   }
-
-  // Ensure every day tab (today, tomorrow, yesterday, upcoming) and isr.1 has accurate matches
   for (const fb of fallback) {
-    const currentVals = [...byId.values()];
-    const hasDayMatches = currentVals.some((x) => x.dayKey === fb.dayKey);
-    const hasIsrOnDay =
-      fb.leagueId === "isr.1" &&
-      currentVals.some((x) => x.leagueId === "isr.1" && x.dayKey === fb.dayKey);
-    if (!hasDayMatches || (fb.leagueId === "isr.1" && !hasIsrOnDay)) {
-      byId.set(`${fb.leagueId}-${fb.homeTeam}-${fb.awayTeam}-${fb.dayKey}`, fb);
+    const hasLeagueMatches = [...byId.values()].some((x) => x.leagueId === fb.leagueId);
+    if (!hasLeagueMatches || byId.size < 4) {
+      byId.set(`${fb.leagueId}-${fb.homeTeam}-${fb.awayTeam}`, fb);
     }
   }
 
-  const all = sortMatchesForFeatured([...byId.values()]);
+  const all = [...byId.values()].sort((a, b) => {
+    if (String(a.id).startsWith("custom-") && !String(b.id).startsWith("custom-")) return -1;
+    if (!String(a.id).startsWith("custom-") && String(b.id).startsWith("custom-")) return 1;
+    if (a.status === "in" && b.status !== "in") return -1;
+    if (b.status === "in" && a.status !== "in") return 1;
+    return Date.parse(a.kickoffIso) - Date.parse(b.kickoffIso);
+  });
 
   return {
     ...board,
@@ -4445,7 +2890,7 @@ async function enrichBoardClientSide(board: MatchesBoardData): Promise<MatchesBo
   };
 }
 
-/** Homepage Live Matches Widget — Compact by default (shows ongoing/next upcoming match + compact league dropdown) & expandable. */
+/** Homepage Live Matches Widget — Compact by default (shows ongoing/featured match + compact league dropdown) & expandable. */
 export function HomeMatchesWidget({ initial }: { initial: MatchesBoardData | null }) {
   const [board, setBoard] = useState<MatchesBoardData | null>(initial);
   const [refreshing, setRefreshing] = useState(false);
@@ -4509,11 +2954,8 @@ export function HomeMatchesWidget({ initial }: { initial: MatchesBoardData | nul
   }, [initial]);
 
   const allMatches = useMemo(() => {
-    const raw = (board?.matches ?? []).filter((m) => {
-      if (String(m.id).startsWith("custom-")) return true;
-      return clientDayKeyOrNull(m.kickoffIso, m.status) !== null;
-    });
-    return raw.length > 0 ? sortMatchesForFeatured(raw) : buildCuratedRoundFallback();
+    const raw = board?.matches ?? [];
+    return raw.length > 0 ? raw : buildCuratedRoundFallback();
   }, [board?.matches]);
 
   const leagueMatches = useMemo(() => {
@@ -4522,12 +2964,21 @@ export function HomeMatchesWidget({ initial }: { initial: MatchesBoardData | nul
         ? allMatches
         : allMatches.filter((m) => m.leagueId === selectedLeague);
     const list = filtered.length > 0 ? filtered : allMatches;
-    return sortMatchesForFeatured(list);
+    // Prioritize live ("in") matches first, then today matches
+    return [...list].sort((a, b) => {
+      if (a.status === "in" && b.status !== "in") return -1;
+      if (b.status === "in" && a.status !== "in") return 1;
+      if (a.dayKey === "today" && b.dayKey !== "today") return -1;
+      if (b.dayKey === "today" && a.dayKey !== "today") return 1;
+      return Date.parse(a.kickoffIso) - Date.parse(b.kickoffIso);
+    });
   }, [allMatches, selectedLeague]);
 
   const filteredMatches = useMemo(() => {
     if (dayTab === "live") return leagueMatches.filter((m) => m.status === "in");
-    return leagueMatches.filter((m) => m.dayKey === dayTab);
+    const byDay = leagueMatches.filter((m) => m.dayKey === dayTab);
+    if (byDay.length > 0) return byDay;
+    return leagueMatches.slice(0, 8);
   }, [leagueMatches, dayTab]);
 
   if (!board) {
@@ -4571,7 +3022,7 @@ export function HomeMatchesWidget({ initial }: { initial: MatchesBoardData | nul
 
   return (
     <section className="stamp px-3 py-2.5" aria-label={tr("نتائج المباريات المباشرة")}>
-      {/* Compact Header Row: Title + Next/Live Status Badge + Compact League Dropdown + Expand/Collapse */}
+      {/* Compact Header Row: Title + Compact League Dropdown + Expand/Collapse */}
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-1.5">
           <span className="grid size-7 shrink-0 place-items-center rounded-lg bg-primary text-ink">
@@ -4582,15 +3033,6 @@ export function HomeMatchesWidget({ initial }: { initial: MatchesBoardData | nul
             <span className="inline-flex items-center gap-1 rounded-full bg-alert px-2 py-0.5 text-[10px] font-extrabold text-white">
               <span className="size-1.5 animate-ping rounded-full bg-white" />
               {liveCount} {tr("مباشر")}
-            </span>
-          ) : currentFeaturedMatch?.status === "pre" ? (
-            <span className="inline-flex items-center gap-1 rounded-full bg-[#16A34A]/15 px-2 py-0.5 text-[10px] font-extrabold text-[#15803D]">
-              <span className="size-1.5 rounded-full bg-[#16A34A]" />
-              {currentFeaturedMatch.dayKey === "today"
-                ? tr("المباراة القادمة اليوم")
-                : currentFeaturedMatch.dayKey === "tomorrow"
-                  ? tr("مباراة الغد")
-                  : tr("المباراة القادمة")}
             </span>
           ) : null}
         </div>
@@ -4632,7 +3074,7 @@ export function HomeMatchesWidget({ initial }: { initial: MatchesBoardData | nul
         </div>
       </div>
 
-      {/* Compact Mode (Default): Shows ONLY the ongoing/next upcoming match + small next/prev switcher */}
+      {/* Compact Mode (Default): Shows ONLY the ongoing/featured match + small next/prev switcher */}
       {!expanded ? (
         <div className="mt-2">
           {currentFeaturedMatch ? (
@@ -4687,23 +3129,20 @@ export function HomeMatchesWidget({ initial }: { initial: MatchesBoardData | nul
                   { key: "yesterday", label: "أمس" },
                   { key: "upcoming", label: "القادمة" },
                 ] as { key: DayTab; label: string }[]
-              ).map((t) => {
-                const c = leagueMatches.filter((m) => m.dayKey === t.key).length;
-                return (
-                  <button
-                    key={t.key}
-                    type="button"
-                    onClick={() => setDayTab(t.key)}
-                    className={`rounded-xl px-2.5 py-1 font-extrabold transition ${
-                      dayTab === t.key
-                        ? "bg-ink text-paper"
-                        : "bg-surface text-muted hover:text-ink"
-                    }`}
-                  >
-                    {tr(t.label)} {c > 0 ? `(${c})` : ""}
-                  </button>
-                );
-              })}
+              ).map((t) => (
+                <button
+                  key={t.key}
+                  type="button"
+                  onClick={() => setDayTab(t.key)}
+                  className={`rounded-xl px-2.5 py-1 font-extrabold transition ${
+                    dayTab === t.key
+                      ? "bg-ink text-paper"
+                      : "bg-surface text-muted hover:text-ink"
+                  }`}
+                >
+                  {tr(t.label)}
+                </button>
+              ))}
               {liveCount > 0 ? (
                 <button
                   type="button"
@@ -4724,17 +3163,11 @@ export function HomeMatchesWidget({ initial }: { initial: MatchesBoardData | nul
             </Link>
           </div>
 
-          {filteredMatches.length === 0 ? (
-            <p className="rounded-2xl bg-surface p-4 text-center text-xs font-bold text-muted">
-              {tr("لا توجد مباريات مسجلة في هذا اليوم لهذا الدوري.")}
-            </p>
-          ) : (
-            <div className="grid gap-2 sm:grid-cols-2">
-              {filteredMatches.slice(0, 10).map((m) => (
-                <MatchRowCard key={m.id} m={m} showLeagueBadge />
-              ))}
-            </div>
-          )}
+          <div className="grid gap-2 sm:grid-cols-2">
+            {filteredMatches.slice(0, 8).map((m) => (
+              <MatchRowCard key={m.id} m={m} showLeagueBadge />
+            ))}
+          </div>
         </div>
       )}
     </section>
@@ -4772,31 +3205,19 @@ export function FullMatchesBoard({ initial }: { initial: MatchesBoardData | null
   }, [initial]);
 
   const allMatches = useMemo(() => {
-    const raw = (board?.matches ?? []).filter((m) => {
-      if (String(m.id).startsWith("custom-")) return true;
-      return clientDayKeyOrNull(m.kickoffIso, m.status) !== null;
-    });
-    return raw.length > 0 ? sortMatchesForFeatured(raw) : buildCuratedRoundFallback();
+    const raw = board?.matches ?? [];
+    return raw.length > 0 ? raw : buildCuratedRoundFallback();
   }, [board?.matches]);
 
-  const byLeague = useMemo(() => {
-    return selectedLeague === "all"
-      ? allMatches
-      : allMatches.filter((m) => m.leagueId === selectedLeague);
-  }, [allMatches, selectedLeague]);
-
   const matches = useMemo(() => {
+    const byLeague =
+      selectedLeague === "all"
+        ? allMatches
+        : allMatches.filter((m) => m.leagueId === selectedLeague);
     if (dayTab === "live") return byLeague.filter((m) => m.status === "in");
     const byDay = byLeague.filter((m) => m.dayKey === dayTab);
-    return [...byDay].sort((a, b) => {
-      if (a.status === "in" && b.status !== "in") return -1;
-      if (b.status === "in" && a.status !== "in") return 1;
-      if (dayTab === "yesterday") {
-        return Date.parse(b.kickoffIso) - Date.parse(a.kickoffIso);
-      }
-      return Date.parse(a.kickoffIso) - Date.parse(b.kickoffIso);
-    });
-  }, [byLeague, dayTab]);
+    return byDay.length > 0 ? byDay : byLeague;
+  }, [allMatches, selectedLeague, dayTab]);
 
   if (!board || !board.enabled) return null;
 
@@ -4843,10 +3264,10 @@ export function FullMatchesBoard({ initial }: { initial: MatchesBoardData | null
           onClick={() => setSelectedLeague("all")}
           className={selectedLeague === "all" ? "chip chip-ink shrink-0" : "chip shrink-0"}
         >
-          ⚽ {tr("كل الدوريات")} ({allMatches.length})
+          ⚽ {tr("كل الدوريات")} ({board.matches.length})
         </button>
         {board.leagues.map((lg) => {
-          const count = allMatches.filter((m) => m.leagueId === lg.id).length;
+          const count = board.matches.filter((m) => m.leagueId === lg.id).length;
           return (
             <button
               key={lg.id}
@@ -4862,7 +3283,7 @@ export function FullMatchesBoard({ initial }: { initial: MatchesBoardData | null
         })}
       </div>
 
-      {/* Day tabs with exact match count per day */}
+      {/* Day tabs */}
       <div className="mb-4 flex flex-wrap gap-1.5 text-xs">
         {(
           [
@@ -4871,23 +3292,20 @@ export function FullMatchesBoard({ initial }: { initial: MatchesBoardData | null
             { key: "yesterday", label: "نتائج الأمس" },
             { key: "upcoming", label: "المباريات القادمة" },
           ] as { key: DayTab; label: string }[]
-        ).map((t) => {
-          const count = byLeague.filter((m) => m.dayKey === t.key).length;
-          return (
-            <button
-              key={t.key}
-              type="button"
-              onClick={() => setDayTab(t.key)}
-              className={`rounded-xl px-3 py-1.5 font-extrabold transition ${
-                dayTab === t.key
-                  ? "bg-ink text-paper"
-                  : "bg-surface text-muted hover:text-ink"
-              }`}
-            >
-              {tr(t.label)} {count > 0 ? `(${count})` : ""}
-            </button>
-          );
-        })}
+        ).map((t) => (
+          <button
+            key={t.key}
+            type="button"
+            onClick={() => setDayTab(t.key)}
+            className={`rounded-xl px-3 py-1.5 font-extrabold transition ${
+              dayTab === t.key
+                ? "bg-ink text-paper"
+                : "bg-surface text-muted hover:text-ink"
+            }`}
+          >
+            {tr(t.label)}
+          </button>
+        ))}
         {liveCount > 0 ? (
           <button
             type="button"
@@ -4903,7 +3321,7 @@ export function FullMatchesBoard({ initial }: { initial: MatchesBoardData | null
 
       {matches.length === 0 ? (
         <p className="rounded-2xl bg-surface p-5 text-center font-bold text-muted">
-          {tr("لا توجد مباريات مسجلة في هذا اليوم لهذا الدوري حالياً.")}
+          {tr("لا توجد مباريات حالياً في هذا الفلتر.")}
         </p>
       ) : (
         <div className="grid gap-2.5 sm:grid-cols-2">
@@ -5000,18 +3418,16 @@ function HomeTilesBar({
       (q) => q.title.trim() === cleanLabel && q.subtitle?.includes("مَخفي_علوي"),
     );
     if (hiddenByAdmin) continue;
-    if (!combined.some((c) => c.label.trim().replace(/\s+/g, "") === cleanLabel.replace(/\s+/g, ""))) {
+    if (!combined.some((c) => c.label.trim() === cleanLabel)) {
       combined.push({
         icon: cs.icon || (/فن|موضة|ثقافة/.test(cleanLabel) ? "sparkles" : "news"),
-        to: `/news?cat=${cleanLabel}`,
+        to: cs.url?.trim() || `/?q=${cleanLabel}`,
         label: cleanLabel,
       });
     }
   }
 
   if (!combined.length) return null;
-
-  const GENERAL_NEWS_LABELS = new Set(["الأخبار", "أخبار", "أخبار رهط", "آخر الأخبار", "كل الأخبار"]);
 
   return (
     <nav
@@ -5021,21 +3437,15 @@ function HomeTilesBar({
       {combined.map((t, idx) => {
         const Icon = ICON_MAP[t.icon] ?? Newspaper;
         const isLiveTile = t.to === "/sports-news" || t.icon === "tv";
-        const cleanLbl = t.label.trim();
-        const isCustomNewsSec =
-          t.to.includes("?cat=") ||
-          t.to.includes("?q=") ||
-          (t.to === "/news" && Boolean(cleanLbl) && !GENERAL_NEWS_LABELS.has(cleanLbl));
-        const resolvedCat = t.to.includes("?cat=")
-          ? decodeURIComponent(t.to.split("?cat=")[1] ?? cleanLbl)
-          : cleanLbl || decodeURIComponent(t.to.split("?q=")[1] ?? "");
-        const destTo = (isCustomNewsSec ? "/news" : t.to.split("?")[0] || "/") as "/";
-        const destSearch = isCustomNewsSec ? ({ cat: resolvedCat } as never) : undefined;
         return (
           <Link
-            key={`${t.to}-${cleanLbl}-${idx}`}
-            to={destTo}
-            search={destSearch}
+            key={`${t.to}-${idx}`}
+            to={(t.to.includes("?q=") ? t.to.split("?q=")[0] || "/" : t.to) as "/"}
+            search={
+              t.to.includes("?q=")
+                ? { q: decodeURIComponent(t.to.split("?q=")[1] ?? "") }
+                : undefined
+            }
             className="tile relative sm:flex-1"
           >
             <span
@@ -5071,7 +3481,6 @@ function HomeQuickLinks() {
       l.id !== "botbarcfg" &&
       l.id !== "botbarcss" &&
       l.id !== "txsecscfg" &&
-      l.id !== "busemergcfg" &&
       !l.id.startsWith("sec") &&
       l.subtitle !== " مَخفي",
   );
@@ -5525,7 +3934,7 @@ ${userExtraCss}`}</style>
 }
 
 
-/** Animated Top Weather & Prayer Bar — Harmonious single-row card matching site design & Image 2 RTL order. */
+/** Animated Top Weather & Prayer Bar — Transparent (no background box) to blend seamlessly with the site on all screens. */
 function AnimatedWeatherPrayerBar({
   weather,
   serverNow,
@@ -5533,8 +3942,6 @@ function AnimatedWeatherPrayerBar({
   weather: Weather | null;
   serverNow: number;
 }) {
-  const st = useSiteSettings();
-  const wCfg = useMemo(() => parseWeatherPrayerStyleConfig(st.quickLinks), [st.quickLinks]);
   const [now, setNow] = useState(serverNow);
   useEffect(() => {
     setNow(Date.now());
@@ -5556,111 +3963,64 @@ function AnimatedWeatherPrayerBar({
       const mm = parts.find((p) => p.type === "minute")?.value ?? "00";
       return { localHour: Number(hh), timeStr: `${hh}:${mm}` };
     } catch {
-      return { localHour: 12, timeStr: "12:00" };
+      return { localHour: 20, timeStr: "20:00" };
     }
   }, [now]);
 
-  const naturalNight = weather ? !weather.isDay : localHour >= 18 || localHour < 6;
+  const isNight = weather ? !weather.isDay : localHour >= 18 || localHour < 6;
   const kind = weather ? weatherKind(weather.code) : "clear";
-  const naturalRainy = kind === "rain" || kind === "storm" || (weather?.rainChance ?? 0) >= 40;
-
-  const isRainy =
-    wCfg.fx === "rain" ||
-    wCfg.fx === "storm" ||
-    (wCfg.fx === "auto" && naturalRainy);
-  const isNight =
-    wCfg.fx === "night" ||
-    (wCfg.fx === "auto" && naturalNight && !isRainy);
+  const isRainy = kind === "rain" || kind === "storm" || (weather?.rainChance ?? 0) >= 40;
   const isCloudy = kind === "partly" || kind === "cloudy" || kind === "fog";
 
-  const isDarkThemeBar =
-    wCfg.style === "night-radar" ||
-    wCfg.style === "mosque-gold" ||
-    (wCfg.style === "scene-animated" && isRainy);
-
-  const barWrapCls =
-    wCfg.style === "mosque-gold"
-      ? "relative flex flex-nowrap items-center justify-between gap-1.5 overflow-x-auto rounded-2xl border-2 border-[#d9a92a] bg-gradient-to-r from-[#111827] via-[#1f2937] to-[#111827] px-2.5 py-2 text-[10.5px] font-bold text-white shadow-md [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:gap-3 sm:px-4 sm:py-2.5 sm:text-xs"
-      : isDarkThemeBar
-        ? "relative flex flex-nowrap items-center justify-between gap-1.5 overflow-x-auto rounded-2xl border border-sky-400/35 bg-gradient-to-r from-[#0c223d] via-[#133357] to-[#0f2547] px-2.5 py-2 text-[10.5px] font-bold text-white shadow-md [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:gap-3 sm:px-4 sm:py-2.5 sm:text-xs"
-        : "stamp relative flex flex-nowrap items-center justify-between gap-1.5 overflow-x-auto rounded-2xl border border-line bg-paper px-2.5 py-2 text-[10.5px] font-bold text-ink [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:gap-3 sm:px-4 sm:py-2.5 sm:text-xs";
-
   return (
-    <div className="-mt-1 w-full sm:mt-0">
+    <div className="w-full bg-transparent">
       <style>{`
         @keyframes rpSunSpin {
           0% { transform: rotate(0deg) scale(1); }
-          50% { transform: rotate(180deg) scale(1.08); }
+          50% { transform: rotate(180deg) scale(1.1); }
           100% { transform: rotate(360deg) scale(1); }
         }
         @keyframes rpMoonFloat {
-          0%, 100% { transform: translateY(0px) rotate(-5deg); }
-          50% { transform: translateY(-2px) rotate(4deg); }
+          0%, 100% { transform: translateY(0px) rotate(-6deg); }
+          50% { transform: translateY(-3px) rotate(5deg); }
         }
         @keyframes rpStarTwinkle {
-          0%, 100% { opacity: 0.35; transform: scale(0.85); }
-          50% { opacity: 1; transform: scale(1.15); }
+          0%, 100% { opacity: 0.3; transform: scale(0.85); }
+          50% { opacity: 1; transform: scale(1.2); }
         }
         @keyframes rpCloudDrift {
           0%, 100% { transform: translateX(0px); }
-          50% { transform: translateX(2.5px); }
+          50% { transform: translateX(4px); }
         }
         @keyframes rpRainBounce {
           0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(2px); }
+          50% { transform: translateY(2.5px); }
         }
         @keyframes rpWindWave {
-          0%, 100% { transform: translateX(-1px); opacity: 0.75; }
-          50% { transform: translateX(1.5px); opacity: 1; }
-        }
-        @keyframes rpBarRainDrop {
-          0% { transform: translateY(-10px) translateX(0px) rotate(14deg); opacity: 0; }
-          30% { opacity: 0.75; }
-          100% { transform: translateY(46px) translateX(-8px) rotate(14deg); opacity: 0; }
+          0%, 100% { transform: translateX(-2px); opacity: 0.7; }
+          50% { transform: translateX(3px); opacity: 1; }
         }
       `}</style>
 
-      <div className={barWrapCls}>
-        {/* Animated Falling Raindrops across the Bar when Rainy */}
-        {isRainy ? (
-          <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl">
-            {[6, 14, 23, 31, 42, 51, 60, 69, 78, 86, 93].map((leftPct, i) => (
-              <span
-                key={i}
-                className={`absolute top-0 h-3 w-[1.5px] rounded-full ${
-                  isDarkThemeBar ? "bg-sky-300/70" : "bg-sky-500/45"
-                }`}
-                style={{
-                  left: `${leftPct}%`,
-                  animation: `rpBarRainDrop ${(0.65 + (i % 4) * 0.14).toFixed(2)}s ${((i * 0.13) % 0.9).toFixed(2)}s infinite linear`,
-                }}
-              />
-            ))}
-          </div>
-        ) : null}
-
-        {/* Right Side (in RTL): Weather Icon + Temp + Condition + Wind + Day/Night Live Time */}
+      <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-bold text-ink sm:text-sm">
+        {/* Weather + Animated Icon (Sun / Moon & Stars / Rain / Wind / Clouds) — Transparent */}
         <Link
           to="/today"
-          className="relative z-10 inline-flex min-w-0 shrink-0 items-center gap-1 whitespace-nowrap transition hover:opacity-80 sm:gap-2"
+          className="inline-flex flex-wrap items-center gap-2 py-1 transition hover:opacity-80"
           aria-label={
             weather
               ? tr("الطقس في رهط: {0} درجة، {1}", weather.temp, weatherLabel(weather.code))
               : tr("الطقس في رهط")
           }
         >
-          <span
-            className={`relative inline-flex size-5 shrink-0 items-center justify-center rounded-full text-xs leading-none sm:size-6 sm:text-sm ${
-              isDarkThemeBar ? "bg-white/15" : "bg-primary-soft"
-            }`}
-          >
+          <span className="relative inline-flex items-center justify-center text-lg leading-none">
             {isRainy ? (
               <span style={{ animation: "rpRainBounce 1.4s infinite ease-in-out" }}>🌧️</span>
             ) : isNight ? (
               <span className="inline-flex items-center">
                 <span style={{ animation: "rpMoonFloat 3.2s infinite ease-in-out" }}>🌙</span>
                 <span
-                  className="-ms-1 -mt-1 text-[8px]"
+                  className="-ms-1 -mt-2 text-[10px]"
                   style={{ animation: "rpStarTwinkle 2.2s infinite ease-in-out" }}
                 >
                   ✨
@@ -5675,23 +4035,14 @@ function AnimatedWeatherPrayerBar({
 
           {weather ? (
             <>
-              <bdi
-                dir="ltr"
-                className={`text-[11px] font-extrabold sm:text-sm ${
-                  isDarkThemeBar ? "text-white" : "text-ink"
-                }`}
-              >
+              <bdi dir="ltr" className="text-sm font-extrabold text-ink sm:text-base">
                 {trv(weather.temp)}°
               </bdi>
-              <span className={`font-bold ${isDarkThemeBar ? "text-sky-100" : "text-ink/85"}`}>
-                {wCfg.fx === "rain" ? tr("أجواء ماطرة") : weatherLabel(weather.code)}
-              </span>
+              <span className="font-bold text-muted">{weatherLabel(weather.code)}</span>
 
               {weather.wind !== null ? (
                 <span
-                  className={`inline-flex items-center gap-0.5 text-[10px] font-bold sm:text-xs ${
-                    isDarkThemeBar ? "text-white/75" : "text-muted"
-                  }`}
+                  className="inline-flex items-center gap-0.5 text-[11px] font-bold text-muted"
                   title={tr("سرعة الرياح")}
                 >
                   <span
@@ -5705,17 +4056,13 @@ function AnimatedWeatherPrayerBar({
                 </span>
               ) : null}
 
-              {(weather.rainChance !== null && weather.rainChance > 0) || isRainy ? (
+              {weather.rainChance !== null && weather.rainChance > 0 ? (
                 <span
-                  className={`inline-flex items-center gap-0.5 text-[10px] font-bold sm:text-xs ${
-                    isDarkThemeBar ? "text-sky-200" : "text-primary-ink"
-                  }`}
+                  className="inline-flex items-center gap-0.5 text-[11px] font-bold text-primary-ink"
                   title={tr("احتمال المطر")}
                 >
                   <span style={{ animation: "rpRainBounce 1.6s infinite ease-in-out" }}>💧</span>
-                  <bdi dir="ltr">
-                    {weather.rainChance && weather.rainChance > 0 ? trv(weather.rainChance) : "80"}%
-                  </bdi>
+                  <bdi dir="ltr">{trv(weather.rainChance)}%</bdi>
                 </span>
               ) : null}
             </>
@@ -5724,55 +4071,34 @@ function AnimatedWeatherPrayerBar({
           )}
 
           {/* Day / Night Live Time Indicator */}
-          <span
-            className={`inline-flex items-center gap-0.5 text-[10px] font-bold sm:gap-1 sm:text-xs ${
-              isDarkThemeBar ? "text-white/75" : "text-muted"
-            }`}
-          >
-            <span className={isDarkThemeBar ? "text-white/30" : "text-line"}>·</span>
+          <span className="inline-flex items-center gap-1 text-[11px] font-bold text-muted">
+            <span>·</span>
             <span>{isNight ? tr("ليلاً") : tr("نهاراً")}</span>
-            <bdi
-              dir="ltr"
-              className={`font-mono font-extrabold ${isDarkThemeBar ? "text-amber-300" : "text-ink"}`}
-            >
+            <bdi dir="ltr" className="font-mono font-extrabold text-ink">
               {timeStr}
             </bdi>
           </span>
         </Link>
 
-        {/* Subtle Vertical Divider */}
-        <span
-          className={`relative z-10 h-3.5 w-px shrink-0 ${
-            isDarkThemeBar ? "bg-white/20" : "bg-line"
-          }`}
-          aria-hidden
-        />
-
-        {/* Left Side (in RTL): Mosque Icon + Next Prayer Name & Time + Countdown */}
+        {/* Next Prayer + Live Countdown — Transparent */}
         <Link
           to="/today"
-          className="relative z-10 inline-flex shrink-0 items-center gap-1 whitespace-nowrap transition hover:opacity-80 sm:gap-1.5"
+          className="inline-flex items-center gap-1.5 py-1 transition hover:opacity-80"
         >
           <span
-            className={`inline-flex size-5 shrink-0 items-center justify-center rounded-full text-xs leading-none sm:size-6 sm:text-sm ${
-              isDarkThemeBar ? "bg-amber-400/20" : "bg-primary-soft"
-            }`}
+            className="inline-block text-base leading-none"
             style={{ animation: "rpMoonFloat 3.6s infinite ease-in-out" }}
             aria-hidden
           >
             🕌
           </span>
-          <span className={`font-extrabold ${isDarkThemeBar ? "text-white" : "text-ink"}`}>
+          <span className="font-extrabold text-ink">
             {trv(next.name)}{" "}
-            <bdi dir="ltr" className={isDarkThemeBar ? "text-[#f2c94c]" : "text-primary-ink"}>
+            <bdi dir="ltr" className="text-primary-ink">
               {formatPrayerTime(next.at)}
             </bdi>
           </span>
-          <span
-            className={`text-[10px] font-semibold sm:text-xs ${
-              isDarkThemeBar ? "text-white/75" : "text-muted"
-            }`}
-          >
+          <span className="text-xs font-semibold text-muted">
             {countdownAr(next.at - now)}
           </span>
         </Link>
@@ -5780,6 +4106,7 @@ function AnimatedWeatherPrayerBar({
     </div>
   );
 }
+
 
 
 /* -------------------------------------------------------------------------- */
@@ -5927,19 +4254,18 @@ function getBranchLiveStatus(branch: InteractivePostBranch, nowMs: number): {
   }
 }
 
-export function InteractiveRahatServicesHub({ now = Date.now() }: { now?: number }) {
-  const [mainTab, setMainTab] = useState<"post" | "municipality" | "health" | "transport" | null>(null);
+function InteractiveRahatServicesHub({ now }: { now: number }) {
+  const [mainTab, setMainTab] = useState<"post" | "municipality" | "health" | "transport">("post");
   const [postSubTab, setPostSubTab] = useState<"branches" | "pay" | "track" | "bank">("branches");
-  const [selectedBranchId, setSelectedBranchId] = useState<string | null>(null);
+  const [selectedBranchId, setSelectedBranchId] = useState<string>("209");
   const [showAllHours, setShowAllHours] = useState<boolean>(false);
   const [trackingCode, setTrackingCode] = useState<string>("");
-  const [selectedPayIdx, setSelectedPayIdx] = useState<number | null>(null);
+  const [selectedPayIdx, setSelectedPayIdx] = useState<number>(0);
   const [busFilter, setBusFilter] = useState<"city" | "intercity">("city");
 
-  const activeBranch = selectedBranchId
-    ? RAHAT_POST_BRANCHES.find((b) => b.id === selectedBranchId) ?? null
-    : null;
-  const activeStatus = activeBranch ? getBranchLiveStatus(activeBranch, now) : null;
+  const activeBranch =
+    RAHAT_POST_BRANCHES.find((b) => b.id === selectedBranchId) ?? RAHAT_POST_BRANCHES[0];
+  const activeStatus = getBranchLiveStatus(activeBranch, now);
 
   const paymentOptions = [
     {
@@ -6000,7 +4326,7 @@ export function InteractiveRahatServicesHub({ now = Date.now() }: { now?: number
     },
   ];
 
-  const activePay = selectedPayIdx !== null ? paymentOptions[selectedPayIdx] ?? null : null;
+  const activePay = paymentOptions[selectedPayIdx] ?? paymentOptions[0];
 
   const cityBuses = [
     { line: "1", route: "حي السلام (مستودع البلدية) ↔ الخزان / حطين" },
@@ -6041,7 +4367,7 @@ export function InteractiveRahatServicesHub({ now = Date.now() }: { now?: number
               type="button"
               role="tab"
               aria-selected={active}
-              onClick={() => setMainTab((prev) => (prev === tab.id ? null : tab.id))}
+              onClick={() => setMainTab(tab.id)}
               className={`press flex items-center gap-2.5 rounded-2xl border p-2.5 text-start transition-all ${
                 active
                   ? "border-ink bg-ink text-paper shadow-sm"
@@ -6108,13 +4434,13 @@ export function InteractiveRahatServicesHub({ now = Date.now() }: { now?: number
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                 {RAHAT_POST_BRANCHES.map((b) => {
                   const st = getBranchLiveStatus(b, now);
-                  const isSel = activeBranch?.id === b.id;
+                  const isSel = b.id === activeBranch.id;
                   return (
                     <button
                       key={b.id}
                       type="button"
                       onClick={() => {
-                        setSelectedBranchId((prev) => (prev === b.id ? null : b.id));
+                        setSelectedBranchId(b.id);
                         setShowAllHours(false);
                       }}
                       className={`press flex flex-col justify-between rounded-2xl border p-2.5 text-start transition ${
@@ -6153,8 +4479,7 @@ export function InteractiveRahatServicesHub({ now = Date.now() }: { now?: number
                 })}
               </div>
 
-              {/* Selected Branch Interactive Detail Card (appears after clicking a branch above) */}
-              {activeBranch && activeStatus ? (
+              {/* Selected Branch Interactive Detail Card */}
               <div className="rounded-2xl border border-line bg-paper p-3.5 shadow-2xs">
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div>
@@ -6277,7 +4602,6 @@ export function InteractiveRahatServicesHub({ now = Date.now() }: { now?: number
                   </a>
                 </div>
               </div>
-              ) : null}
             </div>
           ) : null}
 
@@ -6291,7 +4615,7 @@ export function InteractiveRahatServicesHub({ now = Date.now() }: { now?: number
                     <button
                       key={opt.title}
                       type="button"
-                      onClick={() => setSelectedPayIdx((prev) => (prev === idx ? null : idx))}
+                      onClick={() => setSelectedPayIdx(idx)}
                       className={`press flex items-center gap-2 rounded-2xl border p-2.5 text-start transition ${
                         isSel
                           ? "border-2 border-primary bg-primary-soft font-extrabold text-ink"
@@ -6307,7 +4631,6 @@ export function InteractiveRahatServicesHub({ now = Date.now() }: { now?: number
                 })}
               </div>
 
-              {activePay ? (
               <div className="rounded-2xl border border-line bg-paper p-3.5">
                 <h3 className="text-base font-extrabold text-ink">
                   {activePay.icon} {trv(activePay.title)}
@@ -6342,7 +4665,6 @@ export function InteractiveRahatServicesHub({ now = Date.now() }: { now?: number
                   </a>
                 </div>
               </div>
-              ) : null}
             </div>
           ) : null}
 
@@ -6739,1346 +5061,6 @@ export function InteractiveRahatServicesHub({ now = Date.now() }: { now?: number
           ))}
         </div>
       </div>
-
-      {/* Mandatory Google Play Official Sources & Non-Government Affiliation Disclaimer */}
-      <div className="mt-2.5 rounded-xl border border-line/80 bg-surface/70 p-2.5 text-[11px] font-semibold leading-relaxed text-muted">
-        <p className="font-bold text-ink">
-          ℹ️ {tr("إخلاء مسؤولية والمصادر الرسمية (Official Sources):")}
-        </p>
-        <p className="mt-0.5">
-          {tr("منصة «رهط بوست» هي منصة إعلامية ومجتمعية مستقلة ولا تمثل أي جهة حكومية أو رسمية. جميع بيانات ومواعيد الخدمات العامة مستندة إلى المصادر الحكومية والرسمية التالية:")}
-        </p>
-        <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-[11px] font-bold" dir="ltr">
-          <a href="https://www.gov.il" target="_blank" rel="noopener noreferrer" className="text-primary-ink underline">gov.il</a>
-          <a href="https://doar.israelpost.co.il" target="_blank" rel="noopener noreferrer" className="text-primary-ink underline">doar.israelpost.co.il</a>
-          <a href="https://www.rahat.muni.il" target="_blank" rel="noopener noreferrer" className="text-primary-ink underline">rahat.muni.il</a>
-          <a href="https://bus.gov.il" target="_blank" rel="noopener noreferrer" className="text-primary-ink underline">bus.gov.il</a>
-          <a href="https://www.galim-bus.co.il" target="_blank" rel="noopener noreferrer" className="text-primary-ink underline">galim-bus.co.il</a>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-
-
-/* -------------------------------------------------------------------------- */
-/* Interactive Rahat Shops & Services Directory Section (Homepage)            */
-/* -------------------------------------------------------------------------- */
-
-function InteractiveDirectoryHomeSection({
-  places,
-  storeProducts = [],
-  storeCurrency = "ILS",
-}: {
-  places: DirectoryEntry[];
-  storeProducts?: Parameters<typeof ProductCard>[0]["p"][];
-  storeCurrency?: Parameters<typeof ProductCard>[0]["currency"];
-}) {
-  const [hubMap, setHubMap] = useState<
-    Record<
-      string,
-      {
-        slug: string;
-        isCustomShop?: boolean;
-        customName?: string;
-        customCategory?: string;
-        customArea?: string;
-        customAddress?: string;
-        logoKey?: string;
-        coverKey?: string;
-        verified?: boolean;
-        featured?: boolean;
-        supervisorName?: string;
-        products?: { id: string; name: string; price?: string; imageKey?: string }[];
-        campaigns?: { id: string; title: string; discountBadge: string; active: boolean }[];
-      }
-    >
-  >({});
-  const siteSettings = useSiteSettings();
-  const syncedDirCfg = useMemo(() => {
-    const item = (siteSettings.quickLinks ?? []).find((q) => q.id === "dirhubcfg");
-    if (!item || !item.url.startsWith("/__dhub?")) return null;
-    try {
-      const sp = new URLSearchParams(item.url.slice(8));
-      const validStyles = ["cards", "showcase", "grid", "carousel", "compact", "dark_gold"] as const;
-      const stRaw = sp.get("st") || "cards";
-      const directoryStyle = (validStyles as readonly string[]).includes(stRaw)
-        ? (stRaw as typeof validStyles[number])
-        : "cards";
-      const showOfficialStoreOnHome = sp.get("os") === "1";
-      const showCategoryFilterOnHome = sp.get("cf") !== "0";
-      const cnt = Number(sp.get("cnt") || 6);
-      const homeItemsCount = [4, 6, 8, 12].includes(cnt) ? cnt : 6;
-      return {
-        directoryStyle,
-        showOfficialStoreOnHome,
-        showCategoryFilterOnHome,
-        homeItemsCount,
-      };
-    } catch {
-      return null;
-    }
-  }, [siteSettings.quickLinks]);
-
-  const [globalCfg, setGlobalCfg] = useState<{
-    directoryStyle: "cards" | "showcase" | "grid" | "carousel" | "compact" | "dark_gold";
-    showOfficialStoreOnHome: boolean;
-    showCategoryFilterOnHome: boolean;
-    homeItemsCount: number;
-  }>(() => syncedDirCfg ?? {
-    directoryStyle: "cards",
-    showOfficialStoreOnHome: false,
-    showCategoryFilterOnHome: true,
-    homeItemsCount: 6,
-  });
-  const [activeCat, setActiveCat] = useState<string>("الكل");
-
-  useEffect(() => {
-    if (syncedDirCfg) {
-      setGlobalCfg((prev) => ({ ...prev, ...syncedDirCfg }));
-    }
-  }, [syncedDirCfg]);
-
-  useEffect(() => {
-    let active = true;
-    try {
-      const cached = window.localStorage.getItem("rp_latest_shop_hub");
-      if (cached) {
-        const parsed = JSON.parse(cached);
-        if (parsed?.shops) setHubMap(parsed.shops);
-        if (parsed?.globalSettings) {
-          setGlobalCfg((prev) => ({ ...prev, ...parsed.globalSettings }));
-        }
-      }
-    } catch {}
-
-    const syncHub = () => {
-      fetch(`/api/media?kind=shop-hub&_t=${Date.now()}`, { cache: "no-store" })
-        .then((r) => (r.ok ? r.json() : null))
-        .then((d) => {
-          if (!active || !d?.ok) return;
-          if (d.shops) setHubMap(d.shops);
-          if (d.globalSettings) {
-            setGlobalCfg((prev) => ({ ...prev, ...(syncedDirCfg ?? d.globalSettings) }));
-          }
-          try {
-            window.localStorage.setItem(
-              "rp_latest_shop_hub",
-              JSON.stringify({ shops: d.shops, globalSettings: d.globalSettings }),
-            );
-          } catch {}
-        })
-        .catch(() => {});
-    };
-    syncHub();
-
-    const onFocus = () => {
-      if (document.visibilityState === "visible") syncHub();
-    };
-    window.addEventListener("rp-shop-hub-updated", syncHub);
-    window.addEventListener("focus", onFocus);
-    document.addEventListener("visibilitychange", onFocus);
-    const timer = window.setInterval(() => {
-      if (document.visibilityState === "visible") syncHub();
-    }, 10000);
-    return () => {
-      active = false;
-      window.clearInterval(timer);
-      window.removeEventListener("rp-shop-hub-updated", syncHub);
-      window.removeEventListener("focus", onFocus);
-      document.removeEventListener("visibilitychange", onFocus);
-    };
-  }, [syncedDirCfg]);
-
-  const enriched = useMemo(() => {
-    const seen = new Set<string>();
-    const list: (DirectoryEntry & {
-      coverKey?: string;
-      featured?: boolean;
-      supervisorName?: string;
-      productsCount: number;
-      offerBadge?: string;
-      offerTitle?: string;
-    })[] = [];
-
-    for (const p of places) {
-      seen.add(p.slug);
-      const cfg = hubMap[p.slug];
-      const activeCamps = (cfg?.campaigns ?? []).filter((c) => c.active);
-      list.push({
-        ...p,
-        name: cfg?.customName || p.name,
-        category: cfg?.customCategory || p.category,
-        area: cfg?.customArea || p.area,
-        address: cfg?.customAddress || p.address,
-        photo: cfg?.logoKey || p.photo,
-        coverKey: cfg?.coverKey,
-        verified: cfg?.verified !== undefined ? cfg.verified : p.verified,
-        featured: cfg?.featured,
-        supervisorName: cfg?.supervisorName,
-        productsCount: cfg?.products?.length ?? 0,
-        offerBadge: activeCamps[0]?.discountBadge,
-        offerTitle: activeCamps[0]?.title,
-      });
-    }
-
-    for (const [slug, cfg] of Object.entries(hubMap)) {
-      if (seen.has(slug) || !cfg.isCustomShop || !cfg.customName) continue;
-      const activeCamps = (cfg.campaigns ?? []).filter((c) => c.active);
-      list.push({
-        slug,
-        name: cfg.customName,
-        category: cfg.customCategory || "خدمات",
-        source: "owner",
-        verified: cfg.verified !== false,
-        area: cfg.customArea,
-        address: cfg.customAddress,
-        photo: cfg.logoKey,
-        coverKey: cfg.coverKey,
-        featured: cfg.featured,
-        supervisorName: cfg.supervisorName,
-        productsCount: cfg.products?.length ?? 0,
-        offerBadge: activeCamps[0]?.discountBadge,
-        offerTitle: activeCamps[0]?.title,
-      });
-    }
-
-    return list.sort((a, b) => {
-      const score = (x: (typeof list)[number]) =>
-        (x.featured ? 100 : 0) +
-        (x.offerBadge ? 50 : 0) +
-        (x.productsCount > 0 ? 30 : 0) +
-        (x.photo ? 15 : 0) +
-        (x.verified ? 10 : 0);
-      return score(b) - score(a);
-    });
-  }, [places, hubMap]);
-
-  const categories = useMemo(() => {
-    const base = ["الكل", "مطاعم ومقاهي", "بقالات", "صحة", "ملابس", "خدمات"];
-    return base.filter((c) => c === "الكل" || enriched.some((p) => p.category === c));
-  }, [enriched]);
-
-  const visiblePlaces = useMemo(() => {
-    const filtered =
-      activeCat === "الكل"
-        ? enriched
-        : activeCat === "__offers__"
-          ? enriched.filter((p) => Boolean(p.offerBadge) || p.productsCount > 0)
-          : enriched.filter((p) => p.category === activeCat);
-    return filtered.slice(0, globalCfg.homeItemsCount || 6);
-  }, [enriched, activeCat, globalCfg.homeItemsCount]);
-
-  const hasAnyOffers = enriched.some((p) => Boolean(p.offerBadge) || p.productsCount > 0);
-  const resolveImg = (v?: string) => {
-    if (!v) return "";
-    if (v.startsWith("data:image/") || v.startsWith("http") || v.startsWith("/")) return v;
-    return `/api/media?kind=blob&key=${encodeURIComponent(v)}`;
-  };
-
-  const styleMode = globalCfg.directoryStyle || "cards";
-  const isDarkGold = styleMode === "dark_gold";
-
-  return (
-    <div className="space-y-5">
-      {/* Optional Official Store Section — Hidden by Default unless enabled in Admin */}
-      {globalCfg.showOfficialStoreOnHome && storeProducts.length > 0 ? (
-        <section>
-          <SectionTitle title={tr("من المتجر الرسمي")} to="/store" more={tr("كل المتجر")} />
-          <ul className="scroll-row -mx-4 px-4 pb-2 sm:mx-0 sm:px-0">
-            {storeProducts.slice(0, 8).map((p) => (
-              <li key={p.id} className="w-48 shrink-0">
-                <ProductCard p={p} currency={storeCurrency} />
-              </li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
-
-      <section className="space-y-3">
-        <SectionTitle title={tr("دليل محلات وخدمات رهط")} to="/directory" more={tr("كل الدليل")} />
-
-        <div
-          className={`stamp overflow-hidden p-3.5 sm:p-4 shadow-xs space-y-3.5 ${
-            isDarkGold
-              ? "border-2 border-[#f2c94c] bg-gradient-to-b from-[#111827] via-[#1e293b] to-[#111827] text-white"
-              : "border-2 border-primary/70 bg-gradient-to-b from-primary-soft/50 via-paper to-paper"
-          }`}
-        >
-          {/* Category & Offers Filter Bar */}
-          {globalCfg.showCategoryFilterOnHome ? (
-            <div className="flex items-center justify-between gap-2 flex-wrap">
-              <div className="flex flex-wrap items-center gap-1.5">
-                {categories.map((cat) => (
-                  <button
-                    key={cat}
-                    type="button"
-                    onClick={() => setActiveCat(cat)}
-                    className={`press rounded-full px-3 py-1 text-xs font-extrabold transition ${
-                      activeCat === cat
-                        ? isDarkGold
-                          ? "bg-[#f2c94c] text-[#111827] shadow-2xs"
-                          : "bg-ink text-paper shadow-2xs"
-                        : isDarkGold
-                          ? "border border-white/20 bg-white/10 text-white hover:border-[#f2c94c]"
-                          : "border border-line bg-paper text-ink hover:border-primary"
-                    }`}
-                  >
-                    {trv(cat)}
-                  </button>
-                ))}
-                {hasAnyOffers ? (
-                  <button
-                    type="button"
-                    onClick={() => setActiveCat("__offers__")}
-                    className={`press rounded-full px-3 py-1 text-xs font-extrabold transition ${
-                      activeCat === "__offers__"
-                        ? "bg-alert text-white shadow-2xs"
-                        : "border border-alert/40 bg-alert/15 text-alert hover:bg-alert/25"
-                    }`}
-                  >
-                    🔥 {tr("عروض ومنتجات")}
-                  </button>
-                ) : null}
-              </div>
-
-              <Link
-                to="/submit"
-                search={{ mode: "نشاط" }}
-                className="inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1 text-xs font-extrabold text-ink shadow-2xs hover:opacity-90"
-              >
-                <Plus className="size-3.5" aria-hidden />
-                {tr("أضف محلك")}
-              </Link>
-            </div>
-          ) : null}
-
-          {/* STYLE 1: SHOWCASE (Large Cover Banner + Overlapping Logo + Offer Callout) */}
-          {styleMode === "showcase" ? (
-            <ul className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
-              {visiblePlaces.map((place) => (
-                <li key={place.slug}>
-                  <Link
-                    to="/directory/$slug"
-                    params={{ slug: place.slug }}
-                    className="press group flex h-full flex-col overflow-hidden rounded-2xl border border-line bg-paper shadow-2xs transition hover:border-primary"
-                  >
-                    <div className="relative h-24 w-full bg-gradient-to-l from-ink via-[#1e293b] to-ink overflow-hidden">
-                      {place.coverKey ? (
-                        <img
-                          src={resolveImg(place.coverKey)}
-                          alt={trv(place.name)}
-                          className="size-full object-cover opacity-85 transition group-hover:scale-105"
-                          loading="lazy"
-                        />
-                      ) : (
-                        <div className="size-full bg-[radial-gradient(circle_at_80%_20%,#f2c94c40,transparent_65%)]" />
-                      )}
-                      {place.offerBadge ? (
-                        <span className="absolute top-2.5 end-2.5 rounded-full bg-alert px-2.5 py-0.5 text-[10px] font-extrabold text-white shadow-xs">
-                          🔥 {trv(place.offerBadge)}
-                        </span>
-                      ) : null}
-                      {place.verified ? (
-                        <span className="absolute top-2.5 start-2.5 rounded-full bg-ink/85 px-2 py-0.5 text-[10px] font-extrabold text-primary backdrop-blur-xs">
-                          ✓ {tr("موثّق")}
-                        </span>
-                      ) : null}
-                    </div>
-                    <div className="relative flex flex-1 flex-col justify-between p-3.5 pt-2">
-                      <div className="flex items-start gap-2.5">
-                        <div className="-mt-7 shrink-0">
-                          {place.photo ? (
-                            <img
-                              src={resolveImg(place.photo)}
-                              alt={trv(place.name)}
-                              className="size-14 rounded-2xl border-2 border-paper bg-paper object-cover shadow-md"
-                              loading="lazy"
-                            />
-                          ) : (
-                            <span className="grid size-14 place-items-center rounded-2xl border-2 border-paper bg-primary text-ink shadow-md">
-                              <Store className="size-6" />
-                            </span>
-                          )}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <h3 className="truncate text-sm font-extrabold text-ink sm:text-base">
-                            {trv(place.name)}
-                          </h3>
-                          <p className="truncate text-xs font-bold text-muted">
-                            {trv(place.category)}
-                            {place.address || place.area ? ` · ${trv(place.address ?? place.area ?? "")}` : ""}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="mt-3 flex items-center justify-between border-t border-line/70 pt-2 text-[11px] font-extrabold">
-                        <span className="text-muted">
-                          {place.productsCount > 0
-                            ? `🛍️ ${trv(place.productsCount)} ${tr("منتجات بالمتجر")}`
-                            : place.offerTitle
-                              ? `🔥 ${trv(place.offerTitle)}`
-                              : tr("صفحة المحل والخدمات")}
-                        </span>
-                        <span className="text-primary-ink">{tr("زيارة المحل ←")}</span>
-                      </div>
-                    </div>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          ) : styleMode === "grid" ? (
-            /* STYLE 2: GRID (App-Style Centered Square Shop Tiles) */
-            <ul className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-6">
-              {visiblePlaces.map((place) => (
-                <li key={place.slug}>
-                  <Link
-                    to="/directory/$slug"
-                    params={{ slug: place.slug }}
-                    className={`press flex h-full flex-col items-center justify-between rounded-2xl border p-3 text-center transition ${
-                      place.featured || place.offerBadge
-                        ? "border-2 border-primary bg-primary-soft/35"
-                        : "border-line bg-paper hover:border-primary"
-                    }`}
-                  >
-                    <div className="relative">
-                      {place.photo ? (
-                        <img
-                          src={resolveImg(place.photo)}
-                          alt={trv(place.name)}
-                          className="size-16 rounded-2xl border-2 border-primary/60 bg-paper object-cover shadow-2xs"
-                          loading="lazy"
-                        />
-                      ) : (
-                        <span className="grid size-16 place-items-center rounded-2xl bg-primary-soft text-primary-ink">
-                          <Store className="size-7" />
-                        </span>
-                      )}
-                      {place.verified ? (
-                        <span className="absolute -bottom-1 -end-1 grid size-5 place-items-center rounded-full bg-ink text-[10px] font-extrabold text-primary shadow-2xs">
-                          ✓
-                        </span>
-                      ) : null}
-                    </div>
-                    <div className="mt-2 w-full space-y-0.5">
-                      <p className="truncate text-xs font-extrabold text-ink sm:text-sm">
-                        {trv(place.name)}
-                      </p>
-                      <p className="truncate text-[11px] font-bold text-muted">{trv(place.category)}</p>
-                    </div>
-                    {place.offerBadge ? (
-                      <span className="mt-1.5 inline-block rounded-full bg-alert px-2 py-0.5 text-[10px] font-extrabold text-white">
-                        🔥 {trv(place.offerBadge)}
-                      </span>
-                    ) : place.productsCount > 0 ? (
-                      <span className="mt-1.5 inline-block rounded-full bg-primary-soft px-2 py-0.5 text-[10px] font-extrabold text-primary-ink">
-                        🛍️ {trv(place.productsCount)} {tr("منتج")}
-                      </span>
-                    ) : (
-                      <span className="mt-1.5 inline-block rounded-full bg-surface px-2.5 py-0.5 text-[10px] font-bold text-muted">
-                        {tr("عرض المحل")}
-                      </span>
-                    )}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          ) : styleMode === "carousel" ? (
-            /* STYLE 3: CAROUSEL (Stories Circle Strip + Horizontal Sliding Cards) */
-            <div className="space-y-3">
-              {/* Top Story Circles */}
-              <div className="scroll-row -mx-2 px-2 pb-1">
-                {enriched.slice(0, 10).map((place) => (
-                  <Link
-                    key={`story-${place.slug}`}
-                    to="/directory/$slug"
-                    params={{ slug: place.slug }}
-                    className="flex w-18 shrink-0 flex-col items-center gap-1 text-center"
-                  >
-                    <span
-                      className={`grid size-14 place-items-center rounded-full p-0.5 ${
-                        place.offerBadge
-                          ? "bg-gradient-to-tr from-alert via-primary to-primary-deep"
-                          : "bg-gradient-to-tr from-primary to-primary-deep"
-                      }`}
-                    >
-                      {place.photo ? (
-                        <img
-                          src={resolveImg(place.photo)}
-                          alt={trv(place.name)}
-                          className="size-full rounded-full border-2 border-paper bg-paper object-cover"
-                          loading="lazy"
-                        />
-                      ) : (
-                        <span className="grid size-full place-items-center rounded-full border-2 border-paper bg-paper text-primary-ink">
-                          <Store className="size-5" />
-                        </span>
-                      )}
-                    </span>
-                    <span className="w-full truncate text-[10.5px] font-extrabold text-ink">
-                      {trv(place.name)}
-                    </span>
-                  </Link>
-                ))}
-              </div>
-
-              {/* Horizontal Cards */}
-              <ul className="scroll-row -mx-2 px-2 pb-1">
-                {visiblePlaces.map((place) => (
-                  <li key={place.slug} className="w-64 shrink-0">
-                    <Link
-                      to="/directory/$slug"
-                      params={{ slug: place.slug }}
-                      className="press flex h-full flex-col justify-between rounded-2xl border border-line bg-paper p-3 shadow-2xs transition hover:border-primary"
-                    >
-                      <div className="flex items-center gap-2.5">
-                        {place.photo ? (
-                          <img
-                            src={resolveImg(place.photo)}
-                            alt={trv(place.name)}
-                            className="size-12 shrink-0 rounded-xl border border-primary/50 object-cover"
-                            loading="lazy"
-                          />
-                        ) : (
-                          <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-primary-soft text-primary-ink">
-                            <Store className="size-5" />
-                          </span>
-                        )}
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-extrabold text-ink">{trv(place.name)}</p>
-                          <p className="truncate text-xs font-bold text-muted">
-                            {trv(place.category)}
-                            {place.area ? ` · ${trv(place.area)}` : ""}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="mt-2.5 flex items-center justify-between border-t border-line/60 pt-2 text-[11px] font-extrabold">
-                        {place.offerBadge ? (
-                          <span className="rounded-full bg-alert px-2 py-0.5 text-[10px] text-white">
-                            🔥 {trv(place.offerBadge)}
-                          </span>
-                        ) : place.productsCount > 0 ? (
-                          <span className="rounded-full bg-primary-soft px-2 py-0.5 text-[10px] text-primary-ink">
-                            🛍️ {trv(place.productsCount)} {tr("منتج")}
-                          </span>
-                        ) : (
-                          <span className="text-muted">{tr("معلومات وتواصل")}</span>
-                        )}
-                        <span className="text-primary-ink">{tr("فتح ←")}</span>
-                      </div>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : styleMode === "compact" ? (
-            /* STYLE 4: COMPACT (Sleek High-Density List) */
-            <ul className="divide-y divide-line overflow-hidden rounded-2xl border border-line bg-paper">
-              {visiblePlaces.map((place) => (
-                <li key={place.slug}>
-                  <Link
-                    to="/directory/$slug"
-                    params={{ slug: place.slug }}
-                    className="flex items-center justify-between gap-2.5 px-3.5 py-2.5 transition hover:bg-surface/70"
-                  >
-                    <div className="flex min-w-0 items-center gap-2.5">
-                      {place.photo ? (
-                        <img
-                          src={resolveImg(place.photo)}
-                          alt={trv(place.name)}
-                          className="size-10 shrink-0 rounded-xl border border-line object-cover"
-                          loading="lazy"
-                        />
-                      ) : (
-                        <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary-soft text-primary-ink">
-                          <Store className="size-4" />
-                        </span>
-                      )}
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-1.5">
-                          <span className="truncate text-sm font-extrabold text-ink">{trv(place.name)}</span>
-                          {place.verified ? (
-                            <span className="rounded-full bg-ink px-1.5 py-0.2 text-[9px] font-extrabold text-paper">
-                              ✓
-                            </span>
-                          ) : null}
-                        </div>
-                        <p className="truncate text-[11px] font-bold text-muted">
-                          {trv(place.category)}
-                          {place.address || place.area ? ` · ${trv(place.address ?? place.area ?? "")}` : ""}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex shrink-0 items-center gap-1.5">
-                      {place.offerBadge ? (
-                        <span className="rounded-full bg-alert px-2 py-0.5 text-[10px] font-extrabold text-white">
-                          🔥 {trv(place.offerBadge)}
-                        </span>
-                      ) : null}
-                      {place.productsCount > 0 ? (
-                        <span className="rounded-full bg-primary-soft px-2 py-0.5 text-[10px] font-extrabold text-primary-ink">
-                          🛍️ {trv(place.productsCount)}
-                        </span>
-                      ) : null}
-                      <ChevronLeft className="size-4 text-muted" aria-hidden />
-                    </div>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            /* STYLE 5 & 6: CARDS (Default Modern Cards) & DARK_GOLD (Luxury Dark & Gold Cards) */
-            <ul className="grid gap-3 sm:grid-cols-2">
-              {visiblePlaces.map((place) => (
-                <li key={place.slug}>
-                  <Link
-                    to="/directory/$slug"
-                    params={{ slug: place.slug }}
-                    className={`press flex flex-col overflow-hidden rounded-2xl border transition ${
-                      isDarkGold
-                        ? "border-[#f2c94c]/45 bg-[#1e293b]/95 text-white hover:border-[#f2c94c]"
-                        : place.featured || place.offerBadge
-                          ? "border-2 border-primary bg-primary-soft/35"
-                          : "border-line bg-paper hover:border-primary"
-                    }`}
-                  >
-                    {place.coverKey ? (
-                      <div className="relative h-24 w-full overflow-hidden bg-ink">
-                        <img
-                          src={resolveImg(place.coverKey)}
-                          alt={trv(place.name)}
-                          className="h-full w-full object-cover"
-                          loading="lazy"
-                        />
-                      </div>
-                    ) : null}
-                    <div className="flex items-center gap-3 p-3">
-                      {place.photo ? (
-                        <img
-                          src={resolveImg(place.photo)}
-                          alt={trv(place.name)}
-                          className={`size-14 shrink-0 rounded-2xl border-2 border-primary/60 bg-paper object-cover shadow-2xs ${
-                            place.coverKey ? "-mt-7 border-paper shadow-md" : ""
-                          }`}
-                          loading="lazy"
-                          decoding="async"
-                        />
-                      ) : (
-                        <span
-                          className={`icon-badge size-14 shrink-0 rounded-2xl bg-primary-soft text-primary-ink ${
-                            place.coverKey ? "-mt-7 border-2 border-paper shadow-md" : ""
-                          }`}
-                        >
-                          <Store className="size-6" aria-hidden />
-                        </span>
-                      )}
-
-                    <span className="min-w-0 flex-1 space-y-0.5">
-                      <span className="flex flex-wrap items-center gap-1.5">
-                        <span
-                          className={`truncate text-sm font-extrabold leading-snug sm:text-base ${
-                            isDarkGold ? "text-white" : "text-ink"
-                          }`}
-                        >
-                          {trv(place.name)}
-                        </span>
-                        {place.verified ? (
-                          <span
-                            className={`rounded-full px-2 py-0.5 text-[10px] font-extrabold ${
-                              isDarkGold ? "bg-[#f2c94c] text-[#111827]" : "bg-ink text-paper"
-                            }`}
-                          >
-                            ✓ {tr("موثّق")}
-                          </span>
-                        ) : null}
-                      </span>
-
-                      <span
-                        className={`flex flex-wrap items-center gap-1.5 text-xs font-bold ${
-                          isDarkGold ? "text-slate-300" : "text-muted"
-                        }`}
-                      >
-                        <span>{trv(place.category)}</span>
-                        {place.address || place.area ? (
-                          <span className="truncate">· {trv(place.address ?? place.area ?? "")}</span>
-                        ) : null}
-                      </span>
-
-                      {place.offerBadge || place.productsCount > 0 || place.supervisorName ? (
-                        <span className="flex flex-wrap items-center gap-1 pt-0.5">
-                          {place.offerBadge ? (
-                            <span className="rounded-full bg-alert px-2 py-0.5 text-[10px] font-extrabold text-white">
-                              🔥 {trv(place.offerBadge)}
-                            </span>
-                          ) : null}
-                          {place.productsCount > 0 ? (
-                            <span className="rounded-full bg-primary-soft px-2 py-0.5 text-[10px] font-extrabold text-primary-ink">
-                              🛍️ {trv(place.productsCount)} {tr("منتج")}
-                            </span>
-                          ) : null}
-                          {place.supervisorName ? (
-                            <span className="rounded-full bg-[#16A34A]/20 px-2 py-0.5 text-[10px] font-extrabold text-[#22c55e]">
-                              👤 {tr("إشراف معتمد")}
-                            </span>
-                          ) : null}
-                        </span>
-                      ) : null}
-                    </span>
-
-                      <ChevronLeft
-                        className={`size-5 shrink-0 ${isDarkGold ? "text-[#f2c94c]" : "text-muted"}`}
-                        aria-hidden
-                      />
-                    </div>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )}
-
-          <div
-            className={`flex items-center justify-between border-t pt-2.5 text-xs font-extrabold ${
-              isDarkGold ? "border-white/15 text-slate-300" : "border-line/70 text-muted"
-            }`}
-          >
-            <span>
-              {tr("يمكن لأصحاب المحلات إضافة لوجو المحل والمنتجات وحملات العروض داخل صفحة المحل")}
-            </span>
-            <Link
-              to="/directory"
-              className={`underline ${isDarkGold ? "text-[#f2c94c]" : "text-primary-ink"}`}
-            >
-              {tr("تصفح كل المحلات ←")}
-            </Link>
-          </div>
-        </div>
-      </section>
-    </div>
-  );
-}
-
-
-
-/* -------------------------------------------------------------------------- */
-/* Modern Interactive Galim Buses & Rahat Emergency Homepage Sections         */
-/* -------------------------------------------------------------------------- */
-
-export type BusesHomeStyleKey =
-  | "modern_cards"
-  | "live_board"
-  | "compact_pills"
-  | "dark_gold"
-  | "split_showcase"
-  | "collapsible";
-
-export type EmergencyHomeStyleKey =
-  | "modern_grid"
-  | "compact_strip"
-  | "color_coded"
-  | "dark_gold"
-  | "list_rows"
-  | "collapsible";
-
-function parseBusesAndEmergencyHomeCfg(quickLinks: { id: string; title: string; subtitle: string; url: string }[]) {
-  const item = (quickLinks ?? []).find((q) => q.id === "busemergcfg");
-  let busesStyle: BusesHomeStyleKey = "modern_cards";
-  let emergencyStyle: EmergencyHomeStyleKey = "modern_grid";
-  let includeEmergencyInBuses = true;
-  let showAllEmergency = true;
-
-  if (item && item.url.startsWith("/__bemg?")) {
-    const sp = new URLSearchParams(item.url.slice(8));
-    const bs = sp.get("bs") as BusesHomeStyleKey | null;
-    if (
-      bs === "modern_cards" ||
-      bs === "live_board" ||
-      bs === "compact_pills" ||
-      bs === "dark_gold" ||
-      bs === "split_showcase" ||
-      bs === "collapsible"
-    ) {
-      busesStyle = bs;
-    }
-    const es = sp.get("es") as EmergencyHomeStyleKey | null;
-    if (
-      es === "modern_grid" ||
-      es === "compact_strip" ||
-      es === "color_coded" ||
-      es === "dark_gold" ||
-      es === "list_rows" ||
-      es === "collapsible"
-    ) {
-      emergencyStyle = es;
-    }
-    if (sp.get("ieb") === "0") includeEmergencyInBuses = false;
-    if (sp.get("sae") === "0") showAllEmergency = false;
-  }
-  return { busesStyle, emergencyStyle, includeEmergencyInBuses, showAllEmergency };
-}
-
-const GALIM_HOME_CITY_LINES = [
-  { line: "1", from: "حي السلام", to: "الخزان / حطين", freq: "كل 20 د" },
-  { line: "2", from: "حي السلام (الدفيئات)", to: "الخضر / حي 31", freq: "كل 20 د" },
-  { line: "3", from: "محطة تافوح / السلام", to: "رفح / البوئي", freq: "كل 25 د" },
-  { line: "4 / 4أ", from: "المدينة المنورة", to: "الحديقة العامة", freq: "كل 20 د" },
-  { line: "5", from: "حي صلاح الدين", to: "مدرسة الهدى (دائري)", freq: "كل 30 د" },
-  { line: "6", from: "المدينة المنورة", to: "حي صلاح الدين", freq: "كل 30 د" },
-];
-
-const GALIM_HOME_INTERCITY_LINES = [
-  { line: "450–455", from: "رهط (الأحياء)", to: "بئر السبع / سوروكا", freq: "كل 15 د" },
-  { line: "471", from: "رهط (مباشر)", to: "بئر السبع المركزية", freq: "سريع" },
-  { line: "425", from: "رهط", to: "تل السبع", freq: "منتظم" },
-  { line: "40 / 423", from: "رهط", to: "كسيفة / حورة", freq: "منتظم" },
-  { line: "427", from: "رهط", to: "عرعرة النقب", freq: "منتظم" },
-  { line: "462 / 467", from: "رهط", to: "سديروت / عسقلان", freq: "منتظم" },
-];
-
-const RAHAT_EMERGENCY_FULL = [
-  { name: "الشرطة", sub: "طوارئ الأمن", phone: "100", icon: "🚔", tone: "blue" },
-  { name: "الإسعاف (نجمة داود)", sub: "طوارئ طبية", phone: "101", icon: "🚑", tone: "red" },
-  { name: "الإطفاء والإنقاذ", sub: "حرائق وإنقاذ", phone: "102", icon: "🚒", tone: "orange" },
-  { name: "طوارئ بلدية رهط", sub: "الموكيد البلدي 24/7", phone: "106", icon: "🏛️", tone: "gold" },
-  { name: "طوارئ الكهرباء", sub: "أعطال الكهرباء", phone: "103", icon: "⚡", tone: "gold" },
-  { name: "الجبهة الداخلية", sub: "تعليمات الطوارئ", phone: "104", icon: "🛡️", tone: "blue" },
-  { name: "اتحاد الإنقاذ", sub: "איחוד הצלה", phone: "1221", icon: "🩺", tone: "green" },
-  { name: "الطوارئ الموحّد", sub: "خط الطوارئ العام", phone: "112", icon: "🆘", tone: "red" },
-  { name: "بدالة بلدية رهط", sub: "مكاتب البلدية", phone: "08-9914800", icon: "📞", tone: "neutral" },
-  { name: "استعلامات باصات غاليم", sub: "شركة גלים", phone: "08-6688700", icon: "🚌", tone: "neutral" },
-] as const;
-
-function InteractiveGalimBusesHomeSection() {
-  const settings = useSiteSettings();
-  const cfg = useMemo(() => parseBusesAndEmergencyHomeCfg(settings.quickLinks ?? []), [settings.quickLinks]);
-  const [tab, setTab] = useState<"city" | "intercity" | "emergency">("city");
-  const [expanded, setExpanded] = useState(cfg.busesStyle !== "collapsible");
-
-  useEffect(() => {
-    setExpanded(cfg.busesStyle !== "collapsible");
-  }, [cfg.busesStyle]);
-
-  const activeLines = tab === "intercity" ? GALIM_HOME_INTERCITY_LINES : GALIM_HOME_CITY_LINES;
-  const isDark = cfg.busesStyle === "dark_gold";
-
-  return (
-    <section>
-      <SectionTitle title={tr("باصات غاليم في رهط والنقب")} to="/buses" more={tr("الخريطة وكل المواعيد")} />
-
-      <div
-        className={`stamp overflow-hidden transition-all ${
-          isDark
-            ? "border-[#F2C94C]/50 bg-[#14120E] text-white shadow-md"
-            : cfg.busesStyle === "live_board"
-              ? "border-2 border-ink/80 bg-gradient-to-b from-surface via-paper to-paper"
-              : "border-2 border-primary/75 bg-gradient-to-b from-primary-soft/50 via-paper to-paper"
-        } p-3.5 sm:p-4`}
-      >
-        {/* Top Header Bar */}
-        <div className="flex flex-wrap items-center justify-between gap-2.5">
-          <div className="flex items-center gap-2.5">
-            <span
-              className={`grid size-11 shrink-0 place-items-center rounded-2xl text-xl shadow-2xs ${
-                isDark ? "bg-[#F2C94C] text-[#14120E]" : "bg-primary text-ink"
-              }`}
-              aria-hidden
-            >
-              <Bus className="size-6" />
-            </span>
-            <div>
-              <div className="flex flex-wrap items-center gap-2">
-                <h3 className={`text-sm font-extrabold sm:text-base ${isDark ? "text-white" : "text-ink"}`}>
-                  {tr("خطوط باصات غاليم (גלים) — رهط والنقب")}
-                </h3>
-                <span className="inline-flex items-center gap-1 rounded-full bg-[#16A34A]/15 px-2.5 py-0.5 text-[11px] font-extrabold text-[#15803D]">
-                  <span className="size-1.5 rounded-full bg-[#16A34A] animate-ping" />
-                  {tr("مباشر · جدول اليوم")}
-                </span>
-              </div>
-              <p className={`text-xs font-semibold ${isDark ? "text-white/70" : "text-muted"}`}>
-                {tr("خطوط داخل أحياء رهط (1–6)، بئر السبع، سوروكا وبلدات النقب مع التتبع الحي")}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-1.5">
-            {cfg.busesStyle === "collapsible" ? (
-              <button
-                type="button"
-                onClick={() => setExpanded((v) => !v)}
-                className="btn btn-ghost px-3 py-1.5 text-xs font-extrabold"
-              >
-                {expanded ? tr("طي القائمة ▲") : tr("عرض الخطوط والمواعيد ▼")}
-              </button>
-            ) : null}
-            <Link
-              to="/buses"
-              className={`press inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-extrabold shadow-2xs transition ${
-                isDark
-                  ? "bg-[#F2C94C] text-[#14120E]"
-                  : "bg-ink text-paper hover:opacity-90"
-              }`}
-            >
-              <span>🗺️ {tr("تتبع مباشر")}</span>
-              <ChevronLeft className="size-4 rtl:rotate-0 ltr:rotate-180" aria-hidden />
-            </Link>
-          </div>
-        </div>
-
-        {expanded ? (
-          <div className="mt-3.5 space-y-3">
-            {/* Interactive Category Switcher */}
-            <div
-              className={`flex flex-wrap items-center gap-1.5 rounded-2xl p-1.5 ${
-                isDark ? "bg-white/10" : "bg-surface/90"
-              }`}
-            >
-              <button
-                type="button"
-                onClick={() => setTab("city")}
-                className={`press flex-1 whitespace-nowrap rounded-xl px-3 py-2 text-xs font-extrabold transition ${
-                  tab === "city"
-                    ? isDark
-                      ? "bg-[#F2C94C] text-[#14120E]"
-                      : "bg-primary text-ink shadow-2xs"
-                    : isDark
-                      ? "text-white/75 hover:text-white"
-                      : "text-muted hover:text-ink"
-                }`}
-              >
-                🚌 {tr("خطوط داخل رهط (1–6)")}
-              </button>
-              <button
-                type="button"
-                onClick={() => setTab("intercity")}
-                className={`press flex-1 whitespace-nowrap rounded-xl px-3 py-2 text-xs font-extrabold transition ${
-                  tab === "intercity"
-                    ? isDark
-                      ? "bg-[#F2C94C] text-[#14120E]"
-                      : "bg-primary text-ink shadow-2xs"
-                    : isDark
-                      ? "text-white/75 hover:text-white"
-                      : "text-muted hover:text-ink"
-                }`}
-              >
-                🛣️ {tr("بئر السبع والنقب")}
-              </button>
-              {cfg.includeEmergencyInBuses ? (
-                <button
-                  type="button"
-                  onClick={() => setTab("emergency")}
-                  className={`press flex-1 whitespace-nowrap rounded-xl px-3 py-2 text-xs font-extrabold transition ${
-                    tab === "emergency"
-                      ? "bg-alert text-white shadow-2xs"
-                      : isDark
-                        ? "text-white/75 hover:text-white"
-                        : "text-muted hover:text-ink"
-                  }`}
-                >
-                  🚨 {tr("أرقام الطوارئ في رهط")}
-                </button>
-              ) : null}
-            </div>
-
-            {tab === "emergency" ? (
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
-                {RAHAT_EMERGENCY_FULL.map((em) => (
-                  <a
-                    key={em.phone}
-                    href={`tel:${em.phone}`}
-                    className={`press flex items-center justify-between gap-2 rounded-2xl border p-2.5 transition ${
-                      isDark
-                        ? "border-white/15 bg-white/5 text-white hover:border-[#F2C94C]"
-                        : "border-line bg-paper text-ink hover:border-primary"
-                    }`}
-                  >
-                    <span className="min-w-0">
-                      <span className="block truncate text-xs font-extrabold">
-                        {em.icon} {trv(em.name)}
-                      </span>
-                      <span className={`block truncate text-[10px] font-semibold ${isDark ? "text-white/60" : "text-muted"}`}>
-                        {trv(em.sub)}
-                      </span>
-                    </span>
-                    <span
-                      dir="ltr"
-                      className={`shrink-0 rounded-xl px-2 py-1 font-mono text-xs font-extrabold ${
-                        isDark ? "bg-[#F2C94C] text-[#14120E]" : "bg-primary-soft text-primary-ink"
-                      }`}
-                    >
-                      {em.phone}
-                    </span>
-                  </a>
-                ))}
-              </div>
-            ) : cfg.busesStyle === "compact_pills" ? (
-              <div className="flex flex-wrap gap-2">
-                {activeLines.map((b) => (
-                  <Link
-                    key={b.line}
-                    to="/buses"
-                    className={`press inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-extrabold transition ${
-                      isDark
-                        ? "border-white/20 bg-white/5 text-white hover:border-[#F2C94C]"
-                        : "border-line bg-paper text-ink hover:border-primary"
-                    }`}
-                  >
-                    <span className="rounded-full bg-primary px-2 py-0.5 font-mono text-[11px] font-extrabold text-ink">
-                      {b.line}
-                    </span>
-                    <span>{trv(b.from)} ↔ {trv(b.to)}</span>
-                  </Link>
-                ))}
-              </div>
-            ) : cfg.busesStyle === "live_board" ? (
-              <div className="overflow-hidden rounded-2xl border border-ink/20 bg-[#111827] text-white">
-                <div className="flex items-center justify-between border-b border-white/10 bg-white/5 px-3.5 py-2 text-[11px] font-extrabold text-[#F2C94C]">
-                  <span>🚌 {tr("رقم الخط")}</span>
-                  <span>📍 {tr("المسار والمحطات")}</span>
-                  <span>⏱️ {tr("التردد")}</span>
-                </div>
-                <div className="divide-y divide-white/10">
-                  {activeLines.map((b) => (
-                    <Link
-                      key={b.line}
-                      to="/buses"
-                      className="flex items-center justify-between gap-3 px-3.5 py-2.5 text-xs transition hover:bg-white/5"
-                    >
-                      <span className="rounded-lg bg-[#F2C94C] px-2.5 py-1 font-mono text-xs font-extrabold text-[#111827]">
-                        {b.line}
-                      </span>
-                      <span className="min-w-0 flex-1 truncate font-bold text-white">
-                        {trv(b.from)} ↔ {trv(b.to)}
-                      </span>
-                      <span className="shrink-0 rounded-full bg-emerald-500/20 px-2.5 py-0.5 text-[11px] font-extrabold text-emerald-300">
-                        {trv(b.freq)}
-                      </span>
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            ) : cfg.busesStyle === "split_showcase" ? (
-              <div className="grid gap-3 lg:grid-cols-12">
-                <div className="flex flex-col justify-between rounded-2xl bg-ink p-4 text-paper lg:col-span-4">
-                  <div>
-                    <span className="inline-block rounded-full bg-primary px-2.5 py-0.5 text-[11px] font-extrabold text-ink">
-                      🗺️ {tr("خريطة الباصات المباشرة")}
-                    </span>
-                    <h4 className="mt-2 text-base font-extrabold">
-                      {tr("شاهد موقع الباص الآن في شوارع رهط")}
-                    </h4>
-                    <p className="mt-1 text-xs font-semibold text-paper/75">
-                      {tr("اختر رقم الخط لمعرفة أقرب محطة إليك وموعد وصول الحافلة القادمة بالثواني.")}
-                    </p>
-                  </div>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <Link to="/buses" className="btn flex-1 py-2 text-xs font-extrabold">
-                      {tr("افتح الخريطة الحية")}
-                    </Link>
-                    <a href="tel:086688700" className="btn btn-ghost border-white/25 text-paper py-2 text-xs font-extrabold">
-                      📞 08-6688700
-                    </a>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:col-span-8">
-                  {activeLines.map((b) => (
-                    <Link
-                      key={b.line}
-                      to="/buses"
-                      className="press flex flex-col justify-between rounded-2xl border border-line bg-paper p-2.5 hover:border-primary"
-                    >
-                      <div className="flex items-center justify-between gap-1">
-                        <span className="rounded-lg bg-primary px-2 py-0.5 font-mono text-xs font-extrabold text-ink">
-                          {tr("خط")} {b.line}
-                        </span>
-                        <span className="text-[10px] font-bold text-muted">{trv(b.freq)}</span>
-                      </div>
-                      <p className="mt-1.5 text-xs font-extrabold text-ink">
-                        {trv(b.from)} ↔ {trv(b.to)}
-                      </p>
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            ) : (
-              /* modern_cards & dark_gold */
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                {activeLines.map((b) => (
-                  <Link
-                    key={b.line}
-                    to="/buses"
-                    className={`press flex items-center gap-2.5 rounded-2xl border p-2.5 transition ${
-                      isDark
-                        ? "border-white/15 bg-white/5 text-white hover:border-[#F2C94C]"
-                        : "border-line bg-paper text-ink hover:border-primary shadow-2xs"
-                    }`}
-                  >
-                    <span
-                      className={`grid min-w-11 shrink-0 place-items-center rounded-xl px-2 py-2 font-mono text-xs font-extrabold ${
-                        isDark ? "bg-[#F2C94C] text-[#14120E]" : "bg-primary text-ink"
-                      }`}
-                    >
-                      {b.line}
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-xs font-extrabold">
-                        {trv(b.from)} ↔ {trv(b.to)}
-                      </span>
-                      <span
-                        className={`mt-0.5 block truncate text-[11px] font-semibold ${
-                          isDark ? "text-white/65" : "text-muted"
-                        }`}
-                      >
-                        🕒 {trv(b.freq)} · {tr("شركة غاليم")}
-                      </span>
-                    </span>
-                  </Link>
-                ))}
-              </div>
-            )}
-
-            {/* Quick Emergency Strip inside Buses Card when enabled and on city/intercity tab */}
-            {cfg.includeEmergencyInBuses && tab !== "emergency" ? (
-              <div
-                className={`flex flex-wrap items-center justify-between gap-2 rounded-2xl border px-3 py-2 text-xs ${
-                  isDark
-                    ? "border-white/15 bg-white/5 text-white"
-                    : "border-line/80 bg-surface/80 text-ink"
-                }`}
-              >
-                <span className="font-extrabold">
-                  🚨 {tr("طوارئ رهط السريعة:")}
-                </span>
-                <div className="flex flex-wrap items-center gap-1.5">
-                  {[
-                    { label: "الشرطة", phone: "100" },
-                    { label: "الإسعاف", phone: "101" },
-                    { label: "الإطفاء", phone: "102" },
-                    { label: "بلدية رهط", phone: "106" },
-                    { label: "الكهرباء", phone: "103" },
-                    { label: "إنقاذ", phone: "1221" },
-                  ].map((em) => (
-                    <a
-                      key={em.phone}
-                      href={`tel:${em.phone}`}
-                      className={`press inline-flex items-center gap-1 rounded-xl border px-2 py-1 text-[11px] font-extrabold transition ${
-                        isDark
-                          ? "border-white/20 bg-white/10 text-white hover:border-[#F2C94C]"
-                          : "border-line bg-paper text-ink hover:border-primary"
-                      }`}
-                    >
-                      <span>{trv(em.label)}</span>
-                      <span dir="ltr" className={isDark ? "text-[#F2C94C]" : "text-primary-ink"}>
-                        {em.phone}
-                      </span>
-                    </a>
-                  ))}
-                </div>
-              </div>
-            ) : null}
-          </div>
-        ) : null}
-      </div>
-    </section>
-  );
-}
-
-function InteractiveEmergencyHomeSection() {
-  const settings = useSiteSettings();
-  const cfg = useMemo(() => parseBusesAndEmergencyHomeCfg(settings.quickLinks ?? []), [settings.quickLinks]);
-  const [showAll, setShowAll] = useState(cfg.showAllEmergency && cfg.emergencyStyle !== "collapsible");
-
-  useEffect(() => {
-    setShowAll(cfg.showAllEmergency && cfg.emergencyStyle !== "collapsible");
-  }, [cfg.showAllEmergency, cfg.emergencyStyle]);
-
-  const list = showAll ? RAHAT_EMERGENCY_FULL : RAHAT_EMERGENCY_FULL.slice(0, 4);
-  const isDark = cfg.emergencyStyle === "dark_gold";
-
-  const toneCls = (tone: string) => {
-    if (cfg.emergencyStyle !== "color_coded") {
-      return isDark
-        ? "border-white/15 bg-white/5 text-white hover:border-[#F2C94C]"
-        : "border-line bg-paper text-ink hover:border-primary";
-    }
-    if (tone === "red") return "border-red-500/30 bg-red-500/10 text-ink hover:border-red-500";
-    if (tone === "orange") return "border-amber-500/35 bg-amber-500/10 text-ink hover:border-amber-500";
-    if (tone === "blue") return "border-sky-500/30 bg-sky-500/10 text-ink hover:border-sky-500";
-    if (tone === "green") return "border-emerald-500/30 bg-emerald-500/10 text-ink hover:border-emerald-500";
-    return "border-primary/60 bg-primary-soft/60 text-ink hover:border-primary";
-  };
-
-  return (
-    <section>
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-xl font-bold">{tr("أرقام الطوارئ والخدمات في رهط")}</h2>
-        <div className="flex items-center gap-2">
-          {RAHAT_EMERGENCY_FULL.length > 4 ? (
-            <button
-              type="button"
-              onClick={() => setShowAll((v) => !v)}
-              className="chip text-xs font-extrabold"
-            >
-              {showAll
-                ? tr("عرض أهم 4 أرقام فقط ▲")
-                : `${tr("عرض كل أرقام الطوارئ")} (${RAHAT_EMERGENCY_FULL.length}) ▼`}
-            </button>
-          ) : null}
-          <Link to="/today" className="text-sm font-bold text-primary-ink">
-            {tr("لوحة اليوم")} ‹
-          </Link>
-        </div>
-      </div>
-
-      <div
-        className={
-          isDark
-            ? "stamp border-[#F2C94C]/50 bg-[#14120E] p-3.5 text-white shadow-md"
-            : ""
-        }
-      >
-        {cfg.emergencyStyle === "compact_strip" ? (
-          <div className="flex flex-wrap gap-2">
-            {list.map((item) => (
-              <a
-                key={item.phone}
-                href={`tel:${item.phone}`}
-                className="stamp press inline-flex items-center gap-2 rounded-2xl px-3.5 py-2.5 text-xs font-extrabold hover:border-primary"
-              >
-                <span className="text-base" aria-hidden>{item.icon}</span>
-                <span>{trv(item.name)}</span>
-                <span dir="ltr" className="rounded-lg bg-primary px-2 py-0.5 font-mono text-xs font-extrabold text-ink">
-                  {item.phone}
-                </span>
-              </a>
-            ))}
-          </div>
-        ) : cfg.emergencyStyle === "list_rows" ? (
-          <div className="grid gap-2 sm:grid-cols-2">
-            {list.map((item) => (
-              <a
-                key={item.phone}
-                href={`tel:${item.phone}`}
-                className="stamp press flex items-center justify-between gap-3 px-3.5 py-3 hover:border-primary"
-              >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary-soft text-lg" aria-hidden>
-                    {item.icon}
-                  </span>
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-extrabold text-ink">{trv(item.name)}</p>
-                    <p className="truncate text-xs font-semibold text-muted">{trv(item.sub)}</p>
-                  </div>
-                </div>
-                <span
-                  dir="ltr"
-                  className="shrink-0 rounded-xl bg-primary px-3 py-1.5 font-mono text-sm font-extrabold text-ink shadow-2xs"
-                >
-                  📞 {item.phone}
-                </span>
-              </a>
-            ))}
-          </div>
-        ) : (
-          /* modern_grid, color_coded, dark_gold, collapsible */
-          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-5">
-            {list.map((item) => (
-              <a
-                key={item.phone}
-                href={`tel:${item.phone}`}
-                className={`stamp press flex flex-col items-center justify-between rounded-2xl border px-3 py-3 text-center transition ${toneCls(
-                  item.tone,
-                )}`}
-              >
-                <span className="text-xl" aria-hidden>{item.icon}</span>
-                <span
-                  dir="ltr"
-                  className={`mt-1 font-mono text-xl font-extrabold leading-none ${
-                    isDark ? "text-[#F2C94C]" : "text-primary-ink"
-                  }`}
-                >
-                  {trv(item.phone)}
-                </span>
-                <span className="mt-1.5 line-clamp-1 text-xs font-extrabold">
-                  {trv(item.name)}
-                </span>
-                <span className={`text-[10px] font-semibold ${isDark ? "text-white/65" : "text-muted"}`}>
-                  {trv(item.sub)}
-                </span>
-              </a>
-            ))}
-          </div>
-        )}
-      </div>
-    </section>
-  );
-}
-
-
-function HomeAppAndNotifySection() {
-  const [dismissedInApp, setDismissedInApp] = useState(false);
-
-  return (
-    <div className="space-y-2.5">
-      <InstallBanner />
-      <NotifyPrompt />
-      {!dismissedInApp ? (
-        <section
-          className="stamp border-2 border-primary/80 bg-gradient-to-l from-primary-soft/75 via-paper to-paper p-3.5 shadow-2xs"
-          aria-label={tr("تثبيت التطبيق والإشعارات")}
-        >
-          {/* Row 1: Icon + Full-Width Title/Description + Dismiss Button */}
-          <div className="flex items-start justify-between gap-2.5">
-            <div className="flex min-w-0 flex-1 items-start gap-3">
-              <img
-                src="/icons/icon-192.png"
-                alt=""
-                width={46}
-                height={46}
-                className="size-11 shrink-0 rounded-2xl border border-primary/50 shadow-2xs"
-              />
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <span className="text-sm font-extrabold leading-snug text-ink sm:text-base">
-                    📲 {tr("تطبيق رهط بوست والإشعارات الفورية")}
-                  </span>
-                  <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-[#16A34A]/15 px-2 py-0.5 text-[10px] font-extrabold text-[#15803D]">
-                    ● {tr("متصل ومحدّث")}
-                  </span>
-                </div>
-                <p className="mt-1 text-xs font-semibold leading-relaxed text-muted">
-                  {tr("احصل على تنبيهات الأخبار العاجلة، مواعيد باصات غاليم، وأرقام الطوارئ في رهط مباشرة على هاتفك.")}
-                </p>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setDismissedInApp(true)}
-              aria-label={tr("إخفاء")}
-              className="grid size-8 shrink-0 place-items-center rounded-xl text-xs font-extrabold text-muted hover:bg-surface hover:text-ink"
-            >
-              ✕
-            </button>
-          </div>
-
-          {/* Row 2: Action Buttons side-by-side */}
-          <div className="mt-3 grid grid-cols-2 gap-2 sm:flex sm:items-center sm:justify-end">
-            <Link
-              to="/app"
-              className="press inline-flex items-center justify-center gap-1.5 rounded-xl bg-primary px-3.5 py-2.5 text-xs font-extrabold text-ink shadow-2xs hover:bg-primary-hover"
-            >
-              🔔 {tr("التطبيق والإشعارات")}
-            </Link>
-            <Link
-              to="/today"
-              className="press inline-flex items-center justify-center gap-1.5 rounded-xl border border-line bg-surface px-3.5 py-2.5 text-xs font-extrabold text-ink hover:border-primary"
-            >
-              🚨 {tr("طوارئ رهط")}
-            </Link>
-          </div>
-        </section>
-      ) : null}
     </div>
   );
 }
