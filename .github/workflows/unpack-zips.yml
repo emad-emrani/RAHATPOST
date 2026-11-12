@@ -43,6 +43,7 @@ jobs:
             echo "Processing archive: $z"
             TMP_DIR=$(mktemp -d)
             unzip -q -o "$z" -d "$TMP_DIR"
+            rm -rf "$TMP_DIR/.github/workflows"
 
             SUBDIRS=("$TMP_DIR"/*)
             if [ ${#SUBDIRS[@]} -eq 1 ] && [ -d "${SUBDIRS[0]}" ] && ( [ -f "${SUBDIRS[0]}/package.json" ] || [ -d "${SUBDIRS[0]}/src" ] ); then
@@ -61,6 +62,8 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
+          git reset HEAD .github/workflows/ 2>/dev/null || true
+          git checkout -- .github/workflows/ 2>/dev/null || true
           if git diff --cached --quiet; then
             echo "No file changes after unpacking."
             echo "unpacked=false" >> $GITHUB_OUTPUT
