@@ -250,20 +250,20 @@ function BusMapPage() {
   const shown = vehicles.length;
 
   return (
-    <div className="fixed inset-0 z-[9999] flex h-[100dvh] w-[100dvw] flex-col bg-paper">
-      <header className="edge-b flex items-center gap-3 bg-[#0f172a] px-3 py-2.5 text-white">
-        <Link to="/buses" search={{ line }} className="grid size-10 place-items-center rounded-2xl bg-white/10 text-white" aria-label={tr("رجوع إلى الباصات")}>
+    <div className="fixed inset-0 z-40 flex flex-col bg-paper">
+      <header className="edge-b flex items-center gap-3 px-3 py-2">
+        <Link to="/buses" className="btn btn-ghost px-3" aria-label={tr("رجوع إلى الباصات")}>
           <ArrowRight className="size-5" aria-hidden />
         </Link>
         <div className="min-w-0 flex-1">
-          <h1 className="truncate text-base font-black text-primary">🚌 {tr("خريطة خط")} {trv(line)} المباشرة</h1>
-          <p className="truncate text-xs font-bold text-white/80">
-            {from && to ? `${from} ↔ ${to}` : tr("باصات رهط — شركة غاليم")}
+          <h1 className="truncate text-lg font-bold">{tr("خريطة خط")} {trv(line)}</h1>
+          <p className="truncate text-xs font-semibold text-muted">
+            {from && to ? `${from} ↔ ${to}` : tr("باصات رهط")}
           </p>
         </div>
         <button
           type="button"
-          className="grid size-10 place-items-center rounded-2xl bg-primary text-[#111827]"
+          className="btn btn-ghost px-3"
           aria-label={tr("تحديث")}
           onClick={() => void refresh()}
         >

@@ -35,6 +35,7 @@
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="com.rahatpost.app" android:host="auth" />
             </intent-filter>
             <!-- Verified Android App Links: rahatpost.com links (WhatsApp, SMS, Google) open in the app.
@@ -48,9 +49,6 @@
                 <data android:host="rahatpost.com" />
                 <data android:path="/" />
                 <data android:pathPrefix="/news" />
-                <data android:pathPrefix="/social" />
-                <data android:pathPrefix="/auth" />
-                <data android:pathPrefix="/app-auth/finish" />
                 <data android:pathPrefix="/ads" />
                 <data android:pathPrefix="/directory" />
                 <data android:pathPrefix="/buses" />
