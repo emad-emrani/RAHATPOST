@@ -5,7 +5,7 @@
  * Public pages are network-first (so news & layout order stay fresh) with the last copy as an offline
  * fallback; hashed build assets are cache-first; everything else falls back to /offline.html.
  */
-const VERSION = "rp-v10";
+const VERSION = "rp-v11";
 const SHELL = `${VERSION}-shell`;
 const PAGES = `${VERSION}-pages`;
 const ASSETS = `${VERSION}-assets`;

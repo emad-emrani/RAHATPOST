@@ -1,3 +1,4 @@
+import { SocialHubAndNewslettersAdmin } from "@/components/admin/social-hub-admin";
 import {
   Activity,
   AlertTriangle,
@@ -74,6 +75,7 @@ import {
   BUILTIN_SLIDES,
   DEFAULT_SETTINGS,
   HOME_SECTIONS,
+  isInternalQuickLinkConfig,
   NAV_ITEMS,
   THEME_DEFAULT,
   THEME_PRESETS,
@@ -92,7 +94,7 @@ import { AuthLayout } from "@/components/auth-layout";
 import { adminDecideListing, adminListListings, adminSamples } from "@/lib/market/api";
 import { priceLabel, STATUS_LABEL, type ListingStatus, type OwnListing } from "@/lib/market/types";
 import { adminDecide, adminList, adminLogin, adminLogout } from "@/lib/directory/api";
-import type { BusinessSubmission } from "@/lib/directory/types";
+import { osmEntries, ownerCategories, ownerEntry, type BusinessSubmission, type DirectoryEntry } from "@/lib/directory/types";
 import { adminGate, adminWhoami } from "@/lib/team/api";
 import type { AdminLevel } from "@/lib/admin-auth";
 import { adminDecideNews, adminListNews } from "@/lib/reader-news/api";
@@ -182,7 +184,6 @@ const EmailAdmin = lazy(() => import("@/components/admin/email-admin").then((m) 
 const PublishAdmin = lazy(() => import("@/components/admin/publish-admin").then((m) => ({ default: m.PublishAdmin })));
 const StatsAdmin = lazy(() => import("@/components/admin/stats-admin").then((m) => ({ default: m.StatsAdmin })));
 const LanguagesAdmin = lazy(() => import("@/components/admin/languages-admin").then((m) => ({ default: m.LanguagesAdmin })));
-const BusLinesAdmin = lazy(() => import("@/components/admin/bus-admin").then((m) => ({ default: m.BusLinesAdmin })));
 
 type QuickCustomSection = {
   id: string;
@@ -775,14 +776,16 @@ type Section =
   | "sec-israel"
   | "sec-sports"
   | "sec-tech"
-  | "sec-weather";
+  | "sec-weather"
+  | "social-hub";
 
 const ALL_TABS: { key: Section; label: string; icon: LucideIcon }[] = [
   { key: "home", label: "نظرة عامة", icon: House },
   { key: "matches", label: "البث المباشر والمباريات", icon: Trophy },
   { key: "review", label: "طابور المراجعة", icon: ClipboardCheck },
   { key: "stats", label: "الإحصائيات والزوار", icon: BarChart3 },
-  { key: "publish", label: "نشر خبر جديد", icon: PenSquare },
+  { key: "publish", label: "نشر مقال / فيديو / بث مباشر", icon: PenSquare },
+  { key: "social-hub", label: "استوديو الفيديو AI والتواصل والتريند", icon: Globe },
   { key: "sec-add", label: "إضافة قسم جديد", icon: FolderPlus },
   { key: "sec-manage", label: "إدارة الأقسام", icon: LayoutGrid },
   { key: "auto", label: "الجلب التلقائي والترجمة", icon: Rss },
@@ -794,7 +797,7 @@ const ALL_TABS: { key: Section; label: string; icon: LucideIcon }[] = [
   { key: "sec-weather", label: "حالة الطقس", icon: CloudSun },
   { key: "buses", label: "الباصات", icon: Bus },
   { key: "duty", label: "صيدلية المناوبة", icon: Pill },
-  { key: "directory", label: "طلبات دليل المصالح", icon: Store },
+  { key: "directory", label: "دليل محلات وخدمات رهط", icon: Store },
   { key: "comments", label: "التعليقات", icon: MessageSquare },
   { key: "reports", label: "البلاغات", icon: Flag },
   { key: "ads", label: "إعلانات الحراج والمراجعة", icon: Megaphone },
@@ -838,7 +841,7 @@ const GROUPS: { id: string; label: string; desc: string; icon: LucideIcon; keys:
     label: "الأخبار والمحتوى",
     desc: "نشر الأخبار، الجلب التلقائي، ومصادر الأخبار",
     icon: Newspaper,
-    keys: ["publish", "auto", "news", "sec-news", "sec-israel", "sec-sports", "sec-tech", "sec-weather"],
+    keys: ["social-hub", "publish", "auto", "news", "sec-news", "sec-israel", "sec-sports", "sec-tech", "sec-weather"],
   },
   {
     id: "store-hub",
@@ -955,7 +958,7 @@ function AdminMenu({
             onClick={() => onSelect("publish")}
           >
             <PenSquare className="size-4 shrink-0" aria-hidden />
-            {tr("نشر خبر جديد")}
+            {tr("+ نشر مقال / فيديو / بث")}
           </button>
         ) : null}
 
@@ -2520,6 +2523,126 @@ function AdminLoginPortal({
   );
 }
 
+function AdminMaintenanceControlBar() {
+  const [maint, setMaint] = useState<{
+    active: boolean;
+    mode: "auto" | "manual";
+    reason: string;
+    expiresAt: number;
+  } | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const fetchStatus = useCallback(() => {
+    void fetch(`/api/media?kind=maintenance-status&_t=${Date.now()}`, { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (d?.ok && d?.maintenance) setMaint(d.maintenance);
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    fetchStatus();
+    const t = window.setInterval(fetchStatus, 6000);
+    return () => window.clearInterval(t);
+  }, [fetchStatus]);
+
+  const toggleMaint = async (enable: boolean, mode: "auto" | "manual" = "manual", durationSec = 0) => {
+    setBusy(true);
+    try {
+      const r = await fetch("/api/media?kind=maintenance-status", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          action: enable ? "enable" : "disable",
+          mode,
+          durationSec,
+          reason:
+            mode === "auto"
+              ? "جاري رفع وتطبيق تحديثات جديدة على منصة رهط بوست... سيعود الموقع تلقائياً خلال لحظات"
+              : "الموقع في وضع الصيانة والتطوير حالياً... سيعود للعمل قريباً",
+        }),
+      });
+      const d = await r.json().catch(() => null);
+      if (d?.ok && d?.maintenance) setMaint(d.maintenance);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const isActive = Boolean(maint?.active);
+
+  return (
+    <div
+      className={`mb-4 flex flex-wrap items-center justify-between gap-2.5 rounded-2xl border-2 px-3.5 py-2.5 text-xs shadow-2xs transition ${
+        isActive
+          ? "border-[#F59E0B] bg-[#FFFBEB] text-[#92400E]"
+          : "border-line bg-paper text-ink"
+      }`}
+    >
+      <div className="flex items-center gap-2.5">
+        <span
+          className={`grid size-9 shrink-0 place-items-center rounded-xl text-base font-extrabold ${
+            isActive ? "bg-[#F59E0B] text-white animate-pulse" : "bg-[#ECFDF5] text-[#059669]"
+          }`}
+        >
+          {isActive ? "🛠️" : "🟢"}
+        </span>
+        <div>
+          <div className="flex flex-wrap items-center gap-1.5 font-extrabold">
+            <span>
+              {isActive
+                ? "وضع الصيانة والتحديث مفعّل حالياً للزوار"
+                : "الموقع متاح ويعمل بشكل طبيعي (وضع الصيانة التلقائي عند الرفع جاهز)"}
+            </span>
+            {isActive ? (
+              <span className="rounded-lg bg-[#F59E0B]/20 px-2 py-0.5 text-[10px] font-extrabold text-[#92400E]">
+                {maint?.mode === "auto" ? "تحديث تلقائي" : "يدوي"}
+              </span>
+            ) : null}
+          </div>
+          <p className="mt-0.5 text-[11px] font-semibold text-muted">
+            {isActive
+              ? `${maint?.reason || "جاري تحديث المنصة..."} (أنت كمدير تتصفح اللوحة بحرية)`
+              : "يتحول الموقع تلقائياً لوضع الصيانة عند رفع أو تعديل أي ملف على GitHub ويعود للعمل تلقائياً فور اكتمال التحديث."}
+          </p>
+        </div>
+      </div>
+      <div className="flex flex-wrap items-center gap-1.5">
+        {isActive ? (
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => void toggleMaint(false)}
+            className="rounded-xl bg-[#16A34A] px-3 py-2 text-xs font-extrabold text-white shadow-2xs transition hover:bg-[#15803D] disabled:opacity-50"
+          >
+            ✅ إنهاء الصيانة وفتح الموقع فوراً
+          </button>
+        ) : (
+          <>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => void toggleMaint(true, "auto", 180)}
+              className="rounded-xl border border-[#F59E0B]/50 bg-[#FFFBEB] px-2.5 py-1.5 text-[11px] font-extrabold text-[#92400E] transition hover:bg-[#FEF3C7] disabled:opacity-50"
+            >
+              ⏱️ صيانة مؤقتة (3 د)
+            </button>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => void toggleMaint(true, "manual", 0)}
+              className="rounded-xl bg-ink px-2.5 py-1.5 text-[11px] font-extrabold text-paper transition hover:opacity-90 disabled:opacity-50"
+            >
+              🛠️ تفعيل وضع الصيانة يدوياً
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function AdminPage() {
   const gate = Route.useLoaderData();
   const [state, setState] = useState<"loading" | "login" | "ready">("loading");
@@ -2689,6 +2812,14 @@ function AdminPage() {
               </h1>
             </div>
             <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => go("publish")}
+                className="inline-flex items-center gap-1.5 rounded-2xl bg-[#16A34A] px-3.5 py-2 text-xs font-extrabold text-white shadow-xs transition hover:bg-[#15803D] sm:px-4 sm:py-2.5 sm:text-sm"
+              >
+                <PenSquare className="size-4 shrink-0" aria-hidden />
+                <span>{tr("+ نشر مقال")}</span>
+              </button>
               <LangSwitcher />
               <span
                 className="grid size-10 shrink-0 place-items-center rounded-full bg-brand text-sm font-extrabold text-ink"
@@ -2699,6 +2830,8 @@ function AdminPage() {
               </span>
             </div>
           </header>
+
+          {level === "owner" ? <AdminMaintenanceControlBar /> : null}
 
           {/* Always-visible Mobile & Desktop Quick Control Bar */}
           {level !== "writer" ? (
@@ -2749,7 +2882,7 @@ function AdminPage() {
                 }`}
               >
                 <PenSquare className="size-4 shrink-0" aria-hidden />
-                <span>{tr("✍️ نشر خبر جديد")}</span>
+                <span>{tr("✍️ + نشر مقال / فيديو / بث")}</span>
               </button>
               <button
                 type="button"
@@ -2838,6 +2971,8 @@ function AdminPage() {
             </div>
           ) : current === "review" ? (
             <ReviewQueue onCount={setReviewCount} />
+          ) : current === "social-hub" ? (
+            <SocialHubAdminConnected />
           ) : current === "publish" ? (
             <PublishAdmin />
           ) : current === "matches" ? (
@@ -2929,7 +3064,10 @@ function AdminPage() {
           ) : current === "reports" ? (
             <ReportsAdmin />
           ) : current === "buses" ? (
-            <BusLinesAdmin />
+            <div className="space-y-4">
+              <BusesAndEmergencyAppearanceAdmin />
+              <BusLinesAdmin />
+            </div>
           ) : current === "duty" ? (
             <DutyAdmin />
           ) : current === "alerts" ? (
@@ -2944,6 +3082,12 @@ function AdminPage() {
             <NewsAdmin />
           ) : (
             <>
+              <DirectoryShopsHubAdmin approvedSubmissions={items.filter((i) => i.status === "approved")} />
+              <div className="mt-6 mb-2 flex items-center justify-between">
+                <h2 className="text-lg font-extrabold text-ink">
+                  📥 {tr("طلبات إضافة النشاطات المرسلة من الزوار")}
+                </h2>
+              </div>
               <div className="scroll-row mb-4">
                 {(Object.keys(STATUS) as BusinessSubmission["status"][]).map((s) => (
                   <button
@@ -5623,7 +5767,7 @@ function QuickCustomSectionsBar({
     const targetEmoji = preset?.emoji ?? ICON_KEY_TO_EMOJI[targetIconKey] ?? "✨";
     const targetUrl = (
       preset?.defaultUrl ??
-      (customPath.trim() || `/?q=${targetName}`)
+      (customPath.trim() || `/news?cat=${targetName}`)
     ).trim();
     const targetId =
       preset?.id ??
@@ -6816,7 +6960,7 @@ function encodeSliderConfig(
 ): SiteSettings["quickLinks"] {
   const current = parseSliderConfig(quickLinks);
   const nextAmp = ampAds !== undefined ? ampAds : current.ampAds;
-  const nextUrl = (customHomeOrderUrl ?? current.homeOrderUrl ?? "/").slice(0, 300);
+  const nextUrl = (customHomeOrderUrl ?? current.homeOrderUrl ?? "/").slice(0, 1200);
   const m = { ...current.admob, ...(customAdmob ?? {}) };
   const mToken = `m:${m.enabled ? "1" : "0"},${m.pos},${(m.androidApp || "").slice(0, 10)},${(m.iosApp || "").slice(0, 10)},${(m.bannerUnit || "").slice(0, 10)},${(m.interstitialUnit || "").slice(0, 10)}`;
   const others = (quickLinks ?? []).filter((q) => q.id !== "slidercfg");
@@ -6879,6 +7023,12 @@ function buildCombinedHomeOrder(
       builtinMap.set(k, { label: lbl, visible: true });
     }
   }
+  if (!builtinMap.has("matches")) {
+    builtinMap.set("matches", { label: "جدول ونتائج المباريات", visible: true });
+  }
+  if (!builtinMap.has("social")) {
+    builtinMap.set("social", { label: "سوشيال وتريند المشاهير", visible: true });
+  }
 
   const customVisMap = new Map<string, boolean>();
   for (const cName of customNamesSet) {
@@ -6934,6 +7084,18 @@ function buildCombinedHomeOrder(
       });
     }
   }
+  if (!seenIds.has("matches")) {
+    seenIds.add("matches");
+    const nIdx = out.findIndex((x) => x.id === "news");
+    const mItem: CombinedHomeOrderItem = {
+      id: "matches",
+      label: "جدول ونتائج المباريات",
+      visible: true,
+      isCustom: false,
+    };
+    if (nIdx !== -1) out.splice(nIdx + 1, 0, mItem);
+    else out.push(mItem);
+  }
 
   // Insert any custom sections not yet in out right after "news" (آخر الأخبار)
   for (const cName of customNamesSet) {
@@ -6973,7 +7135,7 @@ function applyCombinedHomeOrderToSettings(
     const safeKey = x.id.trim().replace(/\s+/g, "%20");
     return `${safeKey}:${x.visible ? "1" : "0"}`;
   });
-  const hordUrl = ("/__hord?" + hordTokens.join("|")).slice(0, 300);
+  const hordUrl = ("/__hord?" + hordTokens.join("|")).slice(0, 1200);
 
   const curSlider = parseSliderConfig(s.quickLinks);
   let nextQuickLinks = encodeSliderConfig(
@@ -7039,7 +7201,7 @@ function encodeTopBarConfig(
   const others = (quickLinks ?? []).filter((q) => q.id !== "topbarcfg");
   const clean = btns.slice(0, 10);
   const subtitle = clean.map((b) => b.label.replace(/\|/g, " ").trim() || "قسم").join("|").slice(0, 100);
-  const url = ("/__top?" + clean.map((b) => `${b.icon}:${b.to.replace(/\s+/g, "")}`).join("|")).slice(0, 300);
+  const url = ("/__top?" + clean.map((b) => `${b.icon}:${b.to.trim().replace(/\s+/g, "%20")}`).join("|")).slice(0, 300);
   return [
     ...others,
     {
@@ -7096,7 +7258,7 @@ function encodeBotBarConfig(
   const others = (quickLinks ?? []).filter((q) => q.id !== "botbarcfg");
   const clean = btns.slice(0, 7);
   const subtitle = clean.map((b) => b.label.replace(/\|/g, " ").trim() || "زر").join("|").slice(0, 100);
-  const url = ("/__bot?" + clean.map((b) => `${b.icon}:${b.to.replace(/\s+/g, "")}`).join("|")).slice(0, 300);
+  const url = ("/__bot?" + clean.map((b) => `${b.icon}:${b.to.trim().replace(/\s+/g, "%20")}`).join("|")).slice(0, 300);
   return [
     ...others,
     {
@@ -7140,13 +7302,27 @@ function SiteSettingsAdmin({ only }: { only?: SettingsPartKey } = {}) {
 
   const save = async () => {
     setSaving(true);
-    const res = await adminSaveSiteSettings({ data: s });
+    const [res, apiRes] = await Promise.all([
+      adminSaveSiteSettings({ data: s }).catch(() => ({ ok: false, settings: undefined, message: "" })),
+      fetch("/api/media?kind=live-settings", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ settings: s }),
+      })
+        .then((r) => (r.ok ? r.json() : null))
+        .catch(() => null),
+    ]);
     setSaving(false);
-    if (!res.ok || !res.settings) return setMsg(res.message || tr("تعذّر الحفظ."));
-    setS(res.settings);
-    setOrigJson(JSON.stringify(res.settings));
+    const savedSettings = (res.ok && res.settings) ? res.settings : (apiRes?.ok && apiRes?.settings ? apiRes.settings : null);
+    if (!savedSettings) return setMsg(res.message || tr("تعذّر الحفظ."));
+    setS(savedSettings);
+    setOrigJson(JSON.stringify(savedSettings));
     setDirty(false);
-    setMsg(tr("تم حفظ التغييرات بنجاح ✓"));
+    setMsg(tr("تم حفظ التغييرات وتحديث الموقع والتطبيق فوراً ✓"));
+    try {
+      window.localStorage.setItem("rp_latest_site_settings", JSON.stringify(savedSettings));
+      window.dispatchEvent(new CustomEvent("rp-site-settings-updated", { detail: savedSettings }));
+    } catch {}
     await router.invalidate();
   };
 
@@ -7333,8 +7509,31 @@ function SettingsIconBtn({
   );
 }
 
+const HOME_SECTION_ICON_EMOJI: Record<string, string> = {
+  install: "📲",
+  weather: "🌤️",
+  slider: "🎞️",
+  search: "🔍",
+  tiles: "🧭",
+  quicklinks: "⚡",
+  news: "📰",
+  matches: "⚽",
+  social: "🌟",
+  israel: "🌍",
+  sports: "🏆",
+  tech: "💻",
+  post: "📮",
+  buses: "🚌",
+  directory: "🏪",
+  ads: "🏷️",
+  duty: "💊",
+  emergency: "🚨",
+};
+
 function HomeSectionsOrderPart({ s, set }: SettingsPartProps) {
+  const router = useRouter();
   const [dbCustomNames, setDbCustomNames] = useState<string[]>(["فن و موضة"]);
+  const [autoSaveState, setAutoSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
 
   useEffect(() => {
     const BUILTIN = new Set(["news", "israel", "sports", "tech", "weather"]);
@@ -7356,91 +7555,227 @@ function HomeSectionsOrderPart({ s, set }: SettingsPartProps) {
     [s, dbCustomNames],
   );
 
-  const updateOrder = (next: CombinedHomeOrderItem[]) => {
-    set(applyCombinedHomeOrderToSettings(s, next));
+  const persistOrderImmediately = async (nextSettings: SiteSettings) => {
+    setAutoSaveState("saving");
+    try {
+      try {
+        window.localStorage.setItem("rp_latest_site_settings", JSON.stringify(nextSettings));
+        window.dispatchEvent(new CustomEvent("rp-site-settings-updated", { detail: nextSettings }));
+      } catch {}
+      const [res, apiRes] = await Promise.all([
+        adminSaveSiteSettings({ data: nextSettings }).catch(() => ({ ok: false, settings: undefined })),
+        fetch("/api/media?kind=live-settings", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ settings: nextSettings }),
+        })
+          .then((r) => (r.ok ? r.json() : null))
+          .catch(() => null),
+      ]);
+      const finalSettings = (res.ok && res.settings) ? res.settings : (apiRes?.ok && apiRes?.settings ? apiRes.settings : null);
+      if (finalSettings) {
+        try {
+          window.localStorage.setItem("rp_latest_site_settings", JSON.stringify(finalSettings));
+          window.dispatchEvent(new CustomEvent("rp-site-settings-updated", { detail: finalSettings }));
+        } catch {}
+        setAutoSaveState("saved");
+        await router.invalidate();
+      } else {
+        setAutoSaveState("error");
+      }
+    } catch {
+      setAutoSaveState("error");
+    }
   };
 
-  const moveDirectlyAfter = (fromIdx: number, targetId: string) => {
+  const updateOrder = (next: CombinedHomeOrderItem[]) => {
+    const patch = applyCombinedHomeOrderToSettings(s, next);
+    const merged: SiteSettings = { ...s, ...patch };
+    set(patch);
+    void persistOrderImmediately(merged);
+  };
+
+  const moveToTop = (fromIdx: number) => {
+    if (fromIdx <= 0) return;
     const copy = [...combinedList];
     const [picked] = copy.splice(fromIdx, 1);
-    const targetIdx = copy.findIndex((x) => x.id === targetId);
-    if (targetIdx !== -1) {
-      copy.splice(targetIdx + 1, 0, picked);
-    } else {
-      copy.unshift(picked);
-    }
+    copy.unshift(picked);
     updateOrder(copy);
   };
 
+  const visibleCount = combinedList.filter((x) => x.visible).length;
+
   return (
-    <SettingsCard
-      title={tr("أقسام الصفحة الرئيسية (تشمل الأقسام الأساسية والأقسام المخصّصة مثل «فن و موضة»)")}
-      hint={tr(
-        "رتّب جميع أقسام الصفحة الرئيسية بالأسهم (أعلى / أسفل) أو أخفِ وأظهر أي قسم. أي قسم جديد تضيفه يظهر هنا تلقائياً ويمكنك وضعه في أي مكان في الصفحة الرئيسية.",
-      )}
-    >
-      <ul className="flex flex-col gap-2">
-        {combinedList.map((item, i) => (
-          <li
-            key={item.id}
-            className={`flex flex-wrap items-center gap-2 rounded-2xl border px-3 py-2.5 transition ${
-              item.isCustom
-                ? "border-primary/60 bg-primary/10"
-                : "border-line bg-paper"
-            } ${item.visible ? "" : "opacity-50"}`}
-          >
-            <span className="grid size-6 shrink-0 place-items-center rounded-full bg-surface text-xs font-extrabold text-muted">
-              {i + 1}
+    <div className="space-y-4">
+      <section className="stamp overflow-hidden border-2 border-primary/80 bg-gradient-to-b from-primary-soft/50 via-paper to-paper p-3.5 sm:p-4 shadow-sm">
+        {/* Harmonious Rahat Post Header */}
+        <div className="flex flex-wrap items-center justify-between gap-2.5 border-b border-line/80 pb-3">
+          <div className="flex items-center gap-2.5">
+            <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-primary text-xl text-ink shadow-2xs" aria-hidden>
+              🗂️
             </span>
-            <span className="min-w-0 flex-1 font-extrabold text-ink">
-              {trv(item.label)}
-            </span>
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="text-base font-extrabold text-ink sm:text-lg">
+                  {tr("ترتيب وإدارة أقسام الصفحة الرئيسية")}
+                </h2>
+                <span className="rounded-full bg-surface px-2.5 py-0.5 text-[11px] font-extrabold text-ink">
+                  {visibleCount} / {combinedList.length} {tr("ظاهر")}
+                </span>
+              </div>
+              <p className="text-xs font-semibold text-muted">
+                {tr("أي تغيير في الترتيب أو الإظهار يُحفظ تلقائياً ويُطبّق فوراً على الموقع وتطبيق الهاتف.")}
+              </p>
+            </div>
+          </div>
 
-            {item.isCustom ? (
-              <button
-                type="button"
-                onClick={() => moveDirectlyAfter(i, "tiles")}
-                className="rounded-xl border border-primary bg-paper px-2.5 py-1 text-[11px] font-extrabold text-ink hover:bg-primary"
-                title={tr("نقل إلى أعلى الصفحة مباشرة تحت شريط الأيقونات")}
-              >
-                {tr("⏫ نقل لأعلى الرئيسية")}
-              </button>
+          <div className="flex items-center gap-2">
+            {autoSaveState === "saving" ? (
+              <span className="rounded-xl bg-primary/30 px-3 py-1.5 text-xs font-extrabold text-ink">
+                ⏳ {tr("جاري الحفظ الفوري…")}
+              </span>
+            ) : autoSaveState === "saved" ? (
+              <span className="rounded-xl bg-[#16A34A]/15 px-3 py-1.5 text-xs font-extrabold text-[#15803D]">
+                ✓ {tr("تم الحفظ وتحديث التطبيق فوراً")}
+              </span>
+            ) : autoSaveState === "error" ? (
+              <span className="rounded-xl bg-alert/15 px-3 py-1.5 text-xs font-extrabold text-alert">
+                ⚠️ {tr("اضغط حفظ بالأسفل")}
+              </span>
             ) : null}
+            <button
+              type="button"
+              onClick={() => void persistOrderImmediately(s)}
+              className="btn px-3.5 py-1.5 text-xs font-extrabold"
+            >
+              💾 {tr("حفظ الترتيب الآن")}
+            </button>
+          </div>
+        </div>
 
-            <SettingsIconBtn
-              label={tr("أعلى")}
-              onClick={() => updateOrder(moveItem(combinedList, i, -1))}
-              disabled={i === 0}
-            >
-              <ArrowUp className="size-4" />
-            </SettingsIconBtn>
-            <SettingsIconBtn
-              label={tr("أسفل")}
-              onClick={() => updateOrder(moveItem(combinedList, i, 1))}
-              disabled={i === combinedList.length - 1}
-            >
-              <ArrowDown className="size-4" />
-            </SettingsIconBtn>
-            <SettingsIconBtn
-              label={item.visible ? tr("إخفاء") : tr("إظهار")}
-              onClick={() =>
-                updateOrder(
-                  combinedList.map((x, idx) =>
-                    idx === i ? { ...x, visible: !x.visible } : x,
-                  ),
-                )
-              }
-            >
-              {item.visible ? (
-                <Eye className="size-4 text-[#16A34A]" />
-              ) : (
-                <EyeOff className="size-4" />
-              )}
-            </SettingsIconBtn>
-          </li>
-        ))}
-      </ul>
-    </SettingsCard>
+        {/* Sleek Section Cards List */}
+        <ul className="mt-3.5 grid gap-2 sm:grid-cols-2">
+          {combinedList.map((item, i) => {
+            const iconEmoji = item.isCustom
+              ? "✨"
+              : HOME_SECTION_ICON_EMOJI[item.id] ?? "📌";
+            const cleanTitle = item.isCustom
+              ? item.rawCustomName || item.label.replace(/^✨\s*قسم مخصّص:\s*/, "")
+              : item.label;
+
+            return (
+              <li
+                key={item.id}
+                className={`flex items-center justify-between gap-2 rounded-2xl border p-2.5 transition-all ${
+                  !item.visible
+                    ? "border-line/60 bg-surface/50 opacity-60"
+                    : item.isCustom
+                      ? "border-2 border-primary bg-primary-soft/55 shadow-2xs"
+                      : "border-line bg-paper hover:border-primary/70 shadow-2xs"
+                }`}
+              >
+                <div className="flex min-w-0 flex-1 items-center gap-2.5">
+                  <span
+                    className={`grid size-8 shrink-0 place-items-center rounded-xl font-mono text-xs font-extrabold ${
+                      item.visible
+                        ? "bg-ink text-primary shadow-2xs"
+                        : "bg-surface text-muted"
+                    }`}
+                  >
+                    {i + 1}
+                  </span>
+                  <span
+                    className="grid size-9 shrink-0 place-items-center rounded-xl bg-surface text-base"
+                    aria-hidden
+                  >
+                    {iconEmoji}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="truncate text-xs font-extrabold text-ink sm:text-sm">
+                        {trv(cleanTitle)}
+                      </span>
+                      {item.isCustom ? (
+                        <span className="rounded-md bg-primary px-1.5 py-0.5 text-[10px] font-extrabold text-ink">
+                          {tr("قسم مخصّص")}
+                        </span>
+                      ) : null}
+                    </div>
+                    <span
+                      className={`inline-flex items-center gap-1 text-[11px] font-bold ${
+                        item.visible ? "text-[#15803D]" : "text-muted"
+                      }`}
+                    >
+                      <span
+                        className={`size-1.5 rounded-full ${
+                          item.visible ? "bg-[#16A34A]" : "bg-muted"
+                        }`}
+                      />
+                      {item.visible ? tr("ظاهر في الرئيسية") : tr("مخفي حالياً")}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Compact Control Buttons */}
+                <div className="flex shrink-0 items-center gap-1">
+                  {i > 0 ? (
+                    <button
+                      type="button"
+                      onClick={() => moveToTop(i)}
+                      className="press rounded-xl border border-line bg-surface px-2 py-1.5 text-[11px] font-extrabold text-ink hover:border-primary hover:bg-primary-soft"
+                      title={tr("نقل إلى المركز الأول أعلى الصفحة")}
+                    >
+                      ⏫
+                    </button>
+                  ) : null}
+                  <button
+                    type="button"
+                    aria-label={tr("أعلى")}
+                    title={tr("تحريك لأعلى")}
+                    disabled={i === 0}
+                    onClick={() => updateOrder(moveItem(combinedList, i, -1))}
+                    className="press grid size-8 place-items-center rounded-xl border border-line bg-paper text-ink disabled:opacity-30 hover:border-primary"
+                  >
+                    <ArrowUp className="size-4" />
+                  </button>
+                  <button
+                    type="button"
+                    aria-label={tr("أسفل")}
+                    title={tr("تحريك لأسفل")}
+                    disabled={i === combinedList.length - 1}
+                    onClick={() => updateOrder(moveItem(combinedList, i, 1))}
+                    className="press grid size-8 place-items-center rounded-xl border border-line bg-paper text-ink disabled:opacity-30 hover:border-primary"
+                  >
+                    <ArrowDown className="size-4" />
+                  </button>
+                  <button
+                    type="button"
+                    aria-label={item.visible ? tr("إخفاء") : tr("إظهار")}
+                    title={item.visible ? tr("إخفاء من الرئيسية") : tr("إظهار في الرئيسية")}
+                    onClick={() =>
+                      updateOrder(
+                        combinedList.map((x, idx) =>
+                          idx === i ? { ...x, visible: !x.visible } : x,
+                        ),
+                      )
+                    }
+                    className={`press grid size-8 place-items-center rounded-xl border transition ${
+                      item.visible
+                        ? "border-[#16A34A]/40 bg-[#16A34A]/10 text-[#15803D]"
+                        : "border-line bg-surface text-muted"
+                    }`}
+                  >
+                    {item.visible ? <Eye className="size-4" /> : <EyeOff className="size-4" />}
+                  </button>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      </section>
+
+      <BusesAndEmergencyAppearanceAdmin />
+    </div>
   );
 }
 
@@ -7863,12 +8198,8 @@ function SliderPart({ s, set, setMsg }: SettingsPartProps & { setMsg: (m: string
 }
 
 function LinksPart({ s, set }: SettingsPartProps) {
-  const internalLinks = (s.quickLinks ?? []).filter(
-    (l) => l.id === "tilelive" || l.id === "slidercfg" || l.id === "topbarcfg" || l.id === "botbarcfg" || l.id === "botbarcss" || l.id.startsWith("sec"),
-  );
-  const userLinks = (s.quickLinks ?? []).filter(
-    (l) => l.id !== "tilelive" && l.id !== "slidercfg" && l.id !== "topbarcfg" && l.id !== "botbarcfg" && l.id !== "botbarcss" && !l.id.startsWith("sec"),
-  );
+  const internalLinks = (s.quickLinks ?? []).filter((l) => isInternalQuickLinkConfig(l));
+  const userLinks = (s.quickLinks ?? []).filter((l) => !isInternalQuickLinkConfig(l));
 
   const setUserLinks = (nextUserLinks: SiteSettings["quickLinks"]) => {
     set({ quickLinks: [...internalLinks, ...nextUserLinks] });
@@ -8322,7 +8653,7 @@ function MenusAndBarsPart({ s, set }: SettingsPartProps) {
       const qlMatch = (s.quickLinks ?? []).find(
         (q) => q.id.startsWith("sec") && q.title.trim() === label,
       );
-      const resolvedUrl = customUrl || qlMatch?.url || `/?q=${label}`;
+      const resolvedUrl = customUrl || qlMatch?.url || `/news?cat=${label}`;
       const resolvedIcon =
         (qlMatch?.emoji ? EMOJI_TO_ICON_KEY[qlMatch.emoji] : undefined) ||
         defaultIcon ||
@@ -12285,20 +12616,27 @@ function GeminiAdmin() {
       </section>
 
       <section className="stamp flex flex-col gap-3 p-4">
-        <h2 className="text-lg font-bold">{tr("صور الذكاء الاصطناعي للأخبار بلا صور")}</h2>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-lg font-bold">{tr("صور الذكاء الاصطناعي للأخبار بلا صور (RSS)")}</h2>
+          <span className={`chip ${s.aiImages.enabled ? "bg-primary text-ink font-extrabold" : ""}`}>
+            {s.aiImages.enabled ? "✨ مفعّل تلقائياً" : "متوقف"}
+          </span>
+        </div>
         <p className="text-sm font-semibold text-muted">
-          {tr("الافتراضي: صورة بهوية رهط بوست (العنوان والشعار). عند التفعيل تُولَّد رسمة توضيحية عامة (بلا نصوص ولا وجوه حقيقية) في الخلفية، وعند أي خطأ تبقى الصورة الافتراضية.")}
+          {tr("عند جلب أي خبر من RSS بدون صورة في المصدر، يقوم النظام تلقائياً بتحليل عنوان وموضوع الخبر وتوليد صورة فنية معبّرة بقياس 16:9 بالذكاء الاصطناعي وحفظها للخبر. وعند أي خطأ احتياطي تظهر بطاقة رهط بوست.")}
         </p>
         <label className="flex items-center gap-2 font-bold">
           <input type="checkbox" checked={s.aiImages.enabled} onChange={(e) => setS({ ...s, aiImages: { ...s.aiImages, enabled: e.target.checked } })} />
-          {tr("تفعيل صور الذكاء الاصطناعي")}
+          {tr("تفعيل توليد صور الذكاء الاصطناعي تلقائياً للأخبار التي بدون صورة")}
         </label>
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="flex flex-col gap-1 text-sm font-bold">
             {tr("المزوّد")}
-            <select className="field" dir="ltr" value={s.aiImages.provider} onChange={(e) => setS({ ...s, aiImages: { ...s.aiImages, provider: e.target.value as "gemini" | "grok" } })}>
+            <select className="field" dir="ltr" value={s.aiImages.provider} onChange={(e) => setS({ ...s, aiImages: { ...s.aiImages, provider: e.target.value as "auto" | "gemini" | "grok" | "flux" } })}>
+              <option value="auto">Auto (Gemini → Grok → Flux AI مجاني)</option>
               <option value="gemini">Gemini (image)</option>
               <option value="grok">Grok (xAI image)</option>
+              <option value="flux">Flux AI (مجاني فوري بدون مفتاح)</option>
             </select>
           </label>
           <label className="flex flex-col gap-1 text-sm font-bold">
@@ -12306,7 +12644,17 @@ function GeminiAdmin() {
             <input className="field" type="number" min={0} max={500} value={s.aiImages.dailyCap} onChange={(e) => setS({ ...s, aiImages: { ...s.aiImages, dailyCap: Number(e.target.value) } })} />
           </label>
         </div>
-        <button type="button" className="btn self-start" disabled={busy} onClick={() => save()}>{tr("حفظ")}</button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button type="button" className="btn self-start" disabled={busy} onClick={() => save()}>{tr("حفظ")}</button>
+          <a
+            href={`/api/news-image?ai_test=1&prov=${encodeURIComponent(s.aiImages.provider)}&t=${encodeURIComponent(testText || "افتتاح مشروع تطوير البنية التحتية والحدائق العامة في مدينة رهط")}`}
+            target="_blank"
+            rel="noreferrer"
+            className="btn btn-ghost text-xs font-extrabold"
+          >
+            🎨 {tr("معاينة توليد صورة خبر بالذكاء الاصطناعي")}
+          </a>
+        </div>
       </section>
 
       <section className="stamp flex flex-col gap-3 p-4">
@@ -12374,5 +12722,2095 @@ function GeminiAdmin() {
         ))}
       </section>
     </div>
+  );
+}
+
+
+
+/* -------------------------------------------------------------------------- */
+/* Directory Shops Hub Admin: Shop Logos, Member Supervision, Products & Ads  */
+/* -------------------------------------------------------------------------- */
+
+type AdminShopProduct = {
+  id: string;
+  name: string;
+  price: string;
+  oldPrice?: string;
+  badge?: string;
+  description?: string;
+  imageKey?: string;
+  inStock?: boolean;
+  createdAt: string;
+};
+
+type AdminShopCampaign = {
+  id: string;
+  title: string;
+  subtitle: string;
+  discountBadge: string;
+  validUntil?: string;
+  imageKey?: string;
+  active: boolean;
+  createdAt: string;
+};
+
+type AdminShopHubConfig = {
+  slug: string;
+  isCustomShop?: boolean;
+  customName?: string;
+  customCategory?: string;
+  customArea?: string;
+  customAddress?: string;
+  customPhone?: string;
+  customWhatsapp?: string;
+  customOpeningHours?: string;
+  customDescription?: string;
+  customWebsite?: string;
+  logoKey?: string;
+  coverKey?: string;
+  verified?: boolean;
+  featured?: boolean;
+  supervisorUserId?: string;
+  supervisorEmail?: string;
+  supervisorName?: string;
+  products: AdminShopProduct[];
+  campaigns: AdminShopCampaign[];
+};
+
+function DirectoryShopsHubAdmin({
+  approvedSubmissions,
+}: {
+  approvedSubmissions: BusinessSubmission[];
+}) {
+  const [hubMap, setHubMap] = useState<Record<string, AdminShopHubConfig>>({});
+  const [globalCfg, setGlobalCfg] = useState<{
+    directoryStyle: "cards" | "showcase" | "grid" | "carousel" | "compact" | "dark_gold";
+    showOfficialStoreOnHome: boolean;
+    showCategoryFilterOnHome: boolean;
+    homeItemsCount: number;
+  }>({
+    directoryStyle: "cards",
+    showOfficialStoreOnHome: false,
+    showCategoryFilterOnHome: true,
+    homeItemsCount: 6,
+  });
+  const [members, setMembers] = useState<{ id: string; name: string; email: string }[]>([]);
+  const [q, setQ] = useState("");
+  const [filter, setFilter] = useState<"all" | "supervised" | "logo" | "offers">("all");
+  const [selectedSlug, setSelectedSlug] = useState<string>("");
+  const [subTab, setSubTab] = useState<"logo" | "supervisor" | "products" | "campaigns">("logo");
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+
+  // Add new custom shop modal state
+  const [showNewShop, setShowNewShop] = useState(false);
+  const [newShopName, setNewShopName] = useState("");
+  const [newShopCat, setNewShopCat] = useState<string>("مطاعم ومقاهي");
+  const [newShopArea, setNewShopArea] = useState("");
+  const [newShopPhone, setNewShopPhone] = useState("");
+
+  // Selected shop edit state
+  const [editName, setEditName] = useState("");
+  const [editCat, setEditCat] = useState("");
+  const [editArea, setEditArea] = useState("");
+  const [editPhone, setEditPhone] = useState("");
+  const [editWa, setEditWa] = useState("");
+  const [editHours, setEditHours] = useState("");
+  const [editDesc, setEditDesc] = useState("");
+  const [editLogo, setEditLogo] = useState("");
+  const [editCover, setEditCover] = useState("");
+  const [editVerified, setEditVerified] = useState(true);
+  const [editFeatured, setEditFeatured] = useState(false);
+
+  // Supervisor assignment state
+  const [supUserId, setSupUserId] = useState("");
+  const [supEmail, setSupEmail] = useState("");
+  const [supName, setSupName] = useState("");
+  const [memberSearch, setMemberSearch] = useState("");
+
+  // Product state
+  const [prodName, setProdName] = useState("");
+  const [prodPrice, setProdPrice] = useState("");
+  const [prodOldPrice, setProdOldPrice] = useState("");
+  const [prodBadge, setProdBadge] = useState("عرض خاص");
+  const [prodDesc, setProdDesc] = useState("");
+  const [prodImg, setProdImg] = useState("");
+
+  // Campaign state
+  const [campTitle, setCampTitle] = useState("");
+  const [campSubtitle, setCampSubtitle] = useState("");
+  const [campBadge, setCampBadge] = useState("🔥 حملة عروض");
+  const [campValid, setCampValid] = useState("");
+  const [campImg, setCampImg] = useState("");
+
+  const loadHub = useCallback(async () => {
+    try {
+      const [hubRes, memRes] = await Promise.all([
+        fetch("/api/media?kind=shop-hub").then((r) => (r.ok ? r.json() : null)),
+        adminListAllMembers({ data: { q: "" } }).catch(() => ({ items: [] })),
+      ]);
+      if (hubRes?.ok) {
+        if (hubRes.shops) setHubMap(hubRes.shops);
+        if (hubRes.globalSettings) {
+          setGlobalCfg((prev) => ({ ...prev, ...hubRes.globalSettings }));
+        }
+      }
+      if (memRes?.items) {
+        setMembers(
+          memRes.items.map((m) => ({
+            id: m.id,
+            name: m.name,
+            email: m.email,
+          })),
+        );
+      }
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadHub();
+  }, [loadHub]);
+
+  const allShops = useMemo(() => {
+    const base = [...approvedSubmissions.map(ownerEntry), ...osmEntries()];
+    const seen = new Set<string>();
+    const list: (DirectoryEntry & { cfg?: AdminShopHubConfig })[] = [];
+
+    for (const item of base) {
+      seen.add(item.slug);
+      const cfg = hubMap[item.slug];
+      list.push({
+        ...item,
+        name: cfg?.customName || item.name,
+        category: cfg?.customCategory || item.category,
+        area: cfg?.customArea || item.area,
+        address: cfg?.customAddress || item.address,
+        phone: cfg?.customPhone || item.phone,
+        openingHours: cfg?.customOpeningHours || item.openingHours,
+        description: cfg?.customDescription || item.description,
+        photo: cfg?.logoKey || item.photo,
+        verified: cfg?.verified !== undefined ? cfg.verified : item.verified,
+        cfg,
+      });
+    }
+
+    for (const [slug, cfg] of Object.entries(hubMap)) {
+      if (seen.has(slug) || !cfg.isCustomShop || !cfg.customName) continue;
+      list.push({
+        slug,
+        name: cfg.customName,
+        category: cfg.customCategory || "خدمات",
+        source: "owner",
+        verified: cfg.verified !== false,
+        area: cfg.customArea,
+        address: cfg.customAddress,
+        phone: cfg.customPhone,
+        openingHours: cfg.customOpeningHours,
+        description: cfg.customDescription,
+        photo: cfg.logoKey,
+        cfg,
+      });
+    }
+
+    return list.sort((a, b) => {
+      const score = (x: (typeof list)[number]) =>
+        (x.cfg?.featured ? 100 : 0) +
+        (x.cfg?.supervisorEmail || x.cfg?.supervisorUserId ? 50 : 0) +
+        ((x.cfg?.campaigns?.length ?? 0) > 0 ? 40 : 0) +
+        ((x.cfg?.products?.length ?? 0) > 0 ? 30 : 0) +
+        (x.photo ? 20 : 0) +
+        (x.verified ? 10 : 0);
+      return score(b) - score(a);
+    });
+  }, [approvedSubmissions, hubMap]);
+
+  const selectShop = (shop: (typeof allShops)[number]) => {
+    setSelectedSlug(shop.slug);
+    const c = shop.cfg;
+    setEditName(c?.customName || shop.name || "");
+    setEditCat(c?.customCategory || shop.category || "خدمات");
+    setEditArea(c?.customAddress || c?.customArea || shop.address || shop.area || "");
+    setEditPhone(c?.customPhone || shop.phone || "");
+    setEditWa(c?.customWhatsapp || shop.phone || "");
+    setEditHours(c?.customOpeningHours || shop.openingHours || "");
+    setEditDesc(c?.customDescription || shop.description || "");
+    setEditLogo(c?.logoKey || shop.photo || "");
+    setEditCover(c?.coverKey || "");
+    setEditVerified(c?.verified !== undefined ? c.verified : shop.verified);
+    setEditFeatured(Boolean(c?.featured));
+    setSupUserId(c?.supervisorUserId || "");
+    setSupEmail(c?.supervisorEmail || "");
+    setSupName(c?.supervisorName || "");
+    setMsg("");
+  };
+
+  const activeShop = allShops.find((s) => s.slug === selectedSlug) ?? null;
+
+  const shopImgUrl = (v?: string | null): string => {
+    if (!v) return "";
+    if (v.startsWith("data:image/") || v.startsWith("http://") || v.startsWith("https://") || v.startsWith("/")) return v;
+    return `/api/media?kind=blob&key=${encodeURIComponent(v)}`;
+  };
+
+  const compressShopImageFile = async (
+    file: File,
+    maxSide: number,
+  ): Promise<{ blob: Blob; dataUrl: string }> => {
+    try {
+      const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+        const el = new Image();
+        const objUrl = URL.createObjectURL(file);
+        el.onload = () => {
+          URL.revokeObjectURL(objUrl);
+          resolve(el);
+        };
+        el.onerror = () => {
+          URL.revokeObjectURL(objUrl);
+          reject(new Error("img-load"));
+        };
+        el.src = objUrl;
+      });
+      const w0 = img.naturalWidth || img.width || 400;
+      const h0 = img.naturalHeight || img.height || 400;
+      const scale = Math.min(1, maxSide / Math.max(w0, h0));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.max(1, Math.round(w0 * scale));
+      canvas.height = Math.max(1, Math.round(h0 * scale));
+      const ctx = canvas.getContext("2d");
+      if (!ctx) throw new Error("no-ctx");
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      let dataUrl = canvas.toDataURL("image/webp", 0.82);
+      if (!dataUrl.startsWith("data:image/webp")) {
+        dataUrl = canvas.toDataURL("image/jpeg", 0.84);
+      }
+      const blob = await new Promise<Blob>((resolve) => {
+        canvas.toBlob(
+          (b) => resolve(b || file),
+          dataUrl.startsWith("data:image/webp") ? "image/webp" : "image/jpeg",
+          0.82,
+        );
+      });
+      return { blob, dataUrl };
+    } catch {
+      const blob = await compress(file).catch(() => file);
+      const dataUrl = await new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(typeof reader.result === "string" ? reader.result : "");
+        reader.onerror = () => resolve("");
+        reader.readAsDataURL(blob);
+      });
+      return { blob, dataUrl };
+    }
+  };
+
+  const uploadAdminShopImage = async (
+    file: File,
+    targetSlug: string,
+    autoSaveField?: "logoKey" | "coverKey",
+  ): Promise<string | null> => {
+    setBusy(true);
+    setMsg("");
+    try {
+      const maxSide = autoSaveField === "logoKey" ? 440 : 960;
+      const { blob, dataUrl } = await compressShopImageFile(file, maxSide);
+      if (dataUrl) {
+        if (autoSaveField === "logoKey") setEditLogo(dataUrl);
+        if (autoSaveField === "coverKey") setEditCover(dataUrl);
+      }
+      let finalRef = dataUrl;
+      try {
+        const res = await fetch(`/api/media?kind=shop-upload&slug=${encodeURIComponent(targetSlug)}`, {
+          method: "POST",
+          headers: { "content-type": blob.type || "image/webp" },
+          body: blob,
+        });
+        const data = await res.json().catch(() => null);
+        if (res.ok && data?.ok) {
+          finalRef = data.dataUrl || dataUrl || (data.key ? `/api/media?kind=blob&key=${data.key}` : "");
+        }
+      } catch {
+        /* keep self-contained dataUrl */
+      }
+      if (!finalRef) {
+        setMsg(tr("تعذّر قراءة الصورة."));
+        return null;
+      }
+      if (autoSaveField) {
+        setHubMap((prev) => {
+          const cur = prev[targetSlug] ?? { slug: targetSlug, products: [], campaigns: [] };
+          const next = {
+            ...prev,
+            [targetSlug]: { ...cur, [autoSaveField]: finalRef },
+          };
+          try {
+            window.localStorage.setItem(
+              "rp_latest_shop_hub",
+              JSON.stringify({ shops: next, globalSettings: globalCfg }),
+            );
+            window.dispatchEvent(new CustomEvent("rp-shop-hub-updated"));
+          } catch {}
+          return next;
+        });
+
+        const saveRes = await fetch("/api/media?kind=shop-hub", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            slug: targetSlug,
+            action: "update_profile",
+            payload: { [autoSaveField]: finalRef },
+          }),
+        }).catch(() => null);
+        const saveData = await saveRes?.json().catch(() => null);
+        if (saveData?.ok && saveData.shops) {
+          setHubMap(saveData.shops);
+          try {
+            window.localStorage.setItem(
+              "rp_latest_shop_hub",
+              JSON.stringify({ shops: saveData.shops, globalSettings: globalCfg }),
+            );
+            window.dispatchEvent(new CustomEvent("rp-shop-hub-updated"));
+          } catch {}
+        }
+        setMsg(
+          autoSaveField === "logoKey"
+            ? tr("✓ تم رفع وحفظ لوجو المحل فوراً!")
+            : tr("✓ تم رفع وحفظ صورة غلاف المحل فوراً!"),
+        );
+      }
+      return finalRef;
+    } catch {
+      setMsg(tr("تعذّر رفع الصورة."));
+      return null;
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const createNewCustomShop = async () => {
+    if (!newShopName.trim()) {
+      setMsg(tr("اكتب اسم المحل الجديد."));
+      return;
+    }
+    setBusy(true);
+    setMsg("");
+    const newSlug = `shop-${Date.now().toString(36)}`;
+    try {
+      const res = await fetch("/api/media?kind=shop-hub", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          slug: newSlug,
+          action: "update_profile",
+          payload: {
+            isCustomShop: true,
+            customName: newShopName.trim(),
+            customCategory: newShopCat,
+            customArea: newShopArea.trim(),
+            customAddress: newShopArea.trim(),
+            customPhone: newShopPhone.trim(),
+            customWhatsapp: newShopPhone.trim(),
+            verified: true,
+          },
+        }),
+      });
+      const data = await res.json();
+      if (data?.ok && data.shops) {
+        setHubMap(data.shops); try { window.localStorage.setItem("rp_latest_shop_hub", JSON.stringify({ shops: data.shops, globalSettings: globalCfg })); window.dispatchEvent(new CustomEvent("rp-shop-hub-updated")); } catch {}
+        setShowNewShop(false);
+        setNewShopName("");
+        setNewShopArea("");
+        setNewShopPhone("");
+        setSelectedSlug(newSlug);
+        setEditName(data.shop?.customName || "");
+        setEditCat(data.shop?.customCategory || "خدمات");
+        setEditArea(data.shop?.customArea || "");
+        setEditPhone(data.shop?.customPhone || "");
+        setEditWa(data.shop?.customWhatsapp || "");
+        setEditVerified(true);
+        setMsg(tr("✓ تم إنشاء المحل الجديد في الدليل! يمكنك الآن رفع اللوجو وتعيين المشرف وإضافة المنتجات."));
+      }
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const saveShopProfileFromAdmin = async () => {
+    if (!selectedSlug) return;
+    setBusy(true);
+    setMsg("");
+    try {
+      const res = await fetch("/api/media?kind=shop-hub", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          slug: selectedSlug,
+          action: "update_profile",
+          payload: {
+            customName: editName.trim(),
+            customCategory: editCat,
+            customArea: editArea.trim(),
+            customAddress: editArea.trim(),
+            customPhone: editPhone.trim(),
+            customWhatsapp: editWa.trim(),
+            customOpeningHours: editHours.trim(),
+            customDescription: editDesc.trim(),
+            logoKey: editLogo,
+            coverKey: editCover,
+            verified: editVerified,
+            featured: editFeatured,
+          },
+        }),
+      });
+      const data = await res.json();
+      if (data?.ok && data.shops) {
+        setHubMap(data.shops); try { window.localStorage.setItem("rp_latest_shop_hub", JSON.stringify({ shops: data.shops, globalSettings: globalCfg })); window.dispatchEvent(new CustomEvent("rp-shop-hub-updated")); } catch {}
+        setMsg(tr("✓ تم حفظ لوجو وبيانات المحل بنجاح."));
+      }
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const assignSupervisorFromAdmin = async (
+    userId: string,
+    email: string,
+    name: string,
+  ) => {
+    if (!selectedSlug) return;
+    setBusy(true);
+    setMsg("");
+    try {
+      const res = await fetch("/api/media?kind=shop-hub", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          slug: selectedSlug,
+          action: "assign_supervisor",
+          supervisorUserId: userId,
+          supervisorEmail: email,
+          supervisorName: name,
+        }),
+      });
+      const data = await res.json();
+      if (data?.ok && data.shops) {
+        setHubMap(data.shops); try { window.localStorage.setItem("rp_latest_shop_hub", JSON.stringify({ shops: data.shops, globalSettings: globalCfg })); window.dispatchEvent(new CustomEvent("rp-shop-hub-updated")); } catch {}
+        setSupUserId(userId);
+        setSupEmail(email);
+        setSupName(name);
+        setMsg(
+          email || userId
+            ? tr("✓ تم منح صلاحية الإشراف على المحل للعضو: {0}", name || email)
+            : tr("✓ تم إلغاء الإشراف عن هذا المحل."),
+        );
+      }
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const addProductFromAdmin = async () => {
+    if (!selectedSlug || !prodName.trim()) return;
+    setBusy(true);
+    setMsg("");
+    try {
+      const res = await fetch("/api/media?kind=shop-hub", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          slug: selectedSlug,
+          action: "save_product",
+          product: {
+            name: prodName.trim(),
+            price: prodPrice.trim(),
+            oldPrice: prodOldPrice.trim(),
+            badge: prodBadge.trim(),
+            description: prodDesc.trim(),
+            imageKey: prodImg,
+            inStock: true,
+          },
+        }),
+      });
+      const data = await res.json();
+      if (data?.ok && data.shops) {
+        setHubMap(data.shops); try { window.localStorage.setItem("rp_latest_shop_hub", JSON.stringify({ shops: data.shops, globalSettings: globalCfg })); window.dispatchEvent(new CustomEvent("rp-shop-hub-updated")); } catch {}
+        setProdName("");
+        setProdPrice("");
+        setProdOldPrice("");
+        setProdDesc("");
+        setProdImg("");
+        setMsg(tr("✓ تمت إضافة المنتج إلى صفحة المحل بنجاح."));
+      }
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const deleteProductFromAdmin = async (productId: string) => {
+    if (!selectedSlug) return;
+    setBusy(true);
+    try {
+      const res = await fetch("/api/media?kind=shop-hub", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ slug: selectedSlug, action: "delete_product", productId }),
+      });
+      const data = await res.json();
+      if (data?.ok && data.shops) setHubMap(data.shops); try { window.localStorage.setItem("rp_latest_shop_hub", JSON.stringify({ shops: data.shops, globalSettings: globalCfg })); window.dispatchEvent(new CustomEvent("rp-shop-hub-updated")); } catch {}
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const addCampaignFromAdmin = async () => {
+    if (!selectedSlug || !campTitle.trim()) return;
+    setBusy(true);
+    setMsg("");
+    try {
+      const res = await fetch("/api/media?kind=shop-hub", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          slug: selectedSlug,
+          action: "save_campaign",
+          campaign: {
+            title: campTitle.trim(),
+            subtitle: campSubtitle.trim(),
+            discountBadge: campBadge.trim() || "🔥 حملة عروض",
+            validUntil: campValid.trim(),
+            imageKey: campImg,
+            active: true,
+          },
+        }),
+      });
+      const data = await res.json();
+      if (data?.ok && data.shops) {
+        setHubMap(data.shops); try { window.localStorage.setItem("rp_latest_shop_hub", JSON.stringify({ shops: data.shops, globalSettings: globalCfg })); window.dispatchEvent(new CustomEvent("rp-shop-hub-updated")); } catch {}
+        setCampTitle("");
+        setCampSubtitle("");
+        setCampValid("");
+        setCampImg("");
+        setMsg(tr("✓ تم نشر إعلان وحملة العروض في صفحة المحل بنجاح."));
+      }
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const deleteCampaignFromAdmin = async (campaignId: string) => {
+    if (!selectedSlug) return;
+    setBusy(true);
+    try {
+      const res = await fetch("/api/media?kind=shop-hub", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ slug: selectedSlug, action: "delete_campaign", campaignId }),
+      });
+      const data = await res.json();
+      if (data?.ok && data.shops) setHubMap(data.shops); try { window.localStorage.setItem("rp_latest_shop_hub", JSON.stringify({ shops: data.shops, globalSettings: globalCfg })); window.dispatchEvent(new CustomEvent("rp-shop-hub-updated")); } catch {}
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const filteredShops = useMemo(() => {
+    const query = q.trim().toLowerCase();
+    return allShops.filter((s) => {
+      const hay = [s.name, s.category, s.area, s.address, s.cfg?.supervisorName, s.cfg?.supervisorEmail]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      if (query && !hay.includes(query)) return false;
+      if (filter === "supervised" && !s.cfg?.supervisorEmail && !s.cfg?.supervisorUserId) return false;
+      if (filter === "logo" && !s.photo) return false;
+      if (
+        filter === "offers" &&
+        (s.cfg?.products?.length ?? 0) === 0 &&
+        (s.cfg?.campaigns?.length ?? 0) === 0
+      ) {
+        return false;
+      }
+      return true;
+    });
+  }, [allShops, q, filter]);
+
+  const filteredMembers = useMemo(() => {
+    const mq = memberSearch.trim().toLowerCase();
+    if (!mq) return members.slice(0, 15);
+    return members
+      .filter(
+        (m) =>
+          m.name.toLowerCase().includes(mq) ||
+          m.email.toLowerCase().includes(mq) ||
+          m.id.toLowerCase().includes(mq),
+      )
+      .slice(0, 15);
+  }, [members, memberSearch]);
+
+  const updateGlobalSettings = async (patch: Partial<typeof globalCfg>) => {
+    const optimistic = { ...globalCfg, ...patch };
+    setGlobalCfg(optimistic);
+    setBusy(true);
+    setMsg("");
+    try {
+      const dhubUrl = `/__dhub?st=${encodeURIComponent(optimistic.directoryStyle)}&os=${optimistic.showOfficialStoreOnHome ? "1" : "0"}&cf=${optimistic.showCategoryFilterOnHome ? "1" : "0"}&cnt=${optimistic.homeItemsCount}`;
+      const [res] = await Promise.all([
+        fetch("/api/media?kind=shop-hub", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            action: "save_global_settings",
+            settings: optimistic,
+          }),
+        }).catch(() => null),
+        adminGetSiteSettings()
+          .then(async (cur) => {
+            if (!cur.settings) return;
+            const others = (cur.settings.quickLinks ?? []).filter((q) => q.id !== "dirhubcfg");
+            const nextSettings: SiteSettings = {
+              ...cur.settings,
+              quickLinks: [
+                ...others,
+                {
+                  id: "dirhubcfg",
+                  title: "dirhubcfg",
+                  subtitle: optimistic.directoryStyle,
+                  url: dhubUrl,
+                  emoji: "🏪",
+                },
+              ],
+            };
+            await Promise.all([
+              adminSaveSiteSettings({ data: nextSettings }).catch(() => null),
+              fetch("/api/media?kind=live-settings", {
+                method: "POST",
+                headers: { "content-type": "application/json" },
+                body: JSON.stringify({ settings: nextSettings }),
+              }).catch(() => null),
+            ]);
+            try {
+              window.localStorage.setItem("rp_latest_site_settings", JSON.stringify(nextSettings));
+              window.dispatchEvent(new CustomEvent("rp-site-settings-updated", { detail: nextSettings }));
+            } catch {}
+          })
+          .catch(() => null),
+      ]);
+      const data = await res?.json().catch(() => null);
+      const savedCfg = data?.ok && data.globalSettings ? data.globalSettings : optimistic;
+      setGlobalCfg(savedCfg);
+      try {
+        window.localStorage.setItem(
+          "rp_latest_shop_hub",
+          JSON.stringify({ shops: data?.shops ?? hubMap, globalSettings: savedCfg }),
+        );
+        window.dispatchEvent(new CustomEvent("rp-shop-hub-updated"));
+      } catch {}
+      setMsg(tr("✓ تم حفظ مظهر الدليل وإعدادات العرض في الصفحة الرئيسية والتطبيق فوراً!"));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Directory Style & Homepage Store Visibility Control Card */}
+      <div className="stamp border-2 border-primary bg-paper p-4 sm:p-5 space-y-4 shadow-xs">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line pb-3">
+          <div>
+            <h2 className="text-base font-extrabold text-ink sm:text-lg">
+              🎨 {tr("مظهر وشكل «دليل محلات وخدمات رهط» والتحكم بالصفحة الرئيسية")}
+            </h2>
+            <p className="mt-0.5 text-xs font-semibold text-muted">
+              {tr("اختر شكل عرض المحلات في الصفحة الرئيسية وصفحة الدليل من بين 6 أشكال، وتحكم بإظهار أو إخفاء «من المتجر الرسمي».")}
+            </p>
+          </div>
+          <span className="rounded-full bg-primary px-3 py-1 text-xs font-extrabold text-ink">
+            {tr("حفظ تلقائي فوري")}
+          </span>
+        </div>
+
+        {/* 6 Visual Style Selector Cards */}
+        <div>
+          <label className="mb-2 block text-xs font-extrabold text-ink sm:text-sm">
+            {tr("1. اختر شكل ومظهر دليل المحلات (يتغير فوراً في الموقع والتطبيق):")}
+          </label>
+          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-6">
+            {[
+              {
+                id: "cards" as const,
+                icon: "🗂️",
+                title: "بطاقات المتاجر",
+                sub: "بطاقات أفقية حديثة مع اللوجو والعروض",
+              },
+              {
+                id: "showcase" as const,
+                icon: "🖼️",
+                title: "واجهة الغلاف الكبيرة",
+                sub: "صورة غلاف علوية ولوجو متداخل بارز",
+              },
+              {
+                id: "grid" as const,
+                icon: "📱",
+                title: "شبكة مربعة سريعة",
+                sub: "مربعات أيقونات المتاجر بأسلوب التطبيقات",
+              },
+              {
+                id: "carousel" as const,
+                icon: "🎠",
+                title: "قصص وسلايدر منزلق",
+                sub: "دوائر قصص علوية وبطاقات أفقية",
+              },
+              {
+                id: "compact" as const,
+                icon: "📋",
+                title: "قائمة مدمجة كلاسيكية",
+                sub: "صفوف سريعة تعرض أكبر عدد من المحلات",
+              },
+              {
+                id: "dark_gold" as const,
+                icon: "✨",
+                title: "المظهر الفاخر",
+                sub: "تصميم داكن أنيق بإطارات ذهبية",
+              },
+            ].map((stItem) => {
+              const active = globalCfg.directoryStyle === stItem.id;
+              return (
+                <button
+                  key={stItem.id}
+                  type="button"
+                  disabled={busy}
+                  onClick={() => updateGlobalSettings({ directoryStyle: stItem.id })}
+                  className={`press flex flex-col items-start justify-between rounded-2xl border p-3 text-start transition ${
+                    active
+                      ? "border-2 border-ink bg-primary text-ink shadow-xs"
+                      : "border-line bg-surface/60 text-ink hover:border-primary hover:bg-paper"
+                  }`}
+                >
+                  <div className="flex w-full items-center justify-between">
+                    <span className="text-xl leading-none">{stItem.icon}</span>
+                    {active ? (
+                      <span className="rounded-full bg-ink px-2 py-0.5 text-[10px] font-extrabold text-primary">
+                        {tr("مفعّل")}
+                      </span>
+                    ) : null}
+                  </div>
+                  <div className="mt-2">
+                    <p className="text-xs font-extrabold leading-snug">{trv(stItem.title)}</p>
+                    <p className="mt-0.5 text-[10.5px] font-semibold opacity-80 leading-tight">
+                      {trv(stItem.sub)}
+                    </p>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Homepage Controls: Hide/Show "من المتجر الرسمي" + Items Count + Category Filter */}
+        <div className="grid gap-3 border-t border-line pt-3 sm:grid-cols-3">
+          {/* Official Store on Homepage Toggle */}
+          <div className="flex items-center justify-between gap-3 rounded-2xl border border-line bg-surface/50 px-3.5 py-2.5">
+            <div>
+              <p className="text-xs font-extrabold text-ink">
+                🛍️ {tr("قسم «من المتجر الرسمي» في الرئيسية")}
+              </p>
+              <p className="text-[11px] font-semibold text-muted">
+                {globalCfg.showOfficialStoreOnHome
+                  ? tr("ظاهر حالياً في الصفحة الرئيسية")
+                  : tr("مخفي من الصفحة الرئيسية (الافتراضي)")}
+              </p>
+            </div>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() =>
+                updateGlobalSettings({
+                  showOfficialStoreOnHome: !globalCfg.showOfficialStoreOnHome,
+                })
+              }
+              className={`rounded-full px-3 py-1.5 text-xs font-extrabold transition ${
+                globalCfg.showOfficialStoreOnHome
+                  ? "bg-ink text-primary"
+                  : "border border-line bg-paper text-muted hover:border-primary"
+              }`}
+            >
+              {globalCfg.showOfficialStoreOnHome ? tr("ظاهر ✓ (إخفاء)") : tr("مخفي 🚫 (إظهار)")}
+            </button>
+          </div>
+
+          {/* Filter Bar on Homepage Toggle */}
+          <div className="flex items-center justify-between gap-3 rounded-2xl border border-line bg-surface/50 px-3.5 py-2.5">
+            <div>
+              <p className="text-xs font-extrabold text-ink">
+                🏷️ {tr("شريط فلاتر التصنيفات في الرئيسية")}
+              </p>
+              <p className="text-[11px] font-semibold text-muted">
+                {globalCfg.showCategoryFilterOnHome
+                  ? tr("مفعّل أعلى المحلات")
+                  : tr("مخفي لتبسيط الواجهة")}
+              </p>
+            </div>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() =>
+                updateGlobalSettings({
+                  showCategoryFilterOnHome: !globalCfg.showCategoryFilterOnHome,
+                })
+              }
+              className={`rounded-full px-3 py-1.5 text-xs font-extrabold transition ${
+                globalCfg.showCategoryFilterOnHome
+                  ? "bg-primary text-ink"
+                  : "border border-line bg-paper text-muted"
+              }`}
+            >
+              {globalCfg.showCategoryFilterOnHome ? tr("مفعّل ✓") : tr("مخفي")}
+            </button>
+          </div>
+
+          {/* Number of Shops on Homepage */}
+          <div className="flex items-center justify-between gap-2 rounded-2xl border border-line bg-surface/50 px-3.5 py-2.5">
+            <p className="text-xs font-extrabold text-ink">
+              🔢 {tr("عدد المحلات في الرئيسية:")}
+            </p>
+            <div className="flex items-center gap-1">
+              {[4, 6, 8, 12].map((n) => (
+                <button
+                  key={n}
+                  type="button"
+                  disabled={busy}
+                  onClick={() => updateGlobalSettings({ homeItemsCount: n })}
+                  className={`size-7 rounded-xl text-xs font-extrabold transition ${
+                    globalCfg.homeItemsCount === n
+                      ? "bg-ink text-primary"
+                      : "border border-line bg-paper text-ink hover:border-primary"
+                  }`}
+                >
+                  {n}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Header Card */}
+      <div className="stamp border-2 border-primary bg-gradient-to-b from-primary-soft/60 to-paper p-4 sm:p-5 space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-extrabold text-ink sm:text-xl">
+              🏪 {tr("إدارة محلات وخدمات رهط: اللوجو، صلاحيات الإشراف، المنتجات وحملات العروض")}
+            </h2>
+            <p className="mt-0.5 text-xs font-semibold text-muted sm:text-sm">
+              {tr("اختر أي محل من الدليل لرفع لوجو المحل، أو إعطاء صلاحية إشراف على المحل لعضو محدد، أو إضافة منتجات وإعلانات عروض داخل صفحة المحل.")}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowNewShop((v) => !v)}
+            className="btn py-2 px-4 text-xs font-extrabold sm:text-sm"
+          >
+            + {tr("إضافة محل جديد للدليل")}
+          </button>
+        </div>
+
+        {/* Create New Shop Drawer */}
+        {showNewShop ? (
+          <div className="rounded-2xl border border-line bg-paper p-3.5 space-y-3">
+            <h3 className="text-sm font-extrabold text-ink">✨ {tr("إضافة محل جديد مباشرة إلى دليل رهط")}</h3>
+            <div className="grid gap-2.5 sm:grid-cols-4">
+              <input
+                className="field"
+                value={newShopName}
+                onChange={(e) => setNewShopName(e.target.value)}
+                placeholder={tr("اسم المحل *")}
+              />
+              <select
+                className="field"
+                value={newShopCat}
+                onChange={(e) => setNewShopCat(e.target.value)}
+              >
+                {ownerCategories.map((c) => (
+                  <option key={c} value={c}>
+                    {trv(c)}
+                  </option>
+                ))}
+              </select>
+              <input
+                className="field"
+                value={newShopArea}
+                onChange={(e) => setNewShopArea(e.target.value)}
+                placeholder={tr("الحي / الشارع في رهط")}
+              />
+              <input
+                className="field"
+                dir="ltr"
+                value={newShopPhone}
+                onChange={(e) => setNewShopPhone(e.target.value)}
+                placeholder={tr("رقم الهاتف / واتساب")}
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setShowNewShop(false)}
+                className="btn btn-ghost py-1.5 text-xs font-extrabold"
+              >
+                {tr("إلغاء")}
+              </button>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={createNewCustomShop}
+                className="btn py-1.5 px-5 text-xs font-extrabold"
+              >
+                {tr("إنشاء المحل وفتح إدارته")}
+              </button>
+            </div>
+          </div>
+        ) : null}
+
+        {/* Search & Filter Row */}
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <input
+            type="search"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder={tr("ابحث باسم المحل أو الحي أو اسم المشرف...")}
+            className="field flex-1 text-sm"
+          />
+          <div className="flex flex-wrap gap-1.5">
+            {[
+              { id: "all" as const, label: `الكل (${allShops.length})` },
+              {
+                id: "supervised" as const,
+                label: `👤 بإشراف عضو (${allShops.filter((s) => s.cfg?.supervisorEmail || s.cfg?.supervisorUserId).length})`,
+              },
+              {
+                id: "logo" as const,
+                label: `🖼️ بلوجو (${allShops.filter((s) => Boolean(s.photo)).length})`,
+              },
+              {
+                id: "offers" as const,
+                label: `🔥 بمنتجات وعروض (${allShops.filter((s) => (s.cfg?.products?.length ?? 0) > 0 || (s.cfg?.campaigns?.length ?? 0) > 0).length})`,
+              },
+            ].map((f) => (
+              <button
+                key={f.id}
+                type="button"
+                onClick={() => setFilter(f.id)}
+                className={`rounded-xl px-3 py-2 text-xs font-extrabold transition ${
+                  filter === f.id ? "bg-ink text-paper" : "border border-line bg-paper text-ink"
+                }`}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Selected Shop Full Control Drawer */}
+      {activeShop ? (
+        <div className="stamp border-2 border-ink bg-paper p-4 sm:p-5 shadow-md space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line pb-3">
+            <div className="flex items-center gap-3">
+              {editLogo ? (
+                <img
+                  src={shopImgUrl(editLogo)}
+                  alt={activeShop.name}
+                  className="size-14 rounded-2xl border-2 border-primary object-cover"
+                />
+              ) : (
+                <span className="grid size-14 place-items-center rounded-2xl bg-primary-soft text-lg font-extrabold text-primary-ink">
+                  🏪
+                </span>
+              )}
+              <div>
+                <h3 className="text-base font-extrabold text-ink sm:text-lg">
+                  ⚙️ {tr("تحكم المحل:")} {activeShop.name}
+                </h3>
+                <p className="text-xs font-semibold text-muted">
+                  {activeShop.category} · {activeShop.area || activeShop.address || "رهط"}
+                  {supName || supEmail ? ` · 👤 مشرف المحل: ${supName || supEmail}` : ""}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Link
+                to="/directory/$slug"
+                params={{ slug: activeShop.slug }}
+                target="_blank"
+                className="btn btn-ghost py-1.5 text-xs font-extrabold"
+              >
+                {tr("معاينة صفحة المحل ↗")}
+              </Link>
+              <button
+                type="button"
+                onClick={() => setSelectedSlug("")}
+                className="btn btn-ghost py-1.5 text-xs font-extrabold"
+              >
+                {tr("إغلاق")}
+              </button>
+            </div>
+          </div>
+
+          {msg ? (
+            <div className="rounded-2xl border border-primary bg-primary-soft/70 p-3 text-xs font-extrabold text-ink">
+              {msg}
+            </div>
+          ) : null}
+
+          {/* 4 Control Sub-Tabs */}
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 rounded-2xl bg-surface p-1.5">
+            {[
+              { id: "logo" as const, label: "🖼️ لوجو وبيانات المحل" },
+              { id: "supervisor" as const, label: "👤 إعطاء إشراف لعضو" },
+              {
+                id: "products" as const,
+                label: `🛍️ منتجات المحل (${activeShop.cfg?.products?.length ?? 0})`,
+              },
+              {
+                id: "campaigns" as const,
+                label: `📢 حملات العروض (${activeShop.cfg?.campaigns?.length ?? 0})`,
+              },
+            ].map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => setSubTab(t.id)}
+                className={`rounded-xl py-2 px-2.5 text-xs font-extrabold transition ${
+                  subTab === t.id ? "bg-primary text-ink shadow-2xs" : "text-ink hover:bg-paper/70"
+                }`}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Sub-Tab 1: Logo & Shop Info */}
+          {subTab === "logo" ? (
+            <div className="space-y-3">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="flex items-center gap-3 rounded-2xl border border-line bg-surface/60 p-3">
+                  {editLogo ? (
+                    <img
+                      src={shopImgUrl(editLogo)}
+                      alt=""
+                      className="size-16 shrink-0 rounded-2xl border-2 border-primary bg-paper object-cover"
+                    />
+                  ) : (
+                    <span className="grid size-16 shrink-0 place-items-center rounded-2xl bg-primary-soft text-2xl">
+                      🏪
+                    </span>
+                  )}
+                  <div className="space-y-1">
+                    <p className="text-xs font-extrabold text-ink">{tr("لوجو المحل (شعار المحل)")}</p>
+                    <div className="flex gap-2">
+                      <label className="btn cursor-pointer py-1.5 px-3 text-xs font-extrabold">
+                        {editLogo ? tr("تغيير لوجو المحل") : tr("+ رفع لوجو المحل")}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          disabled={busy}
+                          onChange={async (e) => {
+                            const f = e.target.files?.[0];
+                            e.target.value = "";
+                            if (!f) return;
+                            const k = await uploadAdminShopImage(f, activeShop.slug, "logoKey");
+                            if (k) setEditLogo(k);
+                          }}
+                        />
+                      </label>
+                      {editLogo ? (
+                        <button
+                          type="button"
+                          onClick={() => setEditLogo("")}
+                          className="btn btn-ghost py-1.5 px-2.5 text-xs font-bold text-alert"
+                        >
+                          {tr("حذف")}
+                        </button>
+                      ) : null}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 rounded-2xl border border-line bg-surface/60 p-3">
+                  {editCover ? (
+                    <img
+                      src={shopImgUrl(editCover)}
+                      alt=""
+                      className="h-16 w-24 shrink-0 rounded-2xl border border-line bg-paper object-cover"
+                    />
+                  ) : (
+                    <span className="grid h-16 w-24 shrink-0 place-items-center rounded-2xl bg-surface text-xs font-bold text-muted">
+                      {tr("غلاف المحل")}
+                    </span>
+                  )}
+                  <div className="space-y-1">
+                    <p className="text-xs font-extrabold text-ink">{tr("صورة غلاف صفحة المحل")}</p>
+                    <div className="flex flex-wrap gap-2">
+                      <label className="btn btn-ghost cursor-pointer py-1.5 px-3 text-xs font-extrabold">
+                        {editCover ? tr("تغيير الغلاف") : tr("+ رفع صورة غلاف")}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          disabled={busy}
+                          onChange={async (e) => {
+                            const f = e.target.files?.[0];
+                            e.target.value = "";
+                            if (!f) return;
+                            const k = await uploadAdminShopImage(f, activeShop.slug, "coverKey");
+                            if (k) setEditCover(k);
+                          }}
+                        />
+                      </label>
+                      {editCover ? (
+                        <button
+                          type="button"
+                          onClick={() => setEditCover("")}
+                          className="btn btn-ghost py-1.5 px-2.5 text-xs font-bold text-alert"
+                        >
+                          {tr("حذف")}
+                        </button>
+                      ) : null}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-3">
+                <div>
+                  <label className="mb-1 block text-xs font-bold text-muted">{tr("اسم المحل")}</label>
+                  <input
+                    className="field"
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-bold text-muted">{tr("التصنيف")}</label>
+                  <select
+                    className="field"
+                    value={editCat}
+                    onChange={(e) => setEditCat(e.target.value)}
+                  >
+                    {ownerCategories.map((c) => (
+                      <option key={c} value={c}>
+                        {trv(c)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-bold text-muted">{tr("العنوان / الحي")}</label>
+                  <input
+                    className="field"
+                    value={editArea}
+                    onChange={(e) => setEditArea(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-3">
+                <div>
+                  <label className="mb-1 block text-xs font-bold text-muted">{tr("الهاتف")}</label>
+                  <input
+                    className="field"
+                    dir="ltr"
+                    value={editPhone}
+                    onChange={(e) => setEditPhone(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-bold text-muted">{tr("واتساب الطلبات")}</label>
+                  <input
+                    className="field"
+                    dir="ltr"
+                    value={editWa}
+                    onChange={(e) => setEditWa(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-bold text-muted">{tr("ساعات العمل")}</label>
+                  <input
+                    className="field"
+                    value={editHours}
+                    onChange={(e) => setEditHours(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="mb-1 block text-xs font-bold text-muted">{tr("وصف المحل")}</label>
+                <textarea
+                  className="field min-h-16"
+                  value={editDesc}
+                  onChange={(e) => setEditDesc(e.target.value)}
+                />
+              </div>
+
+              <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+                <div className="flex flex-wrap gap-4">
+                  <label className="flex items-center gap-2 text-xs font-extrabold">
+                    <input
+                      type="checkbox"
+                      checked={editVerified}
+                      onChange={(e) => setEditVerified(e.target.checked)}
+                      className="size-4 accent-primary"
+                    />
+                    ✓ {tr("محل موثّق (تظهر شارة موثّق)")}
+                  </label>
+                  <label className="flex items-center gap-2 text-xs font-extrabold">
+                    <input
+                      type="checkbox"
+                      checked={editFeatured}
+                      onChange={(e) => setEditFeatured(e.target.checked)}
+                      className="size-4 accent-primary"
+                    />
+                    ⭐ {tr("تمييز المحل في مقدمة الدليل والصفحة الرئيسية")}
+                  </label>
+                </div>
+
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={saveShopProfileFromAdmin}
+                  className="btn py-2 px-6 text-xs font-extrabold"
+                >
+                  💾 {tr("حفظ اللوجو وبيانات المحل")}
+                </button>
+              </div>
+            </div>
+          ) : null}
+
+          {/* Sub-Tab 2: Assign Supervision to Specific Member */}
+          {subTab === "supervisor" ? (
+            <div className="space-y-3">
+              <div className="rounded-2xl border border-[#16A34A]/40 bg-[#16A34A]/5 p-3.5">
+                <p className="text-sm font-extrabold text-ink">
+                  👤 {tr("المشرف المعيّن حالياً على هذا المحل:")}{" "}
+                  {supEmail || supUserId ? (
+                    <span className="text-[#15803D]">
+                      {supName || "عضو"} ({supEmail || supUserId})
+                    </span>
+                  ) : (
+                    <span className="text-muted">{tr("لا يوجد مشرف معيّن بعد")}</span>
+                  )}
+                </p>
+                <p className="mt-1 text-xs font-semibold text-muted">
+                  {tr("عند إعطاء صلاحية الإشراف لعضو محدد، ستظهر له داخل صفحة هذا المحل فقط لوحة تحكم تمكّنه من تحديث لوجو المحل، وإضافة المنتجات، ونشر إعلانات وحملات العروض.")}
+                </p>
+                {supEmail || supUserId ? (
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => assignSupervisorFromAdmin("", "", "")}
+                    className="btn btn-ghost mt-2 py-1.5 text-xs font-extrabold text-alert"
+                  >
+                    {tr("إلغاء صلاحية الإشراف عن هذا العضو")}
+                  </button>
+                ) : null}
+              </div>
+
+              {/* Manual Email / Name Assignment */}
+              <div className="grid gap-2.5 sm:grid-cols-3">
+                <input
+                  className="field"
+                  dir="ltr"
+                  value={supEmail}
+                  onChange={(e) => setSupEmail(e.target.value)}
+                  placeholder={tr("البريد الإلكتروني للعضو (example@gmail.com)")}
+                />
+                <input
+                  className="field"
+                  value={supName}
+                  onChange={(e) => setSupName(e.target.value)}
+                  placeholder={tr("اسم المشرف / صاحب المحل")}
+                />
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => assignSupervisorFromAdmin(supUserId, supEmail, supName)}
+                  className="btn py-2 text-xs font-extrabold"
+                >
+                  ✓ {tr("تعيين المشرف على المحل")}
+                </button>
+              </div>
+
+              {/* Pick from Registered Members List */}
+              <div className="space-y-2 pt-2">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-xs font-extrabold text-ink">
+                    {tr("أو اختر مباشرة من قائمة الأعضاء المسجلين في الموقع:")}
+                  </p>
+                  <input
+                    type="search"
+                    value={memberSearch}
+                    onChange={(e) => setMemberSearch(e.target.value)}
+                    placeholder={tr("ابحث في الأعضاء...")}
+                    className="field max-w-xs py-1 text-xs"
+                  />
+                </div>
+                <div className="grid gap-2 sm:grid-cols-2 max-h-56 overflow-y-auto p-1">
+                  {filteredMembers.map((m) => {
+                    const isCurrentSup =
+                      (supUserId && supUserId === m.id) ||
+                      (supEmail && supEmail.toLowerCase() === m.email.toLowerCase());
+                    return (
+                      <div
+                        key={m.id}
+                        className={`flex items-center justify-between gap-2 rounded-xl border p-2.5 text-xs ${
+                          isCurrentSup
+                            ? "border-[#16A34A] bg-[#16A34A]/10"
+                            : "border-line bg-surface/50"
+                        }`}
+                      >
+                        <div className="min-w-0">
+                          <p className="truncate font-extrabold text-ink">{m.name}</p>
+                          <p className="truncate text-[11px] font-semibold text-muted" dir="ltr">
+                            {m.email}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          disabled={busy}
+                          onClick={() => assignSupervisorFromAdmin(m.id, m.email, m.name)}
+                          className={`shrink-0 rounded-lg px-3 py-1.5 font-extrabold ${
+                            isCurrentSup
+                              ? "bg-[#16A34A] text-white"
+                              : "bg-primary text-ink hover:opacity-90"
+                          }`}
+                        >
+                          {isCurrentSup ? tr("✓ مشرف حالي") : tr("منح إشراف المحل")}
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          ) : null}
+
+          {/* Sub-Tab 3: Manage Shop Products */}
+          {subTab === "products" ? (
+            <div className="space-y-3">
+              <div className="rounded-2xl border border-line bg-surface/50 p-3.5 space-y-2.5">
+                <p className="text-xs font-extrabold text-ink">
+                  ➕ {tr("إضافة منتج جديد لصفحة المحل:")}
+                </p>
+                <div className="grid gap-2 sm:grid-cols-4">
+                  <input
+                    className="field"
+                    value={prodName}
+                    onChange={(e) => setProdName(e.target.value)}
+                    placeholder={tr("اسم المنتج *")}
+                  />
+                  <input
+                    className="field"
+                    value={prodPrice}
+                    onChange={(e) => setProdPrice(e.target.value)}
+                    placeholder={tr("السعر (مثال: 45 ₪)")}
+                  />
+                  <input
+                    className="field"
+                    value={prodOldPrice}
+                    onChange={(e) => setProdOldPrice(e.target.value)}
+                    placeholder={tr("السعر السابق (اختياري)")}
+                  />
+                  <label className="btn btn-ghost cursor-pointer py-2 text-xs font-extrabold">
+                    {prodImg ? tr("✓ تم رفع الصورة") : tr("📷 صورة المنتج")}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      disabled={busy}
+                      onChange={async (e) => {
+                        const f = e.target.files?.[0];
+                        if (!f) return;
+                        const k = await uploadAdminShopImage(f, activeShop.slug);
+                        if (k) setProdImg(k);
+                      }}
+                    />
+                  </label>
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    className="field flex-1"
+                    value={prodDesc}
+                    onChange={(e) => setProdDesc(e.target.value)}
+                    placeholder={tr("وصف مختصر للمنتج...")}
+                  />
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={addProductFromAdmin}
+                    className="btn shrink-0 py-2 px-5 text-xs font-extrabold"
+                  >
+                    + {tr("إضافة المنتج")}
+                  </button>
+                </div>
+              </div>
+
+              {(activeShop.cfg?.products?.length ?? 0) > 0 ? (
+                <div className="grid gap-2 sm:grid-cols-3">
+                  {activeShop.cfg!.products.map((p) => (
+                    <div
+                      key={p.id}
+                      className="flex items-center justify-between gap-2 rounded-xl border border-line bg-paper p-2.5 text-xs"
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        {p.imageKey ? (
+                          <img
+                            src={shopImgUrl(p.imageKey)}
+                            alt={p.name}
+                            className="size-10 shrink-0 rounded-lg object-cover"
+                          />
+                        ) : null}
+                        <div className="min-w-0">
+                          <p className="truncate font-extrabold text-ink">{p.name}</p>
+                          <p className="font-bold text-primary-ink">{p.price}</p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => deleteProductFromAdmin(p.id)}
+                        className="btn btn-ghost py-1 px-2 text-alert"
+                      >
+                        <Trash2 className="size-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs font-semibold text-muted">
+                  {tr("لا توجد منتجات مضافة في هذا المحل بعد.")}
+                </p>
+              )}
+            </div>
+          ) : null}
+
+          {/* Sub-Tab 4: Manage Promotional Campaigns & Offer Ads */}
+          {subTab === "campaigns" ? (
+            <div className="space-y-3">
+              <div className="rounded-2xl border border-line bg-surface/50 p-3.5 space-y-2.5">
+                <p className="text-xs font-extrabold text-ink">
+                  📢 {tr("إضافة إعلان للمنتجات أو حملة عروض داخل صفحة المحل:")}
+                </p>
+                <div className="grid gap-2 sm:grid-cols-4">
+                  <input
+                    className="field"
+                    value={campTitle}
+                    onChange={(e) => setCampTitle(e.target.value)}
+                    placeholder={tr("عنوان الحملة / العرض *")}
+                  />
+                  <input
+                    className="field"
+                    value={campBadge}
+                    onChange={(e) => setCampBadge(e.target.value)}
+                    placeholder={tr("شارة الخصم (مثال: خصم 30%)")}
+                  />
+                  <input
+                    className="field"
+                    value={campValid}
+                    onChange={(e) => setCampValid(e.target.value)}
+                    placeholder={tr("ساري حتى (مثال: نهاية الأسبوع)")}
+                  />
+                  <label className="btn btn-ghost cursor-pointer py-2 text-xs font-extrabold">
+                    {campImg ? tr("✓ تم رفع البانر") : tr("📷 صورة الإعلان")}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      disabled={busy}
+                      onChange={async (e) => {
+                        const f = e.target.files?.[0];
+                        if (!f) return;
+                        const k = await uploadAdminShopImage(f, activeShop.slug);
+                        if (k) setCampImg(k);
+                      }}
+                    />
+                  </label>
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    className="field flex-1"
+                    value={campSubtitle}
+                    onChange={(e) => setCampSubtitle(e.target.value)}
+                    placeholder={tr("تفاصيل العرض أو المنتجات المشمولة...")}
+                  />
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={addCampaignFromAdmin}
+                    className="btn shrink-0 py-2 px-5 text-xs font-extrabold"
+                  >
+                    📢 {tr("نشر حملة العروض")}
+                  </button>
+                </div>
+              </div>
+
+              {(activeShop.cfg?.campaigns?.length ?? 0) > 0 ? (
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {activeShop.cfg!.campaigns.map((c) => (
+                    <div
+                      key={c.id}
+                      className="flex items-center justify-between gap-2 rounded-xl border border-line bg-paper p-2.5 text-xs"
+                    >
+                      <div className="min-w-0">
+                        <span className="rounded-full bg-alert px-2 py-0.5 text-[10px] font-extrabold text-white">
+                          {c.discountBadge}
+                        </span>
+                        <p className="mt-1 truncate font-extrabold text-ink">{c.title}</p>
+                        <p className="truncate text-muted">{c.subtitle}</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => deleteCampaignFromAdmin(c.id)}
+                        className="btn btn-ghost py-1 px-2 text-alert"
+                      >
+                        <Trash2 className="size-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs font-semibold text-muted">
+                  {tr("لا توجد حملات عروض مضافة في هذا المحل بعد.")}
+                </p>
+              )}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
+      {/* Shops List in Admin */}
+      <div className="grid gap-2.5 sm:grid-cols-2">
+        {filteredShops.slice(0, 30).map((shop) => {
+          const isSel = shop.slug === selectedSlug;
+          const pCount = shop.cfg?.products?.length ?? 0;
+          const cCount = shop.cfg?.campaigns?.length ?? 0;
+          const sup = shop.cfg?.supervisorName || shop.cfg?.supervisorEmail;
+          return (
+            <div
+              key={shop.slug}
+              className={`stamp flex items-center justify-between gap-3 p-3 transition ${
+                isSel ? "border-2 border-ink bg-primary-soft/40" : ""
+              }`}
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="relative shrink-0">
+                  {shop.cfg?.coverKey ? (
+                    <img
+                      src={shopImgUrl(shop.cfg.coverKey)}
+                      alt=""
+                      className="h-12 w-18 rounded-2xl border border-line object-cover opacity-85"
+                    />
+                  ) : null}
+                  {shop.photo ? (
+                    <img
+                      src={shopImgUrl(shop.photo)}
+                      alt={shop.name}
+                      className={`${
+                        shop.cfg?.coverKey
+                          ? "absolute -bottom-1 -start-1 size-9 rounded-xl border-2 border-paper shadow-sm"
+                          : "size-12 rounded-2xl border border-primary"
+                      } bg-paper object-cover`}
+                    />
+                  ) : !shop.cfg?.coverKey ? (
+                    <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-surface text-base font-extrabold text-muted">
+                      🏪
+                    </span>
+                  ) : null}
+                </div>
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-1">
+                    <p className="truncate text-sm font-extrabold text-ink">{shop.name}</p>
+                    {shop.verified ? (
+                      <span className="rounded-full bg-ink px-1.5 py-0.5 text-[9px] font-extrabold text-paper">
+                        ✓ موثّق
+                      </span>
+                    ) : null}
+                  </div>
+                  <p className="truncate text-xs font-semibold text-muted">
+                    {shop.category}
+                    {shop.area || shop.address ? ` · ${shop.area || shop.address}` : ""}
+                  </p>
+                  <div className="mt-1 flex flex-wrap gap-1 text-[10px] font-extrabold">
+                    {sup ? (
+                      <span className="rounded-md bg-[#16A34A]/15 px-1.5 py-0.5 text-[#15803D]">
+                        👤 إشراف: {sup}
+                      </span>
+                    ) : null}
+                    {pCount > 0 ? (
+                      <span className="rounded-md bg-primary-soft px-1.5 py-0.5 text-primary-ink">
+                        🛍️ {pCount} منتج
+                      </span>
+                    ) : null}
+                    {cCount > 0 ? (
+                      <span className="rounded-md bg-alert/15 px-1.5 py-0.5 text-alert">
+                        🔥 {cCount} عروض
+                      </span>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => selectShop(shop)}
+                className="btn shrink-0 py-1.5 px-3 text-xs font-extrabold"
+              >
+                ⚙️ {tr("إدارة / لوجو / إشراف")}
+              </button>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+
+
+/* -------------------------------------------------------------------------- */
+/* Admin Appearance Control for Galim Buses & Rahat Emergency Homepage Blocks */
+/* -------------------------------------------------------------------------- */
+
+const BUSES_HOME_STYLES_META = [
+  {
+    id: "modern_cards",
+    title: "✨ بطاقات عصرية متناسقة (الافتراضي)",
+    desc: "تصميم متناسق مع هوية رهط بوست مع تبويبات داخلية/خارجية وطوارئ رهط.",
+  },
+  {
+    id: "live_board",
+    title: "🚏 لوحة المحطة الذكية (Station Board)",
+    desc: "شاشة مواعيد حديثة بأسلوب لوحات محطات الحافلات الرقمية.",
+  },
+  {
+    id: "compact_pills",
+    title: "💊 شريط كبسولات مدمج وأنيق",
+    desc: "عرض جميع الخطوط كأزرار كبسولات سريعة في مساحة مدمجة.",
+  },
+  {
+    id: "dark_gold",
+    title: "🌙 الوضع الداكن الفاخر (Dark & Gold)",
+    desc: "بطاقة داكنة فاخرة بشارات ذهبية عالية التباين.",
+  },
+  {
+    id: "split_showcase",
+    title: "🗺️ بطاقة العرض المزدوجة (Split Showcase)",
+    desc: "بطاقة بارزة للخريطة الحية بجانب شبكة خطوط رهط والنقب.",
+  },
+  {
+    id: "collapsible",
+    title: "📂 شريط مختصر قابل للطي والفتح",
+    desc: "يظهر كشريط مدمج وينفتح لعرض الخطوط والطوارئ عند الضغط عليه.",
+  },
+] as const;
+
+const EMERGENCY_HOME_STYLES_META = [
+  {
+    id: "modern_grid",
+    title: "🚨 شبكة البطاقات العصرية الكاملة (الافتراضي)",
+    desc: "شبكة أنيقة تعرض أرقام طوارئ رهط بالأيقونات والأرقام البارزة.",
+  },
+  {
+    id: "compact_strip",
+    title: "💊 شريط الكبسولات السريع المدمج",
+    desc: "كبسولات أفقية سريعة للاتصال المباشر بضغطة واحدة.",
+  },
+  {
+    id: "color_coded",
+    title: "🎨 بطاقات ملوّنة حسب نوع الخدمة",
+    desc: "تلوين هادئ مميز لكل جهة (أحمر للإسعاف، أزرق للشرطة، ذهبي للبلدية 106).",
+  },
+  {
+    id: "dark_gold",
+    title: "🌙 الوضع الداكن الذهبي (Dark & Gold)",
+    desc: "خلفية داكنة فاخرة مع أرقام طوارئ ذهبية واضحة.",
+  },
+  {
+    id: "list_rows",
+    title: "📋 قائمة صفوف مع زر اتصال مباشر",
+    desc: "صفوف مرتبة توضح اسم الخدمة، الوصف، وزر اتصال فوري.",
+  },
+  {
+    id: "collapsible",
+    title: "📂 عرض أهم 4 أرقام مع زر توسيع الكل",
+    desc: "يعرض (100، 101، 102، 106) مع زر لعرض باقي أرقام طوارئ رهط.",
+  },
+] as const;
+
+function readBusEmergFromSettings(settings: SiteSettings | null | undefined) {
+  const item = (settings?.quickLinks ?? []).find((q) => q.id === "busemergcfg");
+  let bs = "modern_cards";
+  let es = "modern_grid";
+  let ieb = true;
+  let sae = true;
+  if (item && item.url.startsWith("/__bemg?")) {
+    const sp = new URLSearchParams(item.url.slice(8));
+    if (sp.get("bs")) bs = sp.get("bs")!;
+    if (sp.get("es")) es = sp.get("es")!;
+    if (sp.get("ieb") === "0") ieb = false;
+    if (sp.get("sae") === "0") sae = false;
+  }
+  return { bs, es, ieb, sae };
+}
+
+function BusesAndEmergencyAppearanceAdmin() {
+  const router = useRouter();
+  const ctxSettings = useSiteSettings();
+  const initCfg = readBusEmergFromSettings(ctxSettings);
+  const [st, setSt] = useState<SiteSettings>(ctxSettings ?? DEFAULT_SETTINGS);
+  const [busesStyle, setBusesStyle] = useState<string>(initCfg.bs);
+  const [emergencyStyle, setEmergencyStyle] = useState<string>(initCfg.es);
+  const [includeEmergencyInBuses, setIncludeEmergencyInBuses] = useState<boolean>(initCfg.ieb);
+  const [showAllEmergency, setShowAllEmergency] = useState<boolean>(initCfg.sae);
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState("");
+
+  useEffect(() => {
+    void adminGetSiteSettings()
+      .then((r) => {
+        if (r?.authed && r.settings) {
+          setSt(r.settings);
+          const parsed = readBusEmergFromSettings(r.settings);
+          setBusesStyle(parsed.bs);
+          setEmergencyStyle(parsed.es);
+          setIncludeEmergencyInBuses(parsed.ieb);
+          setShowAllEmergency(parsed.sae);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const persistConfig = async (next: {
+    bs?: string;
+    es?: string;
+    ieb?: boolean;
+    sae?: boolean;
+  }) => {
+    if (!st) return;
+    const bs = next.bs ?? busesStyle;
+    const es = next.es ?? emergencyStyle;
+    const ieb = next.ieb ?? includeEmergencyInBuses;
+    const sae = next.sae ?? showAllEmergency;
+
+    setBusesStyle(bs);
+    setEmergencyStyle(es);
+    setIncludeEmergencyInBuses(ieb);
+    setShowAllEmergency(sae);
+
+    setSaving(true);
+    setMsg("");
+    try {
+      const others = (st.quickLinks ?? []).filter((q) => q.id !== "busemergcfg");
+      const url = `/__bemg?bs=${encodeURIComponent(bs)}&es=${encodeURIComponent(es)}&ieb=${ieb ? "1" : "0"}&sae=${sae ? "1" : "0"}`;
+      const nextLinks = [
+        ...others,
+        {
+          id: "busemergcfg",
+          title: "busemergcfg",
+          subtitle: `${bs}|${es}`,
+          url,
+          emoji: "🚌",
+        },
+      ];
+      const nextSettings: SiteSettings = { ...st, quickLinks: nextLinks };
+      const [res, apiRes] = await Promise.all([
+        adminSaveSiteSettings({ data: nextSettings }).catch(() => ({ ok: false, settings: undefined, message: "" })),
+        fetch("/api/media?kind=live-settings", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ settings: nextSettings }),
+        })
+          .then((r) => (r.ok ? r.json() : null))
+          .catch(() => null),
+      ]);
+      const savedSt = (res.ok && res.settings) ? res.settings : (apiRes?.ok && apiRes?.settings ? apiRes.settings : null);
+      if (savedSt) {
+        setSt(savedSt);
+        try {
+          window.localStorage.setItem("rp_latest_site_settings", JSON.stringify(savedSt));
+          window.dispatchEvent(new CustomEvent("rp-site-settings-updated", { detail: savedSt }));
+        } catch {}
+        setMsg("تم حفظ مظهر قسم الباصات وأرقام الطوارئ وتحديث التطبيق فوراً ✓");
+        await router.invalidate();
+      } else {
+        setMsg(res.message || "تعذّر حفظ الإعدادات.");
+      }
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (!st) return null;
+
+  return (
+    <div className="stamp space-y-4 border-2 border-primary/70 bg-gradient-to-b from-primary-soft/40 via-paper to-paper p-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h2 className="text-base font-extrabold text-ink sm:text-lg">
+            🚌🚨 {tr("تخصيص مظهر «باصات غاليم» و«أرقام الطوارئ في رهط» بالصفحة الرئيسية")}
+          </h2>
+          <p className="text-xs font-semibold text-muted">
+            {tr("اختر المظهر والتصميم المناسب لقسم باصات غاليم وقسم أرقام الطوارئ في رهط، مع إمكانية دمج أرقام الطوارئ داخل بطاقة الباصات.")}
+          </p>
+        </div>
+        {msg ? (
+          <span className="rounded-xl bg-emerald-500/15 px-3 py-1 text-xs font-extrabold text-emerald-700">
+            {trv(msg)}
+          </span>
+        ) : null}
+      </div>
+
+      {/* 1. Galim Buses Style Selector */}
+      <div className="space-y-2">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-xs font-extrabold text-ink sm:text-sm">
+            1. {tr("مظهر قسم «باصات غاليم» في الصفحة الرئيسية (6 مظاهر):")}
+          </p>
+          <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-line bg-paper px-3 py-1.5 text-xs font-extrabold text-ink">
+            <input
+              type="checkbox"
+              checked={includeEmergencyInBuses}
+              disabled={saving}
+              onChange={(e) => void persistConfig({ ieb: e.target.checked })}
+            />
+            <span>🚨 {tr("تضمين أرقام الطوارئ في رهط داخل بطاقة الباصات")}</span>
+          </label>
+        </div>
+
+        <div className="grid gap-2 sm:grid-cols-3">
+          {BUSES_HOME_STYLES_META.map((opt) => {
+            const active = busesStyle === opt.id;
+            return (
+              <button
+                key={opt.id}
+                type="button"
+                disabled={saving}
+                onClick={() => void persistConfig({ bs: opt.id })}
+                className={`press flex flex-col justify-between rounded-2xl border p-3 text-start transition ${
+                  active
+                    ? "border-2 border-ink bg-ink text-paper shadow-sm"
+                    : "border-line bg-paper text-ink hover:border-primary"
+                }`}
+              >
+                <span className="text-xs font-extrabold sm:text-sm">{trv(opt.title)}</span>
+                <span className={`mt-1 text-[11px] font-semibold ${active ? "text-paper/75" : "text-muted"}`}>
+                  {trv(opt.desc)}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* 2. Rahat Emergency Numbers Style Selector */}
+      <div className="space-y-2 border-t border-line/80 pt-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-xs font-extrabold text-ink sm:text-sm">
+            2. {tr("مظهر قسم «أرقام الطوارئ في رهط» في الصفحة الرئيسية (6 مظاهر):")}
+          </p>
+          <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-line bg-paper px-3 py-1.5 text-xs font-extrabold text-ink">
+            <input
+              type="checkbox"
+              checked={showAllEmergency}
+              disabled={saving}
+              onChange={(e) => void persistConfig({ sae: e.target.checked })}
+            />
+            <span>📞 {tr("عرض جميع أرقام الطوارئ في رهط (10 أرقام) افتراضياً")}</span>
+          </label>
+        </div>
+
+        <div className="grid gap-2 sm:grid-cols-3">
+          {EMERGENCY_HOME_STYLES_META.map((opt) => {
+            const active = emergencyStyle === opt.id;
+            return (
+              <button
+                key={opt.id}
+                type="button"
+                disabled={saving}
+                onClick={() => void persistConfig({ es: opt.id })}
+                className={`press flex flex-col justify-between rounded-2xl border p-3 text-start transition ${
+                  active
+                    ? "border-2 border-ink bg-ink text-paper shadow-sm"
+                    : "border-line bg-paper text-ink hover:border-primary"
+                }`}
+              >
+                <span className="text-xs font-extrabold sm:text-sm">{trv(opt.title)}</span>
+                <span className={`mt-1 text-[11px] font-semibold ${active ? "text-paper/75" : "text-muted"}`}>
+                  {trv(opt.desc)}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+
+const ADMIN_BUS_LINES_LIST = [
+  { number: "1", scope: "city" as const, from: "السلام، مستودع البلدية", to: "الخزان / حطين", note: "" },
+  { number: "2", scope: "city" as const, from: "السلام، الدفيئات", to: "الخضر، حي 31", note: "" },
+  { number: "3", scope: "city" as const, from: "محطة تافوح / السلام", to: "رفح / البوئي", note: "" },
+  { number: "4", scope: "city" as const, from: "المدينة المنورة، شمال غرب", to: "المدينة المنورة، الحديقة", note: "" },
+  { number: "4أ", scope: "city" as const, from: "المدينة المنورة، شمال غرب", to: "المدينة المنورة، الحديقة", note: "رحلات أقل من خط 4" },
+  { number: "5", scope: "city" as const, from: "صلاح الدين، مدرسة الهدى", to: "صلاح الدين، مدرسة الهدى", note: "خط دائري" },
+  { number: "6", scope: "city" as const, from: "المدينة المنورة، الحديقة", to: "صلاح الدين، مدرسة الهدى", note: "" },
+  { number: "40", scope: "between" as const, from: "رهط", to: "كسيفة", note: "" },
+  { number: "423", scope: "between" as const, from: "رهط", to: "كسيفة", note: "" },
+  { number: "425", scope: "between" as const, from: "رهط", to: "تل السبع", note: "" },
+  { number: "427", scope: "between" as const, from: "رهط", to: "عرعرة النقب", note: "" },
+  { number: "450", scope: "between" as const, from: "رهط", to: "بئر السبع", note: "يمر بحي السلام والدفيئات" },
+  { number: "451", scope: "between" as const, from: "رهط", to: "بئر السبع", note: "يمر بزمزم والمنزارة" },
+  { number: "452", scope: "between" as const, from: "رهط", to: "بئر السبع", note: "" },
+  { number: "454", scope: "between" as const, from: "رهط", to: "بئر السبع", note: "" },
+  { number: "455", scope: "between" as const, from: "رهط", to: "بئر السبع", note: "" },
+  { number: "462", scope: "between" as const, from: "رهط", to: "سديروت", note: "" },
+  { number: "466", scope: "between" as const, from: "رهط", to: "بئر طوفيا", note: "" },
+  { number: "467", scope: "between" as const, from: "رهط", to: "عسقلان", note: "" },
+  { number: "471", scope: "between" as const, from: "رهط", to: "بئر السبع", note: "خط مباشر سريع" },
+];
+
+function BusLinesAdmin() {
+  const [scope, setScope] = useState<"all" | "city" | "between">("all");
+  const [q, setQ] = useState("");
+
+  const filtered = ADMIN_BUS_LINES_LIST.filter((b) => {
+    if (scope !== "all" && b.scope !== scope) return false;
+    if (q.trim()) {
+      const needle = q.trim().toLowerCase();
+      return (
+        b.number.toLowerCase().includes(needle) ||
+        b.from.toLowerCase().includes(needle) ||
+        b.to.toLowerCase().includes(needle) ||
+        b.note.toLowerCase().includes(needle)
+      );
+    }
+    return true;
+  });
+
+  return (
+    <div className="stamp space-y-4 p-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h2 className="text-base font-extrabold text-ink sm:text-lg">
+            🚍 {tr("إدارة ومراجعة خطوط باصات غاليم (גלים) — رهط والنقب")}
+          </h2>
+          <p className="text-xs font-semibold text-muted">
+            {tr("يتم تحديث جداول المواعيد يومياً وبشكل تلقائي من قاعدة بيانات وزارة المواصلات (GTFS) مع التتبع المباشر.")}
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Link to="/buses" className="btn px-3 py-1.5 text-xs font-extrabold">
+            🗺️ {tr("فتح صفحة الباصات والخريطة")}
+          </Link>
+          <a href="tel:08-6688700" className="btn btn-ghost px-3 py-1.5 text-xs font-extrabold">
+            📞 08-6688700
+          </a>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap gap-1.5">
+          {[
+            { id: "all" as const, label: `الكل (${ADMIN_BUS_LINES_LIST.length})` },
+            { id: "city" as const, label: `خطوط داخل رهط (${ADMIN_BUS_LINES_LIST.filter((b) => b.scope === "city").length})` },
+            { id: "between" as const, label: `خطوط بين المدن (${ADMIN_BUS_LINES_LIST.filter((b) => b.scope === "between").length})` },
+          ].map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => setScope(t.id)}
+              className={`chip text-xs font-extrabold ${scope === t.id ? "chip-ink" : ""}`}
+            >
+              {trv(t.label)}
+            </button>
+          ))}
+        </div>
+
+        <input
+          type="search"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder={tr("ابحث برقم الخط أو الوجهة…")}
+          className="field max-w-xs text-xs"
+        />
+      </div>
+
+      <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
+        {filtered.map((line) => (
+          <div
+            key={line.number}
+            className="flex items-center justify-between gap-3 rounded-2xl border border-line bg-paper p-3"
+          >
+            <div className="flex items-center gap-2.5 min-w-0">
+              <span className="grid min-w-11 shrink-0 place-items-center rounded-xl bg-primary px-2.5 py-2 font-mono text-sm font-extrabold text-ink">
+                {line.number}
+              </span>
+              <div className="min-w-0">
+                <p className="truncate text-xs font-extrabold text-ink sm:text-sm">
+                  {trv(line.from)} ↔ {trv(line.to)}
+                </p>
+                <p className="truncate text-[11px] font-semibold text-muted">
+                  {line.scope === "city" ? tr("داخل أحياء رهط") : tr("بين المدن والنقب")}
+                  {line.note ? ` · ${trv(line.note)}` : ""}
+                </p>
+              </div>
+            </div>
+            <Link
+              to="/buses/map/$line"
+              params={{ line: line.number }}
+              className="shrink-0 rounded-xl border border-line bg-surface px-2.5 py-1.5 text-[11px] font-extrabold text-ink hover:border-primary"
+            >
+              🗺️ {tr("الخريطة")}
+            </Link>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+
+function SocialHubAdminConnected() {
+  const settings = useSiteSettings();
+  const [draft, setDraft] = useState<SiteSettings>(settings);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    setDraft(settings);
+  }, [settings]);
+
+  const saveNow = async (nextSettings: SiteSettings) => {
+    setBusy(true);
+    try {
+      await callAdminRpc("save-site-settings", { settings: nextSettings });
+      setDraft(nextSettings);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <SocialHubAndNewslettersAdmin
+      draft={draft}
+      setDraft={setDraft}
+      saveNow={saveNow}
+      busy={busy}
+    />
   );
 }
