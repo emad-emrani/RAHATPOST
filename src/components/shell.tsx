@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Bus, ChevronLeft, ShoppingCart, House, MapPin, Megaphone, Newspaper, Plus, Siren, Store } from "lucide-react";
+import { Bus, ChevronLeft, Globe, ShoppingCart, House, MapPin, Megaphone, Newspaper, Plus, Siren, Store } from "lucide-react";
 import type { ReactNode } from "react";
 import logoUrl from "@/assets/logo.jpg";
 import { UserMenu } from "@/components/user-menu";
