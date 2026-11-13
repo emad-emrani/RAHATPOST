@@ -46,6 +46,16 @@ import { busLines } from "@/data/buses";
 import { getLineVehicles } from "@/lib/buses/api";
 import { shapeFile, type LineShapes } from "@/lib/buses/map";
 import { lineInfo, plannedArrivals, stopName } from "@/lib/buses/schedule";
+import {
+  buildBusStopPopupHtml,
+  buildLiveBusPopupHtml,
+  buildScheduledFallbackBus,
+  createBusStopDivIcon,
+  createLiveBusDivIcon,
+  formatBusPlate,
+  getBusDriverDetails,
+  type BusVehicleMarkerInfo,
+} from "@/lib/buses/map-icons";
 import { LocateFixed, Maximize2, Minimize2, Navigation } from "lucide-react";
 
 const postGuide = getGuide("post");
@@ -7625,10 +7635,7 @@ function homeMinutesLabel(diff: number) {
 }
 
 function InteractiveGalimBusesHomeSection() {
-  const settings = useSiteSettings();
-  const cfg = useMemo(() => parseBusesAndEmergencyHomeCfg(settings.quickLinks ?? []), [settings.quickLinks]);
   const [tab, setTab] = useState<"city" | "intercity" | "emergency">("city");
-  const [expanded, setExpanded] = useState(cfg.busesStyle !== "collapsible");
 
   // Live Interactive Map Drawer State when clicking any bus line number
   const [selectedLine, setSelectedLine] = useState<string | null>(null);
@@ -7638,6 +7645,10 @@ function InteractiveGalimBusesHomeSection() {
   const [nearestStopDistM, setNearestStopDistM] = useState<number | null>(null);
   const [userCoords, setUserCoords] = useState<{ lat: number; lon: number } | null>(null);
   const [liveVehicles, setLiveVehicles] = useState<{ ref: string; dir: string; lat: number; lon: number; at: string }[]>([]);
+  const [selectedBusInfo, setSelectedBusInfo] = useState<BusVehicleMarkerInfo | null>(null);
+  const [editingDriver, setEditingDriver] = useState<boolean>(false);
+  const [customDriverInput, setCustomDriverInput] = useState<string>("");
+  const [driverVer, setDriverVer] = useState<number>(0);
   const [busStatus, setBusStatus] = useState<"idle" | "loading" | "ok" | "error">("idle");
   const [nowClock, setNowClock] = useState<number>(() => Date.now());
   const [isFullscreenMap, setIsFullscreenMap] = useState<boolean>(false);
@@ -7649,10 +7660,6 @@ function InteractiveGalimBusesHomeSection() {
   const busLayerRef = useRef<LayerGroup | null>(null);
   const userLayerRef = useRef<LayerGroup | null>(null);
   const [mapReady, setMapReady] = useState(false);
-
-  useEffect(() => {
-    setExpanded(cfg.busesStyle !== "collapsible");
-  }, [cfg.busesStyle]);
 
   useEffect(() => {
     if (!selectedLine) return;
@@ -7736,6 +7743,8 @@ function InteractiveGalimBusesHomeSection() {
     setSelectedLine(targetLine);
     setDir(firstDir?.dir ?? "1");
     setSelectedStop(firstDir?.stops[0]?.[0] ?? "");
+    setSelectedBusInfo(null);
+    setEditingDriver(false);
     if (userCoords && firstDir) {
       findNearestStop(userCoords.lat, userCoords.lon, firstDir);
     } else {
@@ -7788,7 +7797,13 @@ function InteractiveGalimBusesHomeSection() {
     };
   }, [isFullscreenMap, selectedLine]);
 
-  // Draw route shape and stops on the map
+  const activeStopForSchedule = selectedStop || nearestStopCode || currentDir?.stops[0]?.[0] || "";
+  const plannedNextList = useMemo(() => {
+    if (!selectedLine || !currentDir || !activeStopForSchedule) return [];
+    return plannedArrivals(nowClock, selectedLine, currentDir.dir, activeStopForSchedule, 4);
+  }, [nowClock, selectedLine, currentDir, activeStopForSchedule]);
+
+  // Draw route shape and Bus Stop Icons (محطات حافلات 🚏) on the map
   useEffect(() => {
     const Lf = LModRef.current;
     if (!mapReady || !Lf || !routeLayerRef.current || !leafletMapRef.current || !selectedLine || !currentDir) return;
@@ -7809,30 +7824,48 @@ function InteractiveGalimBusesHomeSection() {
 
         if (path.length > 0) {
           const poly = Lf.polyline(path, {
-            color: "#111827",
+            color: "#0f172a",
             weight: 5,
             opacity: 0.9,
           }).addTo(routeLayerRef.current);
 
           for (const [i, x] of stopPts.entries()) {
-            const isEnd = i === 0 || i === stopPts.length - 1;
             const isSel = x.code === (selectedStop || nearestStopCode);
-            Lf.circleMarker([x.s.lat, x.s.lon], {
-              radius: isSel ? 10 : isEnd ? 8 : 6,
-              color: isSel ? "#DC2626" : "#111827",
-              weight: isSel ? 3 : 2,
-              fillColor: isSel ? "#DC2626" : isEnd ? "#f2c94c" : "#ffffff",
-              fillOpacity: 1,
+            const isNear = x.code === nearestStopCode;
+            const stopArrs = plannedArrivals(Date.now(), selectedLine, currentDir.dir, x.code, 3);
+            const nextTimes = stopArrs.map((a) => `${a.time} (${homeMinutesLabel(a.inMin)})`);
+
+            Lf.marker([x.s.lat, x.s.lon], {
+              icon: createBusStopDivIcon(Lf, {
+                index: i,
+                total: stopPts.length,
+                code: x.code,
+                name: stopName(x.code),
+                isSelected: isSel,
+                isNearest: isNear,
+              }),
+              zIndexOffset: isSel ? 900 : 200,
             })
               .addTo(routeLayerRef.current)
-              .bindTooltip(`${i + 1}. ${stopName(x.code)}`, { direction: "top" })
+              .bindTooltip(`🚏 ${i + 1}. ${stopName(x.code)}`, { direction: "top" })
+              .bindPopup(
+                buildBusStopPopupHtml({
+                  index: i,
+                  code: x.code,
+                  name: stopName(x.code),
+                  line: selectedLine,
+                  nextTimes,
+                  isNearest: isNear,
+                }),
+                { maxWidth: 280 },
+              )
               .on("click", () => {
                 setSelectedStop(x.code);
                 leafletMapRef.current?.setView([x.s.lat, x.s.lon], 16, { animate: true });
               });
           }
 
-          leafletMapRef.current.fitBounds(poly.getBounds(), { padding: [26, 26] });
+          leafletMapRef.current.fitBounds(poly.getBounds(), { padding: [32, 32] });
         }
       });
 
@@ -7863,74 +7896,136 @@ function InteractiveGalimBusesHomeSection() {
     return () => clearInterval(id);
   }, [selectedLine]);
 
-  // Render live buses on map
+  // Build enriched bus marker objects (real SIRI vehicles, or scheduled fallback bus so the Bus Icon is ALWAYS visible on the map)
+  const mapBusItems = useMemo<BusVehicleMarkerInfo[]>(() => {
+    void driverVer;
+    if (!selectedLine || !currentDir) return [];
+    const fromName = lineMeta ? trv(lineMeta.from) : stopName(currentDir.from);
+    const toName = lineMeta ? trv(lineMeta.to) : stopName(currentDir.to);
+    const nearName = nearestStopCode ? stopName(nearestStopCode) : stopName(activeStopForSchedule);
+    const dirStops = currentDir.stops
+      .map(([code, offset]) => ({ code, offset, s: busSchedule.stops[code] }))
+      .filter((x) => Boolean(x.s));
+
+    if (liveVehicles.length > 0) {
+      return liveVehicles.map((v, idx) => {
+        const plate = formatBusPlate(v.ref, selectedLine);
+        const drv = getBusDriverDetails(selectedLine, v.ref);
+        let closestIdx = 0;
+        let minKm = Infinity;
+        for (let i = 0; i < dirStops.length; i++) {
+          const dKm = homeHaversineKm(v.lat, v.lon, dirStops[i].s.lat, dirStops[i].s.lon);
+          if (dKm < minKm) {
+            minKm = dKm;
+            closestIdx = i;
+          }
+        }
+        const nextStop = dirStops[Math.min(dirStops.length - 1, closestIdx + (minKm < 0.08 ? 1 : 0))] ?? dirStops[0];
+        const distM = nextStop
+          ? Math.max(15, Math.round(homeHaversineKm(v.lat, v.lon, nextStop.s.lat, nextStop.s.lon) * 1000))
+          : null;
+        const etaMin = distM !== null ? Math.max(1, Math.round((distM / 1000 / 26) * 60)) : 2;
+        return {
+          line: selectedLine,
+          ref: v.ref,
+          plate,
+          driverName: drv.driverName,
+          driverRole: drv.driverRole,
+          fromName,
+          toName,
+          speedKmh: 32,
+          compassAr: `باتجاه ${toName}`,
+          nextStopName: nextStop ? stopName(nextStop.code) : toName,
+          nextStopCode: nextStop?.code ?? "",
+          distToNextStopM: distM,
+          etaText: homeMinutesLabel(etaMin),
+          nearestStopName: nearName,
+          scheduledStart: plannedNextList[0]?.time ?? null,
+          nextDepartureTime: plannedNextList[0]?.time ?? null,
+          isLiveSiri: true,
+          isSelected: selectedBusInfo ? selectedBusInfo.ref === v.ref : idx === 0,
+          lat: v.lat,
+          lon: v.lon,
+          updatedAtText: new Date(v.at || Date.now()).toLocaleTimeString("ar-u-nu-latn", {
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+            timeZone: "Asia/Jerusalem",
+          }),
+        };
+      });
+    }
+
+    const fallback = buildScheduledFallbackBus({
+      line: selectedLine,
+      fromName,
+      toName,
+      stops: currentDir.stops,
+      nextPlanned: plannedNextList,
+      nearestStopName: nearName,
+      nowMs: nowClock,
+    });
+    return fallback ? [fallback] : [];
+  }, [selectedLine, currentDir, lineMeta, nearestStopCode, activeStopForSchedule, liveVehicles, plannedNextList, nowClock, selectedBusInfo, driverVer]);
+
+  // Render clear Bus Icons on map & attach rich Popup + Click handler to display full bus & driver info
   useEffect(() => {
     const Lf = LModRef.current;
     if (!mapReady || !Lf || !busLayerRef.current || !selectedLine) return;
     busLayerRef.current.clearLayers();
-    for (const v of liveVehicles) {
-      const digits = String(v.ref ?? "").replace(/\D/g, "");
-      const plate =
-        digits.length === 8
-          ? `${digits.slice(0, 3)}-${digits.slice(3, 5)}-${digits.slice(5)}`
-          : digits.length === 7
-            ? `${digits.slice(0, 2)}-${digits.slice(2, 5)}-${digits.slice(5)}`
-            : v.ref;
-      Lf.marker([v.lat, v.lon], {
-        icon: Lf.divIcon({
-          className: "",
-          html: `<div style="display:inline-flex;flex-direction:column;align-items:center;transform:translate(-50%,-50%);">
-            <div style="background:#f2c94c;color:#111827;font-weight:900;font-size:12px;padding:3px 10px;border-radius:999px;border:2px solid #111827;box-shadow:0 4px 10px rgba(0,0,0,0.3);white-space:nowrap;">🚌 خط ${selectedLine} · مباشر</div>
-            <div dir="ltr" style="margin-top:2px;background:#facc15;color:#111827;font-family:monospace;font-weight:900;font-size:10px;padding:1px 6px;border-radius:4px;border:1.5px solid #111827;white-space:nowrap;">IL ${plate}</div>
-          </div>`,
-          iconSize: [110, 46],
-          iconAnchor: [55, 23],
-        }),
-        zIndexOffset: 1500,
+    for (const bInfo of mapBusItems) {
+      const marker = Lf.marker([bInfo.lat, bInfo.lon], {
+        icon: createLiveBusDivIcon(Lf, bInfo),
+        zIndexOffset: bInfo.isSelected ? 2200 : 1600,
       })
         .addTo(busLayerRef.current)
+        .bindPopup(buildLiveBusPopupHtml(bInfo), { maxWidth: 320 })
         .on("click", () => {
-          leafletMapRef.current?.setView([v.lat, v.lon], 16, { animate: true });
+          setSelectedBusInfo(bInfo);
+          setCustomDriverInput(bInfo.driverName);
+          leafletMapRef.current?.setView([bInfo.lat, bInfo.lon], 16, { animate: true });
         });
+      void marker;
     }
-  }, [liveVehicles, mapReady, selectedLine]);
+  }, [mapBusItems, mapReady, selectedLine]);
 
-  const activeStopForSchedule = selectedStop || nearestStopCode || currentDir?.stops[0]?.[0] || "";
-  const plannedNextList = useMemo(() => {
-    if (!selectedLine || !currentDir || !activeStopForSchedule) return [];
-    return plannedArrivals(nowClock, selectedLine, currentDir.dir, activeStopForSchedule, 4);
-  }, [nowClock, selectedLine, currentDir, activeStopForSchedule]);
+  const activeBusCard = selectedBusInfo ?? mapBusItems[0] ?? null;
+
+  const handleSaveDriverName = () => {
+    if (!selectedLine || !customDriverInput.trim()) return;
+    try {
+      const raw = window.localStorage.getItem("rp_bus_drivers");
+      const map = raw ? (JSON.parse(raw) as Record<string, string>) : {};
+      if (activeBusCard?.ref) map[activeBusCard.ref] = customDriverInput.trim();
+      map[`line_${selectedLine}`] = customDriverInput.trim();
+      window.localStorage.setItem("rp_bus_drivers", JSON.stringify(map));
+      setDriverVer((v) => v + 1);
+      setEditingDriver(false);
+    } catch {
+      setEditingDriver(false);
+    }
+  };
 
   const activeLines = tab === "intercity" ? GALIM_HOME_INTERCITY_LINES : GALIM_HOME_CITY_LINES;
-  const isDark = cfg.busesStyle === "dark_gold";
 
   return (
     <section>
       <SectionTitle title={tr("باصات غاليم في رهط والنقب")} to="/buses" more={tr("الخريطة وكل المواعيد")} />
 
-      <div
-        className={`stamp overflow-hidden transition-all ${
-          isDark
-            ? "border-[#F2C94C]/50 bg-[#14120E] text-white shadow-md"
-            : cfg.busesStyle === "live_board"
-              ? "border-2 border-ink/80 bg-gradient-to-b from-surface via-paper to-paper"
-              : "border-2 border-primary/75 bg-gradient-to-b from-primary-soft/50 via-paper to-paper"
-        } p-3.5 sm:p-4`}
-      >
+      {/* Always-Expanded Golden Card Layout matching Image (147613.jpg) */}
+      <div className="stamp overflow-hidden border-2 border-primary/75 bg-gradient-to-b from-primary-soft/50 via-paper to-paper p-3.5 sm:p-4 shadow-sm transition-all">
         {/* Top Header Bar */}
         <div className="flex flex-wrap items-center justify-between gap-2.5">
           <div className="flex items-center gap-2.5">
             <span
-              className={`grid size-12 shrink-0 place-items-center rounded-2xl text-xl shadow-2xs ${
-                isDark ? "bg-[#F2C94C] text-[#14120E]" : "bg-primary text-ink"
-              }`}
+              className="grid size-12 shrink-0 place-items-center rounded-2xl bg-primary text-xl text-ink shadow-2xs"
               aria-hidden
             >
               <Bus className="size-6" />
             </span>
             <div>
               <div className="flex flex-wrap items-center gap-2">
-                <h3 className={`text-sm font-extrabold sm:text-base ${isDark ? "text-white" : "text-ink"}`}>
+                <h3 className="text-sm font-extrabold text-ink sm:text-base">
                   {tr("خطوط باصات غاليم (גלים) — رهط والنقب")}
                 </h3>
                 <span className="inline-flex items-center gap-1 rounded-full bg-[#16A34A]/15 px-2.5 py-0.5 text-[11px] font-extrabold text-[#15803D]">
@@ -7938,29 +8033,16 @@ function InteractiveGalimBusesHomeSection() {
                   {tr("مباشر · اضغط على رقم الخط لفتح الخريطة الحية")}
                 </span>
               </div>
-              <p className={`text-xs font-semibold ${isDark ? "text-white/70" : "text-muted"}`}>
+              <p className="text-xs font-semibold text-muted">
                 {tr("اضغط على أي رقم باص بالأسفل لإظهار الخريطة الحقيقية وأقرب محطة لموقعك والباص في نفس الوقت")}
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-1.5">
-            {cfg.busesStyle === "collapsible" ? (
-              <button
-                type="button"
-                onClick={() => setExpanded((v) => !v)}
-                className="btn btn-ghost px-3 py-1.5 text-xs font-extrabold"
-              >
-                {expanded ? tr("طي القائمة ▲") : tr("عرض الخطوط والمواعيد ▼")}
-              </button>
-            ) : null}
             <Link
               to="/buses"
-              className={`press inline-flex items-center gap-1.5 rounded-2xl px-3 py-2 text-xs font-extrabold shadow-2xs transition ${
-                isDark
-                  ? "bg-[#F2C94C] text-[#14120E]"
-                  : "bg-ink text-paper hover:opacity-90"
-              }`}
+              className="press inline-flex items-center gap-1.5 rounded-2xl bg-ink px-3 py-2 text-xs font-extrabold text-paper shadow-2xs transition hover:opacity-90"
             >
               <span>🗺️ {tr("كل الخطوط")}</span>
               <ChevronLeft className="size-4 rtl:rotate-0 ltr:rotate-180" aria-hidden />
@@ -7968,440 +8050,520 @@ function InteractiveGalimBusesHomeSection() {
           </div>
         </div>
 
-        {expanded ? (
-          <div className="mt-3.5 space-y-3">
-            {/* 3 Proportional Rounded-Square Category Tabs (#2 اجعلها أيقونات مربعة منحنية الأطراف بحجم متناسق) */}
-            <div className="grid grid-cols-3 gap-2 sm:gap-3">
-              {[
-                { id: "city" as const, icon: "🚌", title: "خطوط داخل رهط", sub: "خطوط 1–6 بالأحياء" },
-                { id: "intercity" as const, icon: "🛣️", title: "بئر السبع والنقب", sub: "سوروكا والبلدات" },
-                ...(cfg.includeEmergencyInBuses
-                  ? [{ id: "emergency" as const, icon: "🚨", title: "طوارئ رهط", sub: "اتصال سريع 24/7" }]
-                  : []),
-              ].map((cat) => {
-                const isCat = tab === cat.id;
-                return (
-                  <button
-                    key={cat.id}
-                    type="button"
-                    onClick={() => setTab(cat.id)}
-                    className={`press flex flex-col items-center justify-center gap-1 rounded-2xl border p-2.5 text-center transition-all ${
+        {/* Always Expanded Content */}
+        <div className="mt-3.5 space-y-3">
+          {/* 3 Proportional Rounded-Square Category Tabs */}
+          <div className="grid grid-cols-3 gap-2 sm:gap-3">
+            {[
+              { id: "city" as const, icon: "🚌", title: "خطوط داخل رهط", sub: "خطوط 1–6 بالأحياء" },
+              { id: "intercity" as const, icon: "🛣️", title: "بئر السبع والنقب", sub: "سوروكا والبلدات" },
+              { id: "emergency" as const, icon: "🚨", title: "طوارئ رهط", sub: "اتصال سريع 24/7" },
+            ].map((cat) => {
+              const isCat = tab === cat.id;
+              return (
+                <button
+                  key={cat.id}
+                  type="button"
+                  onClick={() => setTab(cat.id)}
+                  className={`press flex flex-col items-center justify-center gap-1 rounded-2xl border p-2.5 text-center transition-all ${
+                    isCat
+                      ? cat.id === "emergency"
+                        ? "border-alert bg-alert text-white shadow-md"
+                        : "border-ink bg-primary text-ink shadow-md ring-2 ring-ink/15"
+                      : "border-line bg-paper text-ink hover:border-primary shadow-2xs"
+                  }`}
+                >
+                  <span
+                    className={`grid size-11 shrink-0 place-items-center rounded-2xl text-xl shadow-2xs ${
+                      isCat ? "bg-white/25" : "bg-primary-soft"
+                    }`}
+                    aria-hidden
+                  >
+                    {cat.icon}
+                  </span>
+                  <span className="line-clamp-1 text-xs font-extrabold sm:text-sm">
+                    {trv(cat.title)}
+                  </span>
+                  <span
+                    className={`line-clamp-1 text-[10px] font-bold ${
                       isCat
                         ? cat.id === "emergency"
-                          ? "border-alert bg-alert text-white shadow-md"
-                          : isDark
-                            ? "border-[#F2C94C] bg-[#F2C94C] text-[#14120E] shadow-md"
-                            : "border-ink bg-primary text-ink shadow-md ring-2 ring-ink/15"
-                        : isDark
-                          ? "border-white/15 bg-white/5 text-white hover:border-[#F2C94C]"
-                          : "border-line bg-paper text-ink hover:border-primary shadow-2xs"
+                          ? "text-white/85"
+                          : "text-ink/80"
+                        : "text-muted"
                     }`}
                   >
-                    <span
-                      className={`grid size-11 shrink-0 place-items-center rounded-2xl text-xl shadow-2xs ${
-                        isCat
-                          ? "bg-white/25"
-                          : isDark
-                            ? "bg-white/10"
-                            : "bg-primary-soft"
-                      }`}
-                      aria-hidden
-                    >
-                      {cat.icon}
+                    {trv(cat.sub)}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {tab === "emergency" ? (
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+              {RAHAT_EMERGENCY_FULL.map((em) => (
+                <a
+                  key={em.phone}
+                  href={`tel:${em.phone}`}
+                  className="press flex items-center justify-between gap-2 rounded-2xl border border-line bg-paper p-2.5 text-ink transition hover:border-primary"
+                >
+                  <span className="min-w-0">
+                    <span className="block truncate text-xs font-extrabold">
+                      {em.icon} {trv(em.name)}
                     </span>
-                    <span className="line-clamp-1 text-xs font-extrabold sm:text-sm">
-                      {trv(cat.title)}
+                    <span className="block truncate text-[10px] font-semibold text-muted">
+                      {trv(em.sub)}
                     </span>
+                  </span>
+                  <span
+                    dir="ltr"
+                    className="shrink-0 rounded-xl bg-primary-soft px-2 py-1 font-mono text-xs font-extrabold text-primary-ink"
+                  >
+                    {em.phone}
+                  </span>
+                </a>
+              ))}
+            </div>
+          ) : (
+            /* Bus Line Cards — Clicking any Bus Line Number opens the Real Live Map + Nearest Stop + Real-Time Bus immediately! */
+            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
+              {activeLines.map((b) => {
+                const isSelectedLine = selectedLine === b.realLine;
+                return (
+                  <button
+                    key={b.line}
+                    type="button"
+                    onClick={() =>
+                      setSelectedLine((prev) => {
+                        if (prev === b.realLine) return null;
+                        handleOpenLineMap(b.realLine);
+                        return b.realLine;
+                      })
+                    }
+                    className={`press flex items-center gap-2.5 rounded-2xl border p-2.5 text-start transition-all ${
+                      isSelectedLine
+                        ? "border-2 border-ink bg-primary/30 text-ink shadow-md ring-2 ring-primary"
+                        : "border-line bg-paper text-ink hover:border-primary shadow-2xs"
+                    }`}
+                  >
+                    {/* Proportional Rounded-Square Bus Number Icon */}
                     <span
-                      className={`line-clamp-1 text-[10px] font-bold ${
-                        isCat
-                          ? cat.id === "emergency"
-                            ? "text-white/85"
-                            : "text-ink/80"
-                          : isDark
-                            ? "text-white/60"
-                            : "text-muted"
+                      className={`grid size-12 shrink-0 place-items-center rounded-2xl font-mono text-sm font-black shadow-2xs ${
+                        isSelectedLine ? "bg-ink text-primary" : "bg-primary text-ink"
                       }`}
                     >
-                      {trv(cat.sub)}
+                      {b.line}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-xs font-extrabold">
+                        {trv(b.from)} ↔ {trv(b.to)}
+                      </span>
+                      <span
+                        className={`mt-0.5 block truncate text-[11px] font-bold ${
+                          isSelectedLine ? "text-emerald-800" : "text-muted"
+                        }`}
+                      >
+                        {isSelectedLine ? "🗺️ الخريطة الحية مفتوحة ▼" : `🕒 ${trv(b.freq)} · اضغط للخريطة`}
+                      </span>
                     </span>
                   </button>
                 );
               })}
             </div>
+          )}
 
-            {tab === "emergency" ? (
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
-                {RAHAT_EMERGENCY_FULL.map((em) => (
+          {/* =========================================================================
+           * REAL-TIME LARGE CLEAR BUS MAP + BUS STOP ICONS + CLEAR BUS ICON WITH FULL INFO ON CLICK
+           * ========================================================================= */}
+          {selectedLine ? (
+            <div className="mt-3 overflow-hidden rounded-3xl border-2 border-ink bg-paper text-ink shadow-xl">
+              {/* 1. TOP BAR: Nearest Stop by Name (Clickable to zoom) + Geographic Location + Live Real-Time Clock */}
+              <div className="flex flex-wrap items-center justify-between gap-2 bg-gradient-to-r from-[#0f172a] via-[#1e293b] to-[#0f172a] px-3.5 py-3 text-white">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const code = nearestStopCode || selectedStop || currentDir?.stops[0]?.[0];
+                    if (code && busSchedule.stops[code] && leafletMapRef.current) {
+                      const st = busSchedule.stops[code];
+                      setSelectedStop(code);
+                      leafletMapRef.current.setView([st.lat, st.lon], 16, { animate: true });
+                    } else {
+                      locateUserAndNearestStop(currentDir, true);
+                    }
+                  }}
+                  className="flex min-w-0 flex-1 items-center gap-2.5 text-start transition hover:opacity-95"
+                  title={tr("اضغط لتكبير الخريطة على أقرب محطة وموقعك الجغرافي")}
+                >
+                  <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-primary text-lg font-black text-[#111827] shadow-md">
+                    🚏
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="rounded-md bg-emerald-500/25 px-2 py-0.5 text-[10px] font-black text-emerald-300">
+                        {userCoords
+                          ? tr("أقرب محطة لموقعك الجغرافي (اضغط للتكبير):")
+                          : tr("اضغط لتحديد موقعك الجغرافي وأقرب محطة بالاسم:")}
+                      </span>
+                      {nearestStopDistM !== null ? (
+                        <span className="text-[10.5px] font-extrabold text-primary">
+                          ({nearestStopDistM < 1000 ? `${nearestStopDistM} متر` : `${(nearestStopDistM / 1000).toFixed(1)} كم`})
+                        </span>
+                      ) : null}
+                    </div>
+                    <p className="mt-0.5 truncate text-xs font-black text-white sm:text-sm">
+                      🚏 {stopName(nearestStopCode || selectedStop || currentDir?.stops[0]?.[0] || "")}
+                    </p>
+                  </div>
+                </button>
+
+                {/* Live Real-Time Clock & Instant Bus Status */}
+                <div className="flex shrink-0 items-center gap-2">
+                  <div className="rounded-2xl border border-white/15 bg-white/10 px-3 py-1.5 text-end">
+                    <span className="block text-[9.5px] font-bold text-white/75">
+                      {tr("الوقت الحقيقي الآن")}
+                    </span>
+                    <span className="font-mono text-xs font-black text-primary sm:text-sm" dir="ltr">
+                      {new Date(nowClock).toLocaleTimeString("ar-u-nu-latn", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        second: "2-digit",
+                        hour12: false,
+                        timeZone: "Asia/Jerusalem",
+                      })}
+                    </span>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => locateUserAndNearestStop(currentDir, true)}
+                    className="grid size-10 place-items-center rounded-2xl bg-primary text-[#111827] shadow-md transition hover:brightness-105"
+                    title={tr("تحديد موقعي الجغرافي الآن")}
+                  >
+                    <LocateFixed className="size-5" />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setSelectedLine(null)}
+                    className="grid size-10 place-items-center rounded-2xl bg-white/15 text-xs font-black text-white transition hover:bg-red-600"
+                    title={tr("إغلاق الخريطة")}
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+
+              {/* 2. REAL-TIME BUS AT THIS EXACT MOMENT BAR */}
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line bg-primary-soft/60 px-3.5 py-2.5">
+                <div className="flex items-center gap-2">
+                  <span className="grid size-10 shrink-0 place-items-center rounded-2xl bg-ink font-mono text-sm font-black text-primary">
+                    🚌 {selectedLine}
+                  </span>
+                  <div>
+                    <p className="text-xs font-extrabold text-ink sm:text-sm">
+                      {lineMeta ? `${trv(lineMeta.from)} ↔ ${trv(lineMeta.to)}` : `${tr("خط")} ${selectedLine}`}
+                    </p>
+                    <p className="text-[11px] font-extrabold text-emerald-800">
+                      {liveVehicles.length > 0
+                        ? `🟢 ${liveVehicles.length} حافلة تبث موقعها المباشر الآن · اضغط على أيقونة الحافلة 🚌 في الخريطة لعرض السائق وكل المعلومات`
+                        : `🚌 اضغط على أيقونة الحافلة أو المحطات 🚏 على الخريطة لعرض رقم الحافلة واسم السائق وجميع المواعيد`}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Direction Switcher + Fullscreen Waze Button */}
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {info && info.dirs.length > 1
+                    ? info.dirs.map((dItem) => (
+                        <button
+                          key={dItem.dir}
+                          type="button"
+                          onClick={() => {
+                            setDir(dItem.dir);
+                            setSelectedStop(dItem.stops[0]?.[0] ?? "");
+                            if (userCoords) findNearestStop(userCoords.lat, userCoords.lon, dItem);
+                          }}
+                          className={`flex items-center gap-1 rounded-xl px-2.5 py-1.5 text-[11px] font-extrabold transition ${
+                            dItem.dir === currentDir?.dir
+                              ? "bg-ink text-paper shadow-2xs"
+                              : "border border-line bg-paper text-ink hover:border-primary"
+                          }`}
+                        >
+                          <Navigation className="size-3" />
+                          <span>{tr("إلى:")} {stopName(dItem.to)}</span>
+                        </button>
+                      ))
+                    : null}
+
+                  <button
+                    type="button"
+                    onClick={() => void fetchLiveBusLocations(selectedLine)}
+                    className="grid size-8 place-items-center rounded-xl border border-line bg-paper text-ink"
+                    title={tr("تحديث موقع الباص الآن")}
+                  >
+                    <RefreshCw className={`size-4 ${busStatus === "loading" ? "animate-spin" : ""}`} />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setIsFullscreenMap(true)}
+                    className="inline-flex items-center gap-1 rounded-xl bg-ink px-3 py-1.5 text-[11px] font-extrabold text-paper shadow-2xs"
+                  >
+                    <Maximize2 className="size-3.5" />
+                    <span>{tr("ملء الشاشة (Waze)")}</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* 3. LARGE CLEAR INTERACTIVE LEAFLET MAP */}
+              <div
+                className={
+                  isFullscreenMap
+                    ? "fixed inset-0 z-[9999] h-[100dvh] w-[100dvw] bg-[#0f172a]"
+                    : "relative h-[440px] w-full sm:h-[510px]"
+                }
+              >
+                <div ref={mapContainerRef} className="absolute inset-0 z-10" dir="ltr" />
+
+                {isFullscreenMap ? (
+                  <>
+                    {/* Waze Fullscreen Floating Top Bar */}
+                    <div className="pointer-events-auto absolute inset-x-3 top-[max(0.75rem,env(safe-area-inset-top))] z-30 flex items-center justify-between gap-2 rounded-2xl border border-white/15 bg-[#0f172a]/95 p-3 text-white shadow-2xl backdrop-blur-md">
+                      <div className="flex min-w-0 items-center gap-2.5">
+                        <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-primary font-mono text-base font-black text-[#111827]">
+                          🚌 {selectedLine}
+                        </span>
+                        <div className="min-w-0">
+                          <p className="truncate text-xs font-black text-primary">
+                            🚏 {tr("أقرب محطة:")} {stopName(activeStopForSchedule)}
+                          </p>
+                          <p className="truncate text-[11px] font-bold text-emerald-400">
+                            {activeBusCard
+                              ? `الحافلة IL ${activeBusCard.plate} · ${activeBusCard.driverName}`
+                              : `مسار خط ${selectedLine}`}
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setIsFullscreenMap(false)}
+                        className="grid size-10 shrink-0 place-items-center rounded-2xl bg-white/15 text-white hover:bg-red-600"
+                      >
+                        <Minimize2 className="size-5" />
+                      </button>
+                    </div>
+
+                    {/* Waze Fullscreen Floating Right GPS Controls */}
+                    <div className="pointer-events-auto absolute end-3 bottom-24 z-30 flex flex-col gap-2">
+                      <button
+                        type="button"
+                        onClick={() => locateUserAndNearestStop(currentDir, true)}
+                        className="grid size-12 place-items-center rounded-2xl border border-white/20 bg-[#0f172a]/90 text-white shadow-2xl"
+                      >
+                        <LocateFixed className="size-5 text-sky-400" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void fetchLiveBusLocations(selectedLine)}
+                        className="grid size-12 place-items-center rounded-2xl border border-white/20 bg-[#0f172a]/90 text-white shadow-2xl"
+                      >
+                        <RefreshCw className={`size-5 text-emerald-400 ${busStatus === "loading" ? "animate-spin" : ""}`} />
+                      </button>
+                    </div>
+                  </>
+                ) : null}
+              </div>
+
+              {/* 4. DETAILED BUS & DRIVER CARD (تظهر عند الضغط على أيقونة الحافلة وتعرض رقم الحافلة واسم السائق وجميع المعلومات) */}
+              {activeBusCard ? (
+                <div className="border-t-2 border-primary/60 bg-gradient-to-b from-primary-soft/45 to-paper p-3.5">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex items-center gap-2.5">
+                      <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-ink font-mono text-base font-black text-primary shadow-sm">
+                        🚌 {activeBusCard.line}
+                      </span>
+                      <div>
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <h4 className="text-xs font-black text-ink sm:text-sm">
+                            {tr("بطاقة بيانات الحافلة والسائق — خط")} {activeBusCard.line}
+                          </h4>
+                          <span
+                            dir="ltr"
+                            className="rounded-lg border-2 border-[#111827] bg-[#facc15] px-2 py-0.5 font-mono text-xs font-black text-[#111827]"
+                          >
+                            IL {activeBusCard.plate}
+                          </span>
+                          <span
+                            className={`rounded-full px-2 py-0.5 text-[10px] font-extrabold text-white ${
+                              activeBusCard.isLiveSiri ? "bg-emerald-600" : "bg-amber-600"
+                            }`}
+                          >
+                            {activeBusCard.isLiveSiri ? "🟢 بث مباشر GPS" : "🕒 حسب الجدول الرسمي"}
+                          </span>
+                        </div>
+                        <p className="mt-0.5 text-[11px] font-bold text-muted">
+                          {activeBusCard.fromName} ↔ {activeBusCard.toName} · {tr("شركة غاليم (גלים)")}
+                        </p>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (leafletMapRef.current) {
+                          leafletMapRef.current.setView([activeBusCard.lat, activeBusCard.lon], 16, { animate: true });
+                        }
+                      }}
+                      className="rounded-xl bg-ink px-3 py-1.5 text-[11px] font-extrabold text-primary shadow-2xs"
+                    >
+                      🎯 {tr("تكبير على الحافلة")}
+                    </button>
+                  </div>
+
+                  {/* Grid of All Bus & Driver Info */}
+                  <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                    {/* Driver Info Box */}
+                    <div className="rounded-2xl border border-line bg-paper p-2.5 shadow-2xs">
+                      <div className="flex items-center justify-between gap-1">
+                        <span className="text-[10.5px] font-extrabold text-muted">👨‍✈️ {tr("اسم السائق المناوب:")}</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCustomDriverInput(activeBusCard.driverName);
+                            setEditingDriver((v) => !v);
+                          }}
+                          className="text-[10px] font-extrabold text-primary-ink underline"
+                        >
+                          {editingDriver ? tr("إلغاء") : tr("تعديل الاسم")}
+                        </button>
+                      </div>
+                      {editingDriver ? (
+                        <div className="mt-1.5 flex items-center gap-1">
+                          <input
+                            type="text"
+                            value={customDriverInput}
+                            onChange={(e) => setCustomDriverInput(e.target.value)}
+                            placeholder={tr("اكتب اسم السائق...")}
+                            className="min-w-0 flex-1 rounded-lg border border-line bg-surface px-2 py-1 text-xs font-bold text-ink"
+                          />
+                          <button
+                            type="button"
+                            onClick={handleSaveDriverName}
+                            className="rounded-lg bg-primary px-2.5 py-1 text-xs font-extrabold text-ink"
+                          >
+                            {tr("حفظ")}
+                          </button>
+                        </div>
+                      ) : (
+                        <>
+                          <p className="mt-1 text-xs font-black text-ink">{activeBusCard.driverName}</p>
+                          <p className="text-[10px] font-semibold text-muted">{activeBusCard.driverRole}</p>
+                        </>
+                      )}
+                    </div>
+
+                    {/* Bus Number & Speed */}
+                    <div className="rounded-2xl border border-line bg-paper p-2.5 shadow-2xs">
+                      <span className="text-[10.5px] font-extrabold text-muted">🔢 {tr("رقم الحافلة والسرعة:")}</span>
+                      <p className="mt-1 text-xs font-black text-ink">
+                        {tr("لوحة:")} <span dir="ltr">IL {activeBusCard.plate}</span> · {activeBusCard.speedKmh} {tr("كم/س")}
+                      </p>
+                      <p className="text-[10px] font-semibold text-muted">
+                        {tr("الاتجاه:")} {activeBusCard.compassAr}
+                      </p>
+                    </div>
+
+                    {/* Next Stop & ETA */}
+                    <div className="rounded-2xl border border-line bg-paper p-2.5 shadow-2xs">
+                      <span className="text-[10.5px] font-extrabold text-muted">🚏 {tr("المحطة القادمة والوصول:")}</span>
+                      <p className="mt-1 truncate text-xs font-black text-ink">{activeBusCard.nextStopName}</p>
+                      <p className="text-[10px] font-extrabold text-emerald-700">
+                        ⏱️ {tr("الوصول:")} {activeBusCard.etaText}
+                      </p>
+                    </div>
+
+                    {/* Nearest Stop to User & Dispatch Phone */}
+                    <div className="rounded-2xl border border-line bg-paper p-2.5 shadow-2xs">
+                      <span className="text-[10.5px] font-extrabold text-muted">📍 {tr("أقرب محطة لموقعك:")}</span>
+                      <p className="mt-1 truncate text-xs font-black text-ink">
+                        {activeBusCard.nearestStopName || stopName(activeStopForSchedule)}
+                      </p>
+                      <a href="tel:086688700" className="text-[10px] font-extrabold text-primary-ink underline">
+                        📞 {tr("مركز تحكم غاليم: 08-6688700")}
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+
+              {/* 5. REAL-TIME NEXT BUS TIMES AT THE SELECTED / NEAREST STOP */}
+              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line bg-paper px-3.5 py-2.5 text-xs">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="font-extrabold text-ink">
+                    🚏 {tr("مواعيد الباص في محطة")} {stopName(activeStopForSchedule)}:
+                  </span>
+                  {plannedNextList.length > 0 ? (
+                    plannedNextList.map((p, idx) => (
+                      <span
+                        key={idx}
+                        className={`rounded-xl px-2.5 py-1 font-mono text-xs font-extrabold ${
+                          idx === 0 ? "bg-primary text-ink shadow-2xs" : "bg-surface text-ink"
+                        }`}
+                      >
+                        {p.time} ({homeMinutesLabel(p.inMin)})
+                      </span>
+                    ))
+                  ) : (
+                    <span className="font-bold text-muted">{tr("خارج ساعات العمل حالياً")}</span>
+                  )}
+                </div>
+                <Link
+                  to="/buses"
+                  search={{ line: selectedLine }}
+                  className="rounded-xl bg-ink px-3 py-1.5 text-[11px] font-extrabold text-paper"
+                >
+                  {tr("كل محطات وجدول خط")} {selectedLine} ‹
+                </Link>
+              </div>
+            </div>
+          ) : null}
+
+          {/* Quick Emergency Strip inside Buses Card */}
+          {tab !== "emergency" ? (
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-line/80 bg-surface/80 px-3 py-2 text-xs text-ink">
+              <span className="font-extrabold">
+                🚨 {tr("طوارئ رهط السريعة:")}
+              </span>
+              <div className="flex flex-wrap items-center gap-1.5">
+                {[
+                  { label: "الشرطة", phone: "100" },
+                  { label: "الإسعاف", phone: "101" },
+                  { label: "الإطفاء", phone: "102" },
+                  { label: "بلدية رهط", phone: "106" },
+                  { label: "الكهرباء", phone: "103" },
+                  { label: "إنقاذ", phone: "1221" },
+                ].map((em) => (
                   <a
                     key={em.phone}
                     href={`tel:${em.phone}`}
-                    className={`press flex items-center justify-between gap-2 rounded-2xl border p-2.5 transition ${
-                      isDark
-                        ? "border-white/15 bg-white/5 text-white hover:border-[#F2C94C]"
-                        : "border-line bg-paper text-ink hover:border-primary"
-                    }`}
+                    className="press inline-flex items-center gap-1 rounded-xl border border-line bg-paper px-2 py-1 text-[11px] font-extrabold text-ink transition hover:border-primary"
                   >
-                    <span className="min-w-0">
-                      <span className="block truncate text-xs font-extrabold">
-                        {em.icon} {trv(em.name)}
-                      </span>
-                      <span className={`block truncate text-[10px] font-semibold ${isDark ? "text-white/60" : "text-muted"}`}>
-                        {trv(em.sub)}
-                      </span>
-                    </span>
-                    <span
-                      dir="ltr"
-                      className={`shrink-0 rounded-xl px-2 py-1 font-mono text-xs font-extrabold ${
-                        isDark ? "bg-[#F2C94C] text-[#14120E]" : "bg-primary-soft text-primary-ink"
-                      }`}
-                    >
+                    <span>{trv(em.label)}</span>
+                    <span dir="ltr" className="text-primary-ink">
                       {em.phone}
                     </span>
                   </a>
                 ))}
               </div>
-            ) : (
-              /* Bus Line Cards — Clicking any Bus Line Number opens the Real Live Map + Nearest Stop + Real-Time Bus immediately! */
-              <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
-                {activeLines.map((b) => {
-                  const isSelectedLine = selectedLine === b.realLine;
-                  return (
-                    <button
-                      key={b.line}
-                      type="button"
-                      onClick={() =>
-                        setSelectedLine((prev) => {
-                          if (prev === b.realLine) return null;
-                          handleOpenLineMap(b.realLine);
-                          return b.realLine;
-                        })
-                      }
-                      className={`press flex items-center gap-2.5 rounded-2xl border p-2.5 text-start transition-all ${
-                        isSelectedLine
-                          ? "border-2 border-ink bg-primary/30 text-ink shadow-md ring-2 ring-primary"
-                          : isDark
-                            ? "border-white/15 bg-white/5 text-white hover:border-[#F2C94C]"
-                            : "border-line bg-paper text-ink hover:border-primary shadow-2xs"
-                      }`}
-                    >
-                      {/* Proportional Rounded-Square Bus Number Icon */}
-                      <span
-                        className={`grid size-12 shrink-0 place-items-center rounded-2xl font-mono text-sm font-black shadow-2xs ${
-                          isSelectedLine
-                            ? "bg-ink text-primary"
-                            : isDark
-                              ? "bg-[#F2C94C] text-[#14120E]"
-                              : "bg-primary text-ink"
-                        }`}
-                      >
-                        {b.line}
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate text-xs font-extrabold">
-                          {trv(b.from)} ↔ {trv(b.to)}
-                        </span>
-                        <span
-                          className={`mt-0.5 block truncate text-[11px] font-bold ${
-                            isSelectedLine ? "text-emerald-800" : isDark ? "text-white/65" : "text-muted"
-                          }`}
-                        >
-                          {isSelectedLine ? "🗺️ الخريطة الحية مفتوحة ▼" : `🕒 ${trv(b.freq)} · اضغط للخريطة`}
-                        </span>
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
+            </div>
+          ) : null}
 
-            {/* =========================================================================
-             * REAL-TIME LARGE CLEAR BUS MAP + TOP NEAREST STOP BY NAME + LIVE CLOCK
-             * (تظهر فور الضغط على أيقونة رقم الباص!)
-             * ========================================================================= */}
-            {selectedLine ? (
-              <div className="mt-3 overflow-hidden rounded-3xl border-2 border-ink bg-paper text-ink shadow-xl">
-                {/* 1. TOP BAR: Nearest Stop by Name (Clickable to zoom) + Geographic Location + Live Real-Time Clock */}
-                <div className="flex flex-wrap items-center justify-between gap-2 bg-gradient-to-r from-[#0f172a] via-[#1e293b] to-[#0f172a] px-3.5 py-3 text-white">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const code = nearestStopCode || selectedStop || currentDir?.stops[0]?.[0];
-                      if (code && busSchedule.stops[code] && leafletMapRef.current) {
-                        const st = busSchedule.stops[code];
-                        setSelectedStop(code);
-                        leafletMapRef.current.setView([st.lat, st.lon], 16, { animate: true });
-                      } else {
-                        locateUserAndNearestStop(currentDir, true);
-                      }
-                    }}
-                    className="flex min-w-0 flex-1 items-center gap-2.5 text-start transition hover:opacity-95"
-                    title={tr("اضغط لتكبير الخريطة على أقرب محطة وموقعك الجغرافي")}
-                  >
-                    <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-primary text-lg font-black text-[#111827] shadow-md">
-                      📍
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-1.5">
-                        <span className="rounded-md bg-emerald-500/25 px-2 py-0.5 text-[10px] font-black text-emerald-300">
-                          {userCoords
-                            ? tr("أقرب محطة لموقعك الجغرافي (اضغط للتكبير):")
-                            : tr("اضغط لتحديد موقعك الجغرافي وأقرب محطة بالاسم:")}
-                        </span>
-                        {nearestStopDistM !== null ? (
-                          <span className="text-[10.5px] font-extrabold text-primary">
-                            ({nearestStopDistM < 1000 ? `${nearestStopDistM} متر` : `${(nearestStopDistM / 1000).toFixed(1)} كم`})
-                          </span>
-                        ) : null}
-                      </div>
-                      <p className="mt-0.5 truncate text-xs font-black text-white sm:text-sm">
-                        🚏 {stopName(nearestStopCode || selectedStop || currentDir?.stops[0]?.[0] || "")}
-                      </p>
-                    </div>
-                  </button>
-
-                  {/* Live Real-Time Clock & Instant Bus Status */}
-                  <div className="flex shrink-0 items-center gap-2">
-                    <div className="rounded-2xl border border-white/15 bg-white/10 px-3 py-1.5 text-end">
-                      <span className="block text-[9.5px] font-bold text-white/75">
-                        {tr("الوقت الحقيقي الآن")}
-                      </span>
-                      <span className="font-mono text-xs font-black text-primary sm:text-sm" dir="ltr">
-                        {new Date(nowClock).toLocaleTimeString("ar-u-nu-latn", {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                          second: "2-digit",
-                          hour12: false,
-                          timeZone: "Asia/Jerusalem",
-                        })}
-                      </span>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => locateUserAndNearestStop(currentDir, true)}
-                      className="grid size-10 place-items-center rounded-2xl bg-primary text-[#111827] shadow-md transition hover:brightness-105"
-                      title={tr("تحديد موقعي الجغرافي الآن")}
-                    >
-                      <LocateFixed className="size-5" />
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setSelectedLine(null)}
-                      className="grid size-10 place-items-center rounded-2xl bg-white/15 text-xs font-black text-white transition hover:bg-red-600"
-                      title={tr("إغلاق الخريطة")}
-                    >
-                      ✕
-                    </button>
-                  </div>
-                </div>
-
-                {/* 2. REAL-TIME BUS AT THIS EXACT MOMENT BAR (عند الضغط يعطي الباص في نفس الوقت) */}
-                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line bg-primary-soft/60 px-3.5 py-2.5">
-                  <div className="flex items-center gap-2">
-                    <span className="grid size-10 shrink-0 place-items-center rounded-2xl bg-ink font-mono text-sm font-black text-primary">
-                      {selectedLine}
-                    </span>
-                    <div>
-                      <p className="text-xs font-extrabold text-ink sm:text-sm">
-                        {lineMeta ? `${trv(lineMeta.from)} ↔ ${trv(lineMeta.to)}` : `${tr("خط")} ${selectedLine}`}
-                      </p>
-                      <p className="text-[11px] font-extrabold text-emerald-800">
-                        {liveVehicles.length > 0
-                          ? `🟢 ${liveVehicles.length} باص يبث موقعه على الخريطة في نفس الوقت الآن!`
-                          : plannedNextList.length > 0
-                            ? `🕒 موعد الباص في نفس الوقت عند محطة ${stopName(activeStopForSchedule)}: الساعة ${plannedNextList[0].time} (${homeMinutesLabel(plannedNextList[0].inMin)})`
-                            : busStatus === "loading"
-                              ? "⏳ جاري جلب موقع الباص المباشر في نفس الوقت…"
-                              : "📍 مسار ومواعيد خط الباص المباشرة على الخريطة"}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Direction Switcher + Fullscreen Waze Button */}
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    {info && info.dirs.length > 1
-                      ? info.dirs.map((dItem) => (
-                          <button
-                            key={dItem.dir}
-                            type="button"
-                            onClick={() => {
-                              setDir(dItem.dir);
-                              setSelectedStop(dItem.stops[0]?.[0] ?? "");
-                              if (userCoords) findNearestStop(userCoords.lat, userCoords.lon, dItem);
-                            }}
-                            className={`flex items-center gap-1 rounded-xl px-2.5 py-1.5 text-[11px] font-extrabold transition ${
-                              dItem.dir === currentDir?.dir
-                                ? "bg-ink text-paper shadow-2xs"
-                                : "border border-line bg-paper text-ink hover:border-primary"
-                            }`}
-                          >
-                            <Navigation className="size-3" />
-                            <span>{tr("إلى:")} {stopName(dItem.to)}</span>
-                          </button>
-                        ))
-                      : null}
-
-                    <button
-                      type="button"
-                      onClick={() => void fetchLiveBusLocations(selectedLine)}
-                      className="grid size-8 place-items-center rounded-xl border border-line bg-paper text-ink"
-                      title={tr("تحديث موقع الباص الآن")}
-                    >
-                      <RefreshCw className={`size-4 ${busStatus === "loading" ? "animate-spin" : ""}`} />
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setIsFullscreenMap(true)}
-                      className="inline-flex items-center gap-1 rounded-xl bg-ink px-3 py-1.5 text-[11px] font-extrabold text-paper shadow-2xs"
-                    >
-                      <Maximize2 className="size-3.5" />
-                      <span>{tr("ملء الشاشة (Waze)")}</span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* 3. LARGE CLEAR INTERACTIVE LEAFLET MAP */}
-                <div
-                  className={
-                    isFullscreenMap
-                      ? "fixed inset-0 z-[9999] h-[100dvh] w-[100dvw] bg-[#0f172a]"
-                      : "relative h-[440px] w-full sm:h-[510px]"
-                  }
-                >
-                  <div ref={mapContainerRef} className="absolute inset-0 z-10" dir="ltr" />
-
-                  {isFullscreenMap ? (
-                    <>
-                      {/* Waze Fullscreen Floating Top Bar */}
-                      <div className="pointer-events-auto absolute inset-x-3 top-[max(0.75rem,env(safe-area-inset-top))] z-30 flex items-center justify-between gap-2 rounded-2xl border border-white/15 bg-[#0f172a]/95 p-3 text-white shadow-2xl backdrop-blur-md">
-                        <div className="flex min-w-0 items-center gap-2.5">
-                          <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-primary font-mono text-base font-black text-[#111827]">
-                            {selectedLine}
-                          </span>
-                          <div className="min-w-0">
-                            <p className="truncate text-xs font-black text-primary">
-                              📍 {tr("أقرب محطة:")} {stopName(activeStopForSchedule)}
-                            </p>
-                            <p className="truncate text-[11px] font-bold text-emerald-400">
-                              {liveVehicles.length > 0
-                                ? `🟢 ${liveVehicles.length} باص مباشر الآن على الخريطة`
-                                : plannedNextList.length > 0
-                                  ? `🕒 الباص القادم الساعة ${plannedNextList[0].time} (${homeMinutesLabel(plannedNextList[0].inMin)})`
-                                  : `🚌 مسار خط ${selectedLine}`}
-                            </p>
-                          </div>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => setIsFullscreenMap(false)}
-                          className="grid size-10 shrink-0 place-items-center rounded-2xl bg-white/15 text-white hover:bg-red-600"
-                        >
-                          <Minimize2 className="size-5" />
-                        </button>
-                      </div>
-
-                      {/* Waze Fullscreen Floating Right GPS Controls */}
-                      <div className="pointer-events-auto absolute end-3 bottom-24 z-30 flex flex-col gap-2">
-                        <button
-                          type="button"
-                          onClick={() => locateUserAndNearestStop(currentDir, true)}
-                          className="grid size-12 place-items-center rounded-2xl border border-white/20 bg-[#0f172a]/90 text-white shadow-2xl"
-                        >
-                          <LocateFixed className="size-5 text-sky-400" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => void fetchLiveBusLocations(selectedLine)}
-                          className="grid size-12 place-items-center rounded-2xl border border-white/20 bg-[#0f172a]/90 text-white shadow-2xl"
-                        >
-                          <RefreshCw className={`size-5 text-emerald-400 ${busStatus === "loading" ? "animate-spin" : ""}`} />
-                        </button>
-                      </div>
-                    </>
-                  ) : null}
-                </div>
-
-                {/* 4. REAL-TIME NEXT BUS TIMES AT THE SELECTED / NEAREST STOP */}
-                <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line bg-paper px-3.5 py-2.5 text-xs">
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <span className="font-extrabold text-ink">
-                      🚏 {tr("مواعيد الباص في محطة")} {stopName(activeStopForSchedule)}:
-                    </span>
-                    {plannedNextList.length > 0 ? (
-                      plannedNextList.map((p, idx) => (
-                        <span
-                          key={idx}
-                          className={`rounded-xl px-2.5 py-1 font-mono text-xs font-extrabold ${
-                            idx === 0 ? "bg-primary text-ink shadow-2xs" : "bg-surface text-ink"
-                          }`}
-                        >
-                          {p.time} ({homeMinutesLabel(p.inMin)})
-                        </span>
-                      ))
-                    ) : (
-                      <span className="font-bold text-muted">{tr("خارج ساعات العمل حالياً")}</span>
-                    )}
-                  </div>
-                  <Link
-                    to="/buses"
-                    search={{ line: selectedLine }}
-                    className="rounded-xl bg-ink px-3 py-1.5 text-[11px] font-extrabold text-paper"
-                  >
-                    {tr("كل محطات وجدول خط")} {selectedLine} ‹
-                  </Link>
-                </div>
-              </div>
-            ) : null}
-
-            {/* Quick Emergency Strip inside Buses Card */}
-            {cfg.includeEmergencyInBuses && tab !== "emergency" ? (
-              <div
-                className={`flex flex-wrap items-center justify-between gap-2 rounded-2xl border px-3 py-2 text-xs ${
-                  isDark
-                    ? "border-white/15 bg-white/5 text-white"
-                    : "border-line/80 bg-surface/80 text-ink"
-                }`}
-              >
-                <span className="font-extrabold">
-                  🚨 {tr("طوارئ رهط السريعة:")}
-                </span>
-                <div className="flex flex-wrap items-center gap-1.5">
-                  {[
-                    { label: "الشرطة", phone: "100" },
-                    { label: "الإسعاف", phone: "101" },
-                    { label: "الإطفاء", phone: "102" },
-                    { label: "بلدية رهط", phone: "106" },
-                    { label: "الكهرباء", phone: "103" },
-                    { label: "إنقاذ", phone: "1221" },
-                  ].map((em) => (
-                    <a
-                      key={em.phone}
-                      href={`tel:${em.phone}`}
-                      className={`press inline-flex items-center gap-1 rounded-xl border px-2 py-1 text-[11px] font-extrabold transition ${
-                        isDark
-                          ? "border-white/20 bg-white/10 text-white hover:border-[#F2C94C]"
-                          : "border-line bg-paper text-ink hover:border-primary"
-                      }`}
-                    >
-                      <span>{trv(em.label)}</span>
-                      <span dir="ltr" className={isDark ? "text-[#F2C94C]" : "text-primary-ink"}>
-                        {em.phone}
-                      </span>
-                    </a>
-                  ))}
-                </div>
-              </div>
-            ) : null}
-
-            {/* Official Rights & Sources Attribution for Galim & MOT */}
-            <p className={`text-[10.5px] font-semibold ${isDark ? "text-white/60" : "text-muted"}`}>
-              © {tr("جميع حقوق الجداول والمسارات الرسمية محفوظة لشركة غاليم (גלים) ووزارة المواصلات (bus.gov.il) وخرائط OpenStreetMap.")}
-            </p>
-          </div>
-        ) : null}
+          {/* Official Rights & Sources Attribution for Galim & MOT */}
+          <p className="text-[10.5px] font-semibold text-muted">
+            © {tr("جميع حقوق الجداول والمسارات الرسمية محفوظة لشركة غاليم (גלים) ووزارة المواصلات (bus.gov.il) وخرائط OpenStreetMap.")}
+          </p>
+        </div>
       </div>
     </section>
   );
