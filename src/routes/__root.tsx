@@ -5,6 +5,7 @@ import {
   Outlet,
   Scripts,
   useLocation,
+  useRouter,
   useRouterState,
 } from "@tanstack/react-router";
 import {
@@ -16,6 +17,7 @@ import {
   Megaphone,
   Newspaper,
   Plus,
+  RefreshCw,
   Siren,
   Sparkles,
   Store,
@@ -895,6 +897,188 @@ function GlobalMaintenanceOverlay({
   );
 }
 
+
+/**
+ * Global Pull-to-Refresh for both the Mobile App (Android/iOS PWA & Capacitor) and Website.
+ * Pulling down from the top of any screen refreshes Service Worker caches, live settings,
+ * router loaders, and reloads the latest content smoothly.
+ */
+function GlobalPullToRefresh({ primaryColor = "#f2c94c" }: { primaryColor?: string }) {
+  const router = useRouter();
+  const [pullY, setPullY] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
+  const startYRef = useRef<number | null>(null);
+  const startXRef = useRef<number | null>(null);
+  const pullingRef = useRef(false);
+  const pullYRef = useRef(0);
+
+  const THRESHOLD = 68;
+  const MAX_PULL = 115;
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const isInsideInteractiveMapOrModal = (target: EventTarget | null): boolean => {
+      if (!(target instanceof Element)) return false;
+      return Boolean(
+        target.closest(
+          ".leaflet-container, [data-no-ptr], dialog, [role='dialog'], input, textarea, select",
+        ),
+      );
+    };
+
+    const onTouchStart = (e: TouchEvent) => {
+      if (refreshing) return;
+      if (window.scrollY > 4) {
+        startYRef.current = null;
+        return;
+      }
+      if (isInsideInteractiveMapOrModal(e.target)) {
+        startYRef.current = null;
+        return;
+      }
+      const touch = e.touches[0];
+      if (!touch) return;
+      startYRef.current = touch.clientY;
+      startXRef.current = touch.clientX;
+      pullingRef.current = false;
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (refreshing || startYRef.current === null || startXRef.current === null) return;
+      if (window.scrollY > 4) {
+        startYRef.current = null;
+        pullingRef.current = false;
+        if (pullYRef.current > 0) {
+          pullYRef.current = 0;
+          setPullY(0);
+        }
+        return;
+      }
+      const touch = e.touches[0];
+      if (!touch) return;
+      const dy = touch.clientY - startYRef.current;
+      const dx = Math.abs(touch.clientX - startXRef.current);
+
+      // Ignore horizontal swipes (e.g. carousels/tabs)
+      if (!pullingRef.current && (dy < 10 || dx > dy * 0.9)) {
+        return;
+      }
+
+      if (dy > 10) {
+        pullingRef.current = true;
+        const damped = Math.min(MAX_PULL, Math.round(Math.pow(dy - 10, 0.82) * 1.65));
+        pullYRef.current = damped;
+        setPullY(damped);
+      }
+    };
+
+    const triggerFullAppAndSiteRefresh = async () => {
+      setRefreshing(true);
+      pullYRef.current = THRESHOLD;
+      setPullY(THRESHOLD);
+
+      try {
+        // 1. Update Service Worker registrations & clear old html/api caches
+        if ("serviceWorker" in navigator) {
+          const regs = await navigator.serviceWorker.getRegistrations().catch(() => []);
+          await Promise.all(regs.map((r) => r.update().catch(() => {})));
+        }
+      } catch {}
+
+      try {
+        // 2. Fetch fresh live-settings & invalidate TanStack Router loaders
+        const res = await fetch(`/api/media?kind=live-settings&_t=${Date.now()}`, {
+          cache: "no-store",
+          headers: { "cache-control": "no-cache", pragma: "no-cache" },
+        }).catch(() => null);
+        if (res && res.ok) {
+          const data = await res.json().catch(() => null);
+          if (data?.ok && data?.settings) {
+            window.localStorage.setItem("rp_latest_site_settings", JSON.stringify(data.settings));
+            window.dispatchEvent(new CustomEvent("rp-site-settings-updated", { detail: data.settings }));
+          }
+        }
+        await router.invalidate().catch(() => {});
+      } catch {}
+
+      // 3. Reload page smoothly so all news, buses, weather, and app shell are 100% fresh
+      setTimeout(() => {
+        window.location.reload();
+      }, 320);
+    };
+
+    const onTouchEnd = () => {
+      if (!pullingRef.current) {
+        startYRef.current = null;
+        return;
+      }
+      const currentPull = pullYRef.current;
+      startYRef.current = null;
+      startXRef.current = null;
+      pullingRef.current = false;
+
+      if (currentPull >= THRESHOLD && !refreshing) {
+        void triggerFullAppAndSiteRefresh();
+      } else {
+        pullYRef.current = 0;
+        setPullY(0);
+      }
+    };
+
+    window.addEventListener("touchstart", onTouchStart, { passive: true });
+    window.addEventListener("touchmove", onTouchMove, { passive: true });
+    window.addEventListener("touchend", onTouchEnd, { passive: true });
+    window.addEventListener("touchcancel", onTouchEnd, { passive: true });
+
+    return () => {
+      window.removeEventListener("touchstart", onTouchStart);
+      window.removeEventListener("touchmove", onTouchMove);
+      window.removeEventListener("touchend", onTouchEnd);
+      window.removeEventListener("touchcancel", onTouchEnd);
+    };
+  }, [refreshing, router]);
+
+  if (pullY <= 0 && !refreshing) return null;
+
+  const ready = pullY >= THRESHOLD || refreshing;
+  const progress = Math.min(1, pullY / THRESHOLD);
+
+  return (
+    <div
+      dir="rtl"
+      aria-live="polite"
+      className="pointer-events-none fixed inset-x-0 top-0 z-[9998] flex justify-center transition-transform duration-150 ease-out"
+      style={{
+        transform: `translateY(${Math.max(10, pullY - 22)}px)`,
+        opacity: Math.min(1, progress * 1.25),
+      }}
+    >
+      <div
+        className="inline-flex items-center gap-2 rounded-full border-2 border-[#0f172a] bg-[#0f172a]/95 px-4 py-2 text-xs font-extrabold text-white shadow-2xl backdrop-blur-md"
+        style={{ boxShadow: `0 8px 25px rgba(15,23,42,0.35), 0 0 0 2px ${primaryColor}` }}
+      >
+        <span
+          className="grid size-7 place-items-center rounded-full text-[#0f172a]"
+          style={{
+            backgroundColor: primaryColor,
+            transform: refreshing ? undefined : `rotate(${Math.round(progress * 260)}deg)`,
+          }}
+        >
+          <RefreshCw className={`size-4 stroke-[2.6] ${refreshing ? "animate-spin" : ""}`} />
+        </span>
+        <span>
+          {refreshing
+            ? tr("جاري تحديث التطبيق والموقع…")
+            : ready
+              ? tr("أفلت الآن لتحديث التطبيق والموقع")
+              : tr("اسحب لتحديث التطبيق والموقع…")}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 function RootComponent() {
   const { settings: loaderSettings, i18n } = Route.useLoaderData();
   const [liveSettings, setLiveSettings] = useState<typeof loaderSettings>(loaderSettings);
@@ -1076,6 +1260,7 @@ function RootComponent() {
         ) : null}
         <SiteSettingsProvider value={settings}>
           <AppLaunchSplashAndStatusBarBridge />
+          <GlobalPullToRefresh primaryColor={settings.theme?.primary || "#f2c94c"} />
           <PreviewHostBridge />
           <ServiceWorkerRegistration />
           <GoogleMobileAdsBridge
