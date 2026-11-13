@@ -5527,7 +5527,61 @@ ${userExtraCss}`}</style>
 }
 
 
-/** Animated Top Weather, Live Clock & Prayer Bar — Rich animated sky scenery & live ticking clock at top of homepage. */
+/** Animated Top Weather, Live Clock, Prayer & Dual Date (Gregorian + Hijri) Bar. */
+function formatHijriDateAr(d: Date): string {
+  for (const loc of [
+    "ar-SA-u-ca-islamic-umalqura-nu-latn",
+    "ar-SA-u-ca-islamic-civil-nu-latn",
+    "ar-SA-u-ca-islamic-nu-latn",
+    "ar-u-ca-islamic-nu-latn",
+  ]) {
+    try {
+      const str = new Intl.DateTimeFormat(loc, {
+        timeZone: "Asia/Jerusalem",
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      }).format(d);
+      if (str && !str.includes("202") && !str.includes("نوفمبر") && !str.includes("ديسمبر") && !str.includes("يناير")) {
+        return str.replace(/\s*هـ$/, "").trim() + " هـ";
+      }
+    } catch {
+      /* fallback below */
+    }
+  }
+  // Mathematical Umm al-Qura / Tabular Hijri fallback for older WebViews
+  const jd = Math.floor(d.getTime() / 86400000) + 2440588;
+  const l = jd - 1948440 + 10632;
+  const n = Math.floor((l - 1) / 10631);
+  const l2 = l - 10631 * n + 354;
+  const j =
+    Math.floor((10985 - l2) / 5316) * Math.floor((50 * l2) / 17719) +
+    Math.floor(l2 / 5670) * Math.floor((43 * l2) / 15238);
+  const l3 =
+    l2 -
+    Math.floor((30 - j) / 15) * Math.floor((17719 * j) / 50) -
+    Math.floor(j / 16) * Math.floor((15238 * j) / 43) +
+    29;
+  const hMonth = Math.floor((24 * l3) / 709);
+  const hDay = l3 - Math.floor((709 * hMonth) / 24);
+  const hYear = 30 * n + j - 30;
+  const hijriMonths = [
+    "محرم",
+    "صفر",
+    "ربيع الأول",
+    "ربيع الآخر",
+    "جمادى الأولى",
+    "جمادى الآخرة",
+    "رجب",
+    "شعبان",
+    "رمضان",
+    "شوال",
+    "ذو القعدة",
+    "ذو الحجة",
+  ];
+  return `${hDay} ${hijriMonths[(hMonth - 1) % 12] ?? "جمادى الآخرة"} ${hYear} هـ`;
+}
+
 function AnimatedWeatherPrayerBar({
   weather,
   serverNow,
@@ -5544,7 +5598,7 @@ function AnimatedWeatherPrayerBar({
 
   const next = useMemo(() => nextPrayer(now), [now]);
 
-  const { localHour, hh, mm, ss, dateLabelAr } = useMemo(() => {
+  const { localHour, hh, mm, ss, weekdayAr, gregorianAr, hijriAr } = useMemo(() => {
     try {
       const d = new Date(now);
       const parts = new Intl.DateTimeFormat("en-GB", {
@@ -5557,15 +5611,41 @@ function AnimatedWeatherPrayerBar({
       const h = parts.find((p) => p.type === "hour")?.value ?? "12";
       const m = parts.find((p) => p.type === "minute")?.value ?? "00";
       const s = parts.find((p) => p.type === "second")?.value ?? "00";
-      const dateStr = new Intl.DateTimeFormat("ar-u-nu-latn", {
+
+      const wk = new Intl.DateTimeFormat("ar-EG", {
         timeZone: "Asia/Jerusalem",
         weekday: "long",
-        day: "numeric",
-        month: "short",
       }).format(d);
-      return { localHour: Number(h), hh: h, mm: m, ss: s, dateLabelAr: dateStr };
+
+      const greg =
+        new Intl.DateTimeFormat("ar-EG-u-nu-latn", {
+          timeZone: "Asia/Jerusalem",
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+        }).format(d) + " م";
+
+      const hijri = formatHijriDateAr(d);
+
+      return {
+        localHour: Number(h),
+        hh: h,
+        mm: m,
+        ss: s,
+        weekdayAr: wk,
+        gregorianAr: greg,
+        hijriAr: hijri,
+      };
     } catch {
-      return { localHour: 12, hh: "12", mm: "00", ss: "00", dateLabelAr: "" };
+      return {
+        localHour: 12,
+        hh: "12",
+        mm: "00",
+        ss: "00",
+        weekdayAr: "الجمعة",
+        gregorianAr: "13 نوفمبر 2026 م",
+        hijriAr: "3 جمادى الآخرة 1448 هـ",
+      };
     }
   }, [now]);
 
@@ -5710,146 +5790,164 @@ function AnimatedWeatherPrayerBar({
           ) : null}
         </div>
 
-        {/* Main Content Row */}
-        <div className="relative z-10 flex flex-wrap items-center justify-between gap-2 sm:flex-nowrap sm:gap-3">
-          {/* Right Side (RTL): Weather + Animated Live Clock & Time */}
-          <Link
-            to="/today"
-            className="inline-flex min-w-0 items-center gap-2 whitespace-nowrap transition hover:opacity-95 sm:gap-2.5"
-            aria-label={
-              weather
-                ? tr("الطقس في رهط: {0} درجة، {1}", weather.temp, weatherLabel(weather.code))
-                : tr("الطقس في رهط")
-            }
-          >
-            {/* Animated Weather Scene Icon */}
-            <span className="relative inline-flex size-8 shrink-0 items-center justify-center rounded-xl bg-white/20 text-lg leading-none shadow-2xs backdrop-blur-xs sm:size-9 sm:text-xl">
-              {isRainy ? (
-                <span style={{ animation: "rpRainBounce 1.4s infinite ease-in-out" }}>🌧️</span>
-              ) : isNight ? (
-                <span className="inline-flex items-center">
-                  <span style={{ animation: "rpMoonFloat 3.2s infinite ease-in-out" }}>🌙</span>
-                  <span
-                    className="-ms-1 -mt-1.5 text-[10px]"
-                    style={{ animation: "rpStarTwinkle 2s infinite ease-in-out" }}
-                  >
-                    ✨
+        {/* Main 2-Column Balanced Row: Right Side (Weather + Live Clock + Prayer) | Left Side (Day + Gregorian Date + Hijri Date) */}
+        <div className="relative z-10 flex items-center justify-between gap-2 sm:gap-4">
+          {/* Right Side (RTL): Weather + Animated Live Clock + Next Prayer */}
+          <div className="flex min-w-0 flex-1 flex-col items-start gap-1.5 sm:flex-row sm:flex-wrap sm:items-center sm:gap-2.5">
+            <Link
+              to="/today"
+              className="inline-flex max-w-full items-center gap-1.5 whitespace-nowrap transition hover:opacity-95 sm:gap-2"
+              aria-label={
+                weather
+                  ? tr("الطقس في رهط: {0} درجة، {1}", weather.temp, weatherLabel(weather.code))
+                  : tr("الطقس في رهط")
+              }
+            >
+              {/* Animated Weather Scene Icon */}
+              <span className="relative inline-flex size-8 shrink-0 items-center justify-center rounded-xl bg-white/20 text-lg leading-none shadow-2xs backdrop-blur-xs sm:size-9 sm:text-xl">
+                {isRainy ? (
+                  <span style={{ animation: "rpRainBounce 1.4s infinite ease-in-out" }}>🌧️</span>
+                ) : isNight ? (
+                  <span className="inline-flex items-center">
+                    <span style={{ animation: "rpMoonFloat 3.2s infinite ease-in-out" }}>🌙</span>
+                    <span
+                      className="-ms-1 -mt-1.5 text-[10px]"
+                      style={{ animation: "rpStarTwinkle 2s infinite ease-in-out" }}
+                    >
+                      ✨
+                    </span>
                   </span>
-                </span>
-              ) : isCloudy ? (
-                <span style={{ animation: "rpCloudDrift 3.2s infinite ease-in-out" }}>⛅</span>
-              ) : (
-                <span style={{ animation: "rpSunSpin 9s infinite linear" }}>☀️</span>
-              )}
-            </span>
+                ) : isCloudy ? (
+                  <span style={{ animation: "rpCloudDrift 3.2s infinite ease-in-out" }}>⛅</span>
+                ) : (
+                  <span style={{ animation: "rpSunSpin 9s infinite linear" }}>☀️</span>
+                )}
+              </span>
 
-            {/* Weather Temp & Condition */}
-            <div className="flex items-center gap-1.5 text-xs font-extrabold sm:text-sm">
-              {weather ? (
-                <>
-                  <bdi dir="ltr" className="text-sm font-black tracking-tight text-white drop-shadow-2xs sm:text-base">
-                    {trv(weather.temp)}°
-                  </bdi>
-                  <span className="font-extrabold text-white/95">{weatherLabel(weather.code)}</span>
+              {/* Weather Temp & Condition */}
+              <div className="flex items-center gap-1 text-xs font-extrabold sm:gap-1.5 sm:text-sm">
+                {weather ? (
+                  <>
+                    <bdi dir="ltr" className="text-sm font-black tracking-tight text-white drop-shadow-2xs sm:text-base">
+                      {trv(weather.temp)}°
+                    </bdi>
+                    <span className="font-extrabold text-white/95">{weatherLabel(weather.code)}</span>
 
-                  {weather.wind !== null ? (
-                    <span
-                      className="hidden items-center gap-0.5 rounded-lg bg-black/20 px-1.5 py-0.5 text-[10.5px] font-bold text-white/90 xs:inline-flex sm:text-xs"
-                      title={tr("سرعة الرياح")}
-                    >
+                    {weather.wind !== null ? (
                       <span
-                        className="inline-block"
-                        style={{ animation: "rpWindWave 2s infinite ease-in-out" }}
+                        className="hidden items-center gap-0.5 rounded-lg bg-black/20 px-1.5 py-0.5 text-[10.5px] font-bold text-white/90 md:inline-flex sm:text-xs"
+                        title={tr("سرعة الرياح")}
                       >
-                        💨
+                        <span
+                          className="inline-block"
+                          style={{ animation: "rpWindWave 2s infinite ease-in-out" }}
+                        >
+                          💨
+                        </span>
+                        <bdi dir="ltr">{trv(weather.wind)}</bdi>
+                        <span>{tr("كم/س")}</span>
                       </span>
-                      <bdi dir="ltr">{trv(weather.wind)}</bdi>
-                      <span>{tr("كم/س")}</span>
-                    </span>
-                  ) : null}
+                    ) : null}
 
-                  {weather.rainChance !== null && weather.rainChance > 0 ? (
-                    <span
-                      className="inline-flex items-center gap-0.5 rounded-lg bg-sky-400/30 px-1.5 py-0.5 text-[10.5px] font-extrabold text-white sm:text-xs"
-                      title={tr("احتمال المطر")}
-                    >
-                      <span style={{ animation: "rpRainBounce 1.6s infinite ease-in-out" }}>💧</span>
-                      <bdi dir="ltr">{trv(weather.rainChance)}%</bdi>
-                    </span>
-                  ) : null}
-                </>
-              ) : (
-                <span className="font-extrabold text-white">{tr("طقس رهط")}</span>
-              )}
-            </div>
+                    {weather.rainChance !== null && weather.rainChance > 0 ? (
+                      <span
+                        className="inline-flex items-center gap-0.5 rounded-lg bg-sky-400/30 px-1.5 py-0.5 text-[10px] font-extrabold text-white sm:text-xs"
+                        title={tr("احتمال المطر")}
+                      >
+                        <span style={{ animation: "rpRainBounce 1.6s infinite ease-in-out" }}>💧</span>
+                        <bdi dir="ltr">{trv(weather.rainChance)}%</bdi>
+                      </span>
+                    ) : null}
+                  </>
+                ) : (
+                  <span className="font-extrabold text-white">{tr("طقس رهط")}</span>
+                )}
+              </div>
 
-            {/* Animated Live Digital Clock Badge (الوقت والساعة أنيميشن) */}
-            <div className="inline-flex items-center gap-1.5 rounded-xl border border-white/25 bg-black/25 px-2.5 py-1 text-white shadow-2xs backdrop-blur-xs">
+              {/* Animated Live Digital Clock Badge (الوقت والساعة أنيميشن) */}
+              <div className="inline-flex items-center gap-1 rounded-xl border border-white/25 bg-black/25 px-2 py-1 text-white shadow-2xs backdrop-blur-xs sm:gap-1.5 sm:px-2.5">
+                <span
+                  className="inline-block text-xs sm:text-sm"
+                  style={{ animation: "rpSunSpin 12s infinite linear" }}
+                  aria-hidden
+                >
+                  🕒
+                </span>
+                <span className="text-[10px] font-extrabold text-amber-200 sm:text-xs">
+                  {isNight ? tr("ليلاً") : tr("نهاراً")}
+                </span>
+                <bdi
+                  dir="ltr"
+                  className="inline-flex items-center font-mono text-[11px] font-black tracking-wider text-white sm:text-sm"
+                >
+                  <span>{hh}</span>
+                  <span
+                    className="mx-0.5 text-amber-300"
+                    style={{ animation: "rpClockPulse 1s infinite ease-in-out" }}
+                  >
+                    :
+                  </span>
+                  <span>{mm}</span>
+                  <span
+                    className="mx-0.5 text-amber-300/90"
+                    style={{ animation: "rpClockPulse 1s infinite ease-in-out" }}
+                  >
+                    :
+                  </span>
+                  <span
+                    key={ss}
+                    className="inline-block min-w-[1.35ch] text-[10.5px] font-extrabold text-amber-300 sm:text-xs"
+                    style={{ animation: "rpSecTick 0.45s ease-out" }}
+                  >
+                    {ss}
+                  </span>
+                </bdi>
+              </div>
+            </Link>
+
+            {/* Next Prayer & Live Countdown Pill */}
+            <Link
+              to="/today"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-white/20 bg-white/15 px-2.5 py-1 text-[11px] font-extrabold text-white shadow-2xs backdrop-blur-xs transition hover:bg-white/25 sm:gap-2 sm:px-3 sm:py-1.5 sm:text-xs"
+            >
               <span
-                className="inline-block text-xs sm:text-sm"
-                style={{ animation: "rpSunSpin 12s infinite linear" }}
+                className="inline-flex size-5 shrink-0 items-center justify-center rounded-lg bg-amber-400/25 text-xs leading-none sm:size-6 sm:text-sm"
+                style={{ animation: "rpMoonFloat 3.4s infinite ease-in-out" }}
                 aria-hidden
               >
-                🕒
+                🕌
               </span>
-              <span className="text-[10.5px] font-extrabold text-amber-200 sm:text-xs">
-                {isNight ? tr("ليلاً") : tr("نهاراً")}
+              <span className="font-extrabold text-white">
+                {trv(next.name)}{" "}
+                <bdi dir="ltr" className="font-mono font-black text-amber-300">
+                  {formatPrayerTime(next.at)}
+                </bdi>
               </span>
-              <bdi
-                dir="ltr"
-                className="inline-flex items-center font-mono text-xs font-black tracking-wider text-white sm:text-sm"
-              >
-                <span>{hh}</span>
-                <span
-                  className="mx-0.5 text-amber-300"
-                  style={{ animation: "rpClockPulse 1s infinite ease-in-out" }}
-                >
-                  :
-                </span>
-                <span>{mm}</span>
-                <span
-                  className="mx-0.5 text-amber-300/90"
-                  style={{ animation: "rpClockPulse 1s infinite ease-in-out" }}
-                >
-                  :
-                </span>
-                <span
-                  key={ss}
-                  className="inline-block min-w-[1.35ch] text-[11px] font-extrabold text-amber-300 sm:text-xs"
-                  style={{ animation: "rpSecTick 0.45s ease-out" }}
-                >
-                  {ss}
-                </span>
-              </bdi>
-              {dateLabelAr ? (
-                <span className="hidden border-s border-white/20 ps-1.5 text-[10px] font-bold text-white/85 md:inline">
-                  {dateLabelAr}
-                </span>
-              ) : null}
-            </div>
-          </Link>
+              <span className="rounded-md bg-black/25 px-1.5 py-0.5 text-[10px] font-bold text-amber-100 sm:text-[11px]">
+                {countdownAr(next.at - now)}
+              </span>
+            </Link>
+          </div>
 
-          {/* Left Side (RTL): Animated Mosque + Next Prayer & Live Countdown Pill */}
+          {/* Left Side (RTL — Circled Area): Day of Week + Gregorian Date + Hijri Date */}
           <Link
             to="/today"
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-white/20 bg-white/15 px-2.5 py-1 text-xs font-extrabold text-white shadow-2xs backdrop-blur-xs transition hover:bg-white/25 sm:gap-2 sm:px-3 sm:py-1.5"
+            className="flex shrink-0 flex-col items-center justify-center rounded-xl border border-white/25 bg-black/25 px-2.5 py-1.5 text-center shadow-sm backdrop-blur-xs transition hover:bg-black/35 sm:px-3.5 sm:py-2"
+            title={tr("اليوم والتاريخ الميلادي والهجري")}
           >
-            <span
-              className="inline-flex size-5 shrink-0 items-center justify-center rounded-lg bg-amber-400/25 text-xs leading-none sm:size-6 sm:text-sm"
-              style={{ animation: "rpMoonFloat 3.4s infinite ease-in-out" }}
-              aria-hidden
-            >
-              🕌
-            </span>
-            <span className="font-extrabold text-white">
-              {trv(next.name)}{" "}
-              <bdi dir="ltr" className="font-mono font-black text-amber-300">
-                {formatPrayerTime(next.at)}
-              </bdi>
-            </span>
-            <span className="rounded-md bg-black/25 px-1.5 py-0.5 text-[10px] font-bold text-amber-100 sm:text-[11px]">
-              {countdownAr(next.at - now)}
-            </span>
+            {/* اليوم */}
+            <div className="inline-flex items-center gap-1 text-xs font-black text-amber-300 sm:text-sm">
+              <span aria-hidden>📅</span>
+              <span>{weekdayAr}</span>
+            </div>
+            {/* التاريخ الميلادي */}
+            <div className="mt-0.5 whitespace-nowrap text-[10.5px] font-extrabold leading-tight text-white sm:text-xs">
+              {gregorianAr}
+            </div>
+            {/* التاريخ الهجري */}
+            <div className="mt-0.5 whitespace-nowrap text-[10px] font-bold leading-tight text-amber-100/90 sm:text-[11px]">
+              🌙 {hijriAr}
+            </div>
           </Link>
         </div>
       </div>
