@@ -15,6 +15,7 @@ import {
   Phone,
   Radio,
   RefreshCw,
+  Search,
   ShieldCheck,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -37,11 +38,15 @@ import {
 } from "@/lib/buses/schedule";
 import type { ArrivalsResult } from "@/lib/buses/types";
 import {
+  GOOGLE_HYBRID_TILE_URL,
+  GOOGLE_STREETS_TILE_URL,
   buildBusStopPopupHtml,
   buildLiveBusPopupHtml,
   buildScheduledFallbackBus,
   createBusStopDivIcon,
   createLiveBusDivIcon,
+  createUserLocationConeDivIcon,
+  formatPlannedArrivalSlot,
   getBusDriverDetails,
   type BusVehicleMarkerInfo,
 } from "@/lib/buses/map-icons";
@@ -278,6 +283,30 @@ function BusesPage() {
   const [editingDriver, setEditingDriver] = useState(false);
   const [customDriverInput, setCustomDriverInput] = useState("");
   const [driverVer, setDriverVer] = useState(0);
+  const [mapLayerMode, setMapLayerMode] = useState<"hybrid" | "streets">("hybrid");
+  const [stopSearchQuery, setStopSearchQuery] = useState("");
+  const [drawerTab, setDrawerTab] = useState<"nearby" | "fav">("nearby");
+  const [favStops, setFavStops] = useState<string[]>(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      const raw = window.localStorage.getItem("rp_fav_bus_stops");
+      return raw ? (JSON.parse(raw) as string[]) : [];
+    } catch {
+      return [];
+    }
+  });
+  const tileLayerRef = useRef<import("leaflet").TileLayer | null>(null);
+
+  const toggleFavStopOnBuses = (code: string) => {
+    if (!code) return;
+    setFavStops((prev) => {
+      const next = prev.includes(code) ? prev.filter((c) => c !== code) : [...prev, code];
+      try {
+        window.localStorage.setItem("rp_fav_bus_stops", JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+  };
   const [selectedLine, setSelectedLine] = useState<string>(() => {
     if (urlLine && busLines.some((l) => l.number === urlLine)) return urlLine;
     return busLines[0]?.number ?? "1";
@@ -447,26 +476,28 @@ function BusesPage() {
     setStopArrivals(null);
   };
 
-  // Initialize Leaflet Map once on mount
+  // Initialize Leaflet Map once on mount with Google Satellite Hybrid Tiles (exact match to 148356.jpg)
   useEffect(() => {
     let cancelled = false;
     void import("leaflet").then((mod) => {
       if (cancelled || !mapEl.current || mapRef.current) return;
       const Lf = (mod as unknown as { default?: typeof mod }).default ?? mod;
       LRef.current = Lf;
-      const m = Lf.map(mapEl.current, { zoomControl: false, attributionControl: true }).setView(
-        [31.393, 34.756],
-        13,
+      const m = Lf.map(mapEl.current, { zoomControl: false, attributionControl: false }).setView(
+        [31.3925, 34.7545],
+        15,
       );
-      Lf.control.zoom({ position: "bottomleft" }).addTo(m);
-      Lf.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        maxZoom: 19,
-        attribution:
-          '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>',
+      tileLayerRef.current = Lf.tileLayer(GOOGLE_HYBRID_TILE_URL, {
+        maxZoom: 20,
       }).addTo(m);
       routeLayerRef.current = Lf.layerGroup().addTo(m);
-      busLayerRef.current = Lf.layerGroup().addTo(m);
       meLayerRef.current = Lf.layerGroup().addTo(m);
+      busLayerRef.current = Lf.layerGroup().addTo(m);
+      // Place initial Rahat user/center marker with direction cone (exact match to 148356.jpg)
+      Lf.marker([31.3925, 34.7545], {
+        icon: createUserLocationConeDivIcon(Lf),
+        zIndexOffset: 1200,
+      }).addTo(meLayerRef.current);
       mapRef.current = m;
       setMapReady(true);
     });
@@ -474,8 +505,16 @@ function BusesPage() {
       cancelled = true;
       mapRef.current?.remove();
       mapRef.current = null;
+      tileLayerRef.current = null;
     };
   }, []);
+
+  useEffect(() => {
+    if (!tileLayerRef.current) return;
+    tileLayerRef.current.setUrl(
+      mapLayerMode === "hybrid" ? GOOGLE_HYBRID_TILE_URL : GOOGLE_STREETS_TILE_URL,
+    );
+  }, [mapLayerMode]);
 
   // Draw route polyline & stops whenever line or direction changes
   useEffect(() => {
@@ -497,17 +536,25 @@ function BusesPage() {
           stopPts.map((x) => [x.s.lat, x.s.lon] as [number, number]);
 
         if (path.length > 0) {
+          Lf.polyline(path, {
+            color: "#1e293b",
+            weight: 6,
+            opacity: 0.7,
+          }).addTo(routeLayerRef.current);
           const poly = Lf.polyline(path, {
-            color: "#111827",
-            weight: 5,
-            opacity: 0.88,
+            color: "#38bdf8",
+            weight: 3.5,
+            opacity: 0.9,
           }).addTo(routeLayerRef.current);
 
           for (const [i, x] of stopPts.entries()) {
             const isSelected = x.code === selectedStop;
             const isNear = x.code === nearestStopCode;
-            const stopArrs = plannedArrivals(Date.now(), selectedLine, currentDir.dir, x.code, 3);
-            const nextTimes = stopArrs.map((a) => `${a.time} (${minutesLabel(a.inMin)})`);
+            const stopDiffs = plannedArrivals(Date.now(), selectedLine, currentDir.dir, x.code, 3);
+            const nextTimes = stopDiffs
+              .map((d) => formatPlannedArrivalSlot(Date.now(), d))
+              .filter((s): s is { time: string; inMin: number } => Boolean(s))
+              .map((s) => `${s.time} (${minutesLabel(s.inMin)})`);
             Lf.marker([x.s.lat, x.s.lon], {
               icon: createBusStopDivIcon(Lf, {
                 index: i,
@@ -520,7 +567,6 @@ function BusesPage() {
               zIndexOffset: isSelected ? 900 : 200,
             })
               .addTo(routeLayerRef.current)
-              .bindTooltip(`🚏 ${i + 1}. ${stopName(x.code)}`, { direction: "top" })
               .bindPopup(
                 buildBusStopPopupHtml({
                   index: i,
@@ -534,11 +580,11 @@ function BusesPage() {
               )
               .on("click", () => {
                 setSelectedStop(x.code);
-                mapRef.current?.setView([x.s.lat, x.s.lon], 16);
+                mapRef.current?.setView([x.s.lat, x.s.lon], 17);
               });
           }
 
-          mapRef.current.fitBounds(poly.getBounds(), { padding: [28, 28] });
+          mapRef.current.fitBounds(poly.getBounds(), { padding: [36, 36], maxZoom: 16 });
         }
       });
 
@@ -812,16 +858,13 @@ function BusesPage() {
         if (Lf && meLayerRef.current && mapRef.current) {
           meLayerRef.current.clearLayers();
           const p: [number, number] = [lat, lon];
-          Lf.circleMarker(p, {
-            radius: 10,
-            color: "#ffffff",
-            weight: 3,
-            fillColor: "#1a73e8",
-            fillOpacity: 1,
+          Lf.marker(p, {
+            icon: createUserLocationConeDivIcon(Lf),
+            zIndexOffset: 1200,
           })
             .addTo(meLayerRef.current)
             .bindTooltip(tr("موقعك الجغرافي الحالي"), { permanent: false, direction: "top" });
-          mapRef.current.setView(p, 15, { animate: true });
+          mapRef.current.setView(p, 16, { animate: true });
         }
         computeNearestStopForDir(lat, lon, currentDir);
       },
@@ -849,6 +892,21 @@ function BusesPage() {
   const stopPlanned = selectedStop
     ? plannedArrivals(now, selectedLine, currentDir?.dir ?? dir, selectedStop, 4)
     : [];
+  const stopPlannedSlots = useMemo(
+    () =>
+      stopPlanned
+        .map((d) => formatPlannedArrivalSlot(now, d))
+        .filter((s): s is { time: string; inMin: number } => Boolean(s)),
+    [stopPlanned, now],
+  );
+  const searchMatchedStops = useMemo(() => {
+    const q = stopSearchQuery.trim();
+    if (!q || !currentDir) return [];
+    return currentDir.stops
+      .map(([code], idx) => ({ code, idx, name: stopName(code), s: busSchedule.stops[code] }))
+      .filter((item) => item.s && (item.name.includes(q) || item.code.includes(q)))
+      .slice(0, 6);
+  }, [stopSearchQuery, currentDir]);
 
   const otherActiveLines = Object.entries(activeLinesMap).filter(
     ([ln, count]) => count > 0 && ln !== selectedLine,
@@ -1214,8 +1272,8 @@ function BusesPage() {
                 <p className="text-xs font-bold text-emerald-700">
                   {activeVehicle
                     ? `🚌 الباص في نفس الوقت عند: ${activeVehicle.nextStopName} · السرعة ${activeVehicle.speedKmh} كم/س · يصل خلال ${activeVehicle.etaMinutes ?? 2} د`
-                    : stopPlanned.length > 0
-                      ? `🕒 الانطلاق/الوصول الحقيقي القادم لمحطة ${stopName(selectedStop)}: الساعة ${stopPlanned[0].time} (${minutesLabel(stopPlanned[0].inMin)})`
+                    : stopPlannedSlots.length > 0
+                      ? `🕒 الانطلاق/الوصول الحقيقي القادم لمحطة ${stopName(selectedStop)}: الساعة ${stopPlannedSlots[0].time} (${minutesLabel(stopPlannedSlots[0].inMin)})`
                       : status === "loading"
                         ? tr("جاري الاتصال بنظام وزارة المواصلات (SIRI) لجلب موقع الباص في نفس الوقت…")
                         : tr("اضغط على أي محطة على الخريطة لعرض موعد الباص في نفس الوقت")}
@@ -1275,137 +1333,220 @@ function BusesPage() {
           ) : null}
         </div>
 
-        {/* Large Clear Leaflet Live Map Container (Supports Waze Fullscreen) */}
+        {/* SATELLITE APP-STYLE LIVE MAP CONTAINER (مطابق للصورة المرفقة 148356.jpg + بث مباشر بالوقت الحقيقي) */}
         <div
           className={
             isWazeFullscreen
-              ? "fixed inset-0 z-[9999] h-[100dvh] w-[100dvw] bg-[#0f172a]"
-              : "relative h-[460px] w-full sm:h-[540px]"
+              ? "fixed inset-0 z-[9999] flex h-[100dvh] w-[100dvw] flex-col bg-[#1e1f22]"
+              : "relative w-full bg-[#1e1f22]"
           }
         >
-          <div ref={mapEl} className="absolute inset-0 z-10" dir="ltr" />
+          <div className={isWazeFullscreen ? "relative flex-1" : "relative h-[460px] w-full sm:h-[530px]"}>
+            <div ref={mapEl} className="absolute inset-0 z-10" dir="ltr" />
 
-          {!isWazeFullscreen ? (
-            <>
-              <div className="pointer-events-none absolute start-3 top-3 z-20 rounded-xl bg-paper/95 px-3 py-1.5 text-xs font-extrabold shadow-md">
-                🚌 {tr("خط")} {trv(selectedLine)} · {currentDir ? `${tr("إلى")} ${stopName(currentDir.to)}` : ""}
-              </div>
-              <button
-                type="button"
-                onClick={() => toggleWazeFullscreen(true)}
-                className="absolute end-3 top-3 z-20 flex items-center gap-1.5 rounded-xl bg-ink/90 px-3 py-1.5 text-xs font-extrabold text-paper shadow-lg backdrop-blur-xs transition hover:bg-ink"
-              >
-                <Maximize2 className="size-3.5" />
-                <span>{tr("تكبير الخريطة (Waze)")}</span>
-              </button>
-            </>
-          ) : (
-            <>
-              {/* WAZE-STYLE FLOATING TOP NAVIGATION HUD */}
-              <div className="pointer-events-none absolute inset-x-3 top-[max(0.75rem,env(safe-area-inset-top))] z-30 flex flex-col gap-2">
-                <div className="pointer-events-auto flex items-center justify-between gap-2 rounded-2xl border border-white/15 bg-[#0f172a]/95 p-2.5 text-white shadow-2xl backdrop-blur-md">
-                  <div className="flex min-w-0 items-center gap-2.5">
-                    <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-primary font-mono text-base font-black text-[#111827] shadow-md">
-                      {selectedLine}
-                    </span>
-                    <div className="min-w-0">
-                      <p className="truncate text-xs font-black text-primary">
-                        📍 {tr("أقرب محطة:")} {stopName(nearestStopCode || selectedStop || currentDir?.stops[0]?.[0] || "")}
-                      </p>
-                      <p className="truncate text-[11px] font-bold text-emerald-400">
-                        {activeVehicle
-                          ? `🟢 باص نشط (${activeVehicle.plateFormatted}) · المحطة القادمة: ${activeVehicle.nextStopName}`
-                          : stopPlanned.length > 0
-                            ? `🕒 الباص القادم الساعة ${stopPlanned[0].time} (${minutesLabel(stopPlanned[0].inMin)})`
-                            : `🚌 مسار خط ${selectedLine} المباشر`}
-                      </p>
-                    </div>
-                  </div>
-
+            {/* 1. TOP FLOATING DARK SEARCH BAR ("إلى أين أذهب؟" — exact match to 148356.jpg) */}
+            <div className="pointer-events-auto absolute inset-x-3 top-3 z-20">
+              <div className="flex items-center justify-between gap-2 rounded-xl border border-white/10 bg-[#202124]/95 px-3.5 py-2.5 text-white shadow-2xl backdrop-blur-md">
+                <input
+                  type="text"
+                  value={stopSearchQuery}
+                  onChange={(e) => setStopSearchQuery(e.target.value)}
+                  placeholder={tr("إلى أين أذهب؟")}
+                  className="min-w-0 flex-1 bg-transparent text-right text-xs font-bold text-white placeholder:text-white/75 focus:outline-none sm:text-sm"
+                />
+                {stopSearchQuery ? (
                   <button
                     type="button"
-                    onClick={() => toggleWazeFullscreen(false)}
-                    className="grid size-10 shrink-0 place-items-center rounded-xl bg-white/10 text-white transition hover:bg-red-600"
-                    title={tr("إغلاق ملء الشاشة")}
+                    onClick={() => setStopSearchQuery("")}
+                    className="text-xs font-bold text-white/60 hover:text-white"
                   >
-                    <Minimize2 className="size-5" />
+                    ✕
                   </button>
-                </div>
+                ) : null}
+                <Search className="size-4 shrink-0 text-white/70" />
+              </div>
 
-                {/* Floating Line Icons in Waze Mode */}
-                <div className="pointer-events-auto flex items-center gap-1.5 overflow-x-auto py-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                  {busLines.map((ln) => (
+              {searchMatchedStops.length > 0 ? (
+                <div className="mt-1.5 overflow-hidden rounded-xl border border-white/15 bg-[#202124]/98 text-white shadow-2xl">
+                  {searchMatchedStops.map((st) => (
                     <button
-                      key={ln.number}
+                      key={`${st.code}-${st.idx}`}
                       type="button"
-                      onClick={() => handleSelectLine(ln.number)}
-                      className={`shrink-0 rounded-xl px-3 py-1.5 font-mono text-xs font-black shadow-md transition ${
-                        selectedLine === ln.number
-                          ? "bg-primary text-[#0f172a] ring-2 ring-white"
-                          : "bg-[#0f172a]/85 text-white/90 border border-white/15"
-                      }`}
+                      onClick={() => {
+                        focusStopOnMap(st.code);
+                        setStopSearchQuery("");
+                      }}
+                      className="flex w-full items-center justify-between border-b border-white/10 px-3.5 py-2 text-right text-xs font-bold hover:bg-white/10 last:border-b-0"
                     >
-                      خط {ln.number}
+                      <span>🚏 {st.name}</span>
+                      <span className="font-mono text-[10.5px] text-white/60">
+                        {tr("رقم المحطة")} {st.code}
+                      </span>
                     </button>
                   ))}
                 </div>
-              </div>
+              ) : null}
+            </div>
 
-              {/* WAZE-STYLE FLOATING RIGHT CONTROLS */}
-              <div className="pointer-events-auto absolute end-3 bottom-32 z-30 flex flex-col gap-2.5">
-                <button
-                  type="button"
-                  onClick={locateMe}
-                  className="grid size-12 place-items-center rounded-2xl border border-white/20 bg-[#0f172a]/90 text-white shadow-2xl backdrop-blur-md"
-                  title={tr("موقعي وأقرب محطة")}
-                >
-                  <LocateFixed className="size-5 text-sky-400" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => void refreshVehicles()}
-                  className="grid size-12 place-items-center rounded-2xl border border-white/20 bg-[#0f172a]/90 text-white shadow-2xl backdrop-blur-md"
-                  title={tr("تحديث الرادار")}
-                >
-                  <RefreshCw className={`size-5 text-emerald-400 ${status === "loading" ? "animate-spin" : ""}`} />
-                </button>
-              </div>
+            {/* 2. FLOATING CIRCULAR DARK BUTTONS ON RIGHT SIDE (Layers + Fullscreen + Blue Crosshair Locate — exact match to 148356.jpg) */}
+            <div className="pointer-events-auto absolute end-3 bottom-4 z-20 flex flex-col items-center gap-2.5">
+              {/* Layer Switcher (Google Hybrid Satellite vs Google Street Map) */}
+              <button
+                type="button"
+                onClick={() => setMapLayerMode((m) => (m === "hybrid" ? "streets" : "hybrid"))}
+                className="grid size-11 place-items-center rounded-full border border-white/15 bg-[#202124]/90 text-white shadow-2xl backdrop-blur-md transition hover:bg-[#202124]"
+                title={mapLayerMode === "hybrid" ? tr("تبديل إلى خريطة الشوارع") : tr("تبديل إلى القمر الصناعي")}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <polygon points="12 2 2 7 12 12 22 7 12 2" />
+                  <polyline points="2 17 12 22 22 17" />
+                  <polyline points="2 12 12 17 22 12" />
+                </svg>
+              </button>
 
-              {/* WAZE-STYLE FLOATING BOTTOM SPEEDOMETER & REAL-TIME CARD */}
-              <div className="pointer-events-none absolute inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-30 flex items-end justify-between gap-3">
-                <div className="pointer-events-auto flex size-20 shrink-0 flex-col items-center justify-center rounded-2xl border-4 border-primary bg-[#0f172a]/95 text-white shadow-2xl">
-                  <span className="font-mono text-xl font-black leading-none text-primary">
-                    {activeVehicle ? activeVehicle.speedKmh : 0}
-                  </span>
-                  <span className="mt-0.5 text-[10px] font-extrabold text-white/80">كم/س</span>
-                </div>
+              {/* Fullscreen Toggle */}
+              <button
+                type="button"
+                onClick={() => toggleWazeFullscreen()}
+                className="grid size-11 place-items-center rounded-full border border-white/15 bg-[#202124]/90 text-white shadow-2xl backdrop-blur-md transition hover:bg-[#202124]"
+                title={isWazeFullscreen ? tr("تصغير الخريطة") : tr("ملء الشاشة")}
+              >
+                {isWazeFullscreen ? <Minimize2 className="size-4" /> : <Maximize2 className="size-4" />}
+              </button>
 
-                <div className="pointer-events-auto min-w-0 flex-1 rounded-2xl border border-white/15 bg-[#0f172a]/95 p-3 text-white shadow-2xl backdrop-blur-md">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="min-w-0">
-                      <p className="truncate text-xs font-black text-primary">
-                        🚏 {stopName(selectedStop || nearestStopCode)}
-                      </p>
-                      <p className="mt-0.5 truncate text-[11px] font-bold text-white/85">
-                        {activeVehicle
-                          ? `الباص IL ${activeVehicle.plateFormatted} · يصل خلال ${activeVehicle.etaMinutes ?? 2} د`
-                          : stopPlanned.length > 0
-                            ? `موعد الوصول الحقيقي: ${stopPlanned[0].time} (${minutesLabel(stopPlanned[0].inMin)})`
-                            : "اضغط على أي محطة لعرض وقت الوصول الفوري"}
+              {/* My Location Blue Crosshair Button (exact match to 148356.jpg) */}
+              <button
+                type="button"
+                onClick={locateMe}
+                className="grid size-13 place-items-center rounded-full border border-white/15 bg-[#202124]/95 text-[#3b82f6] shadow-2xl backdrop-blur-md transition active:scale-95"
+                title={tr("موقعي الجغرافي وأقرب محطة")}
+              >
+                <LocateFixed className="size-6" />
+              </button>
+            </div>
+
+            {/* 3. Google Watermark at bottom-left of map canvas like 148356.jpg */}
+            <div
+              dir="ltr"
+              className="pointer-events-none absolute start-3 bottom-2.5 z-20 select-none font-sans text-base font-extrabold tracking-tight text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]"
+            >
+              Google
+            </div>
+          </div>
+
+          {/* 4. DARK BOTTOM SHEET DRAWER ("محطات قريبة" | "مفضلة" + Stop Name + "رقم المحطة" + Live Bus Arrival — exact match to 148356.jpg) */}
+          <div className="bg-[#1e1f22] px-4 pt-2.5 pb-3.5 text-white">
+            {/* Top Drag Handle */}
+            <div className="mx-auto mb-2.5 h-1 w-9 rounded-full bg-white/30" />
+
+            {/* Segmented Pill Tabs: محطات قريبة (Blue Pill) | مفضلة */}
+            <div className="grid grid-cols-2 rounded-full bg-[#2b2d31] p-1 text-xs font-extrabold">
+              <button
+                type="button"
+                onClick={() => setDrawerTab("nearby")}
+                className={`rounded-full py-1.5 transition ${
+                  drawerTab === "nearby"
+                    ? "bg-[#2845b8] text-white shadow-md"
+                    : "text-white/65 hover:text-white"
+                }`}
+              >
+                {tr("محطات قريبة")}
+              </button>
+              <button
+                type="button"
+                onClick={() => setDrawerTab("fav")}
+                className={`rounded-full py-1.5 transition ${
+                  drawerTab === "fav"
+                    ? "bg-[#2845b8] text-white shadow-md"
+                    : "text-white/65 hover:text-white"
+                }`}
+              >
+                {tr("مفضلة")} {favStops.length > 0 ? `(${favStops.length})` : ""}
+              </button>
+            </div>
+
+            {drawerTab === "fav" && favStops.length > 0 ? (
+              <div className="mt-3 space-y-2">
+                {favStops.map((fCode) => (
+                  <button
+                    key={fCode}
+                    type="button"
+                    onClick={() => {
+                      focusStopOnMap(fCode);
+                      setDrawerTab("nearby");
+                    }}
+                    className="flex w-full items-center justify-between rounded-xl bg-[#2b2d31] px-3 py-2 text-right"
+                  >
+                    <div>
+                      <p className="text-sm font-extrabold text-white">{stopName(fCode)}</p>
+                      <p className="text-xs font-semibold text-white/60">
+                        {tr("رقم المحطة")} {fCode}
                       </p>
                     </div>
+                    <span className="text-xs font-extrabold text-[#ffeb3b]">عرض على الخريطة ‹</span>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              /* Active / Nearest Stop Display matching bottom of 148356.jpg + Real-time Live Bus Arrival */
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+                <div className="min-w-0 flex-1 text-right">
+                  <div className="flex items-center gap-2">
+                    <h3 className="truncate text-base font-extrabold text-white sm:text-lg">
+                      {stopName(selectedStop || nearestStopCode || currentDir?.stops[0]?.[0] || "")}
+                    </h3>
                     <button
                       type="button"
-                      onClick={() => toggleWazeFullscreen(false)}
-                      className="shrink-0 rounded-xl bg-white/15 px-3 py-1.5 text-xs font-extrabold text-white"
+                      onClick={() =>
+                        toggleFavStopOnBuses(selectedStop || nearestStopCode || currentDir?.stops[0]?.[0] || "")
+                      }
+                      className="text-sm text-[#ffeb3b]"
+                      title={tr("إضافة للمفضلة")}
                     >
-                      تصغير
+                      {favStops.includes(selectedStop || nearestStopCode || currentDir?.stops[0]?.[0] || "")
+                        ? "★"
+                        : "☆"}
                     </button>
                   </div>
+                  <p className="mt-0.5 text-xs font-semibold text-white/55">
+                    {tr("رقم المحطة")} {selectedStop || nearestStopCode || currentDir?.stops[0]?.[0] || ""}
+                    {nearestStopDistM !== null ? ` · يبعد ${nearestStopDistM} متر` : ""}
+                  </p>
+                </div>
+
+                {/* Real-time live arrival pills at this stop */}
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {stopLiveForLine.length > 0 ? (
+                    stopLiveForLine.slice(0, 2).map((a) => (
+                      <span
+                        key={a.eta}
+                        className="rounded-xl bg-[#16A34A] px-3 py-1.5 text-xs font-black text-white shadow-sm"
+                      >
+                        🟢 {tr("مباشر:")} {minutesLabel(Math.round((Date.parse(a.eta) - now) / 60_000))}
+                      </span>
+                    ))
+                  ) : stopPlannedSlots.length > 0 ? (
+                    stopPlannedSlots.slice(0, 2).map((slot, idx) => (
+                      <span
+                        key={`${slot.time}-${idx}`}
+                        className={`rounded-xl px-2.5 py-1.5 font-mono text-xs font-black ${
+                          idx === 0
+                            ? "bg-[#2845b8] text-white shadow-sm"
+                            : "bg-[#2b2d31] text-white/85"
+                        }`}
+                      >
+                        🕒 {slot.time} ({minutesLabel(slot.inMin)})
+                      </span>
+                    ))
+                  ) : (
+                    <span className="rounded-xl bg-[#2b2d31] px-2.5 py-1 text-xs font-bold text-white/70">
+                      {loadingStop ? tr("جاري فحص وصول الباص…") : tr("خارج ساعات العمل حالياً")}
+                    </span>
+                  )}
                 </div>
               </div>
-            </>
-          )}
+            )}
+          </div>
         </div>
 
         {/* ==================== REAL-TIME BUS TELEMETRY DASHBOARD ==================== */}

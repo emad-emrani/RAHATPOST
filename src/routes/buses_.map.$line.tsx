@@ -10,12 +10,15 @@ import { gmapsTransitRoute, shapeFile, type LineShapes } from "@/lib/buses/map";
 import { GmapsStopButtons } from "@/components/gmaps-buttons";
 import { lineInfo, plannedArrivals, stopName } from "@/lib/buses/schedule";
 import {
+  GOOGLE_HYBRID_TILE_URL,
   buildBusStopPopupHtml,
   buildLiveBusPopupHtml,
   buildScheduledFallbackBus,
   createBusStopDivIcon,
   createLiveBusDivIcon,
+  createUserLocationConeDivIcon,
   formatBusPlate,
+  formatPlannedArrivalSlot,
   getBusDriverDetails,
   type BusVehicleMarkerInfo,
 } from "@/lib/buses/map-icons";
@@ -104,11 +107,7 @@ function BusMapPage() {
         13,
       );
       Lf.control.zoom({ position: "bottomleft" }).addTo(m);
-      Lf.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        maxZoom: 19,
-        attribution:
-          '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>',
-      }).addTo(m);
+      Lf.tileLayer(GOOGLE_HYBRID_TILE_URL, { maxZoom: 20 }).addTo(m);
       routeLayer.current = Lf.layerGroup().addTo(m);
       busLayer.current = Lf.layerGroup().addTo(m);
       meLayer.current = Lf.layerGroup().addTo(m);
@@ -142,8 +141,8 @@ function BusMapPage() {
           routeLayer.current,
         );
         for (const [i, x] of stopPts.entries()) {
-          const stopArrs = plannedArrivals(Date.now(), line, d.dir, x.code, 3);
-          const nextTimes = stopArrs.map((a) => `${a.time}`);
+          const stopDiffs = plannedArrivals(Date.now(), line, d.dir, x.code, 3);
+          const nextTimes = stopDiffs.map((diff) => formatPlannedArrivalSlot(Date.now(), diff)).filter((s): s is { time: string; inMin: number } => Boolean(s)).map((s) => s.time);
           Lf.marker([x.s.lat, x.s.lon], {
             icon: createBusStopDivIcon(Lf, {
               index: i,
@@ -276,12 +275,9 @@ function BusMapPage() {
         if (!Lf || !meLayer.current || !map.current) return;
         meLayer.current.clearLayers();
         const p: [number, number] = [pos.coords.latitude, pos.coords.longitude];
-        Lf.circleMarker(p, {
-          radius: 9,
-          color: "#ffffff",
-          weight: 3,
-          fillColor: "#1a73e8",
-          fillOpacity: 1,
+        Lf.marker(p, {
+          icon: createUserLocationConeDivIcon(Lf),
+          zIndexOffset: 1200,
         })
           .addTo(meLayer.current)
           .bindTooltip(tr("موقعك"));
