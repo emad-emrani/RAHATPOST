@@ -7796,12 +7796,19 @@ const GALIM_HOME_CITY_LINES = [
 ];
 
 const GALIM_HOME_INTERCITY_LINES = [
-  { line: "450", realLine: "450", from: "رهط (الأحياء)", to: "بئر السبع / سوروكا", freq: "كل 15 د" },
-  { line: "471", realLine: "471", from: "رهط (مباشر)", to: "بئر السبع المركزية", freq: "سريع" },
+  { line: "450", realLine: "450", from: "رهط (السلام / الدفيئات)", to: "بئر السبع / سوروكا", freq: "كل 15 د" },
+  { line: "451", realLine: "451", from: "رهط (زمزم / المنزارة)", to: "بئر السبع", freq: "منتظم" },
+  { line: "452", realLine: "452", from: "رهط", to: "بئر السبع", freq: "منتظم" },
+  { line: "454", realLine: "454", from: "رهط", to: "بئر السبع", freq: "منتظم" },
+  { line: "455", realLine: "455", from: "رهط", to: "بئر السبع", freq: "كل 15 د" },
+  { line: "471", realLine: "471", from: "رهط (مباشر سريع)", to: "بئر السبع المركزية", freq: "سريع" },
   { line: "425", realLine: "425", from: "رهط", to: "تل السبع", freq: "منتظم" },
   { line: "423", realLine: "423", from: "رهط", to: "كسيفة / حورة", freq: "منتظم" },
   { line: "427", realLine: "427", from: "رهط", to: "عرعرة النقب", freq: "منتظم" },
-  { line: "467", realLine: "467", from: "رهط", to: "سديروت / عسقلان", freq: "منتظم" },
+  { line: "40", realLine: "40", from: "رهط", to: "كسيفة", freq: "منتظم" },
+  { line: "462", realLine: "462", from: "رهط", to: "سديروت", freq: "منتظم" },
+  { line: "466", realLine: "466", from: "رهط", to: "بئر طوفيا", freq: "منتظم" },
+  { line: "467", realLine: "467", from: "رهط", to: "عسقلان", freq: "منتظم" },
 ];
 
 const RAHAT_EMERGENCY_FULL = [
