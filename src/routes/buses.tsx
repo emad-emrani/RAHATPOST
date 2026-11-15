@@ -26,6 +26,7 @@ import { GmapsStopButtons } from "@/components/gmaps-buttons";
 import { busSchedule } from "@/data/bus-schedule";
 import { busLines, galimPhone, galimSource } from "@/data/buses";
 import { getArrivals, getLineVehicles, getStopLive } from "@/lib/buses/api";
+import { adminWhoami } from "@/lib/team/api";
 import { gmapsPlace, gmapsTransitRoute, shapeFile, type LineShapes } from "@/lib/buses/map";
 import {
   departures,
@@ -280,9 +281,16 @@ function BusesPage() {
     if (urlLine && !["1", "2", "3", "4", "5", "6"].includes(urlLine)) return "intercity";
     return "city";
   });
+  const [isOwnerAdmin, setIsOwnerAdmin] = useState(false);
   const [editingDriver, setEditingDriver] = useState(false);
   const [customDriverInput, setCustomDriverInput] = useState("");
   const [driverVer, setDriverVer] = useState(0);
+
+  useEffect(() => {
+    void adminWhoami()
+      .then((r) => setIsOwnerAdmin(r?.level === "owner"))
+      .catch(() => setIsOwnerAdmin(false));
+  }, []);
   const [mapLayerMode, setMapLayerMode] = useState<"hybrid" | "streets">("hybrid");
   const [stopSearchQuery, setStopSearchQuery] = useState("");
   const [drawerTab, setDrawerTab] = useState<"nearby" | "fav">("nearby");
@@ -1333,7 +1341,7 @@ function BusesPage() {
           ) : null}
         </div>
 
-        {/* SATELLITE APP-STYLE LIVE MAP CONTAINER (مطابق للصورة المرفقة 148356.jpg + بث مباشر بالوقت الحقيقي) */}
+        {/* SATELLITE APP-STYLE LIVE MAP CONTAINER (مطابق للصورة المرفقة 148356.jpg + ملء شاشة مبسط) */}
         <div
           className={
             isWazeFullscreen
@@ -1344,53 +1352,90 @@ function BusesPage() {
           <div className={isWazeFullscreen ? "relative flex-1" : "relative h-[460px] w-full sm:h-[530px]"}>
             <div ref={mapEl} className="absolute inset-0 z-10" dir="ltr" />
 
-            {/* 1. TOP FLOATING DARK SEARCH BAR ("إلى أين أذهب؟" — exact match to 148356.jpg) */}
-            <div className="pointer-events-auto absolute inset-x-3 top-3 z-20">
-              <div className="flex items-center justify-between gap-2 rounded-xl border border-white/10 bg-[#202124]/95 px-3.5 py-2.5 text-white shadow-2xl backdrop-blur-md">
-                <input
-                  type="text"
-                  value={stopSearchQuery}
-                  onChange={(e) => setStopSearchQuery(e.target.value)}
-                  placeholder={tr("إلى أين أذهب؟")}
-                  className="min-w-0 flex-1 bg-transparent text-right text-xs font-bold text-white placeholder:text-white/75 focus:outline-none sm:text-sm"
-                />
-                {stopSearchQuery ? (
-                  <button
-                    type="button"
-                    onClick={() => setStopSearchQuery("")}
-                    className="text-xs font-bold text-white/60 hover:text-white"
-                  >
-                    ✕
-                  </button>
-                ) : null}
-                <Search className="size-4 shrink-0 text-white/70" />
-              </div>
-
-              {searchMatchedStops.length > 0 ? (
-                <div className="mt-1.5 overflow-hidden rounded-xl border border-white/15 bg-[#202124]/98 text-white shadow-2xl">
-                  {searchMatchedStops.map((st) => (
-                    <button
-                      key={`${st.code}-${st.idx}`}
-                      type="button"
-                      onClick={() => {
-                        focusStopOnMap(st.code);
-                        setStopSearchQuery("");
-                      }}
-                      className="flex w-full items-center justify-between border-b border-white/10 px-3.5 py-2 text-right text-xs font-bold hover:bg-white/10 last:border-b-0"
-                    >
-                      <span>🚏 {st.name}</span>
-                      <span className="font-mono text-[10.5px] text-white/60">
-                        {tr("رقم المحطة")} {st.code}
-                      </span>
-                    </button>
-                  ))}
+            {isWazeFullscreen ? (
+              /* FULLSCREEN TOP BAR ONLY: المحطة القادمة + الباص مباشر + وقت بدء الباص + وقت الوصول للمحطة */
+              <div className="pointer-events-auto absolute inset-x-3 top-[max(0.75rem,env(safe-area-inset-top))] z-20 rounded-2xl border border-white/15 bg-[#18191c]/95 px-3.5 py-2.5 text-white shadow-2xl backdrop-blur-md">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex items-center gap-1.5 rounded-xl bg-[#16a34a] px-2.5 py-1 text-xs font-black text-white">
+                      <span className="size-2 rounded-full bg-white animate-ping" />
+                      <span>🚌 باص خط {selectedLine} مباشر</span>
+                    </span>
+                    <span className="text-xs font-extrabold text-[#ffeb3b]">
+                      🚏 {tr("المحطة القادمة:")}{" "}
+                      {activeVehicle?.nextStopName ||
+                        mapBusMarkerItems[0]?.nextStopName ||
+                        stopName(selectedStop || nearestStopCode || currentDir?.stops[0]?.[0] || "")}
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2 text-[11px] font-extrabold">
+                    <span className="rounded-lg bg-white/10 px-2.5 py-1 text-white/90">
+                      🕒 {tr("وقت بدء الباص:")}{" "}
+                      <bdi dir="ltr" className="font-mono text-[#ffeb3b]">
+                        {activeVehicle?.scheduledStart || stopPlannedSlots[0]?.time || "06:00"}
+                      </bdi>
+                    </span>
+                    <span className="rounded-lg bg-[#2845b8] px-2.5 py-1 text-white">
+                      ⏱️ {tr("وقت الوصول للمحطة:")}{" "}
+                      <bdi dir="ltr" className="font-mono text-[#ffeb3b]">
+                        {stopPlannedSlots[0]?.time ||
+                          (activeVehicle?.etaMinutes !== null && activeVehicle?.etaMinutes !== undefined
+                            ? minutesLabel(activeVehicle.etaMinutes)
+                            : "مباشر")}
+                      </bdi>
+                      {stopPlannedSlots[0] ? ` (${minutesLabel(stopPlannedSlots[0].inMin)})` : ""}
+                    </span>
+                  </div>
                 </div>
-              ) : null}
-            </div>
+              </div>
+            ) : (
+              /* NORMAL MODE TOP FLOATING DARK SEARCH BAR ("إلى أين أذهب؟") */
+              <div className="pointer-events-auto absolute inset-x-3 top-3 z-20">
+                <div className="flex items-center justify-between gap-2 rounded-xl border border-white/10 bg-[#202124]/95 px-3.5 py-2.5 text-white shadow-2xl backdrop-blur-md">
+                  <input
+                    type="text"
+                    value={stopSearchQuery}
+                    onChange={(e) => setStopSearchQuery(e.target.value)}
+                    placeholder={tr("إلى أين أذهب؟")}
+                    className="min-w-0 flex-1 bg-transparent text-right text-xs font-bold text-white placeholder:text-white/75 focus:outline-none sm:text-sm"
+                  />
+                  {stopSearchQuery ? (
+                    <button
+                      type="button"
+                      onClick={() => setStopSearchQuery("")}
+                      className="text-xs font-bold text-white/60 hover:text-white"
+                    >
+                      ✕
+                    </button>
+                  ) : null}
+                  <Search className="size-4 shrink-0 text-white/70" />
+                </div>
 
-            {/* 2. FLOATING CIRCULAR DARK BUTTONS ON RIGHT SIDE (Layers + Fullscreen + Blue Crosshair Locate — exact match to 148356.jpg) */}
+                {searchMatchedStops.length > 0 ? (
+                  <div className="mt-1.5 overflow-hidden rounded-xl border border-white/15 bg-[#202124]/98 text-white shadow-2xl">
+                    {searchMatchedStops.map((st) => (
+                      <button
+                        key={`${st.code}-${st.idx}`}
+                        type="button"
+                        onClick={() => {
+                          focusStopOnMap(st.code);
+                          setStopSearchQuery("");
+                        }}
+                        className="flex w-full items-center justify-between border-b border-white/10 px-3.5 py-2 text-right text-xs font-bold hover:bg-white/10 last:border-b-0"
+                      >
+                        <span>🚏 {st.name}</span>
+                        <span className="font-mono text-[10.5px] text-white/60">
+                          {tr("رقم المحطة")} {st.code}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            )}
+
+            {/* FLOATING CIRCULAR DARK CONTROL BUTTONS ON RIGHT SIDE (Kept in both normal & fullscreen) */}
             <div className="pointer-events-auto absolute end-3 bottom-4 z-20 flex flex-col items-center gap-2.5">
-              {/* Layer Switcher (Google Hybrid Satellite vs Google Street Map) */}
               <button
                 type="button"
                 onClick={() => setMapLayerMode((m) => (m === "hybrid" ? "streets" : "hybrid"))}
@@ -1404,7 +1449,6 @@ function BusesPage() {
                 </svg>
               </button>
 
-              {/* Fullscreen Toggle */}
               <button
                 type="button"
                 onClick={() => toggleWazeFullscreen()}
@@ -1414,7 +1458,6 @@ function BusesPage() {
                 {isWazeFullscreen ? <Minimize2 className="size-4" /> : <Maximize2 className="size-4" />}
               </button>
 
-              {/* My Location Blue Crosshair Button (exact match to 148356.jpg) */}
               <button
                 type="button"
                 onClick={locateMe}
@@ -1425,7 +1468,7 @@ function BusesPage() {
               </button>
             </div>
 
-            {/* 3. Google Watermark at bottom-left of map canvas like 148356.jpg */}
+            {/* Google Watermark */}
             <div
               dir="ltr"
               className="pointer-events-none absolute start-3 bottom-2.5 z-20 select-none font-sans text-base font-extrabold tracking-tight text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]"
@@ -1434,119 +1477,117 @@ function BusesPage() {
             </div>
           </div>
 
-          {/* 4. DARK BOTTOM SHEET DRAWER ("محطات قريبة" | "مفضلة" + Stop Name + "رقم المحطة" + Live Bus Arrival — exact match to 148356.jpg) */}
-          <div className="bg-[#1e1f22] px-4 pt-2.5 pb-3.5 text-white">
-            {/* Top Drag Handle */}
-            <div className="mx-auto mb-2.5 h-1 w-9 rounded-full bg-white/30" />
+          {/* DARK BOTTOM SHEET DRAWER — Hidden in Fullscreen so only the map, top bar & buttons appear! */}
+          {!isWazeFullscreen ? (
+            <div className="bg-[#1e1f22] px-4 pt-2.5 pb-3.5 text-white">
+              <div className="mx-auto mb-2.5 h-1 w-9 rounded-full bg-white/30" />
 
-            {/* Segmented Pill Tabs: محطات قريبة (Blue Pill) | مفضلة */}
-            <div className="grid grid-cols-2 rounded-full bg-[#2b2d31] p-1 text-xs font-extrabold">
-              <button
-                type="button"
-                onClick={() => setDrawerTab("nearby")}
-                className={`rounded-full py-1.5 transition ${
-                  drawerTab === "nearby"
-                    ? "bg-[#2845b8] text-white shadow-md"
-                    : "text-white/65 hover:text-white"
-                }`}
-              >
-                {tr("محطات قريبة")}
-              </button>
-              <button
-                type="button"
-                onClick={() => setDrawerTab("fav")}
-                className={`rounded-full py-1.5 transition ${
-                  drawerTab === "fav"
-                    ? "bg-[#2845b8] text-white shadow-md"
-                    : "text-white/65 hover:text-white"
-                }`}
-              >
-                {tr("مفضلة")} {favStops.length > 0 ? `(${favStops.length})` : ""}
-              </button>
-            </div>
-
-            {drawerTab === "fav" && favStops.length > 0 ? (
-              <div className="mt-3 space-y-2">
-                {favStops.map((fCode) => (
-                  <button
-                    key={fCode}
-                    type="button"
-                    onClick={() => {
-                      focusStopOnMap(fCode);
-                      setDrawerTab("nearby");
-                    }}
-                    className="flex w-full items-center justify-between rounded-xl bg-[#2b2d31] px-3 py-2 text-right"
-                  >
-                    <div>
-                      <p className="text-sm font-extrabold text-white">{stopName(fCode)}</p>
-                      <p className="text-xs font-semibold text-white/60">
-                        {tr("رقم المحطة")} {fCode}
-                      </p>
-                    </div>
-                    <span className="text-xs font-extrabold text-[#ffeb3b]">عرض على الخريطة ‹</span>
-                  </button>
-                ))}
+              <div className="grid grid-cols-2 rounded-full bg-[#2b2d31] p-1 text-xs font-extrabold">
+                <button
+                  type="button"
+                  onClick={() => setDrawerTab("nearby")}
+                  className={`rounded-full py-1.5 transition ${
+                    drawerTab === "nearby"
+                      ? "bg-[#2845b8] text-white shadow-md"
+                      : "text-white/65 hover:text-white"
+                  }`}
+                >
+                  {tr("محطات قريبة")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDrawerTab("fav")}
+                  className={`rounded-full py-1.5 transition ${
+                    drawerTab === "fav"
+                      ? "bg-[#2845b8] text-white shadow-md"
+                      : "text-white/65 hover:text-white"
+                  }`}
+                >
+                  {tr("مفضلة")} {favStops.length > 0 ? `(${favStops.length})` : ""}
+                </button>
               </div>
-            ) : (
-              /* Active / Nearest Stop Display matching bottom of 148356.jpg + Real-time Live Bus Arrival */
-              <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-                <div className="min-w-0 flex-1 text-right">
-                  <div className="flex items-center gap-2">
-                    <h3 className="truncate text-base font-extrabold text-white sm:text-lg">
-                      {stopName(selectedStop || nearestStopCode || currentDir?.stops[0]?.[0] || "")}
-                    </h3>
+
+              {drawerTab === "fav" && favStops.length > 0 ? (
+                <div className="mt-3 space-y-2">
+                  {favStops.map((fCode) => (
                     <button
+                      key={fCode}
                       type="button"
-                      onClick={() =>
-                        toggleFavStopOnBuses(selectedStop || nearestStopCode || currentDir?.stops[0]?.[0] || "")
-                      }
-                      className="text-sm text-[#ffeb3b]"
-                      title={tr("إضافة للمفضلة")}
+                      onClick={() => {
+                        focusStopOnMap(fCode);
+                        setDrawerTab("nearby");
+                      }}
+                      className="flex w-full items-center justify-between rounded-xl bg-[#2b2d31] px-3 py-2 text-right"
                     >
-                      {favStops.includes(selectedStop || nearestStopCode || currentDir?.stops[0]?.[0] || "")
-                        ? "★"
-                        : "☆"}
+                      <div>
+                        <p className="text-sm font-extrabold text-white">{stopName(fCode)}</p>
+                        <p className="text-xs font-semibold text-white/60">
+                          {tr("رقم المحطة")} {fCode}
+                        </p>
+                      </div>
+                      <span className="text-xs font-extrabold text-[#ffeb3b]">عرض على الخريطة ‹</span>
                     </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+                  <div className="min-w-0 flex-1 text-right">
+                    <div className="flex items-center gap-2">
+                      <h3 className="truncate text-base font-extrabold text-white sm:text-lg">
+                        {stopName(selectedStop || nearestStopCode || currentDir?.stops[0]?.[0] || "")}
+                      </h3>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          toggleFavStopOnBuses(selectedStop || nearestStopCode || currentDir?.stops[0]?.[0] || "")
+                        }
+                        className="text-sm text-[#ffeb3b]"
+                        title={tr("إضافة للمفضلة")}
+                      >
+                        {favStops.includes(selectedStop || nearestStopCode || currentDir?.stops[0]?.[0] || "")
+                          ? "★"
+                          : "☆"}
+                      </button>
+                    </div>
+                    <p className="mt-0.5 text-xs font-semibold text-white/55">
+                      {tr("رقم المحطة")} {selectedStop || nearestStopCode || currentDir?.stops[0]?.[0] || ""}
+                      {nearestStopDistM !== null ? ` · يبعد ${nearestStopDistM} متر` : ""}
+                    </p>
                   </div>
-                  <p className="mt-0.5 text-xs font-semibold text-white/55">
-                    {tr("رقم المحطة")} {selectedStop || nearestStopCode || currentDir?.stops[0]?.[0] || ""}
-                    {nearestStopDistM !== null ? ` · يبعد ${nearestStopDistM} متر` : ""}
-                  </p>
-                </div>
 
-                {/* Real-time live arrival pills at this stop */}
-                <div className="flex flex-wrap items-center gap-1.5">
-                  {stopLiveForLine.length > 0 ? (
-                    stopLiveForLine.slice(0, 2).map((a) => (
-                      <span
-                        key={a.eta}
-                        className="rounded-xl bg-[#16A34A] px-3 py-1.5 text-xs font-black text-white shadow-sm"
-                      >
-                        🟢 {tr("مباشر:")} {minutesLabel(Math.round((Date.parse(a.eta) - now) / 60_000))}
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {stopLiveForLine.length > 0 ? (
+                      stopLiveForLine.slice(0, 2).map((a) => (
+                        <span
+                          key={a.eta}
+                          className="rounded-xl bg-[#16A34A] px-3 py-1.5 text-xs font-black text-white shadow-sm"
+                        >
+                          🟢 {tr("مباشر:")} {minutesLabel(Math.round((Date.parse(a.eta) - now) / 60_000))}
+                        </span>
+                      ))
+                    ) : stopPlannedSlots.length > 0 ? (
+                      stopPlannedSlots.slice(0, 2).map((slot, idx) => (
+                        <span
+                          key={`${slot.time}-${idx}`}
+                          className={`rounded-xl px-2.5 py-1.5 font-mono text-xs font-black ${
+                            idx === 0
+                              ? "bg-[#2845b8] text-white shadow-sm"
+                              : "bg-[#2b2d31] text-white/85"
+                          }`}
+                        >
+                          🕒 {slot.time} ({minutesLabel(slot.inMin)})
+                        </span>
+                      ))
+                    ) : (
+                      <span className="rounded-xl bg-[#2b2d31] px-2.5 py-1 text-xs font-bold text-white/70">
+                        {loadingStop ? tr("جاري فحص وصول الباص…") : tr("خارج ساعات العمل حالياً")}
                       </span>
-                    ))
-                  ) : stopPlannedSlots.length > 0 ? (
-                    stopPlannedSlots.slice(0, 2).map((slot, idx) => (
-                      <span
-                        key={`${slot.time}-${idx}`}
-                        className={`rounded-xl px-2.5 py-1.5 font-mono text-xs font-black ${
-                          idx === 0
-                            ? "bg-[#2845b8] text-white shadow-sm"
-                            : "bg-[#2b2d31] text-white/85"
-                        }`}
-                      >
-                        🕒 {slot.time} ({minutesLabel(slot.inMin)})
-                      </span>
-                    ))
-                  ) : (
-                    <span className="rounded-xl bg-[#2b2d31] px-2.5 py-1 text-xs font-bold text-white/70">
-                      {loadingStop ? tr("جاري فحص وصول الباص…") : tr("خارج ساعات العمل حالياً")}
-                    </span>
-                  )}
+                    )}
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          ) : null}
         </div>
 
         {/* ==================== REAL-TIME BUS TELEMETRY DASHBOARD ==================== */}
@@ -1630,16 +1671,18 @@ function BusesPage() {
                     )}
                   </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setCustomDriverInput(activeDriverDetails.driverName);
-                    setEditingDriver((v) => !v);
-                  }}
-                  className="rounded-xl border border-line bg-paper px-2.5 py-1 text-[11px] font-extrabold text-ink hover:border-primary"
-                >
-                  ✏️ {editingDriver ? tr("إلغاء") : tr("تخصيص اسم السائق")}
-                </button>
+                {isOwnerAdmin ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCustomDriverInput(activeDriverDetails.driverName);
+                      setEditingDriver((v) => !v);
+                    }}
+                    className="rounded-xl border border-line bg-paper px-2.5 py-1 text-[11px] font-extrabold text-ink hover:border-primary"
+                  >
+                    ✏️ {editingDriver ? tr("إلغاء") : tr("تخصيص اسم السائق")}
+                  </button>
+                ) : null}
               </div>
 
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -1844,16 +1887,18 @@ function BusesPage() {
                     )}
                   </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setCustomDriverInput(activeDriverDetails.driverName);
-                    setEditingDriver((v) => !v);
-                  }}
-                  className="rounded-xl border border-line bg-paper px-2.5 py-1 text-[11px] font-extrabold text-ink hover:border-primary"
-                >
-                  ✏️ {editingDriver ? tr("إلغاء") : tr("تخصيص اسم السائق")}
-                </button>
+                {isOwnerAdmin ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCustomDriverInput(activeDriverDetails.driverName);
+                      setEditingDriver((v) => !v);
+                    }}
+                    className="rounded-xl border border-line bg-paper px-2.5 py-1 text-[11px] font-extrabold text-ink hover:border-primary"
+                  >
+                    ✏️ {editingDriver ? tr("إلغاء") : tr("تخصيص اسم السائق")}
+                  </button>
+                ) : null}
               </div>
 
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">

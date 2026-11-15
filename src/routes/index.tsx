@@ -22,6 +22,7 @@ import { mediaUrl } from "@/lib/media/types";
 import { NotifyPrompt } from "@/components/notify";
 import { NewsLead, NewsUnavailable, newestFirst } from "@/components/news";
 import { getApprovedEntries } from "@/lib/directory/api";
+import { adminWhoami } from "@/lib/team/api";
 import { osmEntries, type DirectoryEntry } from "@/lib/directory/types";
 import { getAutoSectionFlags, getCustomSectionsNews, getNews, getSportsNews, getTechNews, type CustomSectionResult } from "@/lib/news/api";
 import { getMatchesBoard, type MatchesBoardData, type MatchItem } from "@/lib/news/matches";
@@ -4963,6 +4964,25 @@ const DEFAULT_BOT_TILES: { icon: string; label: string; to: string }[] = [
   { icon: "siren", label: "اليوم", to: "/today" },
 ];
 
+export type TopMenuStyleKey =
+  | "animated_cards"
+  | "neon_pulse"
+  | "colorful_apps"
+  | "glass_float"
+  | "circles_ring"
+  | "compact_pills";
+
+const TOP_TILE_GRADIENTS = [
+  "from-amber-400 to-orange-500 text-white",
+  "from-sky-500 to-blue-600 text-white",
+  "from-emerald-500 to-teal-600 text-white",
+  "from-rose-500 to-red-600 text-white",
+  "from-violet-500 to-indigo-600 text-white",
+  "from-cyan-500 to-blue-500 text-white",
+  "from-amber-500 to-yellow-600 text-white",
+  "from-fuchsia-500 to-purple-600 text-white",
+];
+
 function HomeTilesBar({
   hasLiveMatch,
   customSections = [],
@@ -4972,6 +4992,20 @@ function HomeTilesBar({
 }) {
   const st = useSiteSettings();
   const topCfgItem = (st.quickLinks ?? []).find((q) => q.id === "topbarcfg");
+  const topStyleItem = (st.quickLinks ?? []).find((q) => q.id === "topstylecfg");
+  const topStyle: TopMenuStyleKey =
+    (topStyleItem?.title as TopMenuStyleKey) &&
+    [
+      "animated_cards",
+      "neon_pulse",
+      "colorful_apps",
+      "glass_float",
+      "circles_ring",
+      "compact_pills",
+    ].includes(topStyleItem.title)
+      ? (topStyleItem.title as TopMenuStyleKey)
+      : "animated_cards";
+
   const liveTileCfg = (st.quickLinks ?? []).find((q) => q.id === "tilelive");
   const showLiveTile = liveTileCfg ? !liveTileCfg.subtitle?.includes("مَخفي") : true;
   const liveTileGlow =
@@ -5003,7 +5037,6 @@ function HomeTilesBar({
     }).map((t) => (t.to === "/sports-news" ? { ...t, label: liveTileLabel } : t));
   }, [topCfgItem, st.tiles, showLiveTile, liveTileLabel]);
 
-  // Include all custom sections from database (e.g. "فن و موضة") and quickLinks in the Top Menu!
   const combined = [...configuredList];
   for (const cs of customSections) {
     const cleanLabel = cs.rawName.trim();
@@ -5026,51 +5059,117 @@ function HomeTilesBar({
   const GENERAL_NEWS_LABELS = new Set(["الأخبار", "أخبار", "أخبار رهط", "آخر الأخبار", "كل الأخبار"]);
 
   return (
-    <nav
-      className="scroll-row -mx-4 px-4 sm:mx-0 sm:flex sm:flex-wrap sm:justify-between sm:gap-3 sm:px-0"
-      aria-label={tr("الأقسام")}
-    >
-      {combined.map((t, idx) => {
-        const Icon = ICON_MAP[t.icon] ?? Newspaper;
-        const isLiveTile = t.to === "/sports-news" || t.icon === "tv";
-        const cleanLbl = t.label.trim();
-        const isCustomNewsSec =
-          t.to.includes("?cat=") ||
-          t.to.includes("?q=") ||
-          (t.to === "/news" && Boolean(cleanLbl) && !GENERAL_NEWS_LABELS.has(cleanLbl));
-        const resolvedCat = t.to.includes("?cat=")
-          ? decodeURIComponent(t.to.split("?cat=")[1] ?? cleanLbl)
-          : cleanLbl || decodeURIComponent(t.to.split("?q=")[1] ?? "");
-        const destTo = (isCustomNewsSec ? "/news" : t.to.split("?")[0] || "/") as "/";
-        const destSearch = isCustomNewsSec ? ({ cat: resolvedCat } as never) : undefined;
-        return (
-          <Link
-            key={`${t.to}-${cleanLbl}-${idx}`}
-            to={destTo}
-            search={destSearch}
-            className="tile relative sm:flex-1"
-          >
-            <span
-              className={`tile-icon relative sm:w-full ${
-                isLiveTile && liveTileGlow ? "ring-2 ring-[#DC2626]/40" : ""
-              }`}
-            >
-              <Icon className="size-6 sm:size-7" aria-hidden />
-              {isLiveTile && liveTileGlow ? (
+    <>
+      <style>{`
+        @keyframes rpTopIconFloat {
+          0%, 100% { transform: translateY(0px) scale(1); }
+          50% { transform: translateY(-3px) scale(1.08); }
+        }
+        @keyframes rpTopRingPulse {
+          0%, 100% { box-shadow: 0 0 0 0 rgba(242, 201, 76, 0.45); }
+          50% { box-shadow: 0 0 0 5px rgba(242, 201, 76, 0); }
+        }
+        .rp-top-tile-anim:hover .rp-top-icon-svg,
+        .rp-top-tile-anim:active .rp-top-icon-svg {
+          transform: scale(1.2) rotate(-6deg);
+        }
+      `}</style>
+      <nav
+        className="scroll-row -mx-4 px-4 py-1 sm:mx-0 sm:flex sm:flex-wrap sm:justify-between sm:gap-3 sm:px-0"
+        aria-label={tr("الأقسام")}
+      >
+        {combined.map((t, idx) => {
+          const Icon = ICON_MAP[t.icon] ?? Newspaper;
+          const isLiveTile = t.to === "/sports-news" || t.icon === "tv";
+          const cleanLbl = t.label.trim();
+          const isCustomNewsSec =
+            t.to.includes("?cat=") ||
+            t.to.includes("?q=") ||
+            (t.to === "/news" && Boolean(cleanLbl) && !GENERAL_NEWS_LABELS.has(cleanLbl));
+          const resolvedCat = t.to.includes("?cat=")
+            ? decodeURIComponent(t.to.split("?cat=")[1] ?? cleanLbl)
+            : cleanLbl || decodeURIComponent(t.to.split("?q=")[1] ?? "");
+          const destTo = (isCustomNewsSec ? "/news" : t.to.split("?")[0] || "/") as "/";
+          const destSearch = isCustomNewsSec ? ({ cat: resolvedCat } as never) : undefined;
+          const labelText = t.to === "/haraj" ? trv(st.texts.harajNav) : trSecLabel(t.label);
+          const animDelay = `${(idx % 6) * 0.28}s`;
+
+          if (topStyle === "compact_pills") {
+            return (
+              <Link
+                key={`${t.to}-${cleanLbl}-${idx}`}
+                to={destTo}
+                search={destSearch}
+                className="rp-top-tile-anim press inline-flex shrink-0 items-center gap-2 rounded-2xl border border-line bg-paper px-3.5 py-2.5 text-xs font-extrabold text-ink shadow-2xs transition hover:border-primary hover:bg-primary-soft sm:flex-1 sm:justify-center"
+              >
                 <span
-                  className={`absolute top-1.5 start-1.5 size-2.5 rounded-full bg-[#DC2626] ${
-                    hasLiveMatch ? "animate-ping" : ""
-                  }`}
-                />
-              ) : null}
-            </span>
-            <span className={isLiveTile && liveTileGlow ? "font-extrabold text-[#DC2626]" : ""}>
-              {t.to === "/haraj" ? trv(st.texts.harajNav) : trSecLabel(t.label)}
-            </span>
-          </Link>
-        );
-      })}
-    </nav>
+                  className="grid size-8 place-items-center rounded-xl bg-primary/25 text-primary-ink"
+                  style={{ animation: `rpTopIconFloat 3.2s infinite ease-in-out ${animDelay}` }}
+                >
+                  <Icon className="rp-top-icon-svg size-4 transition-transform duration-200" aria-hidden />
+                </span>
+                <span className="truncate">{labelText}</span>
+              </Link>
+            );
+          }
+
+          const iconBoxCls =
+            topStyle === "neon_pulse"
+              ? "grid size-14 place-items-center rounded-2xl border border-[#f2c94c]/60 bg-[#0f172a] text-[#f2c94c] shadow-[0_6px_18px_rgba(15,23,42,0.22)] sm:w-full"
+              : topStyle === "colorful_apps"
+                ? `grid size-14 place-items-center rounded-2xl bg-gradient-to-br ${
+                    TOP_TILE_GRADIENTS[idx % TOP_TILE_GRADIENTS.length]
+                  } shadow-md sm:w-full`
+                : topStyle === "glass_float"
+                  ? "grid size-14 place-items-center rounded-2xl border border-primary/50 bg-gradient-to-b from-paper to-primary-soft/60 text-primary-ink shadow-sm backdrop-blur-md sm:w-full"
+                  : topStyle === "circles_ring"
+                    ? "grid size-14 place-items-center rounded-full border-2 border-primary bg-paper text-primary-ink shadow-sm"
+                    : "tile-icon relative border border-primary/30 bg-gradient-to-b from-paper to-primary-soft/35 shadow-sm sm:w-full";
+
+          return (
+            <Link
+              key={`${t.to}-${cleanLbl}-${idx}`}
+              to={destTo}
+              search={destSearch}
+              className="rp-top-tile-anim tile group relative transition-transform duration-200 hover:-translate-y-0.5 active:scale-95 sm:flex-1"
+            >
+              <span
+                className={`${iconBoxCls} relative ${
+                  isLiveTile && liveTileGlow ? "ring-2 ring-[#DC2626]/50" : ""
+                }`}
+                style={{
+                  animation:
+                    topStyle === "circles_ring"
+                      ? `rpTopRingPulse 2.8s infinite ease-in-out ${animDelay}`
+                      : undefined,
+                }}
+              >
+                <span
+                  className="inline-flex items-center justify-center"
+                  style={{ animation: `rpTopIconFloat 3.2s infinite ease-in-out ${animDelay}` }}
+                >
+                  <Icon className="rp-top-icon-svg size-6 transition-transform duration-200 sm:size-7" aria-hidden />
+                </span>
+                {isLiveTile && liveTileGlow ? (
+                  <span
+                    className={`absolute top-1.5 start-1.5 size-2.5 rounded-full bg-[#DC2626] ${
+                      hasLiveMatch ? "animate-ping" : ""
+                    }`}
+                  />
+                ) : null}
+              </span>
+              <span
+                className={`mt-1 text-xs font-extrabold ${
+                  isLiveTile && liveTileGlow ? "text-[#DC2626]" : "text-ink"
+                }`}
+              >
+                {labelText}
+              </span>
+            </Link>
+          );
+        })}
+      </nav>
+    </>
   );
 }
 
@@ -7748,9 +7847,18 @@ function InteractiveGalimBusesHomeSection() {
   const [userCoords, setUserCoords] = useState<{ lat: number; lon: number } | null>(null);
   const [liveVehicles, setLiveVehicles] = useState<{ ref: string; dir: string; lat: number; lon: number; at: string }[]>([]);
   const [selectedBusInfo, setSelectedBusInfo] = useState<BusVehicleMarkerInfo | null>(null);
+  const [isOwnerAdmin, setIsOwnerAdmin] = useState<boolean>(false);
   const [editingDriver, setEditingDriver] = useState<boolean>(false);
   const [customDriverInput, setCustomDriverInput] = useState<string>("");
   const [driverVer, setDriverVer] = useState<number>(0);
+
+  useEffect(() => {
+    void adminWhoami()
+      .then((r) => {
+        setIsOwnerAdmin(r?.level === "owner");
+      })
+      .catch(() => setIsOwnerAdmin(false));
+  }, []);
   const [busStatus, setBusStatus] = useState<"idle" | "loading" | "ok" | "error">("idle");
   const [nowClock, setNowClock] = useState<number>(() => Date.now());
   const [isFullscreenMap, setIsFullscreenMap] = useState<boolean>(false);
@@ -8406,54 +8514,85 @@ function InteractiveGalimBusesHomeSection() {
                 <div className={isFullscreenMap ? "relative flex-1" : "relative h-[430px] w-full sm:h-[500px]"}>
                   <div ref={mapContainerRef} className="absolute inset-0 z-10" dir="ltr" />
 
-                  {/* 1. TOP FLOATING DARK SEARCH BAR ("إلى أين أذهب؟" — exact match to 148356.jpg) */}
-                  <div className="pointer-events-auto absolute inset-x-3 top-3 z-20">
-                    <div className="flex items-center justify-between gap-2 rounded-xl border border-white/10 bg-[#202124]/95 px-3.5 py-2.5 text-white shadow-2xl backdrop-blur-md">
-                      <input
-                        type="text"
-                        value={stopSearchQuery}
-                        onChange={(e) => setStopSearchQuery(e.target.value)}
-                        placeholder={tr("إلى أين أذهب؟")}
-                        className="min-w-0 flex-1 bg-transparent text-right text-xs font-bold text-white placeholder:text-white/75 focus:outline-none sm:text-sm"
-                      />
-                      {stopSearchQuery ? (
-                        <button
-                          type="button"
-                          onClick={() => setStopSearchQuery("")}
-                          className="text-xs font-bold text-white/60 hover:text-white"
-                        >
-                          ✕
-                        </button>
-                      ) : null}
-                      <Search className="size-4 shrink-0 text-white/70" />
-                    </div>
-
-                    {searchMatchedStops.length > 0 ? (
-                      <div className="mt-1.5 overflow-hidden rounded-xl border border-white/15 bg-[#202124]/98 text-white shadow-2xl">
-                        {searchMatchedStops.map((st) => (
-                          <button
-                            key={`${st.code}-${st.idx}`}
-                            type="button"
-                            onClick={() => {
-                              setSelectedStop(st.code);
-                              setStopSearchQuery("");
-                              leafletMapRef.current?.setView([st.s.lat, st.s.lon], 17, { animate: true });
-                            }}
-                            className="flex w-full items-center justify-between border-b border-white/10 px-3.5 py-2 text-right text-xs font-bold hover:bg-white/10 last:border-b-0"
-                          >
-                            <span>🚏 {st.name}</span>
-                            <span className="font-mono text-[10.5px] text-white/60">
-                              {tr("رقم المحطة")} {st.code}
-                            </span>
-                          </button>
-                        ))}
+                  {isFullscreenMap ? (
+                    /* FULLSCREEN TOP BAR ONLY: المحطة القادمة + الباص مباشر + وقت بدء الباص + وقت الوصول للمحطة */
+                    <div className="pointer-events-auto absolute inset-x-3 top-[max(0.75rem,env(safe-area-inset-top))] z-20 rounded-2xl border border-white/15 bg-[#18191c]/95 px-3.5 py-2.5 text-white shadow-2xl backdrop-blur-md">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className="inline-flex items-center gap-1.5 rounded-xl bg-[#16a34a] px-2.5 py-1 text-xs font-black text-white">
+                            <span className="size-2 rounded-full bg-white animate-ping" />
+                            <span>🚌 باص خط {selectedLine} مباشر</span>
+                          </span>
+                          <span className="text-xs font-extrabold text-[#ffeb3b]">
+                            🚏 {tr("المحطة القادمة:")} {activeBusCard?.nextStopName || stopName(activeStopForSchedule)}
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2 text-[11px] font-extrabold">
+                          <span className="rounded-lg bg-white/10 px-2.5 py-1 text-white/90">
+                            🕒 {tr("وقت بدء الباص:")}{" "}
+                            <bdi dir="ltr" className="font-mono text-[#ffeb3b]">
+                              {activeBusCard?.scheduledStart || plannedNextSlots[0]?.time || "06:00"}
+                            </bdi>
+                          </span>
+                          <span className="rounded-lg bg-[#2845b8] px-2.5 py-1 text-white">
+                            ⏱️ {tr("وقت الوصول للمحطة:")}{" "}
+                            <bdi dir="ltr" className="font-mono text-[#ffeb3b]">
+                              {plannedNextSlots[0]?.time || activeBusCard?.etaText || "مباشر"}
+                            </bdi>
+                            {plannedNextSlots[0] ? ` (${homeMinutesLabel(plannedNextSlots[0].inMin)})` : ""}
+                          </span>
+                        </div>
                       </div>
-                    ) : null}
-                  </div>
+                    </div>
+                  ) : (
+                    /* NORMAL MODE TOP FLOATING DARK SEARCH BAR ("إلى أين أذهب؟") */
+                    <div className="pointer-events-auto absolute inset-x-3 top-3 z-20">
+                      <div className="flex items-center justify-between gap-2 rounded-xl border border-white/10 bg-[#202124]/95 px-3.5 py-2.5 text-white shadow-2xl backdrop-blur-md">
+                        <input
+                          type="text"
+                          value={stopSearchQuery}
+                          onChange={(e) => setStopSearchQuery(e.target.value)}
+                          placeholder={tr("إلى أين أذهب؟")}
+                          className="min-w-0 flex-1 bg-transparent text-right text-xs font-bold text-white placeholder:text-white/75 focus:outline-none sm:text-sm"
+                        />
+                        {stopSearchQuery ? (
+                          <button
+                            type="button"
+                            onClick={() => setStopSearchQuery("")}
+                            className="text-xs font-bold text-white/60 hover:text-white"
+                          >
+                            ✕
+                          </button>
+                        ) : null}
+                        <Search className="size-4 shrink-0 text-white/70" />
+                      </div>
 
-                  {/* 2. FLOATING CIRCULAR DARK BUTTONS ON RIGHT SIDE (Layers + Blue Crosshair Locate — exact match to 148356.jpg) */}
+                      {searchMatchedStops.length > 0 ? (
+                        <div className="mt-1.5 overflow-hidden rounded-xl border border-white/15 bg-[#202124]/98 text-white shadow-2xl">
+                          {searchMatchedStops.map((st) => (
+                            <button
+                              key={`${st.code}-${st.idx}`}
+                              type="button"
+                              onClick={() => {
+                                setSelectedStop(st.code);
+                                setStopSearchQuery("");
+                                leafletMapRef.current?.setView([st.s.lat, st.s.lon], 17, { animate: true });
+                              }}
+                              className="flex w-full items-center justify-between border-b border-white/10 px-3.5 py-2 text-right text-xs font-bold hover:bg-white/10 last:border-b-0"
+                            >
+                              <span>🚏 {st.name}</span>
+                              <span className="font-mono text-[10.5px] text-white/60">
+                                {tr("رقم المحطة")} {st.code}
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      ) : null}
+                    </div>
+                  )}
+
+                  {/* FLOATING CIRCULAR DARK CONTROL BUTTONS ON RIGHT SIDE (Kept in both normal & fullscreen) */}
                   <div className="pointer-events-auto absolute end-3 bottom-4 z-20 flex flex-col items-center gap-2.5">
-                    {/* Layer Switcher (Hybrid Satellite vs Street Map) */}
                     <button
                       type="button"
                       onClick={() => setMapLayerMode((m) => (m === "hybrid" ? "streets" : "hybrid"))}
@@ -8467,7 +8606,6 @@ function InteractiveGalimBusesHomeSection() {
                       </svg>
                     </button>
 
-                    {/* Fullscreen Toggle */}
                     <button
                       type="button"
                       onClick={() => setIsFullscreenMap((v) => !v)}
@@ -8477,7 +8615,6 @@ function InteractiveGalimBusesHomeSection() {
                       {isFullscreenMap ? <Minimize2 className="size-4" /> : <Maximize2 className="size-4" />}
                     </button>
 
-                    {/* My Location Blue Crosshair Button (exact match to 148356.jpg) */}
                     <button
                       type="button"
                       onClick={() => locateUserAndNearestStop(currentDir, true)}
@@ -8488,7 +8625,7 @@ function InteractiveGalimBusesHomeSection() {
                     </button>
                   </div>
 
-                  {/* 3. Google Watermark at bottom-left of map canvas like 148356.jpg */}
+                  {/* Google Watermark */}
                   <div
                     dir="ltr"
                     className="pointer-events-none absolute start-3 bottom-2.5 z-20 select-none font-sans text-base font-extrabold tracking-tight text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]"
@@ -8497,168 +8634,168 @@ function InteractiveGalimBusesHomeSection() {
                   </div>
                 </div>
 
-                {/* 4. DARK BOTTOM SHEET DRAWER ("محطات قريبة" | "مفضلة" + Stop Name + "رقم المحطة" + Live Bus Arrival — exact match to 148356.jpg) */}
-                <div className="bg-[#1e1f22] px-4 pt-2.5 pb-3.5 text-white">
-                  {/* Top Drag Handle */}
-                  <div className="mx-auto mb-2.5 h-1 w-9 rounded-full bg-white/30" />
+                {/* DARK BOTTOM SHEET DRAWER — Hidden in Fullscreen so only the map, top bar & buttons appear! */}
+                {!isFullscreenMap ? (
+                  <div className="bg-[#1e1f22] px-4 pt-2.5 pb-3.5 text-white">
+                    <div className="mx-auto mb-2.5 h-1 w-9 rounded-full bg-white/30" />
 
-                  {/* Segmented Pill Tabs: محطات قريبة (Blue Pill) | مفضلة */}
-                  <div className="grid grid-cols-2 rounded-full bg-[#2b2d31] p-1 text-xs font-extrabold">
-                    <button
-                      type="button"
-                      onClick={() => setDrawerTab("nearby")}
-                      className={`rounded-full py-1.5 transition ${
-                        drawerTab === "nearby"
-                          ? "bg-[#2845b8] text-white shadow-md"
-                          : "text-white/65 hover:text-white"
-                      }`}
-                    >
-                      {tr("محطات قريبة")}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setDrawerTab("fav")}
-                      className={`rounded-full py-1.5 transition ${
-                        drawerTab === "fav"
-                          ? "bg-[#2845b8] text-white shadow-md"
-                          : "text-white/65 hover:text-white"
-                      }`}
-                    >
-                      {tr("مفضلة")} {favStops.length > 0 ? `(${favStops.length})` : ""}
-                    </button>
-                  </div>
-
-                  {drawerTab === "fav" && favStops.length > 0 ? (
-                    <div className="mt-3 space-y-2">
-                      {favStops.map((fCode) => (
-                        <button
-                          key={fCode}
-                          type="button"
-                          onClick={() => {
-                            setSelectedStop(fCode);
-                            setDrawerTab("nearby");
-                            const st = busSchedule.stops[fCode];
-                            if (st && leafletMapRef.current) {
-                              leafletMapRef.current.setView([st.lat, st.lon], 17, { animate: true });
-                            }
-                          }}
-                          className="flex w-full items-center justify-between rounded-xl bg-[#2b2d31] px-3 py-2 text-right"
-                        >
-                          <div>
-                            <p className="text-sm font-extrabold text-white">{stopName(fCode)}</p>
-                            <p className="text-xs font-semibold text-white/60">
-                              {tr("رقم المحطة")} {fCode}
-                            </p>
-                          </div>
-                          <span className="text-xs font-extrabold text-[#ffeb3b]">عرض على الخريطة ‹</span>
-                        </button>
-                      ))}
+                    <div className="grid grid-cols-2 rounded-full bg-[#2b2d31] p-1 text-xs font-extrabold">
+                      <button
+                        type="button"
+                        onClick={() => setDrawerTab("nearby")}
+                        className={`rounded-full py-1.5 transition ${
+                          drawerTab === "nearby"
+                            ? "bg-[#2845b8] text-white shadow-md"
+                            : "text-white/65 hover:text-white"
+                        }`}
+                      >
+                        {tr("محطات قريبة")}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDrawerTab("fav")}
+                        className={`rounded-full py-1.5 transition ${
+                          drawerTab === "fav"
+                            ? "bg-[#2845b8] text-white shadow-md"
+                            : "text-white/65 hover:text-white"
+                        }`}
+                      >
+                        {tr("مفضلة")} {favStops.length > 0 ? `(${favStops.length})` : ""}
+                      </button>
                     </div>
-                  ) : (
-                    /* Active / Nearest Stop Display matching bottom of 148356.jpg + Live Real-Time Bus Info */
-                    <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-                      <div className="min-w-0 flex-1 text-right">
-                        <div className="flex items-center gap-2">
-                          <h4 className="truncate text-base font-extrabold text-white sm:text-lg">
-                            {stopName(activeStopForSchedule)}
-                          </h4>
-                          <button
-                            type="button"
-                            onClick={() => toggleFavStop(activeStopForSchedule)}
-                            className="text-sm text-[#ffeb3b]"
-                            title={tr("إضافة للمفضلة")}
-                          >
-                            {favStops.includes(activeStopForSchedule) ? "★" : "☆"}
-                          </button>
-                        </div>
-                        <p className="mt-0.5 text-xs font-semibold text-white/55">
-                          {tr("رقم المحطة")} {activeStopForSchedule}
-                          {nearestStopDistM !== null ? ` · يبعد ${nearestStopDistM} متر` : ""}
-                        </p>
-                      </div>
 
-                      {/* Real-time live arrival pills at this stop */}
-                      <div className="flex flex-wrap items-center gap-1.5">
-                        {plannedNextSlots.length > 0 ? (
-                          plannedNextSlots.slice(0, 2).map((slot, idx) => (
-                            <span
-                              key={`${slot.time}-${idx}`}
-                              className={`rounded-xl px-2.5 py-1.5 font-mono text-xs font-black ${
-                                idx === 0
-                                  ? "bg-[#2845b8] text-white shadow-sm"
-                                  : "bg-[#2b2d31] text-white/85"
-                              }`}
+                    {drawerTab === "fav" && favStops.length > 0 ? (
+                      <div className="mt-3 space-y-2">
+                        {favStops.map((fCode) => (
+                          <button
+                            key={fCode}
+                            type="button"
+                            onClick={() => {
+                              setSelectedStop(fCode);
+                              setDrawerTab("nearby");
+                              const st = busSchedule.stops[fCode];
+                              if (st && leafletMapRef.current) {
+                                leafletMapRef.current.setView([st.lat, st.lon], 17, { animate: true });
+                              }
+                            }}
+                            className="flex w-full items-center justify-between rounded-xl bg-[#2b2d31] px-3 py-2 text-right"
+                          >
+                            <div>
+                              <p className="text-sm font-extrabold text-white">{stopName(fCode)}</p>
+                              <p className="text-xs font-semibold text-white/60">
+                                {tr("رقم المحطة")} {fCode}
+                              </p>
+                            </div>
+                            <span className="text-xs font-extrabold text-[#ffeb3b]">عرض على الخريطة ‹</span>
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+                        <div className="min-w-0 flex-1 text-right">
+                          <div className="flex items-center gap-2">
+                            <h4 className="truncate text-base font-extrabold text-white sm:text-lg">
+                              {stopName(activeStopForSchedule)}
+                            </h4>
+                            <button
+                              type="button"
+                              onClick={() => toggleFavStop(activeStopForSchedule)}
+                              className="text-sm text-[#ffeb3b]"
+                              title={tr("إضافة للمفضلة")}
                             >
-                              🕒 {slot.time} ({homeMinutesLabel(slot.inMin)})
-                            </span>
-                          ))
-                        ) : (
-                          <span className="rounded-xl bg-[#2b2d31] px-2.5 py-1 text-xs font-bold text-white/70">
-                            {tr("خارج ساعات العمل حالياً")}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  )}
+                              {favStops.includes(activeStopForSchedule) ? "★" : "☆"}
+                            </button>
+                          </div>
+                          <p className="mt-0.5 text-xs font-semibold text-white/55">
+                            {tr("رقم المحطة")} {activeStopForSchedule}
+                            {nearestStopDistM !== null ? ` · يبعد ${nearestStopDistM} متر` : ""}
+                          </p>
+                        </div>
 
-                  {/* Real-Time Bus & Driver Info Strip inside Dark Drawer */}
-                  {activeBusCard ? (
-                    <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-white/10 bg-[#2b2d31]/90 px-3 py-2 text-xs">
-                      <div className="flex items-center gap-2">
-                        <span className="rounded-lg bg-[#ffeb3b] px-2 py-0.5 font-mono text-xs font-black text-[#111827]">
-                          🚌 خط {activeBusCard.line}
-                        </span>
-                        <span dir="ltr" className="rounded bg-white/10 px-1.5 py-0.5 font-mono text-[11px] font-bold text-[#ffeb3b]">
-                          IL {activeBusCard.plate}
-                        </span>
-                        <span className="font-bold text-white/90">
-                          👨‍✈️ {activeBusCard.driverName}
-                        </span>
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          {plannedNextSlots.length > 0 ? (
+                            plannedNextSlots.slice(0, 2).map((slot, idx) => (
+                              <span
+                                key={`${slot.time}-${idx}`}
+                                className={`rounded-xl px-2.5 py-1.5 font-mono text-xs font-black ${
+                                  idx === 0
+                                    ? "bg-[#2845b8] text-white shadow-sm"
+                                    : "bg-[#2b2d31] text-white/85"
+                                }`}
+                              >
+                                🕒 {slot.time} ({homeMinutesLabel(slot.inMin)})
+                              </span>
+                            ))
+                          ) : (
+                            <span className="rounded-xl bg-[#2b2d31] px-2.5 py-1 text-xs font-bold text-white/70">
+                              {tr("خارج ساعات العمل حالياً")}
+                            </span>
+                          )}
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setCustomDriverInput(activeBusCard.driverName);
-                            setEditingDriver((v) => !v);
-                          }}
-                          className="text-[11px] font-bold text-[#60a5fa] underline"
-                        >
-                          {editingDriver ? tr("إلغاء") : tr("تعديل السائق")}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            leafletMapRef.current?.setView([activeBusCard.lat, activeBusCard.lon], 17, {
-                              animate: true,
-                            })
-                          }
-                          className="rounded-lg bg-[#2845b8] px-2.5 py-1 text-[11px] font-extrabold text-white"
-                        >
-                          🎯 {tr("تتبع الحافلة")}
-                        </button>
-                      </div>
-                      {editingDriver ? (
-                        <div className="mt-2 flex w-full items-center gap-1.5">
-                          <input
-                            type="text"
-                            value={customDriverInput}
-                            onChange={(e) => setCustomDriverInput(e.target.value)}
-                            placeholder={tr("اكتب اسم السائق...")}
-                            className="min-w-0 flex-1 rounded-lg border border-white/20 bg-[#1e1f22] px-2.5 py-1 text-xs font-bold text-white"
-                          />
+                    )}
+
+                    {/* Real-Time Bus & Driver Info Strip inside Dark Drawer (Edit Driver ONLY for Owner Admin) */}
+                    {activeBusCard ? (
+                      <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-white/10 bg-[#2b2d31]/90 px-3 py-2 text-xs">
+                        <div className="flex items-center gap-2">
+                          <span className="rounded-lg bg-[#ffeb3b] px-2 py-0.5 font-mono text-xs font-black text-[#111827]">
+                            🚌 خط {activeBusCard.line}
+                          </span>
+                          <span dir="ltr" className="rounded bg-white/10 px-1.5 py-0.5 font-mono text-[11px] font-bold text-[#ffeb3b]">
+                            IL {activeBusCard.plate}
+                          </span>
+                          <span className="font-bold text-white/90">
+                            👨‍✈️ {activeBusCard.driverName}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {isOwnerAdmin ? (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setCustomDriverInput(activeBusCard.driverName);
+                                setEditingDriver((v) => !v);
+                              }}
+                              className="text-[11px] font-bold text-[#60a5fa] underline"
+                            >
+                              {editingDriver ? tr("إلغاء") : tr("تعديل السائق")}
+                            </button>
+                          ) : null}
                           <button
                             type="button"
-                            onClick={handleSaveDriverName}
-                            className="rounded-lg bg-[#ffeb3b] px-3 py-1 text-xs font-black text-[#111827]"
+                            onClick={() =>
+                              leafletMapRef.current?.setView([activeBusCard.lat, activeBusCard.lon], 17, {
+                                animate: true,
+                              })
+                            }
+                            className="rounded-lg bg-[#2845b8] px-2.5 py-1 text-[11px] font-extrabold text-white"
                           >
-                            {tr("حفظ")}
+                            🎯 {tr("تتبع الحافلة")}
                           </button>
                         </div>
-                      ) : null}
-                    </div>
-                  ) : null}
-                </div>
+                        {isOwnerAdmin && editingDriver ? (
+                          <div className="mt-2 flex w-full items-center gap-1.5">
+                            <input
+                              type="text"
+                              value={customDriverInput}
+                              onChange={(e) => setCustomDriverInput(e.target.value)}
+                              placeholder={tr("اكتب اسم السائق...")}
+                              className="min-w-0 flex-1 rounded-lg border border-white/20 bg-[#1e1f22] px-2.5 py-1 text-xs font-bold text-white"
+                            />
+                            <button
+                              type="button"
+                              onClick={handleSaveDriverName}
+                              className="rounded-lg bg-[#ffeb3b] px-3 py-1 text-xs font-black text-[#111827]"
+                            >
+                              {tr("حفظ")}
+                            </button>
+                          </div>
+                        ) : null}
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
               </div>
             </div>
           ) : null}
@@ -8706,11 +8843,7 @@ function InteractiveGalimBusesHomeSection() {
 function InteractiveEmergencyHomeSection() {
   const settings = useSiteSettings();
   const cfg = useMemo(() => parseBusesAndEmergencyHomeCfg(settings.quickLinks ?? []), [settings.quickLinks]);
-  const [showAll, setShowAll] = useState(cfg.showAllEmergency && cfg.emergencyStyle !== "collapsible");
-
-  useEffect(() => {
-    setShowAll(cfg.showAllEmergency && cfg.emergencyStyle !== "collapsible");
-  }, [cfg.showAllEmergency, cfg.emergencyStyle]);
+  const [showAll, setShowAll] = useState(false);
 
   const list = showAll ? RAHAT_EMERGENCY_FULL : RAHAT_EMERGENCY_FULL.slice(0, 4);
   const isDark = cfg.emergencyStyle === "dark_gold";
@@ -8732,108 +8865,72 @@ function InteractiveEmergencyHomeSection() {
     <section>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-xl font-bold">{tr("أرقام الطوارئ والخدمات في رهط")}</h2>
-        <div className="flex items-center gap-2">
-          {RAHAT_EMERGENCY_FULL.length > 4 ? (
-            <button
-              type="button"
-              onClick={() => setShowAll((v) => !v)}
-              className="chip text-xs font-extrabold"
-            >
-              {showAll
-                ? tr("عرض أهم 4 أرقام فقط ▲")
-                : `${tr("عرض كل أرقام الطوارئ")} (${RAHAT_EMERGENCY_FULL.length}) ▼`}
-            </button>
-          ) : null}
-          <Link to="/today" className="text-sm font-bold text-primary-ink">
-            {tr("لوحة اليوم")} ‹
-          </Link>
-        </div>
+        <Link to="/today" className="text-sm font-bold text-primary-ink">
+          {tr("لوحة اليوم")} ‹
+        </Link>
       </div>
 
       <div
         className={
           isDark
             ? "stamp border-[#F2C94C]/50 bg-[#14120E] p-3.5 text-white shadow-md"
-            : ""
+            : "stamp p-3.5"
         }
       >
-        {cfg.emergencyStyle === "compact_strip" ? (
-          <div className="flex flex-wrap gap-2">
-            {list.map((item) => (
-              <a
-                key={item.phone}
-                href={`tel:${item.phone}`}
-                className="stamp press inline-flex items-center gap-2 rounded-2xl px-3.5 py-2.5 text-xs font-extrabold hover:border-primary"
+        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+          {list.map((item) => (
+            <a
+              key={item.phone}
+              href={`tel:${item.phone}`}
+              className={`stamp press flex flex-col items-center justify-between rounded-2xl border px-3 py-3 text-center transition ${toneCls(
+                item.tone,
+              )}`}
+            >
+              <span className="text-xl" aria-hidden>{item.icon}</span>
+              <span
+                dir="ltr"
+                className={`mt-1 font-mono text-xl font-extrabold leading-none ${
+                  isDark ? "text-[#F2C94C]" : "text-primary-ink"
+                }`}
               >
-                <span className="text-base" aria-hidden>{item.icon}</span>
-                <span>{trv(item.name)}</span>
-                <span dir="ltr" className="rounded-lg bg-primary px-2 py-0.5 font-mono text-xs font-extrabold text-ink">
-                  {item.phone}
-                </span>
-              </a>
-            ))}
-          </div>
-        ) : cfg.emergencyStyle === "list_rows" ? (
-          <div className="grid gap-2 sm:grid-cols-2">
-            {list.map((item) => (
-              <a
-                key={item.phone}
-                href={`tel:${item.phone}`}
-                className="stamp press flex items-center justify-between gap-3 px-3.5 py-3 hover:border-primary"
-              >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary-soft text-lg" aria-hidden>
-                    {item.icon}
-                  </span>
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-extrabold text-ink">{trv(item.name)}</p>
-                    <p className="truncate text-xs font-semibold text-muted">{trv(item.sub)}</p>
-                  </div>
-                </div>
-                <span
-                  dir="ltr"
-                  className="shrink-0 rounded-xl bg-primary px-3 py-1.5 font-mono text-sm font-extrabold text-ink shadow-2xs"
-                >
-                  📞 {item.phone}
-                </span>
-              </a>
-            ))}
-          </div>
-        ) : (
-          /* modern_grid, color_coded, dark_gold, collapsible */
-          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-5">
-            {list.map((item) => (
-              <a
-                key={item.phone}
-                href={`tel:${item.phone}`}
-                className={`stamp press flex flex-col items-center justify-between rounded-2xl border px-3 py-3 text-center transition ${toneCls(
-                  item.tone,
-                )}`}
-              >
-                <span className="text-xl" aria-hidden>{item.icon}</span>
-                <span
-                  dir="ltr"
-                  className={`mt-1 font-mono text-xl font-extrabold leading-none ${
-                    isDark ? "text-[#F2C94C]" : "text-primary-ink"
-                  }`}
-                >
-                  {trv(item.phone)}
-                </span>
-                <span className="mt-1.5 line-clamp-1 text-xs font-extrabold">
-                  {trv(item.name)}
-                </span>
-                <span className={`text-[10px] font-semibold ${isDark ? "text-white/65" : "text-muted"}`}>
-                  {trv(item.sub)}
-                </span>
-              </a>
-            ))}
-          </div>
-        )}
+                {trv(item.phone)}
+              </span>
+              <span className="mt-1.5 line-clamp-1 text-xs font-extrabold">
+                {trv(item.name)}
+              </span>
+              <span className={`text-[10px] font-semibold ${isDark ? "text-white/65" : "text-muted"}`}>
+                {trv(item.sub)}
+              </span>
+            </a>
+          ))}
+        </div>
+
+        {/* Down Arrow Toggle Button at the Bottom to Show/Hide Remaining Emergency Numbers */}
+        {RAHAT_EMERGENCY_FULL.length > 4 ? (
+          <button
+            type="button"
+            onClick={() => setShowAll((v) => !v)}
+            className={`press mt-3 flex w-full items-center justify-center gap-2 rounded-2xl border py-2.5 text-xs font-extrabold transition ${
+              isDark
+                ? "border-white/15 bg-white/10 text-[#F2C94C] hover:bg-white/15"
+                : "border-line bg-surface/80 text-ink hover:border-primary hover:bg-primary-soft"
+            }`}
+          >
+            <span>
+              {showAll
+                ? tr("إخفاء باقي أرقام الطوارئ")
+                : `${tr("إظهار باقي أرقام الطوارئ")} (${RAHAT_EMERGENCY_FULL.length - 4})`}
+            </span>
+            <ChevronDown
+              className={`size-4 transition-transform duration-200 ${showAll ? "rotate-180" : ""}`}
+              aria-hidden
+            />
+          </button>
+        ) : null}
       </div>
     </section>
   );
 }
-
 
 function HomeAppAndNotifySection() {
   const [dismissedInApp, setDismissedInApp] = useState(false);

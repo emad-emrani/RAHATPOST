@@ -98,66 +98,57 @@ export function Shell({ children, wide = false }: { children: ReactNode; wide?: 
               + {tr("أضف خبراً أو مصلحة تجارية أو إعلاناً مجاناً")}
             </Link>
           </div>
-          <nav className="mb-3 flex flex-wrap gap-x-4 gap-y-1.5 border-t border-line pt-3" aria-label={tr("أقسام رهط بوست")}>
-            <Link to="/" className="inline-flex min-h-8 items-center font-bold text-ink underline-offset-4 hover:underline">
-              {tr("الرئيسية")}
-            </Link>
-            <Link to="/news" className="inline-flex min-h-8 items-center font-bold text-ink underline-offset-4 hover:underline">
-              {tr("أخبار رهط والنقب")}
-            </Link>
-            <Link to="/today" className="inline-flex min-h-8 items-center font-bold text-ink underline-offset-4 hover:underline">
-              {tr("لوحة اليوم والطقس والصلاة")}
-            </Link>
-            <Link to="/buses" className="inline-flex min-h-8 items-center font-bold text-ink underline-offset-4 hover:underline">
-              {tr("باصات رهط")}
-            </Link>
-            <Link to="/directory" className="inline-flex min-h-8 items-center font-bold text-ink underline-offset-4 hover:underline">
-              {tr("دليل محلات وخدمات رهط")}
-            </Link>
-            <Link
-              to="/directory/guide/$guide"
-              params={{ guide: "post" }}
-              className="inline-flex min-h-8 items-center font-bold text-ink underline-offset-4 hover:underline"
-            >
-              {tr("دليل بريد رهط")}
-            </Link>
-            <Link
-              to="/directory/guide/$guide"
-              params={{ guide: "municipality" }}
-              className="inline-flex min-h-8 items-center font-bold text-ink underline-offset-4 hover:underline"
-            >
-              {tr("دليل بلدية رهط والأرنونا")}
-            </Link>
-            <Link
-              to="/directory/guide/$guide"
-              params={{ guide: "health" }}
-              className="inline-flex min-h-8 items-center font-bold text-ink underline-offset-4 hover:underline"
-            >
-              {tr("دليل الصحة والطوارئ")}
-            </Link>
-            <Link
-              to="/directory/guide/$guide"
-              params={{ guide: "transport" }}
-              className="inline-flex min-h-8 items-center font-bold text-ink underline-offset-4 hover:underline"
-            >
-              {tr("دليل خطوط باصات رهط")}
-            </Link>
-            <Link to="/haraj" className="inline-flex min-h-8 items-center font-bold text-ink underline-offset-4 hover:underline">
-              {tr("حراج رهط")}
-            </Link>
-            <Link to="/store" className="inline-flex min-h-8 items-center font-bold text-ink underline-offset-4 hover:underline">
-              {tr("المتجر")}
-            </Link>
-            <Link to="/sports-news" className="inline-flex min-h-8 items-center font-bold text-ink underline-offset-4 hover:underline">
-              {tr("أخبار الرياضة")}
-            </Link>
-            <Link to="/tech-news" className="inline-flex min-h-8 items-center font-bold text-ink underline-offset-4 hover:underline">
-              {tr("أخبار التقنية")}
-            </Link>
-            <Link to="/israel-news" className="inline-flex min-h-8 items-center font-bold text-ink underline-offset-4 hover:underline">
-              {tr("أخبار إسرائيل بالعربية")}
-            </Link>
+
+          {/* 1. Only Sections Present on the Site Menus (أقسام القوائم فقط) */}
+          <nav className="mb-3 flex flex-wrap gap-2 border-t border-line pt-3" aria-label={tr("أقسام الموقع")}>
+            {nav.map((item) => {
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.to}
+                  to={item.to}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-line bg-surface/70 px-3 py-1.5 text-xs font-extrabold text-ink transition hover:border-primary hover:bg-primary-soft"
+                >
+                  <Icon className="size-3.5 text-primary-ink" aria-hidden />
+                  <span>{item.to === "/haraj" ? trv(t.harajNav) : trv(item.label)}</span>
+                </Link>
+              );
+            })}
           </nav>
+
+          {/* 2. SEO Keywords for Google Search Optimization (كلمات دلالية لتحسين البحث في جوجل) */}
+          <div className="mb-3 rounded-2xl border border-line/70 bg-surface/40 p-3">
+            <p className="mb-2 text-[11px] font-extrabold text-ink">
+              🔍 {tr("كلمات دلالية وبحثية — رهط والنقب (Google SEO):")}
+            </p>
+            <div className="flex flex-wrap gap-1.5 text-[11px] font-bold">
+              {[
+                { kw: "رهط بوست", to: "/" as const },
+                { kw: "أخبار رهط اليوم", to: "/news" as const },
+                { kw: "أخبار النقب عاجل", to: "/news" as const },
+                { kw: "باصات غاليم رهط", to: "/buses" as const },
+                { kw: "مواعيد باصات رهط بئر السبع", to: "/buses" as const },
+                { kw: "خريطة باصات رهط المباشرة", to: "/buses" as const },
+                { kw: "دليل محلات وخدمات رهط", to: "/directory" as const },
+                { kw: "مطاعم وصيدليات رهط", to: "/directory" as const },
+                { kw: "حراج رهط والنقب للبيع", to: "/haraj" as const },
+                { kw: "إعلانات مبوبة رهط", to: "/haraj" as const },
+                { kw: "تواصل رهط والنقب", to: "/social" as const },
+                { kw: "لوحة اليوم وطقس رهط", to: "/today" as const },
+                { kw: "أوقات الصلاة وصيدلية المناوبة رهط", to: "/today" as const },
+                { kw: "متجر رهط بوست", to: "/store" as const },
+              ].map((tag) => (
+                <Link
+                  key={tag.kw}
+                  to={tag.to}
+                  className="rounded-lg border border-line/80 bg-paper px-2 py-0.5 text-muted transition hover:border-primary hover:text-ink"
+                >
+                  #{trv(tag.kw)}
+                </Link>
+              ))}
+            </div>
+          </div>
+
           <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-3 text-xs">
             <nav className="flex flex-wrap gap-x-4 gap-y-1" aria-label={tr("روابط الموقع")}>
               <Link to="/privacy" className="underline-offset-4 hover:underline">

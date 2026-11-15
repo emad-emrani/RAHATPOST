@@ -740,6 +740,7 @@ type Section =
   | "store-offers"
   | "store-merchants"
   | "store-pay"
+  | "style"
   | "set-theme"
   | "set-home"
   | "set-slider"
@@ -818,11 +819,8 @@ const ALL_TABS: { key: Section; label: string; icon: LucideIcon }[] = [
   { key: "members-roles", label: "الأدوار والصلاحيات", icon: BadgeCheck },
   { key: "members-invite", label: "دعوة عضو للفريق", icon: UserPlus },
   { key: "members-methods", label: "طرق تسجيل الدخول", icon: KeyRound },
-  { key: "set-home", label: "ترتيب أقسام الرئيسية", icon: LayoutGrid },
-  { key: "set-menus", label: "القوائم والأيقونات", icon: Menu },
-  { key: "set-slider", label: "السلايدر الرئيسي", icon: GalleryHorizontal },
+  { key: "style", label: "استايل (جميع مظاهر الموقع والقوائم)", icon: Palette },
   { key: "set-texts", label: "النصوص والشعار", icon: Type },
-  { key: "set-theme", label: "المظهر والألوان", icon: Palette },
   { key: "set-links", label: "روابط سريعة", icon: Link2 },
   { key: "languages", label: "اللغات والترجمة", icon: Globe },
   { key: "gemini", label: "إعدادات الذكاء الاصطناعي", icon: Sparkles },
@@ -880,10 +878,10 @@ const GROUPS: { id: string; label: string; desc: string; icon: LucideIcon; keys:
   },
   {
     id: "settings",
-    label: "تصميم وإعدادات الموقع",
-    desc: "ترتيب الصفحة الرئيسية، القوائم، السلايدر، الألوان، واللغات",
-    icon: Settings,
-    keys: ["set-home", "set-menus", "set-slider", "set-texts", "set-theme", "set-links", "languages", "gemini"],
+    label: "استايل وإعدادات الموقع",
+    desc: "قسم «استايل» الموحد لجميع مظاهر الموقع والقوائم والألوان، النصوص، واللغات",
+    icon: Palette,
+    keys: ["style", "set-texts", "set-links", "languages", "gemini"],
   },
 ];
 
@@ -2874,6 +2872,18 @@ function AdminPage() {
               </button>
               <button
                 type="button"
+                onClick={() => go("style")}
+                className={`flex items-center justify-center gap-2 rounded-2xl px-3 py-3 text-xs font-extrabold shadow-xs transition ${
+                  current === "style"
+                    ? "bg-ink text-paper ring-2 ring-ink/30"
+                    : "border-2 border-primary bg-primary-soft text-ink hover:bg-primary"
+                }`}
+              >
+                <Palette className="size-4 shrink-0" aria-hidden />
+                <span>{tr("🎨 استايل (مظاهر الموقع)")}</span>
+              </button>
+              <button
+                type="button"
                 onClick={() => go("publish")}
                 className={`flex items-center justify-center gap-2 rounded-2xl px-3 py-3 text-xs font-extrabold shadow-xs transition ${
                   current === "publish"
@@ -3008,6 +3018,20 @@ function AdminPage() {
             />
           ) : landing ? (
             <GroupLanding group={landing} tabs={tabs} go={go} />
+          ) : current === "style" ||
+            current === "set-theme" ||
+            current === "set-menus" ||
+            current === "set-slider" ||
+            current === "set-home" ? (
+            <UnifiedSiteStyleAdmin
+              initialSection={
+                current === "set-theme"
+                  ? "theme"
+                  : current === "set-slider" || current === "set-home"
+                    ? "home_slider"
+                    : "menus"
+              }
+            />
           ) : current.startsWith("set-") ? (
             <SiteSettingsAdmin key={current} only={current.slice(4) as SiteSettingsPart} />
           ) : current === "sec-add" ? (
@@ -3065,7 +3089,6 @@ function AdminPage() {
             <ReportsAdmin />
           ) : current === "buses" ? (
             <div className="space-y-4">
-              <BusesAndEmergencyAppearanceAdmin />
               <BusLinesAdmin />
             </div>
           ) : current === "duty" ? (
@@ -7773,8 +7796,87 @@ function HomeSectionsOrderPart({ s, set }: SettingsPartProps) {
           })}
         </ul>
       </section>
+    </div>
+  );
+}
 
-      <BusesAndEmergencyAppearanceAdmin />
+
+/**
+ * قسم «استايل» الموحد — يجمع كافة تحكمات المظاهر والقوائم والألوان في الموقع في مكان واحد.
+ */
+function UnifiedSiteStyleAdmin({
+  initialSection = "menus",
+}: {
+  initialSection?: "menus" | "theme" | "directory" | "buses" | "home_slider";
+}) {
+  const [subTab, setSubTab] = useState<"menus" | "theme" | "directory" | "buses" | "home_slider">(
+    initialSection,
+  );
+
+  return (
+    <div className="space-y-4">
+      {/* Header Banner */}
+      <div className="stamp border-2 border-primary bg-gradient-to-b from-primary-soft/65 via-paper to-paper p-4 sm:p-5 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-primary text-2xl text-ink shadow-2xs">
+              🎨
+            </span>
+            <div>
+              <h1 className="text-lg font-extrabold text-ink sm:text-xl">
+                {tr("قسم «استايل» الموحد — جميع مظاهر وتصاميم الموقع والتطبيق")}
+              </h1>
+              <p className="text-xs font-semibold text-muted sm:text-sm">
+                {tr("تحكم كامل بمظهر القائمة العلوية المتحركة، الشريط السفلي، ألوان الموقع، مظهر الدليل، مظهر الباصات والطوارئ، والسلايدر من مكان واحد.")}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* 5 Style Category Sub-Tabs */}
+        <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-5">
+          {[
+            { id: "menus" as const, icon: "✨", label: "القائمة العلوية والسفلية" },
+            { id: "theme" as const, icon: "🎨", label: "ألوان وثيم الموقع" },
+            { id: "directory" as const, icon: "🏪", label: "مظهر دليل المحلات" },
+            { id: "buses" as const, icon: "🚌", label: "مظهر الباصات والطوارئ" },
+            { id: "home_slider" as const, icon: "🖼️", label: "السلايدر وترتيب الرئيسية" },
+          ].map((t) => {
+            const active = subTab === t.id;
+            return (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => setSubTab(t.id)}
+                className={`press flex items-center justify-center gap-1.5 rounded-2xl border px-3 py-2.5 text-xs font-extrabold transition ${
+                  active
+                    ? "border-ink bg-ink text-primary shadow-sm ring-2 ring-primary/50"
+                    : "border-line bg-paper text-ink hover:border-primary"
+                }`}
+              >
+                <span>{t.icon}</span>
+                <span className="truncate">{trv(t.label)}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Render Selected Style Sub-Section */}
+      {subTab === "menus" ? (
+        <SiteSettingsAdmin key="style-menus" only="menus" />
+      ) : subTab === "theme" ? (
+        <SiteSettingsAdmin key="style-theme" only="theme" />
+      ) : subTab === "directory" ? (
+        <DirectoryShopsHubAdmin approvedSubmissions={[]} onlyStyleCard />
+      ) : subTab === "buses" ? (
+        <BusesAndEmergencyAppearanceAdmin />
+      ) : (
+        <div className="space-y-6">
+          <SiteSettingsAdmin key="style-slider" only="slider" />
+          <SiteSettingsAdmin key="style-home" only="home" />
+        </div>
+      )}
     </div>
   );
 }
@@ -8727,6 +8829,96 @@ function MenusAndBarsPart({ s, set }: SettingsPartProps) {
 
   return (
     <div className="space-y-4">
+      {/* 0-A. Interactive Animated Top Menu Style Selector (مظاهر أيقونات القائمة العلوية التفاعلية المتحركة — 6 مظاهر) */}
+      <SettingsCard
+        title={tr("✨ مظهر القائمة العلوية (أيقونات أنيميشن تفاعلية — 6 مظاهر)")}
+        hint={tr("اختر شكل وحركة أيقونات القائمة العلوية للأقسام في الصفحة الرئيسية (أنيميشن تفاعلي حي عند العرض واللمس).")}
+      >
+        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
+          {[
+            {
+              id: "animated_cards",
+              icon: "🎴",
+              title: "بطاقات متحركة 3D",
+              sub: "مربعات منحنية أنيقة مع أيقونات عائمة",
+            },
+            {
+              id: "neon_pulse",
+              icon: "⚡",
+              title: "نيون متوهج تفاعلي",
+              sub: "خلفية داكنة فاخرة مع إطار ذهبي متوهج",
+            },
+            {
+              id: "colorful_apps",
+              icon: "🌈",
+              title: "تطبيقات ملونة حية",
+              sub: "تدرجات لونية مميزة لكل قسم مع حركة تفاعلية",
+            },
+            {
+              id: "glass_float",
+              icon: "💎",
+              title: "زجاجي عائم متحرك",
+              sub: "تصميم بلوري عصري مع أيقونات تتحرك بنعومة",
+            },
+            {
+              id: "circles_ring",
+              icon: "⭕",
+              title: "حلقات دائرية نابضة",
+              sub: "أيقونات دائرية محاطة بحلقة ذهبية متحركة",
+            },
+            {
+              id: "compact_pills",
+              icon: "💊",
+              title: "كبسولات أفقية سريعة",
+              sub: "أزرار مدمجة أنيقة مع أيقونات متحركة",
+            },
+          ].map((opt) => {
+            const curTopStyle =
+              (s.quickLinks ?? []).find((q) => q.id === "topstylecfg")?.title || "animated_cards";
+            const active = curTopStyle === opt.id;
+            return (
+              <button
+                key={opt.id}
+                type="button"
+                onClick={() => {
+                  const others = (s.quickLinks ?? []).filter((q) => q.id !== "topstylecfg");
+                  set({
+                    quickLinks: [
+                      ...others,
+                      {
+                        id: "topstylecfg",
+                        title: opt.id,
+                        subtitle: "topstylecfg",
+                        url: `/__topstyle?st=${opt.id}`,
+                        emoji: opt.icon,
+                      },
+                    ],
+                  });
+                }}
+                className={`press flex flex-col items-start justify-between rounded-2xl border p-3 text-start transition ${
+                  active
+                    ? "border-2 border-ink bg-primary text-ink shadow-sm"
+                    : "border-line bg-surface/60 text-ink hover:border-primary hover:bg-paper"
+                }`}
+              >
+                <div className="flex w-full items-center justify-between">
+                  <span className="text-xl">{opt.icon}</span>
+                  {active ? (
+                    <span className="rounded-full bg-ink px-2 py-0.5 text-[10px] font-extrabold text-primary">
+                      {tr("مفعّل")}
+                    </span>
+                  ) : null}
+                </div>
+                <div className="mt-2">
+                  <p className="text-xs font-extrabold">{trv(opt.title)}</p>
+                  <p className="mt-0.5 text-[10.5px] font-semibold opacity-80">{trv(opt.sub)}</p>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </SettingsCard>
+
       {/* 0. Eye-Friendly Glow Toggle for "بث مباريات" Icon */}
       <SettingsCard
         title={tr("أيقونة «بث مباريات» — التحكم بالتوهج وراحة العين")}
@@ -12779,8 +12971,10 @@ type AdminShopHubConfig = {
 
 function DirectoryShopsHubAdmin({
   approvedSubmissions,
+  onlyStyleCard = false,
 }: {
   approvedSubmissions: BusinessSubmission[];
+  onlyStyleCard?: boolean;
 }) {
   const [hubMap, setHubMap] = useState<Record<string, AdminShopHubConfig>>({});
   const [globalCfg, setGlobalCfg] = useState<{
@@ -13417,7 +13611,8 @@ function DirectoryShopsHubAdmin({
 
   return (
     <div className="space-y-4">
-      {/* Directory Style & Homepage Store Visibility Control Card */}
+      {/* Directory Style & Homepage Store Visibility Control Card — Rendered ONLY inside "استايل" (onlyStyleCard === true) */}
+      {onlyStyleCard ? (
       <div className="stamp border-2 border-primary bg-paper p-4 sm:p-5 space-y-4 shadow-xs">
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line pb-3">
           <div>
@@ -13598,6 +13793,9 @@ function DirectoryShopsHubAdmin({
         </div>
       </div>
 
+      ) : null}
+      {onlyStyleCard ? null : (
+      <>
       {/* Header Card */}
       <div className="stamp border-2 border-primary bg-gradient-to-b from-primary-soft/60 to-paper p-4 sm:p-5 space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -14374,6 +14572,8 @@ function DirectoryShopsHubAdmin({
           );
         })}
       </div>
+      </>
+      )}
     </div>
   );
 }

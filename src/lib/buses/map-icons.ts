@@ -259,52 +259,36 @@ export function buildBusStopPopupHtml(opts: {
   `;
 }
 
-/** Create a sleek, high-contrast Live Bus Icon on the Satellite Map. */
+/** Create a compact, sleek Live Bus Icon on the Satellite Map (smaller footprint as requested). */
 export function createLiveBusDivIcon(
   Lf: typeof LeafletNamespace,
   info: BusVehicleMarkerInfo,
 ) {
   const isSel = Boolean(info.isSelected);
-  const pulseColor = info.isLiveSiri ? "#22c55e" : "#f59e0b";
-  const statusLabel = info.isLiveSiri
-    ? info.speedKmh > 0
-      ? `${info.speedKmh} كم/س`
-      : "مباشر"
-    : "مجدول";
+  const pulseColor = info.isLiveSiri ? "#22c55e" : "#38bdf8";
 
   const html = `
-    <div style="display:inline-flex;flex-direction:column;align-items:center;transform:translate(-50%,-56%);cursor:pointer;filter:drop-shadow(0 5px 10px rgba(0,0,0,0.65));">
-      <!-- Top Live Pill -->
-      <div style="display:inline-flex;align-items:center;gap:4px;background:${
-        isSel ? "#1e1f22" : "#2845b8"
-      };color:#ffffff;font-weight:900;font-size:10.5px;padding:2px 8px;border-radius:999px;border:1.5px solid #ffffff;white-space:nowrap;margin-bottom:2px;">
-        <span style="display:inline-block;width:7px;height:7px;border-radius:999px;background:${pulseColor};box-shadow:0 0 0 2px rgba(255,255,255,0.4);"></span>
-        <span>خط ${info.line}</span>
-        <span style="opacity:0.5;">·</span>
-        <span dir="ltr" style="font-size:9.5px;color:#ffeb3b;">${statusLabel}</span>
+    <div style="display:inline-flex;flex-direction:column;align-items:center;transform:translate(-50%,-50%);cursor:pointer;filter:drop-shadow(0 3px 6px rgba(0,0,0,0.65));">
+      <!-- Compact Top Line Badge -->
+      <div style="display:inline-flex;align-items:center;gap:3px;background:${
+        isSel ? "#111827" : "#2845b8"
+      };color:#ffffff;font-weight:900;font-size:9px;padding:1px 5px;border-radius:999px;border:1.2px solid #ffffff;white-space:nowrap;margin-bottom:1.5px;line-height:1.2;">
+        <span style="display:inline-block;width:5px;height:5px;border-radius:999px;background:${pulseColor};"></span>
+        <span>باص ${info.line}</span>
       </div>
 
-      <!-- Clear Bus Icon Body -->
-      <div style="position:relative;display:flex;align-items:center;justify-content:center;width:44px;height:36px;border-radius:11px;background:linear-gradient(180deg,#ffeb3b 0%,#f59e0b 100%);border:2px solid #ffffff;box-shadow:0 3px 8px rgba(0,0,0,0.5);">
-        <svg width="34" height="28" viewBox="0 0 64 52" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <rect x="6" y="4" width="52" height="38" rx="9" fill="#0f172a" stroke="#ffffff" stroke-width="2"/>
+      <!-- Compact Clear Bus Icon Body (28x23px) -->
+      <div style="position:relative;display:flex;align-items:center;justify-content:center;width:28px;height:23px;border-radius:7px;background:linear-gradient(180deg,#ffeb3b 0%,#f59e0b 100%);border:1.5px solid #ffffff;box-shadow:0 2px 5px rgba(0,0,0,0.5);">
+        <svg width="21" height="18" viewBox="0 0 64 52" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="6" y="4" width="52" height="38" rx="9" fill="#0f172a" stroke="#ffffff" stroke-width="2.2"/>
           <rect x="14" y="7" width="36" height="6" rx="2.5" fill="#ffeb3b"/>
-          <rect x="10" y="15" width="44" height="13" rx="4" fill="#38bdf8" stroke="#bae6fd" stroke-width="1.2"/>
+          <rect x="10" y="15" width="44" height="13" rx="4" fill="#38bdf8"/>
           <rect x="10" y="31" width="44" height="8" rx="3" fill="#ffeb3b"/>
-          <circle cx="15" cy="35" r="2.8" fill="#ffffff"/>
-          <circle cx="49" cy="35" r="2.8" fill="#ffffff"/>
+          <circle cx="15" cy="35" r="3" fill="#ffffff"/>
+          <circle cx="49" cy="35" r="3" fill="#ffffff"/>
           <rect x="11" y="42" width="10" height="7" rx="3" fill="#0f172a" stroke="#ffffff" stroke-width="1.5"/>
           <rect x="43" y="42" width="10" height="7" rx="3" fill="#0f172a" stroke="#ffffff" stroke-width="1.5"/>
         </svg>
-        <span style="position:absolute;top:11px;background:#0f172a;color:#ffeb3b;font-family:monospace;font-weight:900;font-size:10px;padding:0px 4px;border-radius:4px;border:1px solid #ffeb3b;line-height:1.2;">
-          ${info.line}
-        </span>
-      </div>
-
-      <!-- License Plate Badge -->
-      <div dir="ltr" style="margin-top:2px;display:inline-flex;align-items:center;gap:2px;background:#ffeb3b;color:#0f172a;font-family:monospace;font-weight:900;font-size:9px;padding:0.5px 5px;border-radius:4px;border:1.5px solid #0f172a;white-space:nowrap;">
-        <span style="background:#1d4ed8;color:#ffffff;font-size:7.5px;padding:0 2.5px;border-radius:2px;">IL</span>
-        <span>${info.plate}</span>
       </div>
     </div>
   `;
@@ -312,9 +296,9 @@ export function createLiveBusDivIcon(
   return Lf.divIcon({
     className: "",
     html,
-    iconSize: [104, 78],
-    iconAnchor: [52, 44],
-    popupAnchor: [0, -40],
+    iconSize: [52, 42],
+    iconAnchor: [26, 22],
+    popupAnchor: [0, -22],
   });
 }
 
