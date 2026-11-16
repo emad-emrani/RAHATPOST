@@ -206,6 +206,7 @@ export function SectionTitle({
   title,
   to,
   params,
+  search,
   more,
 }: {
   title: string;
@@ -223,11 +224,32 @@ export function SectionTitle({
     | "/haraj"
     | "/directory/guide/$guide";
   params?: { guide: string };
+  search?: Record<string, string>;
   more?: string;
 }) {
   return (
     <div className="mb-3 flex items-center justify-between gap-3">
-      <h2 className="text-lg font-extrabold tracking-tight sm:text-xl">{trv(title)}</h2>
+      {to ? (
+        to === "/directory/guide/$guide" ? (
+          <Link
+            to="/directory/guide/$guide"
+            params={{ guide: params?.guide || "post" }}
+            className="text-lg font-extrabold tracking-tight text-ink transition hover:text-primary-ink sm:text-xl"
+          >
+            {trv(title)}
+          </Link>
+        ) : (
+          <Link
+            to={to}
+            search={search as never}
+            className="text-lg font-extrabold tracking-tight text-ink transition hover:text-primary-ink sm:text-xl"
+          >
+            {trv(title)}
+          </Link>
+        )
+      ) : (
+        <h2 className="text-lg font-extrabold tracking-tight sm:text-xl">{trv(title)}</h2>
+      )}
       {to && more ? (
         to === "/directory/guide/$guide" ? (
           <Link to="/directory/guide/$guide" params={{ guide: params?.guide || "post" }} className="see-all">
@@ -235,7 +257,7 @@ export function SectionTitle({
             <ChevronLeft className="size-4" aria-hidden />
           </Link>
         ) : (
-          <Link to={to} className="see-all">
+          <Link to={to} search={search as never} className="see-all">
             {trv(more)}
             <ChevronLeft className="size-4" aria-hidden />
           </Link>

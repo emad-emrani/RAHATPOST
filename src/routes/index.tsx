@@ -317,7 +317,7 @@ function Home() {
         home: cs.home !== false && !qlOverride?.subtitle?.includes("مَخفي_رئيسية"),
         items: staggerSectionItems(mergedItems, 4),
         icon: pickIconForName(cleanName, qlOverride?.emoji),
-        url: qlOverride?.url?.trim() || `/?q=${cleanName}`,
+        url: qlOverride?.url?.trim() || `/news?cat=${encodeURIComponent(cleanName)}`,
       });
     }
 
@@ -355,7 +355,7 @@ function Home() {
           5,
         ),
         icon: pickIconForName(cleanName, q.emoji),
-        url: q.url?.trim() || `/?q=${cleanName}`,
+        url: q.url?.trim() || `/news?cat=${encodeURIComponent(cleanName)}`,
       });
     }
 
@@ -413,7 +413,7 @@ function Home() {
           6,
         ),
         icon: pickIconForName(cName),
-        url: `/?q=${cName}`,
+        url: `/news?cat=${encodeURIComponent(cName)}`,
       });
     }
 
@@ -1242,7 +1242,13 @@ function CustomSectionTranslatedBlock({
   return (
     <section>
       <div className="mb-3 flex items-baseline justify-between gap-2">
-        <h2 className="text-xl font-bold">{displayTitle}</h2>
+        <Link
+          to="/news"
+          search={{ cat: cs.rawName.trim() } as never}
+          className="text-xl font-bold text-ink transition hover:text-primary-ink"
+        >
+          {displayTitle}
+        </Link>
         <Link
           to="/news"
           search={{ cat: cs.rawName.trim() } as never}
