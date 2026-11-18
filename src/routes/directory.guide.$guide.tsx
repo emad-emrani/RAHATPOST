@@ -154,10 +154,10 @@ function GuidePage() {
   return (
     <Shell>
       <article className="flex flex-col gap-5">
-        {/* Interactive Top Guide Switcher */}
+        {/* Interactive Top Guide Switcher — Proportional Rounded-Square Tiles */}
         <nav
           aria-label={tr("التنقل بين أدلة خدمات رهط")}
-          className="grid grid-cols-2 gap-2 sm:grid-cols-4"
+          className="grid grid-cols-4 gap-2 sm:gap-3"
         >
           {guides.map((g) => {
             const meta = GUIDE_TAB_META[g.slug] ?? { emoji: "📘", shortTitle: g.title };
@@ -167,21 +167,21 @@ function GuidePage() {
                 key={g.slug}
                 to="/directory/guide/$guide"
                 params={{ guide: g.slug }}
-                className={`press flex items-center gap-2 rounded-2xl border p-2.5 font-extrabold transition ${
+                className={`press flex flex-col items-center justify-center gap-1.5 rounded-2xl border p-2.5 text-center font-extrabold transition ${
                   isCurrent
                     ? "border-ink bg-ink text-paper shadow-sm"
                     : "border-line bg-paper text-ink hover:border-primary"
                 }`}
               >
                 <span
-                  className={`grid size-9 shrink-0 place-items-center rounded-xl text-lg ${
+                  className={`grid size-11 shrink-0 place-items-center rounded-2xl text-xl shadow-2xs ${
                     isCurrent ? "bg-primary text-ink" : "bg-primary-soft text-ink"
                   }`}
                   aria-hidden
                 >
                   {meta.emoji}
                 </span>
-                <span className="truncate text-xs sm:text-sm">{trv(meta.shortTitle)}</span>
+                <span className="line-clamp-1 text-[11px] font-extrabold sm:text-xs">{trv(meta.shortTitle)}</span>
               </Link>
             );
           })}
@@ -285,6 +285,62 @@ function GuidePage() {
                 📦 {tr("تتبع الطرد في بريد إسرائيل ↗")}
               </button>
             </form>
+          </section>
+        ) : guide.slug === "municipality" ? (
+          <section className="stamp border-2 border-primary bg-paper p-4 space-y-2.5">
+            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+              <a
+                href="https://www.paybill.co.il/Payment/WaterPayment?p=165"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="press flex flex-col items-center justify-center gap-1.5 rounded-2xl border-2 border-primary bg-primary-soft/50 p-3 text-center transition hover:bg-primary-soft"
+              >
+                <span className="grid size-11 place-items-center rounded-2xl bg-primary text-xl text-ink shadow-2xs">
+                  💳
+                </span>
+                <span className="text-xs font-extrabold text-ink">{tr("دفع الأرنونا والمياه")}</span>
+                <span className="text-[10px] font-bold text-muted">{tr("بوابة PayBill الرسمية ↗")}</span>
+              </a>
+              <a
+                href="https://rahat-muni.com/?lang=he"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="press flex flex-col items-center justify-center gap-1.5 rounded-2xl border-2 border-emerald-600/50 bg-emerald-500/10 p-3 text-center transition hover:bg-emerald-500/20"
+              >
+                <span className="grid size-11 place-items-center rounded-2xl bg-emerald-600 text-xl text-white shadow-2xs">
+                  🪪
+                </span>
+                <span className="text-xs font-extrabold text-ink">{tr("شهادة مواطن سنوية")}</span>
+                <span className="text-[10px] font-extrabold text-emerald-800" lang="he">
+                  אישור תושב שנתי ↗
+                </span>
+              </a>
+              <a
+                href="tel:089914982"
+                className="press flex flex-col items-center justify-center gap-1.5 rounded-2xl border border-line bg-surface p-3 text-center transition hover:border-primary"
+              >
+                <span className="grid size-11 place-items-center rounded-2xl bg-paper text-xl shadow-2xs">
+                  📞
+                </span>
+                <span className="text-xs font-extrabold text-ink">{tr("هاتف قسم الجباية")}</span>
+                <span className="font-mono text-[11px] font-extrabold text-primary-ink" dir="ltr">
+                  08-9914982
+                </span>
+              </a>
+              <a
+                href="tel:106"
+                className="press flex flex-col items-center justify-center gap-1.5 rounded-2xl border border-line bg-surface p-3 text-center transition hover:border-alert"
+              >
+                <span className="grid size-11 place-items-center rounded-2xl bg-alert/15 text-xl shadow-2xs">
+                  🚨
+                </span>
+                <span className="text-xs font-extrabold text-ink">{tr("طوارئ البلدية 106")}</span>
+                <span className="text-[10px] font-bold text-muted">{tr("بلاغات على مدار الساعة")}</span>
+              </a>
+            </div>
+            <p className="text-center text-[11px] font-bold text-muted">
+              © {tr("جميع حقوق الخدمات والشعارات والنماذج الرسمية محفوظة لبلدية رهط (עיריית רהט) والمؤسسات الرسمية.")}
+            </p>
           </section>
         ) : null}
 

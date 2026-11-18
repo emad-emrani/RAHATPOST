@@ -8,7 +8,20 @@ import { busLines } from "@/data/buses";
 import { getArrivals, getLineVehicles } from "@/lib/buses/api";
 import { gmapsTransitRoute, shapeFile, type LineShapes } from "@/lib/buses/map";
 import { GmapsStopButtons } from "@/components/gmaps-buttons";
-import { lineInfo, stopName } from "@/lib/buses/schedule";
+import { lineInfo, plannedArrivals, stopName } from "@/lib/buses/schedule";
+import {
+  GOOGLE_HYBRID_TILE_URL,
+  buildBusStopPopupHtml,
+  buildLiveBusPopupHtml,
+  buildScheduledFallbackBus,
+  createBusStopDivIcon,
+  createLiveBusDivIcon,
+  createUserLocationConeDivIcon,
+  formatBusPlate,
+  formatPlannedArrivalSlot,
+  getBusDriverDetails,
+  type BusVehicleMarkerInfo,
+} from "@/lib/buses/map-icons";
 import type { ArrivalsResult } from "@/lib/buses/types";
 import { breadcrumbLd, seo } from "@/lib/seo";
 import { tr, trv } from "@/lib/i18n/core";
@@ -94,11 +107,7 @@ function BusMapPage() {
         13,
       );
       Lf.control.zoom({ position: "bottomleft" }).addTo(m);
-      Lf.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        maxZoom: 19,
-        attribution:
-          '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>',
-      }).addTo(m);
+      Lf.tileLayer(GOOGLE_HYBRID_TILE_URL, { maxZoom: 20 }).addTo(m);
       routeLayer.current = Lf.layerGroup().addTo(m);
       busLayer.current = Lf.layerGroup().addTo(m);
       meLayer.current = Lf.layerGroup().addTo(m);
@@ -132,16 +141,30 @@ function BusMapPage() {
           routeLayer.current,
         );
         for (const [i, x] of stopPts.entries()) {
-          const end = i === 0 || i === stopPts.length - 1;
-          Lf.circleMarker([x.s.lat, x.s.lon], {
-            radius: end ? 8 : 6,
-            color: "#263238",
-            weight: 2,
-            fillColor: end ? "#f2c94c" : "#ffffff",
-            fillOpacity: 1,
+          const stopDiffs = plannedArrivals(Date.now(), line, d.dir, x.code, 3);
+          const nextTimes = stopDiffs.map((diff) => formatPlannedArrivalSlot(Date.now(), diff)).filter((s): s is { time: string; inMin: number } => Boolean(s)).map((s) => s.time);
+          Lf.marker([x.s.lat, x.s.lon], {
+            icon: createBusStopDivIcon(Lf, {
+              index: i,
+              total: stopPts.length,
+              code: x.code,
+              name: stopName(x.code),
+              isSelected: focusStop === x.code,
+            }),
+            zIndexOffset: focusStop === x.code ? 900 : 200,
           })
             .addTo(routeLayer.current)
-            .bindTooltip(stopName(x.code), { direction: "top" })
+            .bindTooltip(`🚏 ${i + 1}. ${stopName(x.code)}`, { direction: "top" })
+            .bindPopup(
+              buildBusStopPopupHtml({
+                index: i,
+                code: x.code,
+                name: stopName(x.code),
+                line,
+                nextTimes,
+              }),
+              { maxWidth: 280 },
+            )
             .on("click", () => openStop(x.code));
         }
         const focus = focusStop ? busSchedule.stops[focusStop] : undefined;
@@ -186,36 +209,63 @@ function BusMapPage() {
 
   useEffect(() => {
     const Lf = L.current;
-    if (!ready || !Lf || !busLayer.current) return;
+    if (!ready || !Lf || !busLayer.current || !d) return;
     busLayer.current.clearLayers();
-    for (const v of vehicles) {
-      const age = Math.max(0, Math.round((Date.now() - Date.parse(v.at)) / 60_000));
-      const digits = String(v.ref ?? "").replace(/\D/g, "");
-      const plate =
-        digits.length === 8
-          ? `${digits.slice(0, 3)}-${digits.slice(3, 5)}-${digits.slice(5)}`
-          : digits.length === 7
-            ? `${digits.slice(0, 2)}-${digits.slice(2, 5)}-${digits.slice(5)}`
-            : v.ref;
-      Lf.marker([v.lat, v.lon], {
-        icon: Lf.divIcon({
-          className: "",
-          html: `<div style="display:inline-flex;flex-direction:column;align-items:center;transform:translate(-50%,-50%);">
-            <div class="bus-pin">🚌 ${line}</div>
-            <div dir="ltr" style="margin-top:2px;background:#facc15;color:#111827;font-family:monospace;font-weight:900;font-size:10px;padding:1px 6px;border-radius:4px;border:1.5px solid #111827;white-space:nowrap;">IL ${plate}</div>
-          </div>`,
-          iconSize: [96, 44],
-          iconAnchor: [48, 22],
-        }),
-        zIndexOffset: 1000,
+    const fromName = from || stopName(d.from);
+    const toName = to || stopName(d.to);
+    const items: BusVehicleMarkerInfo[] =
+      vehicles.length > 0
+        ? vehicles.map((v, idx) => {
+            const plate = formatBusPlate(v.ref, line);
+            const drv = getBusDriverDetails(line, v.ref);
+            return {
+              line,
+              ref: v.ref,
+              plate,
+              driverName: drv.driverName,
+              driverRole: drv.driverRole,
+              fromName,
+              toName,
+              speedKmh: 32,
+              compassAr: `باتجاه ${toName}`,
+              nextStopName: toName,
+              nextStopCode: d.to,
+              distToNextStopM: null,
+              etaText: "مباشر على المسار",
+              isLiveSiri: true,
+              isSelected: idx === 0,
+              lat: v.lat,
+              lon: v.lon,
+              updatedAtText: new Date(v.at).toLocaleTimeString("ar-u-nu-latn", {
+                hour: "2-digit",
+                minute: "2-digit",
+                timeZone: "Asia/Jerusalem",
+              }),
+            };
+          })
+        : (() => {
+            const firstStop = d.stops[0]?.[0] ?? "";
+            const planned = firstStop ? plannedArrivals(Date.now(), line, d.dir, firstStop, 2) : [];
+            const fb = buildScheduledFallbackBus({
+              line,
+              fromName,
+              toName,
+              stops: d.stops,
+              nextPlanned: planned,
+              nowMs: Date.now(),
+            });
+            return fb ? [fb] : [];
+          })();
+
+    for (const bInfo of items) {
+      Lf.marker([bInfo.lat, bInfo.lon], {
+        icon: createLiveBusDivIcon(Lf, bInfo),
+        zIndexOffset: 1500,
       })
         .addTo(busLayer.current)
-        .bindTooltip(
-          `${tr("لوحة الترخيص:")} ${plate} · ${age < 1 ? tr("موقع مباشر الآن") : tr("آخر موقع قبل {0} د", age)}`,
-          { direction: "top" },
-        );
+        .bindPopup(buildLiveBusPopupHtml(bInfo), { maxWidth: 320 });
     }
-  }, [vehicles, ready, line]);
+  }, [vehicles, ready, line, d, from, to]);
 
   const locate = () => {
     if (!navigator.geolocation) return;
@@ -225,12 +275,9 @@ function BusMapPage() {
         if (!Lf || !meLayer.current || !map.current) return;
         meLayer.current.clearLayers();
         const p: [number, number] = [pos.coords.latitude, pos.coords.longitude];
-        Lf.circleMarker(p, {
-          radius: 9,
-          color: "#ffffff",
-          weight: 3,
-          fillColor: "#1a73e8",
-          fillOpacity: 1,
+        Lf.marker(p, {
+          icon: createUserLocationConeDivIcon(Lf),
+          zIndexOffset: 1200,
         })
           .addTo(meLayer.current)
           .bindTooltip(tr("موقعك"));
@@ -250,20 +297,20 @@ function BusMapPage() {
   const shown = vehicles.length;
 
   return (
-    <div className="fixed inset-0 z-40 flex flex-col bg-paper">
-      <header className="edge-b flex items-center gap-3 px-3 py-2">
-        <Link to="/buses" className="btn btn-ghost px-3" aria-label={tr("رجوع إلى الباصات")}>
+    <div className="fixed inset-0 z-[9999] flex h-[100dvh] w-[100dvw] flex-col bg-paper">
+      <header className="edge-b flex items-center gap-3 bg-[#0f172a] px-3 py-2.5 text-white">
+        <Link to="/buses" search={{ line }} className="grid size-10 place-items-center rounded-2xl bg-white/10 text-white" aria-label={tr("رجوع إلى الباصات")}>
           <ArrowRight className="size-5" aria-hidden />
         </Link>
         <div className="min-w-0 flex-1">
-          <h1 className="truncate text-lg font-bold">{tr("خريطة خط")} {trv(line)}</h1>
-          <p className="truncate text-xs font-semibold text-muted">
-            {from && to ? `${from} ↔ ${to}` : tr("باصات رهط")}
+          <h1 className="truncate text-base font-black text-primary">🚌 {tr("خريطة خط")} {trv(line)} المباشرة</h1>
+          <p className="truncate text-xs font-bold text-white/80">
+            {from && to ? `${from} ↔ ${to}` : tr("باصات رهط — شركة غاليم")}
           </p>
         </div>
         <button
           type="button"
-          className="btn btn-ghost px-3"
+          className="grid size-10 place-items-center rounded-2xl bg-primary text-[#111827]"
           aria-label={tr("تحديث")}
           onClick={() => void refresh()}
         >
