@@ -409,13 +409,13 @@ export const getSocialProfileUrl = (
   }
 };
 
-/** 3D Architectural SVG Renderer for all 8 House Shapes & 7 Colors */
+/** Realistic 3D Isometric Architectural Renderer for all 8 House Shapes & 7 Colors */
 export function ArchitecturalHouse3D({
   styleId,
   colorId = "yellow",
   tier,
   is3D = true,
-  size = 92,
+  size = 96,
 }: {
   styleId: HouseStyleId;
   colorId?: HouseColorId;
@@ -432,153 +432,219 @@ export function ArchitecturalHouse3D({
       style={{
         width: `${size}px`,
         height: `${size}px`,
-        transform: is3D ? "perspective(500px) rotateX(8deg)" : "none",
+        transform: is3D ? "translateY(-6px)" : "none",
       }}
     >
-      {/* Plot Garden Base with Fence & Gate */}
+      {/* Realistic 3D Ground Lawn Plot & Cast Shadow */}
       <div
-        className="absolute inset-x-1 bottom-0.5 h-7 rounded-2xl border-2 border-[#eab308]/70 bg-gradient-to-b from-[#ecfdf5] to-[#d1fae5] shadow-md"
+        className="absolute inset-x-0.5 bottom-0 h-8 rounded-2xl border-2 border-[#eab308]/80 bg-gradient-to-b from-[#dcfce7] via-[#bbf7d0] to-[#86efac] shadow-[0_8px_16px_rgba(15,23,42,0.22)]"
         aria-hidden
       >
-        {/* Little stone path */}
-        <div className="mx-auto mt-3 h-3.5 w-4 rounded-t-sm bg-[#cbd5e1] border-x border-[#94a3b8]" />
+        {/* 3D Building Cast Shadow on Lawn */}
+        <div className="absolute inset-x-3 top-1 h-4 rounded-xl bg-slate-900/20 blur-[2px]" />
+        {/* Stone Driveway / Walkway */}
+        <div className="mx-auto mt-3.5 h-4 w-5 rounded-t-sm border-x border-[#94a3b8] bg-gradient-to-b from-[#e2e8f0] to-[#cbd5e1]" />
       </div>
 
-      {/* SVG 3D Building by Style */}
+      {/* Realistic 3D Isometric SVG Building */}
       <svg
-        viewBox="0 0 120 110"
-        className="relative z-10 h-full w-full drop-shadow-md transition-transform duration-200 group-hover:scale-105"
+        viewBox="0 0 130 120"
+        className="relative z-10 h-full w-full drop-shadow-[0_10px_10px_rgba(15,23,42,0.28)] transition-transform duration-200 group-hover:scale-105 group-hover:-translate-y-1"
       >
+        <defs>
+          <linearGradient id={`glass-${styleId}-${colorId}`} x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#bae6fd" />
+            <stop offset="55%" stopColor="#38bdf8" />
+            <stop offset="100%" stopColor="#0284c7" />
+          </linearGradient>
+          <linearGradient id={`shade-${styleId}-${colorId}`} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={palette.sideHex} />
+            <stop offset="100%" stopColor="#cbd5e1" />
+          </linearGradient>
+        </defs>
+
         {styleId === "heritage_tent" ? (
-          /* ⛺ بيت شعر بدوي وتراثي (الشق) */
+          /* ⛺ بيت شعر بدوي وتراثي ثلاثي الأبعاد */
           <g>
-            {/* Tent canopy */}
-            <polygon points="12,72 60,26 108,72" fill="#44403c" stroke="#f2c94c" strokeWidth="3" />
-            <polygon points="24,72 60,34 96,72" fill="#292524" />
-            {/* Decorative Bedouin Sadu stripe */}
-            <rect x="16" y="66" width="88" height="7" rx="3" fill={palette.roofHex} stroke="#78350f" strokeWidth="1.5" />
-            {/* Tent poles & warm interior glow */}
-            <polygon points="36,73 60,46 84,73" fill="#f59e0b" opacity="0.85" />
-            <line x1="20" y1="72" x2="14" y2="94" stroke="#78350f" strokeWidth="4" strokeLinecap="round" />
-            <line x1="60" y1="32" x2="60" y2="94" stroke="#78350f" strokeWidth="4" strokeLinecap="round" />
-            <line x1="100" y1="72" x2="106" y2="94" stroke="#78350f" strokeWidth="4" strokeLinecap="round" />
-            {/* Arabic Dallah coffee pot icon */}
-            <circle cx="60" cy="82" r="7" fill="#f2c94c" stroke="#78350f" strokeWidth="1.5" />
+            {/* Back Tent Slope */}
+            <polygon points="14,76 65,24 116,76" fill="#292524" stroke="#f2c94c" strokeWidth="2.5" />
+            {/* 3D Right Side Flap */}
+            <polygon points="65,24 116,76 106,92 65,80" fill="#1c1917" stroke="#eab308" strokeWidth="1.5" />
+            {/* Front Bedouin Sadu Trim */}
+            <polygon points="18,74 65,30 100,74" fill="#44403c" />
+            <rect x="20" y="68" width="84" height="7" rx="2" fill={palette.roofHex} stroke="#78350f" strokeWidth="1.5" />
+            {/* Warm Glowing Interior */}
+            <polygon points="36,75 60,48 84,75 84,94 36,94" fill="#f59e0b" opacity="0.88" />
+            <polygon points="44,94 60,60 76,94" fill="#fef3c7" opacity="0.7" />
+            {/* Wooden Tent Poles & Ropes */}
+            <line x1="20" y1="74" x2="8" y2="96" stroke="#78350f" strokeWidth="2.5" />
+            <line x1="108" y1="74" x2="122" y2="96" stroke="#78350f" strokeWidth="2.5" />
+            <line x1="60" y1="30" x2="60" y2="96" stroke="#78350f" strokeWidth="4" strokeLinecap="round" />
+            {/* Campfire / Coffee Dallah */}
+            <circle cx="60" cy="86" r="5.5" fill="#ef4444" opacity="0.9" />
+            <circle cx="60" cy="85" r="3" fill="#fde047" />
           </g>
         ) : styleId === "palace" ? (
-          /* 🏰 قصر ذهبي فاخر بقبة وأعمدة */
+          /* 🏰 قصر ذهبي فاخر ثلاثي الأبعاد */
           <g>
-            {/* Left & Right Wings */}
-            <rect x="16" y="48" width="88" height="44" rx="5" fill={palette.wallHex} stroke="#b45309" strokeWidth="2.5" />
-            <rect x="28" y="36" width="64" height="56" rx="4" fill={palette.sideHex} stroke="#b45309" strokeWidth="2.5" />
-            {/* Golden Dome */}
-            <path d="M 38 36 Q 60 6 82 36 Z" fill={palette.roofHex} stroke="#92400e" strokeWidth="2.5" />
-            <circle cx="60" cy="14" r="4" fill="#facc15" stroke="#92400e" strokeWidth="1.5" />
-            {/* Columns & Grand Arch Door */}
-            <rect x="34" y="44" width="6" height="46" fill="#fde68a" stroke="#b45309" strokeWidth="1.2" />
-            <rect x="80" y="44" width="6" height="46" fill="#fde68a" stroke="#b45309" strokeWidth="1.2" />
-            <path d="M 48 92 L 48 64 Q 60 52 72 64 L 72 92 Z" fill={palette.doorHex} stroke="#f2c94c" strokeWidth="2" />
-            {/* Arched windows */}
-            <rect x="20" y="58" width="10" height="16" rx="5" fill="#38bdf8" stroke="#b45309" strokeWidth="1.5" />
-            <rect x="90" y="58" width="10" height="16" rx="5" fill="#38bdf8" stroke="#b45309" strokeWidth="1.5" />
+            {/* 3D Right Wing Depth */}
+            <polygon points="98,48 114,56 114,94 98,94" fill={`url(#shade-${styleId}-${colorId})`} stroke="#92400e" strokeWidth="2" />
+            {/* Main Facade */}
+            <rect x="16" y="48" width="82" height="46" rx="4" fill={palette.wallHex} stroke="#92400e" strokeWidth="2.2" />
+            <rect x="28" y="34" width="58" height="60" rx="3" fill={palette.sideHex} stroke="#92400e" strokeWidth="2.2" />
+            {/* 3D Golden Dome with Highlight */}
+            <path d="M 35 35 Q 57 3 79 35 Z" fill={palette.roofHex} stroke="#78350f" strokeWidth="2.2" />
+            <ellipse cx="52" cy="22" rx="6" ry="9" fill="#fef9c3" opacity="0.45" />
+            <circle cx="57" cy="11" r="4" fill="#facc15" stroke="#78350f" strokeWidth="1.5" />
+            {/* Columns & Grand Arch */}
+            <rect x="33" y="42" width="5" height="50" fill="#fde68a" stroke="#92400e" strokeWidth="1.2" />
+            <rect x="76" y="42" width="5" height="50" fill="#fde68a" stroke="#92400e" strokeWidth="1.2" />
+            <path d="M 46 94 L 46 64 Q 57 52 68 64 L 68 94 Z" fill={palette.doorHex} stroke="#f2c94c" strokeWidth="2" />
+            <rect x="20" y="58" width="9" height="16" rx="4.5" fill={`url(#glass-${styleId}-${colorId})`} stroke="#92400e" strokeWidth="1.5" />
+            <rect x="85" y="58" width="9" height="16" rx="4.5" fill={`url(#glass-${styleId}-${colorId})`} stroke="#92400e" strokeWidth="1.5" />
           </g>
         ) : styleId === "tower" ? (
-          /* 🏙️ برج سكني متعدد الطوابق */
+          /* 🏙️ برج سكني ثلاثي الأبعاد */
           <g>
-            {/* 3D Side Wall */}
-            <polygon points="82,20 98,28 98,92 82,92" fill={palette.sideHex} stroke="#334155" strokeWidth="2" />
-            {/* Main Tower Facade */}
-            <rect x="28" y="20" width="54" height="72" rx="4" fill={palette.wallHex} stroke="#1e293b" strokeWidth="2.5" />
-            {/* Yellow Top Crown */}
-            <rect x="25" y="14" width="60" height="8" rx="3" fill={palette.roofHex} stroke="#1e293b" strokeWidth="2" />
-            {/* Floors of Windows */}
-            {[28, 42, 56].map((wy) => (
+            {/* 3D Right Wall */}
+            <polygon points="82,18 106,28 106,94 82,94" fill={`url(#shade-${styleId}-${colorId})`} stroke="#1e293b" strokeWidth="2" />
+            {/* 3D Roof Slab */}
+            <polygon points="24,18 48,10 106,20 82,18" fill={palette.roofHex} stroke="#1e293b" strokeWidth="2" />
+            {/* Front Tower */}
+            <rect x="24" y="18" width="58" height="76" rx="3" fill={palette.wallHex} stroke="#1e293b" strokeWidth="2.2" />
+            <rect x="22" y="13" width="62" height="7" rx="2" fill={palette.roofHex} stroke="#1e293b" strokeWidth="2" />
+            {/* Windows on Front & Side */}
+            {[26, 40, 54].map((wy) => (
               <g key={wy}>
-                <rect x="35" y={wy} width="11" height="9" rx="2" fill="#38bdf8" stroke="#0284c7" strokeWidth="1.2" />
-                <rect x="50" y={wy} width="11" height="9" rx="2" fill="#38bdf8" stroke="#0284c7" strokeWidth="1.2" />
-                <rect x="65" y={wy} width="11" height="9" rx="2" fill="#fef08a" stroke="#ca8a04" strokeWidth="1.2" />
+                <rect x="30" y={wy} width="12" height="9" rx="1.5" fill={`url(#glass-${styleId}-${colorId})`} stroke="#0369a1" strokeWidth="1" />
+                <rect x="46" y={wy} width="12" height="9" rx="1.5" fill={`url(#glass-${styleId}-${colorId})`} stroke="#0369a1" strokeWidth="1" />
+                <rect x="62" y={wy} width="12" height="9" rx="1.5" fill="#fef08a" stroke="#ca8a04" strokeWidth="1" />
+                <polygon points={`87,${wy + 3} 99,${wy + 7} 99,${wy + 13} 87,${wy + 9}`} fill="#38bdf8" opacity="0.7" />
               </g>
             ))}
-            {/* Entrance */}
-            <rect x="47" y="73" width="16" height="19" rx="2" fill={palette.doorHex} stroke="#f2c94c" strokeWidth="1.5" />
+            <rect x="44" y="73" width="18" height="21" rx="2" fill={palette.doorHex} stroke="#f2c94c" strokeWidth="1.5" />
           </g>
         ) : styleId === "modern" ? (
-          /* 🏢 بيت عصري مودرن */
+          /* 🏢 بيت عصري مودرن ثلاثي الأبعاد */
           <g>
-            {/* Upper cantilevered box */}
-            <rect x="20" y="28" width="76" height="30" rx="4" fill={palette.wallHex} stroke="#1e293b" strokeWidth="2.5" />
-            <rect x="18" y="22" width="80" height="8" rx="3" fill={palette.roofHex} stroke="#1e293b" strokeWidth="2" />
-            {/* Lower level */}
-            <rect x="26" y="56" width="68" height="36" rx="3" fill={palette.sideHex} stroke="#1e293b" strokeWidth="2.5" />
-            {/* Panoramic glass window */}
-            <rect x="28" y="34" width="44" height="18" rx="2" fill="#38bdf8" stroke="#0284c7" strokeWidth="1.5" />
-            <line x1="50" y1="34" x2="50" y2="52" stroke="#ffffff" strokeWidth="2" />
-            {/* Door & Garage/Patio */}
-            <rect x="34" y="64" width="16" height="28" rx="2" fill={palette.doorHex} />
-            <rect x="58" y="64" width="28" height="18" rx="2" fill="#bae6fd" stroke="#0284c7" strokeWidth="1.5" />
+            {/* 3D Right Side Depth */}
+            <polygon points="90,28 108,36 108,94 90,94" fill={`url(#shade-${styleId}-${colorId})`} stroke="#1e293b" strokeWidth="2" />
+            {/* Upper Box */}
+            <rect x="18" y="28" width="72" height="30" rx="3" fill={palette.wallHex} stroke="#1e293b" strokeWidth="2.2" />
+            <polygon points="16,28 34,20 108,28 90,28" fill={palette.roofHex} stroke="#1e293b" strokeWidth="2" />
+            <rect x="16" y="24" width="76" height="6" rx="2" fill={palette.roofHex} stroke="#1e293b" strokeWidth="2" />
+            {/* Lower Box */}
+            <rect x="24" y="58" width="66" height="36" rx="2" fill={palette.sideHex} stroke="#1e293b" strokeWidth="2.2" />
+            <rect x="26" y="34" width="44" height="18" rx="2" fill={`url(#glass-${styleId}-${colorId})`} stroke="#0284c7" strokeWidth="1.5" />
+            <line x1="48" y1="34" x2="48" y2="52" stroke="#ffffff" strokeWidth="2" />
+            <rect x="32" y="64" width="16" height="30" rx="2" fill={palette.doorHex} />
+            <rect x="56" y="64" width="26" height="18" rx="2" fill={`url(#glass-${styleId}-${colorId})`} stroke="#0284c7" strokeWidth="1.5" />
           </g>
         ) : styleId === "garden_house" ? (
-          /* 🌴 بيت بحديقة وأشجار نخيل */
+          /* 🌴 بيت بحديقة وأشجار نخيل ثلاثي الأبعاد */
           <g>
-            {/* Palm Tree on Left */}
-            <rect x="15" y="48" width="5" height="42" rx="2" fill="#78350f" />
-            <circle cx="17" cy="42" r="12" fill="#16a34a" stroke="#15803d" strokeWidth="2" />
-            <circle cx="24" cy="46" r="9" fill="#22c55e" />
+            <polygon points="94,48 110,56 110,94 94,94" fill={`url(#shade-${styleId}-${colorId})`} stroke="#1e293b" strokeWidth="2" />
+            <polygon points="62,22 94,48 110,56 76,30" fill="#ca8a04" stroke="#1e293b" strokeWidth="1.5" />
+            {/* Palm Tree */}
+            <rect x="14" y="48" width="5" height="44" rx="2" fill="#78350f" />
+            <circle cx="16" cy="42" r="12" fill="#16a34a" stroke="#15803d" strokeWidth="2" />
+            <circle cx="24" cy="45" r="8" fill="#22c55e" />
             {/* House Body */}
-            <rect x="32" y="48" width="66" height="44" rx="4" fill={palette.wallHex} stroke="#1e293b" strokeWidth="2.5" />
-            <polygon points="26,50 65,22 104,50" fill={palette.roofHex} stroke="#1e293b" strokeWidth="2.5" />
-            {/* Windows & Door */}
-            <rect x="40" y="58" width="14" height="14" rx="3" fill="#38bdf8" stroke="#0284c7" strokeWidth="1.5" />
-            <rect x="76" y="58" width="14" height="14" rx="3" fill="#38bdf8" stroke="#0284c7" strokeWidth="1.5" />
-            <rect x="58" y="64" width="14" height="28" rx="3" fill={palette.doorHex} />
+            <rect x="30" y="48" width="64" height="46" rx="3" fill={palette.wallHex} stroke="#1e293b" strokeWidth="2.2" />
+            <polygon points="24,50 62,22 100,50" fill={palette.roofHex} stroke="#1e293b" strokeWidth="2.2" />
+            <rect x="38" y="58" width="14" height="14" rx="2.5" fill={`url(#glass-${styleId}-${colorId})`} stroke="#0284c7" strokeWidth="1.5" />
+            <rect x="72" y="58" width="14" height="14" rx="2.5" fill={`url(#glass-${styleId}-${colorId})`} stroke="#0284c7" strokeWidth="1.5" />
+            <rect x="55" y="64" width="14" height="30" rx="2.5" fill={palette.doorHex} />
           </g>
         ) : styleId === "commercial_shop" ? (
-          /* 🏪 معرض / متجر تجاري */
+          /* 🏪 معرض تجاري ثلاثي الأبعاد */
           <g>
-            <rect x="20" y="36" width="80" height="56" rx="5" fill={palette.wallHex} stroke="#1e293b" strokeWidth="2.5" />
-            {/* Striped Awning */}
-            <polygon points="14,52 22,34 98,34 106,52" fill={palette.roofHex} stroke="#1e293b" strokeWidth="2.5" />
-            <rect x="30" y="20" width="60" height="14" rx="4" fill="#263238" stroke="#f2c94c" strokeWidth="2" />
-            <circle cx="60" cy="27" r="3.5" fill="#f2c94c" />
-            {/* Storefront Display Glass */}
-            <rect x="28" y="58" width="38" height="26" rx="3" fill="#bae6fd" stroke="#0284c7" strokeWidth="2" />
-            <rect x="72" y="58" width="18" height="34" rx="2" fill={palette.doorHex} stroke="#f2c94c" strokeWidth="1.5" />
+            <polygon points="94,36 112,44 112,94 94,94" fill={`url(#shade-${styleId}-${colorId})`} stroke="#1e293b" strokeWidth="2" />
+            <rect x="20" y="36" width="74" height="58" rx="4" fill={palette.wallHex} stroke="#1e293b" strokeWidth="2.2" />
+            <polygon points="14,52 22,34 94,34 102,52" fill={palette.roofHex} stroke="#1e293b" strokeWidth="2.2" />
+            <rect x="28" y="20" width="58" height="14" rx="4" fill="#263238" stroke="#f2c94c" strokeWidth="2" />
+            <circle cx="57" cy="27" r="3.5" fill="#f2c94c" />
+            <rect x="26" y="58" width="36" height="26" rx="3" fill={`url(#glass-${styleId}-${colorId})`} stroke="#0284c7" strokeWidth="2" />
+            <rect x="68" y="58" width="18" height="36" rx="2" fill={palette.doorHex} stroke="#f2c94c" strokeWidth="1.5" />
           </g>
         ) : styleId === "classic_arab" ? (
-          /* 🕌 بيت عربي أصيل بقناطر */
+          /* 🕌 بيت عربي أصيل بقناطر ثلاثي الأبعاد */
           <g>
-            <rect x="20" y="40" width="80" height="52" rx="4" fill={palette.wallHex} stroke="#78350f" strokeWidth="2.5" />
-            {/* Traditional Parapet Roof */}
-            <rect x="18" y="32" width="84" height="9" rx="2" fill={palette.roofHex} stroke="#78350f" strokeWidth="2" />
-            {/* Triple Arches (قناطر) */}
-            <path d="M 28 88 L 28 60 Q 38 48 48 60 L 48 88 Z" fill="#fef08a" stroke="#78350f" strokeWidth="2" />
-            <path d="M 50 92 L 50 56 Q 60 44 70 56 L 70 92 Z" fill={palette.doorHex} stroke="#78350f" strokeWidth="2" />
-            <path d="M 72 88 L 72 60 Q 82 48 92 60 L 92 88 Z" fill="#fef08a" stroke="#78350f" strokeWidth="2" />
+            <polygon points="94,40 112,48 112,94 94,94" fill={`url(#shade-${styleId}-${colorId})`} stroke="#78350f" strokeWidth="2" />
+            <rect x="20" y="40" width="74" height="54" rx="3" fill={palette.wallHex} stroke="#78350f" strokeWidth="2.2" />
+            <rect x="18" y="32" width="78" height="9" rx="2" fill={palette.roofHex} stroke="#78350f" strokeWidth="2" />
+            <path d="M 27 90 L 27 60 Q 36 48 45 60 L 45 90 Z" fill="#fef08a" stroke="#78350f" strokeWidth="2" />
+            <path d="M 48 94 L 48 56 Q 57 44 66 56 L 66 94 Z" fill={palette.doorHex} stroke="#78350f" strokeWidth="2" />
+            <path d="M 69 90 L 69 60 Q 78 48 87 60 L 87 90 Z" fill="#fef08a" stroke="#78350f" strokeWidth="2" />
           </g>
         ) : (
-          /* 🏡 فيلا ملكية بطابقين (Default villa) */
+          /* 🏡 فيلا ملكية بطابقين ثلاثية الأبعاد (Default villa) */
           <g>
+            {/* 3D Side Extrusion */}
+            <polygon points="94,52 112,60 112,94 94,94" fill={`url(#shade-${styleId}-${colorId})`} stroke="#1e293b" strokeWidth="2" />
+            <polygon points="86,28 102,36 102,56 86,52" fill={`url(#shade-${styleId}-${colorId})`} stroke="#1e293b" strokeWidth="1.8" />
+            <polygon points="56,8 94,30 106,36 68,14" fill="#ca8a04" stroke="#1e293b" strokeWidth="1.8" />
             {/* Second floor */}
-            <rect x="30" y="28" width="60" height="28" rx="3" fill={palette.sideHex} stroke="#1e293b" strokeWidth="2.2" />
-            <polygon points="22,30 60,8 98,30" fill={palette.roofHex} stroke="#1e293b" strokeWidth="2.5" />
+            <rect x="26" y="28" width="60" height="26" rx="3" fill={palette.sideHex} stroke="#1e293b" strokeWidth="2.2" />
+            <polygon points="18,30 56,8 94,30" fill={palette.roofHex} stroke="#1e293b" strokeWidth="2.2" />
             {/* First floor */}
-            <rect x="20" y="52" width="80" height="40" rx="4" fill={palette.wallHex} stroke="#1e293b" strokeWidth="2.5" />
-            {/* Windows & Balcony */}
-            <rect x="42" y="34" width="14" height="14" rx="2" fill="#38bdf8" stroke="#0284c7" strokeWidth="1.5" />
-            <rect x="64" y="34" width="14" height="14" rx="2" fill="#38bdf8" stroke="#0284c7" strokeWidth="1.5" />
-            <rect x="28" y="60" width="16" height="15" rx="2" fill="#38bdf8" stroke="#0284c7" strokeWidth="1.5" />
-            <rect x="76" y="60" width="16" height="15" rx="2" fill="#38bdf8" stroke="#0284c7" strokeWidth="1.5" />
-            {/* Main Villa Door */}
-            <rect x="51" y="62" width="18" height="30" rx="3" fill={palette.doorHex} stroke="#f2c94c" strokeWidth="1.5" />
+            <rect x="18" y="52" width="76" height="42" rx="4" fill={palette.wallHex} stroke="#1e293b" strokeWidth="2.2" />
+            <rect x="38" y="34" width="13" height="13" rx="2" fill={`url(#glass-${styleId}-${colorId})`} stroke="#0284c7" strokeWidth="1.5" />
+            <rect x="60" y="34" width="13" height="13" rx="2" fill={`url(#glass-${styleId}-${colorId})`} stroke="#0284c7" strokeWidth="1.5" />
+            <rect x="25" y="60" width="15" height="15" rx="2" fill={`url(#glass-${styleId}-${colorId})`} stroke="#0284c7" strokeWidth="1.5" />
+            <rect x="72" y="60" width="15" height="15" rx="2" fill={`url(#glass-${styleId}-${colorId})`} stroke="#0284c7" strokeWidth="1.5" />
+            <rect x="48" y="62" width="17" height="32" rx="3" fill={palette.doorHex} stroke="#f2c94c" strokeWidth="1.5" />
           </g>
         )}
       </svg>
 
       {tier === "vip" ? (
-        <span className="absolute -top-1.5 -right-1.5 z-20 flex size-6 items-center justify-center rounded-full border-2 border-white bg-[#f2c94c] text-xs shadow-md">
+        <span className="absolute -top-2 -right-1 z-20 flex size-6 items-center justify-center rounded-full border-2 border-white bg-[#f2c94c] text-xs shadow-md">
           👑
         </span>
       ) : null}
+    </div>
+  );
+}
+
+/** Realistic 3D Landmark Diorama Renderer (Mosque, Heritage Tent, Sponsor Shop) */
+function Landmark3D({ type }: { type: Landmark["landmark_type"] }) {
+  if (type === "mosque") {
+    return (
+      <div className="relative flex size-24 items-center justify-center select-none">
+        <div className="absolute inset-x-1 bottom-0 h-8 rounded-2xl border-2 border-[#eab308] bg-gradient-to-b from-[#fef9c3] to-[#fde68a] shadow-lg" />
+        <svg viewBox="0 0 130 120" className="relative z-10 h-full w-full drop-shadow-[0_10px_10px_rgba(15,23,42,0.28)]">
+          {/* Minaret */}
+          <rect x="14" y="22" width="14" height="72" rx="3" fill="#ffffff" stroke="#b45309" strokeWidth="2" />
+          <path d="M 12 24 L 21 6 L 30 24 Z" fill="#f2c94c" stroke="#92400e" strokeWidth="2" />
+          <rect x="12" y="38" width="18" height="5" rx="2" fill="#f2c94c" stroke="#92400e" strokeWidth="1.5" />
+          {/* Main Mosque Hall + 3D Side */}
+          <polygon points="104,48 118,56 118,94 104,94" fill="#e2e8f0" stroke="#92400e" strokeWidth="2" />
+          <rect x="32" y="48" width="72" height="46" rx="4" fill="#ffffff" stroke="#92400e" strokeWidth="2.2" />
+          {/* Grand Golden Dome */}
+          <path d="M 42 48 Q 68 12 94 48 Z" fill="#f2c94c" stroke="#92400e" strokeWidth="2.2" />
+          <ellipse cx="62" cy="34" rx="6" ry="9" fill="#fef9c3" opacity="0.5" />
+          <circle cx="68" cy="18" r="3.5" fill="#facc15" stroke="#92400e" strokeWidth="1.5" />
+          {/* Grand Arch Door */}
+          <path d="M 56 94 L 56 64 Q 68 52 80 64 L 80 94 Z" fill="#b45309" stroke="#f2c94c" strokeWidth="2" />
+          <rect x="38" y="60" width="10" height="16" rx="5" fill="#38bdf8" stroke="#92400e" strokeWidth="1.5" />
+          <rect x="88" y="60" width="10" height="16" rx="5" fill="#38bdf8" stroke="#92400e" strokeWidth="1.5" />
+        </svg>
+      </div>
+    );
+  }
+  if (type === "heritage_council") {
+    return (
+      <div className="relative flex size-24 items-center justify-center select-none">
+        <div className="absolute inset-x-1 bottom-0 h-8 rounded-2xl border-2 border-[#eab308] bg-gradient-to-b from-[#fef3c7] to-[#fde68a] shadow-lg" />
+        <ArchitecturalHouse3D styleId="heritage_tent" colorId="terracotta" is3D size={92} />
+      </div>
+    );
+  }
+  return (
+    <div className="relative flex size-24 items-center justify-center select-none">
+      <div className="absolute inset-x-1 bottom-0 h-8 rounded-2xl border-2 border-[#eab308] bg-gradient-to-b from-[#dcfce7] to-[#bbf7d0] shadow-lg" />
+      <ArchitecturalHouse3D styleId="commercial_shop" colorId="yellow" tier="vip" is3D size={92} />
     </div>
   );
 }
@@ -1493,22 +1559,18 @@ export function CityPage() {
   const [adminUnlocked, setAdminUnlocked] = useState(false);
   const [pinInput, setPinInput] = useState("");
 
-  // Camera Pan & Zoom State
-  const [camOffset, setCamOffset] = useState<{ x: number; y: number }>({ x: 0, y: -40 });
-  const [camZoom, setCamZoom] = useState<number>(0.88);
-  const draggingRef = useRef<{
-    active: boolean;
-    startX: number;
-    startY: number;
-    origX: number;
-    origY: number;
-  }>({
-    active: false,
-    startX: 0,
-    startY: 0,
-    origX: 0,
-    origY: 0,
-  });
+  // Smooth Camera Pan, Zoom, 3D Tilt & Rotation State
+  const [camOffset, setCamOffset] = useState<{ x: number; y: number }>({ x: 0, y: -20 });
+  const [camZoom, setCamZoom] = useState<number>(() =>
+    typeof window !== "undefined" && window.innerWidth < 640 ? 0.64 : 0.92,
+  );
+  const [camRotateZ, setCamRotateZ] = useState<number>(-10);
+  const [isDragging, setIsDragging] = useState(false);
+
+  const pointersRef = useRef<Map<number, { x: number; y: number }>>(new Map());
+  const pinchStartDistRef = useRef<number | null>(null);
+  const pinchStartZoomRef = useRef<number>(0.8);
+  const dragStartRef = useRef<{ x: number; y: number; origX: number; origY: number } | null>(null);
 
   useEffect(() => {
     void adminWhoami()
@@ -1518,16 +1580,6 @@ export function CityPage() {
       .catch(() => {});
   }, []);
 
-  /**
-   * Organized Non-Overlapping City Layout:
-   * - Landmarks sit in the Central Plaza at row 0 with wide 250px spacing:
-   *   (-1 -> x = -250px, 0 -> x = 0px, +1 -> x = +250px, y = -110px)
-   * - Resident houses are arranged in neat residential blocks along horizontal & vertical streets:
-   *   4 houses per street row (cols 0, 1, 2, 3 -> x = -315, -115, +115, +315)
-   *   leaving a wide 230px central vertical avenue (شارع صلاح الدين) down the middle (x = 0)
-   *   and horizontal avenues every row (y = 110 + rowIdx * 185)!
-   * This guarantees ZERO overlapping between any houses or labels!
-   */
   const visibleResidents = useMemo(
     () => residents.filter((r) => r.is_visible),
     [residents],
@@ -1535,10 +1587,10 @@ export function CityPage() {
 
   const getResidentWorldPos = useCallback((index: number) => {
     const row = Math.floor(index / 4);
-    const col = index % 4; // 0, 1 on West side of main avenue; 2, 3 on East side of main avenue
-    const xMap = [-300, -120, 120, 300];
+    const col = index % 4;
+    const xMap = [-305, -120, 120, 305];
     const wx = xMap[col] ?? 120;
-    const wy = 115 + row * 185;
+    const wy = 120 + row * 190;
     return { wx, wy, row, col };
   }, []);
 
@@ -1552,7 +1604,7 @@ export function CityPage() {
           : l.grid_x > 0
             ? 255
             : (xPositions[idx % 3] ?? 0);
-    const wy = -125;
+    const wy = -135;
     return { wx, wy };
   }, []);
 
@@ -1565,6 +1617,10 @@ export function CityPage() {
     },
     [camZoom],
   );
+
+  const panBy = useCallback((dx: number, dy: number) => {
+    setCamOffset((prev) => ({ x: prev.x + dx, y: prev.y + dy }));
+  }, []);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -1592,12 +1648,12 @@ export function CityPage() {
   const totalRows = Math.max(3, Math.ceil(visibleResidents.length / 4));
   const mapTheme = settings.map_theme ?? "rahat_light";
 
-  const mapBgStyle =
+  const skyBgStyle =
     mapTheme === "night_gold"
-      ? "radial-gradient(circle at 50% 35%, #1e293b 0%, #0f172a 70%, #020617 100%)"
+      ? "linear-gradient(180deg, #020617 0%, #0f172a 45%, #1e293b 100%)"
       : mapTheme === "desert_sand"
-        ? "linear-gradient(180deg, #fef3c7 0%, #fde68a 45%, #fef9c3 100%)"
-        : "linear-gradient(180deg, #fffdf7 0%, #f8fafc 55%, #fef9c3 100%)";
+        ? "linear-gradient(180deg, #bae6fd 0%, #fef3c7 40%, #fde68a 100%)"
+        : "linear-gradient(180deg, #e0f2fe 0%, #fffdf7 45%, #fef9c3 100%)";
 
   if (showAdmin) {
     const requiredPin = "2026";
@@ -1671,13 +1727,27 @@ export function CityPage() {
       dir="rtl"
       className="fixed inset-0 z-50 flex h-[100dvh] w-[100dvw] flex-col overflow-hidden bg-[#fffdf7] text-[#263238] select-none"
     >
-      {/* Top Header Bar in Rahat Post White & Yellow Identity + Prominent Back to Home Button */}
-      <header className="z-30 flex flex-wrap items-center justify-between gap-2 border-b-2 border-[#f2c94c] bg-white/95 px-3 py-2.5 shadow-xs backdrop-blur-md sm:px-5">
+      <style>{`
+        @keyframes rpCarDriveX {
+          0% { transform: translateX(-460px); }
+          100% { transform: translateX(460px); }
+        }
+        @keyframes rpCarDriveXRev {
+          0% { transform: translateX(460px) scaleX(-1); }
+          100% { transform: translateX(-460px) scaleX(-1); }
+        }
+        @keyframes rpCarDriveY {
+          0% { transform: translateY(-240px); }
+          100% { transform: translateY(580px); }
+        }
+      `}</style>
+
+      {/* Top Header Bar */}
+      <header className="z-30 flex flex-wrap items-center justify-between gap-2 border-b-2 border-[#f2c94c] bg-white/95 px-3 py-2 shadow-xs backdrop-blur-md sm:px-5">
         <div className="flex items-center gap-2">
-          {/* Prominent Back to Homepage Button */}
           <Link
             to="/"
-            className="inline-flex items-center gap-1.5 rounded-2xl border-2 border-[#263238] bg-[#f2c94c] px-3 py-2 text-xs font-black text-[#263238] shadow-2xs transition hover:brightness-95"
+            className="inline-flex items-center gap-1 rounded-2xl border-2 border-[#263238] bg-[#f2c94c] px-2.5 py-1.5 text-xs font-black text-[#263238] shadow-2xs transition hover:brightness-95"
             title="الرجوع للصفحة الرئيسية"
           >
             <ArrowRight className="size-4" />
@@ -1685,25 +1755,24 @@ export function CityPage() {
           </Link>
 
           <div className="flex items-center gap-2">
-            <div className="grid size-9 place-items-center rounded-xl border border-[#eab308] bg-[#fef9c3] text-lg shadow-2xs">
+            <div className="grid size-8 place-items-center rounded-xl border border-[#eab308] bg-[#fef9c3] text-base shadow-2xs">
               🏙️
             </div>
             <div>
               <h1 className="text-xs font-black text-[#263238] sm:text-sm">
-                مدينة رهط بوست التفاعلية 3D <span className="rounded-md bg-[#f2c94c] px-1.5 py-0.5 text-[9px] font-black text-[#263238]">جديد</span>
+                مدينة رهط بوست 3D{" "}
+                <span className="rounded-md bg-[#f2c94c] px-1.5 py-0.5 text-[9px] font-black text-[#263238]">
+                  واقعي
+                </span>
               </h1>
               <p className="text-[10px] font-extrabold text-[#b45309]">
-                {visibleResidents.length} بيت منظم · {landmarks.length} معالم مركزية
+                {visibleResidents.length} بيت · اسحب بإصبعك للتجول
               </p>
             </div>
           </div>
         </div>
 
-        {/* Search Input */}
-        <form
-          onSubmit={handleSearch}
-          className="flex flex-1 items-center gap-1.5 max-w-md"
-        >
+        <form onSubmit={handleSearch} className="flex flex-1 items-center gap-1.5 max-w-sm">
           <input
             type="text"
             value={searchQuery}
@@ -1711,31 +1780,34 @@ export function CityPage() {
               setSearchQuery(e.target.value);
               setNotFoundAlert(false);
             }}
-            placeholder="ابحث عن بيت (@username أو الاسم أو رقم البيت)..."
+            placeholder="ابحث عن بيت أو @اسم..."
             className="w-full rounded-xl border-2 border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-[#263238] placeholder:text-slate-400 focus:border-[#f2c94c] focus:bg-white focus:outline-none"
           />
           <button
             type="submit"
-            className="rounded-xl border border-[#263238] bg-[#f2c94c] px-3.5 py-1.5 text-xs font-black text-[#263238] shadow-2xs transition hover:brightness-95"
+            className="rounded-xl border border-[#263238] bg-[#f2c94c] px-3 py-1.5 text-xs font-black text-[#263238]"
           >
             ابحث
           </button>
         </form>
 
-        {/* View Mode & Admin Controls */}
         <div className="flex items-center gap-1.5">
           <button
             type="button"
-            onClick={() => setViewMode((m) => (m === "3D" ? "2.5D" : "3D"))}
-            className="rounded-xl border border-[#263238] bg-[#fef9c3] px-3 py-1.5 text-xs font-black text-[#263238] shadow-2xs hover:bg-[#f2c94c]"
+            onClick={() => {
+              const next = viewMode === "3D" ? "2.5D" : "3D";
+              setViewMode(next);
+              if (next === "2.5D") setCamRotateZ(0);
+              else setCamRotateZ(-10);
+            }}
+            className="rounded-xl border border-[#263238] bg-[#fef9c3] px-2.5 py-1.5 text-[11px] font-black text-[#263238]"
           >
-            {viewMode === "2.5D" ? "🎲 عرض 3D" : "🗺️ عرض 2.5D"}
+            {viewMode === "2.5D" ? "🎲 3D واقعي" : "🗺️ 2.5D"}
           </button>
           <button
             type="button"
             onClick={() => setShowAdmin(true)}
-            className="inline-flex items-center gap-1 rounded-xl border-2 border-[#263238] bg-[#263238] px-3 py-1.5 text-xs font-black text-[#f2c94c] shadow-2xs hover:opacity-90"
-            title="لوحة التحكم ببناء وشكل البيوت"
+            className="inline-flex items-center gap-1 rounded-xl border-2 border-[#263238] bg-[#263238] px-2.5 py-1.5 text-[11px] font-black text-[#f2c94c]"
           >
             <Settings className="size-3.5" />
             <span>لوحة المدينة</span>
@@ -1743,128 +1815,224 @@ export function CityPage() {
         </div>
       </header>
 
-      {/* Rahat Post Yellow & White Announcement Strip */}
-      <div className="z-20 flex items-center justify-between gap-2 border-b border-[#eab308]/40 bg-gradient-to-l from-[#fef9c3] via-white to-[#fef9c3] px-4 py-1.5 text-xs font-extrabold text-[#263238]">
-        <span className="truncate">✨ {settings.announcement_text}</span>
+      {/* Quick-Jump Places Bar so users can fly directly to any landmark or house! */}
+      <div className="z-20 flex items-center gap-1.5 overflow-x-auto border-b border-[#eab308]/40 bg-gradient-to-l from-[#fef9c3] via-white to-[#fef9c3] px-3 py-1.5 text-[11px] font-black text-[#263238] no-scrollbar">
+        <span className="shrink-0 text-[#b45309]">📍 انتقل إلى:</span>
+        {landmarks
+          .filter((l) => l.is_active)
+          .map((l, idx) => (
+            <button
+              key={`jump-l-${l.id}`}
+              type="button"
+              onClick={() => {
+                const pos = getLandmarkWorldPos(l, idx);
+                setSelectedResident(null);
+                setSelectedLandmark(l);
+                focusWorldPos(pos.wx, pos.wy);
+              }}
+              className="shrink-0 rounded-full border border-[#eab308] bg-white px-2.5 py-0.5 text-[11px] font-extrabold hover:bg-[#f2c94c] transition"
+            >
+              {l.landmark_type === "mosque" ? "🕌" : l.landmark_type === "heritage_council" ? "⛺" : "🏪"}{" "}
+              {l.title.split("(")[0].trim()}
+            </button>
+          ))}
+        <button
+          type="button"
+          onClick={() => {
+            setSelectedLandmark(null);
+            setSelectedResident(null);
+            focusWorldPos(0, 140);
+          }}
+          className="shrink-0 rounded-full border border-[#263238] bg-[#f2c94c] px-2.5 py-0.5 text-[11px] font-black"
+        >
+          🏡 حي البيوت ({visibleResidents.length})
+        </button>
         {notFoundAlert ? (
-          <span className="shrink-0 rounded-lg bg-red-100 border border-red-300 px-2.5 py-0.5 text-[11px] font-black text-red-700">
-            لم يتم العثور على هذا الاسم — يمكنك إضافته من لوحة المدينة!
+          <span className="shrink-0 rounded-lg bg-red-100 border border-red-300 px-2 py-0.5 text-[10px] font-black text-red-700">
+            غير موجود — أضفه من لوحة المدينة!
           </span>
         ) : null}
       </div>
 
-      {/* Interactive 3D / 2.5D City Viewport with Streets, Signs, Roundabout & Traffic Lights */}
+      {/* Interactive 3D / 2.5D Realistic Diorama Map (Full Touch-Pan + Pinch-Zoom + Orbit) */}
       <main
-        className="relative flex-1 cursor-grab overflow-hidden active:cursor-grabbing"
-        style={{ background: mapBgStyle }}
+        className="relative flex-1 touch-none overflow-hidden cursor-grab active:cursor-grabbing"
+        style={{ background: skyBgStyle }}
         onPointerDown={(e) => {
           if ((e.target as HTMLElement).closest("[data-city-ui]")) return;
-          draggingRef.current = {
-            active: true,
-            startX: e.clientX,
-            startY: e.clientY,
-            origX: camOffset.x,
-            origY: camOffset.y,
-          };
+          (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+          pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+          if (pointersRef.current.size === 1) {
+            setIsDragging(true);
+            dragStartRef.current = {
+              x: e.clientX,
+              y: e.clientY,
+              origX: camOffset.x,
+              origY: camOffset.y,
+            };
+          } else if (pointersRef.current.size === 2) {
+            setIsDragging(true);
+            const pts = Array.from(pointersRef.current.values());
+            pinchStartDistRef.current = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+            pinchStartZoomRef.current = camZoom;
+          }
         }}
         onPointerMove={(e) => {
-          if (!draggingRef.current.active) return;
-          const dx = e.clientX - draggingRef.current.startX;
-          const dy = e.clientY - draggingRef.current.startY;
-          setCamOffset({
-            x: draggingRef.current.origX + dx,
-            y: draggingRef.current.origY + dy,
-          });
+          if (!pointersRef.current.has(e.pointerId)) return;
+          pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+          if (pointersRef.current.size === 2 && pinchStartDistRef.current) {
+            const pts = Array.from(pointersRef.current.values());
+            const dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+            const ratio = dist / pinchStartDistRef.current;
+            setCamZoom(
+              Math.min(1.75, Math.max(0.4, Number((pinchStartZoomRef.current * ratio).toFixed(2)))),
+            );
+          } else if (pointersRef.current.size === 1 && dragStartRef.current) {
+            const dx = e.clientX - dragStartRef.current.x;
+            const dy = e.clientY - dragStartRef.current.y;
+            setCamOffset({
+              x: dragStartRef.current.origX + dx,
+              y: dragStartRef.current.origY + dy,
+            });
+          }
         }}
-        onPointerUp={() => {
-          draggingRef.current.active = false;
+        onPointerUp={(e) => {
+          pointersRef.current.delete(e.pointerId);
+          if (pointersRef.current.size < 2) pinchStartDistRef.current = null;
+          if (pointersRef.current.size === 0) {
+            dragStartRef.current = null;
+            setIsDragging(false);
+          }
         }}
-        onPointerCancel={() => {
-          draggingRef.current.active = false;
+        onPointerCancel={(e) => {
+          pointersRef.current.delete(e.pointerId);
+          pinchStartDistRef.current = null;
+          dragStartRef.current = null;
+          setIsDragging(false);
         }}
         onWheel={(e) => {
           setCamZoom((z) =>
-            Math.min(1.65, Math.max(0.5, Number((z - e.deltaY * 0.0008).toFixed(2)))),
+            Math.min(1.75, Math.max(0.4, Number((z - e.deltaY * 0.0008).toFixed(2)))),
           );
         }}
       >
-        {/* World Origin Container */}
+        {/* Subtle Realistic Sun & Clouds in Sky Horizon */}
+        <div className="pointer-events-none absolute top-4 left-8 size-16 rounded-full bg-gradient-to-br from-[#fde047] to-[#f59e0b] opacity-80 blur-[1px] shadow-[0_0_45px_#facc15]" />
+        <div className="pointer-events-none absolute top-7 right-12 h-7 w-28 rounded-full bg-white/80 blur-[2px]" />
+
+        {/* World Origin Container with Realistic 3D Diorama Tilt & Smooth Transitions */}
         <div
-          className="pointer-events-none absolute left-1/2 top-1/2"
+          className={`pointer-events-none absolute left-1/2 top-1/2 ${
+            isDragging ? "" : "transition-transform duration-300 ease-out"
+          }`}
           style={{
             transform: `translate(${camOffset.x}px, ${camOffset.y}px) scale(${camZoom}) ${
-              viewMode === "3D" ? "perspective(1400px) rotateX(16deg)" : ""
+              viewMode === "3D"
+                ? `perspective(1250px) rotateX(32deg) rotateZ(${camRotateZ}deg)`
+                : ""
             }`,
             transformOrigin: "center center",
+            transformStyle: "preserve-3d",
           }}
         >
-          {/* ==================== 1. CITY GROUNDS, PARK BLOCKS & PAVED STREETS ==================== */}
-          {/* Grand City Base Plate */}
+          {/* ==================== 1. REALISTIC 3D TERRAIN SLAB & SIDEWALKS ==================== */}
           <div
-            className="absolute -left-[520px] -top-[270px] w-[1040px] rounded-[44px] border-4 border-[#f2c94c] bg-[#fffdf7] shadow-2xl"
-            style={{ height: `${Math.max(760, 320 + totalRows * 195)}px` }}
+            className="absolute -left-[540px] -top-[285px] w-[1080px] rounded-[48px] border-4 border-[#eab308] bg-gradient-to-b from-[#f8fafc] via-[#f1f5f9] to-[#e2e8f0]"
+            style={{
+              height: `${Math.max(820, 350 + totalRows * 195)}px`,
+              boxShadow:
+                "0 22px 0 #cbd5e1, 0 28px 0 #94a3b8, 0 42px 60px rgba(15,23,42,0.35)",
+            }}
           />
 
-          {/* Main North-South Boulevard: شارع صلاح الدين (Runs down x = 0) */}
+          {/* Green Park Patches & Trees Around Central Plaza */}
+          {[
+            { left: -475, top: -235 },
+            { left: 375, top: -235 },
+            { left: -475, top: 80 },
+            { left: 410, top: 80 },
+            { left: -475, top: 270 },
+            { left: 410, top: 270 },
+          ].map((tree, idx) => (
+            <div
+              key={`tree-${idx}`}
+              style={{ left: `${tree.left}px`, top: `${tree.top}px` }}
+              className="absolute z-10 flex flex-col items-center"
+            >
+              <span className="text-3xl drop-shadow-[0_6px_4px_rgba(15,23,42,0.28)]">
+                {idx % 2 === 0 ? "🌴" : "🌳"}
+              </span>
+            </div>
+          ))}
+
+          {/* Main North-South Boulevard: شارع صلاح الدين with Sidewalk Curbs */}
           <div
-            className="absolute -left-[34px] -top-[250px] w-[68px] bg-[#334155] border-x-4 border-[#f2c94c] shadow-inner"
-            style={{ height: `${Math.max(720, 290 + totalRows * 195)}px` }}
+            className="absolute -left-[46px] -top-[265px] w-[92px] rounded-2xl bg-[#cbd5e1] p-[8px] shadow-inner"
+            style={{ height: `${Math.max(770, 320 + totalRows * 195)}px` }}
           >
-            {/* Dashed Yellow Road Centerline */}
-            <div
-              className="mx-auto h-full w-1.5"
-              style={{
-                backgroundImage:
-                  "repeating-linear-gradient(to bottom, #f2c94c 0px, #f2c94c 18px, transparent 18px, transparent 34px)",
-              }}
-            />
-          </div>
-
-          {/* Main East-West Boulevard: شارع السلام الرئيسي (Between Central Plaza and Residential Blocks at y = -15) */}
-          <div className="absolute -left-[490px] -top-[22px] h-[54px] w-[980px] bg-[#334155] border-y-4 border-[#f2c94c] shadow-inner flex items-center">
-            <div
-              className="w-full h-1.5"
-              style={{
-                backgroundImage:
-                  "repeating-linear-gradient(to right, #f2c94c 0px, #f2c94c 20px, transparent 20px, transparent 38px)",
-              }}
-            />
-          </div>
-
-          {/* Central Roundabout (دوار مسجد التقوى المركزي) at (0, -5) */}
-          <div className="absolute -left-[54px] -top-[49px] size-[108px] rounded-full border-4 border-[#f2c94c] bg-[#334155] shadow-md flex items-center justify-center">
-            <div className="size-[58px] rounded-full border-2 border-white bg-gradient-to-b from-emerald-500 to-emerald-700 flex flex-col items-center justify-center text-white shadow-inner">
-              <span className="text-sm">🌴</span>
-              <span className="text-[8px] font-black">دوار التقوى</span>
+            <div className="relative h-full w-full overflow-hidden rounded-xl bg-[#1e293b] border-x-4 border-[#f2c94c]">
+              <div
+                className="mx-auto h-full w-1.5"
+                style={{
+                  backgroundImage:
+                    "repeating-linear-gradient(to bottom, #f2c94c 0px, #f2c94c 20px, transparent 20px, transparent 36px)",
+                }}
+              />
+              {/* Animated Car driving South along شارع صلاح الدين */}
+              <div
+                className="absolute left-2 text-lg drop-shadow"
+                style={{ animation: "rpCarDriveY 9s linear infinite" }}
+              >
+                🚕
+              </div>
             </div>
           </div>
 
-          {/* Pedestrian Zebra Crosswalks (ممرات مشاة) around Central Roundabout */}
+          {/* Main East-West Boulevard: شارع السلام الرئيسي with Sidewalk Curbs & Animated Cars */}
+          <div className="absolute -left-[510px] -top-[30px] h-[72px] w-[1020px] rounded-2xl bg-[#cbd5e1] p-[8px] shadow-inner">
+            <div className="relative flex h-full w-full items-center overflow-hidden rounded-xl bg-[#1e293b] border-y-4 border-[#f2c94c]">
+              <div
+                className="h-1.5 w-full"
+                style={{
+                  backgroundImage:
+                    "repeating-linear-gradient(to right, #f2c94c 0px, #f2c94c 22px, transparent 22px, transparent 40px)",
+                }}
+              />
+              <div
+                className="absolute top-1 text-lg drop-shadow"
+                style={{ animation: "rpCarDriveX 11s linear infinite" }}
+              >
+                🚗
+              </div>
+              <div
+                className="absolute bottom-1 text-lg drop-shadow"
+                style={{ animation: "rpCarDriveXRev 14s linear infinite" }}
+              >
+                🚌
+              </div>
+            </div>
+          </div>
+
+          {/* Central 3D Roundabout (دوار التقوى) */}
+          <div className="absolute -left-[62px] -top-[56px] size-[124px] rounded-full border-4 border-[#f2c94c] bg-[#1e293b] shadow-xl flex items-center justify-center">
+            <div className="size-[68px] rounded-full border-4 border-white bg-gradient-to-b from-emerald-500 to-emerald-700 flex flex-col items-center justify-center text-white shadow-[0_6px_12px_rgba(0,0,0,0.3)]">
+              <span className="text-lg">🌴</span>
+              <span className="text-[9px] font-black">دوار التقوى</span>
+            </div>
+          </div>
+
+          {/* Zebra Crosswalks */}
           <div
-            className="absolute -left-[26px] top-[62px] h-4 w-[52px]"
+            className="absolute -left-[28px] top-[70px] h-4 w-[56px]"
             style={{
               backgroundImage:
                 "repeating-linear-gradient(to right, #ffffff 0px, #ffffff 6px, transparent 6px, transparent 11px)",
             }}
           />
-          <div
-            className="absolute -left-[92px] -top-[14px] h-[38px] w-4"
-            style={{
-              backgroundImage:
-                "repeating-linear-gradient(to bottom, #ffffff 0px, #ffffff 6px, transparent 6px, transparent 11px)",
-            }}
-          />
-          <div
-            className="absolute left-[76px] -top-[14px] h-[38px] w-4"
-            style={{
-              backgroundImage:
-                "repeating-linear-gradient(to bottom, #ffffff 0px, #ffffff 6px, transparent 6px, transparent 11px)",
-            }}
-          />
 
-          {/* Horizontal Residential Streets between Every Row of Houses */}
+          {/* Horizontal Residential Streets */}
           {Array.from({ length: totalRows }).map((_, rIdx) => {
-            const streetY = 190 + rIdx * 185;
+            const streetY = 195 + rIdx * 190;
             const streetNames = [
               "شارع عمر المختار",
               "شارع النقب",
@@ -1875,43 +2043,41 @@ export function CityPage() {
             const sName = streetNames[rIdx % streetNames.length];
             return (
               <React.Fragment key={`hstreet-${rIdx}`}>
-                {/* Horizontal Paved Street */}
                 <div
-                  className="absolute -left-[490px] h-[38px] w-[980px] bg-[#334155] border-y-2 border-[#f2c94c]/90 flex items-center"
+                  className="absolute -left-[510px] h-[52px] w-[1020px] rounded-xl bg-[#cbd5e1] p-[6px]"
                   style={{ top: `${streetY}px` }}
                 >
-                  <div
-                    className="w-full h-1"
-                    style={{
-                      backgroundImage:
-                        "repeating-linear-gradient(to right, #f2c94c 0px, #f2c94c 16px, transparent 16px, transparent 32px)",
-                    }}
-                  />
+                  <div className="relative flex h-full w-full items-center overflow-hidden rounded-lg bg-[#1e293b] border-y-2 border-[#f2c94c]">
+                    <div
+                      className="h-1 w-full"
+                      style={{
+                        backgroundImage:
+                          "repeating-linear-gradient(to right, #f2c94c 0px, #f2c94c 16px, transparent 16px, transparent 32px)",
+                      }}
+                    />
+                    {rIdx === 0 ? (
+                      <div
+                        className="absolute top-0.5 text-base"
+                        style={{ animation: "rpCarDriveX 13s linear infinite" }}
+                      >
+                        🚙
+                      </div>
+                    ) : null}
+                  </div>
                 </div>
 
-                {/* Crosswalk at intersection with Main Avenue */}
-                <div
-                  className="absolute -left-[26px] h-3.5 w-[52px]"
-                  style={{
-                    top: `${streetY - 12}px`,
-                    backgroundImage:
-                      "repeating-linear-gradient(to right, #ffffff 0px, #ffffff 6px, transparent 6px, transparent 11px)",
-                  }}
-                />
-
-                {/* Street Name Signboard (لافتة اسم الشارع) */}
                 {settings.show_street_signs !== false ? (
                   <>
                     <div
-                      style={{ top: `${streetY + 6}px`, left: "-445px" }}
-                      className="absolute z-10 flex items-center gap-1 rounded-lg border-2 border-[#f2c94c] bg-white px-2.5 py-0.5 text-[10px] font-black text-[#263238] shadow-sm whitespace-nowrap"
+                      style={{ top: `${streetY + 12}px`, left: "-465px" }}
+                      className="absolute z-10 flex items-center gap-1 rounded-lg border-2 border-[#f2c94c] bg-white px-2.5 py-0.5 text-[10px] font-black text-[#263238] shadow-md whitespace-nowrap"
                     >
                       <span>🪧</span>
                       <span>{sName}</span>
                     </div>
                     <div
-                      style={{ top: `${streetY + 6}px`, left: "310px" }}
-                      className="absolute z-10 flex items-center gap-1 rounded-lg border-2 border-[#f2c94c] bg-white px-2.5 py-0.5 text-[10px] font-black text-[#263238] shadow-sm whitespace-nowrap"
+                      style={{ top: `${streetY + 12}px`, left: "330px" }}
+                      className="absolute z-10 flex items-center gap-1 rounded-lg border-2 border-[#f2c94c] bg-white px-2.5 py-0.5 text-[10px] font-black text-[#263238] shadow-md whitespace-nowrap"
                     >
                       <span>🪧</span>
                       <span>حي {rIdx + 1} · رهط</span>
@@ -1919,10 +2085,9 @@ export function CityPage() {
                   </>
                 ) : null}
 
-                {/* Interactive Traffic Light at Intersection */}
                 {settings.show_traffic_lights !== false && rIdx < 3 ? (
                   <div
-                    style={{ top: `${streetY - 42}px`, left: rIdx % 2 === 0 ? "40px" : "-66px" }}
+                    style={{ top: `${streetY - 40}px`, left: rIdx % 2 === 0 ? "48px" : "-76px" }}
                     className="absolute z-20"
                   >
                     <TrafficLightWidget />
@@ -1932,17 +2097,16 @@ export function CityPage() {
             );
           })}
 
-          {/* Main Boulevard Street Name Signs & Central Traffic Lights */}
           {settings.show_street_signs !== false ? (
             <>
               <div
-                style={{ top: "-17px", left: "-450px" }}
+                style={{ top: "-10px", left: "-470px" }}
                 className="absolute z-10 flex items-center gap-1 rounded-xl border-2 border-[#263238] bg-[#f2c94c] px-3 py-1 text-[11px] font-black text-[#263238] shadow-md whitespace-nowrap"
               >
                 🪧 شارع السلام الرئيسي
               </div>
               <div
-                style={{ top: "-17px", left: "295px" }}
+                style={{ top: "-10px", left: "305px" }}
                 className="absolute z-10 flex items-center gap-1 rounded-xl border-2 border-[#263238] bg-[#f2c94c] px-3 py-1 text-[11px] font-black text-[#263238] shadow-md whitespace-nowrap"
               >
                 🪧 شارع صلاح الدين
@@ -1952,27 +2116,21 @@ export function CityPage() {
 
           {settings.show_traffic_lights !== false ? (
             <>
-              <div style={{ top: "-74px", left: "62px" }} className="absolute z-20">
+              <div style={{ top: "-82px", left: "66px" }} className="absolute z-20">
                 <TrafficLightWidget label="إشارة المركز" />
               </div>
-              <div style={{ top: "30px", left: "-88px" }} className="absolute z-20">
+              <div style={{ top: "36px", left: "-96px" }} className="absolute z-20">
                 <TrafficLightWidget />
               </div>
             </>
           ) : null}
 
-          {/* ==================== 2. CENTRAL LANDMARKS (PLAZA ROW, NON-OVERLAPPING) ==================== */}
+          {/* ==================== 2. REALISTIC 3D CENTRAL LANDMARKS ==================== */}
           {landmarks
             .filter((l) => l.is_active)
             .map((l, idx) => {
               const { wx, wy } = getLandmarkWorldPos(l, idx);
               const isSel = selectedLandmark?.id === l.id;
-              const iconEmoji =
-                l.landmark_type === "mosque"
-                  ? "🕌"
-                  : l.landmark_type === "heritage_council"
-                    ? "⛺"
-                    : "🏪";
               return (
                 <div
                   key={`landmark-${l.id}`}
@@ -1991,28 +2149,15 @@ export function CityPage() {
                   }}
                   className="pointer-events-auto flex w-[205px] cursor-pointer flex-col items-center group"
                 >
-                  {/* Landmark Building Card */}
+                  <Landmark3D type={l.landmark_type} />
                   <div
-                    className={`flex size-20 items-center justify-center rounded-3xl border-4 text-4xl shadow-xl transition group-hover:scale-105 ${
-                      isSel
-                        ? "border-[#263238] bg-[#f2c94c] ring-4 ring-[#f2c94c]/50"
-                        : "border-[#f2c94c] bg-white"
-                    }`}
-                  >
-                    <span>{iconEmoji}</span>
-                  </div>
-
-                  {/* Clean Rahat Post White & Yellow Nameplate Below Landmark */}
-                  <div
-                    className={`mt-1.5 flex w-full flex-col items-center rounded-2xl border-2 px-3 py-1.5 text-center shadow-md transition ${
+                    className={`mt-1 flex w-full flex-col items-center rounded-2xl border-2 px-3 py-1.5 text-center shadow-md transition ${
                       isSel
                         ? "border-[#263238] bg-[#f2c94c] text-[#263238]"
                         : "border-[#f2c94c] bg-white text-[#263238] group-hover:bg-[#fef9c3]"
                     }`}
                   >
-                    <span className="text-[10px] font-black text-[#b45309]">
-                      {l.badge_text}
-                    </span>
+                    <span className="text-[10px] font-black text-[#b45309]">{l.badge_text}</span>
                     <span className="truncate w-full text-xs font-black text-[#263238]">
                       {l.title}
                     </span>
@@ -2021,7 +2166,7 @@ export function CityPage() {
               );
             })}
 
-          {/* ==================== 3. ORGANIZED RESIDENTIAL HOUSES ALONG STREETS ==================== */}
+          {/* ==================== 3. REALISTIC 3D RESIDENTIAL HOUSES ==================== */}
           {visibleResidents.map((r, idx) => {
             const { wx, wy } = getResidentWorldPos(idx);
             const isSel = selectedResident?.id === r.id;
@@ -2045,16 +2190,14 @@ export function CityPage() {
                 }}
                 className="pointer-events-auto flex w-[168px] cursor-pointer flex-col items-center group"
               >
-                {/* 3D Architectural House */}
                 <ArchitecturalHouse3D
                   styleId={r.house_style}
                   colorId={r.house_color ?? settings.default_house_color ?? "yellow"}
                   tier={r.tier}
                   is3D={viewMode === "3D"}
-                  size={88}
+                  size={92}
                 />
 
-                {/* Neat Non-Overlapping White & Yellow Nameplate */}
                 <div
                   className={`mt-1 flex w-full flex-col items-center rounded-2xl border-2 px-2.5 py-1 text-center shadow-sm transition group-hover:scale-105 ${
                     isSel
@@ -2063,7 +2206,7 @@ export function CityPage() {
                   }`}
                 >
                   <div className="flex w-full items-center justify-center gap-1">
-                    <span className="rounded-md bg-[#fef9c3] border border-[#eab308] px-1.5 py-0.2 font-mono text-[10px] font-black text-[#263238]">
+                    <span className="rounded-md bg-[#fef9c3] border border-[#eab308] px-1.5 font-mono text-[10px] font-black text-[#263238]">
                       #{r.resident_number}
                     </span>
                     <span className="truncate text-[11px] font-black text-[#263238]">
@@ -2077,7 +2220,63 @@ export function CityPage() {
           })}
         </div>
 
-        {/* Floating Zoom & Reset Controls (Rahat Post White & Yellow) */}
+        {/* Left Side: Easy Directional D-Pad so users can move smoothly in any direction! */}
+        <div
+          data-city-ui
+          className="pointer-events-auto absolute start-3 bottom-5 z-30 grid grid-cols-3 gap-1 rounded-2xl border-2 border-[#f2c94c] bg-white/90 p-1.5 shadow-xl backdrop-blur-md"
+          title="التحرك في الخريطة"
+        >
+          <div />
+          <button
+            type="button"
+            onClick={() => panBy(0, 140)}
+            className="grid size-8 place-items-center rounded-xl bg-slate-100 text-xs font-black hover:bg-[#f2c94c]"
+            title="تحرك للأعلى"
+          >
+            ▲
+          </button>
+          <div />
+          <button
+            type="button"
+            onClick={() => panBy(-140, 0)}
+            className="grid size-8 place-items-center rounded-xl bg-slate-100 text-xs font-black hover:bg-[#f2c94c]"
+            title="تحرك لليمين"
+          >
+            ◀
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setCamOffset({ x: 0, y: -20 });
+              setCamZoom(typeof window !== "undefined" && window.innerWidth < 640 ? 0.64 : 0.92);
+              setCamRotateZ(viewMode === "3D" ? -10 : 0);
+            }}
+            className="grid size-8 place-items-center rounded-xl bg-[#f2c94c] text-xs font-black text-[#263238]"
+            title="وسط المدينة"
+          >
+            🎯
+          </button>
+          <button
+            type="button"
+            onClick={() => panBy(140, 0)}
+            className="grid size-8 place-items-center rounded-xl bg-slate-100 text-xs font-black hover:bg-[#f2c94c]"
+            title="تحرك لليسار"
+          >
+            ▶
+          </button>
+          <div />
+          <button
+            type="button"
+            onClick={() => panBy(0, -140)}
+            className="grid size-8 place-items-center rounded-xl bg-slate-100 text-xs font-black hover:bg-[#f2c94c]"
+            title="تحرك للأسفل"
+          >
+            ▼
+          </button>
+          <div />
+        </div>
+
+        {/* Right Side: Zoom & 3D Orbit Rotation Controls */}
         <div
           data-city-ui
           className="pointer-events-auto absolute end-3 bottom-5 z-30 flex flex-col gap-2"
@@ -2085,9 +2284,9 @@ export function CityPage() {
           <button
             type="button"
             onClick={() =>
-              setCamZoom((z) => Math.min(1.65, Number((z + 0.15).toFixed(2))))
+              setCamZoom((z) => Math.min(1.75, Number((z + 0.15).toFixed(2))))
             }
-            className="grid size-11 place-items-center rounded-2xl border-2 border-[#f2c94c] bg-white text-[#263238] shadow-lg hover:bg-[#fef9c3]"
+            className="grid size-10 place-items-center rounded-2xl border-2 border-[#f2c94c] bg-white text-[#263238] shadow-lg hover:bg-[#fef9c3]"
             title="تكبير الخريطة"
           >
             <ZoomIn className="size-5" />
@@ -2095,31 +2294,28 @@ export function CityPage() {
           <button
             type="button"
             onClick={() =>
-              setCamZoom((z) => Math.max(0.5, Number((z - 0.15).toFixed(2))))
+              setCamZoom((z) => Math.max(0.4, Number((z - 0.15).toFixed(2))))
             }
-            className="grid size-11 place-items-center rounded-2xl border-2 border-[#f2c94c] bg-white text-[#263238] shadow-lg hover:bg-[#fef9c3]"
+            className="grid size-10 place-items-center rounded-2xl border-2 border-[#f2c94c] bg-white text-[#263238] shadow-lg hover:bg-[#fef9c9]"
             title="تصغير الخريطة"
           >
             <ZoomOut className="size-5" />
           </button>
           <button
             type="button"
-            onClick={() => {
-              setCamOffset({ x: 0, y: -40 });
-              setCamZoom(0.88);
-            }}
-            className="grid size-11 place-items-center rounded-2xl border-2 border-[#263238] bg-[#f2c94c] text-[#263238] shadow-lg hover:brightness-95"
-            title="العودة لوسط المدينة (دوار التقوى)"
+            onClick={() => setCamRotateZ((r) => (r === -10 ? 10 : r === 10 ? 0 : -10))}
+            className="grid size-10 place-items-center rounded-2xl border-2 border-[#263238] bg-[#fef9c3] text-[10px] font-black text-[#263238] shadow-lg"
+            title="تغيير زاوية 3D"
           >
-            <LocateFixed className="size-5" />
+            🔄 3D
           </button>
         </div>
 
-        {/* Selected Resident Popup Card (White & Yellow Rahat Post Theme) */}
+        {/* Selected Resident Popup Card */}
         {selectedResident ? (
           <div
             data-city-ui
-            className="pointer-events-auto absolute bottom-5 left-1/2 z-30 w-[92%] max-w-md -translate-x-1/2 rounded-3xl border-2 border-[#263238] bg-white p-4 text-[#263238] shadow-2xl"
+            className="pointer-events-auto absolute bottom-5 left-1/2 z-40 w-[92%] max-w-md -translate-x-1/2 rounded-3xl border-2 border-[#263238] bg-white p-4 text-[#263238] shadow-2xl"
           >
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-center gap-3 min-w-0">
@@ -2183,7 +2379,7 @@ export function CityPage() {
         {selectedLandmark ? (
           <div
             data-city-ui
-            className="pointer-events-auto absolute bottom-5 left-1/2 z-30 w-[92%] max-w-md -translate-x-1/2 rounded-3xl border-2 border-[#263238] bg-white p-4 text-[#263238] shadow-2xl"
+            className="pointer-events-auto absolute bottom-5 left-1/2 z-40 w-[92%] max-w-md -translate-x-1/2 rounded-3xl border-2 border-[#263238] bg-white p-4 text-[#263238] shadow-2xl"
           >
             <div className="flex items-start justify-between gap-3">
               <div>
