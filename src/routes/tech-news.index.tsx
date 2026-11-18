@@ -1,6 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Shell } from "@/components/shell";
-import { HomepageNewsSectionsBar } from "./news.index";
 import { NewsLead, NewsUnavailable } from "@/components/news";
 import { NewsImage } from "@/components/news-image";
 import { getTechNews } from "@/lib/news/api";
@@ -28,8 +27,7 @@ function TechNewsPage() {
   return (
     <Shell>
       <h1 className="mb-1 text-2xl font-bold">{tr("أخبار تقنية")}</h1>
-      <p className="mb-3 text-sm font-semibold text-muted">{tr("آخر أخبار التقنية والتكنولوجيا من المواقع التقنية العربية")}</p>
-      <HomepageNewsSectionsBar activeKey="tech" />
+      <p className="mb-4 font-semibold text-muted">{tr("آخر أخبار التقنية والتكنولوجيا من المواقع التقنية العربية")}</p>
       {data.items.length === 0 ? (
         <NewsUnavailable />
       ) : (
