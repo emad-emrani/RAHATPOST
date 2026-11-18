@@ -1690,7 +1690,7 @@ export function CityPage() {
             </div>
             <div>
               <h1 className="text-xs font-black text-[#263238] sm:text-sm">
-                مدينة رهط بوست التفاعلية 3D
+                مدينة رهط بوست التفاعلية 3D <span className="rounded-md bg-[#f2c94c] px-1.5 py-0.5 text-[9px] font-black text-[#263238]">جديد</span>
               </h1>
               <p className="text-[10px] font-extrabold text-[#b45309]">
                 {visibleResidents.length} بيت منظم · {landmarks.length} معالم مركزية

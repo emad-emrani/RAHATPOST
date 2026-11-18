@@ -91,7 +91,11 @@ function triggerBuildMaintenanceMode() {
 
 function autoUnpackUploadedZips(root) {
   try {
-    const dirsToScan = [root, join(root, "src"), join(root, "src/routes"), join(root, "mobile")];
+    const staleSrcZip = join(root, "src/rahatpost-sync-all.zip");
+    if (existsSync(staleSrcZip)) {
+      try { rmSync(staleSrcZip); } catch {}
+    }
+    const dirsToScan = [join(root, "src"), join(root, "src/routes"), join(root, "mobile"), root];
     for (const d of dirsToScan) {
       if (!existsSync(d)) continue;
       const sortedNames = readdirSync(d).sort((a, b) => a.replace(/\.zip$/i, "").localeCompare(b.replace(/\.zip$/i, ""), undefined, { numeric: true }));
@@ -107,6 +111,11 @@ function autoUnpackUploadedZips(root) {
           console.log(`[auto-unpack] Extracted ${n} files from ${name} into root`);
         }
       }
+    }
+    const datBundle = join(root, "src/lib/sync/latest-routes-bundle.dat");
+    if (existsSync(datBundle)) {
+      const n = extractZipBufferInNode(readFileSync(datBundle), root);
+      console.log(`[auto-unpack] Restored ${n} files from latest-routes-bundle.dat`);
     }
   } catch (e) {
     console.warn("[auto-unpack] warning:", e?.message || e);

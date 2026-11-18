@@ -1,4 +1,5 @@
 import { SocialHubAndNewslettersAdmin } from "@/components/admin/social-hub-admin";
+import { CityAdminPanelEmbedded, useRahatCityState } from "@/components/rahat-city-3d";
 import {
   Activity,
   AlertTriangle,
@@ -778,7 +779,8 @@ type Section =
   | "sec-sports"
   | "sec-tech"
   | "sec-weather"
-  | "social-hub";
+  | "social-hub"
+  | "city-admin";
 
 const ALL_TABS: { key: Section; label: string; icon: LucideIcon }[] = [
   { key: "home", label: "نظرة عامة", icon: House },
@@ -786,6 +788,7 @@ const ALL_TABS: { key: Section; label: string; icon: LucideIcon }[] = [
   { key: "review", label: "طابور المراجعة", icon: ClipboardCheck },
   { key: "stats", label: "الإحصائيات والزوار", icon: BarChart3 },
   { key: "publish", label: "نشر مقال / فيديو / بث مباشر", icon: PenSquare },
+  { key: "city-admin", label: "مدينة رهط 3D (إدارة البيوت والشوارع)", icon: Sparkles },
   { key: "social-hub", label: "استوديو الفيديو AI والتواصل والتريند", icon: Globe },
   { key: "sec-add", label: "إضافة قسم جديد", icon: FolderPlus },
   { key: "sec-manage", label: "إدارة الأقسام", icon: LayoutGrid },
@@ -832,7 +835,7 @@ const GROUPS: { id: string; label: string; desc: string; icon: LucideIcon; keys:
     label: "لوحة المتابعة",
     desc: "نظرة عامة، البث المباشر للمباريات، المراجعات، والإحصائيات",
     icon: House,
-    keys: ["home", "matches", "review", "stats"],
+    keys: ["home", "city-admin", "matches", "review", "stats"],
   },
   {
     id: "editorial",
@@ -2981,6 +2984,8 @@ function AdminPage() {
             </div>
           ) : current === "review" ? (
             <ReviewQueue onCount={setReviewCount} />
+          ) : current === "city-admin" ? (
+            <RahatCityAdminConnected />
           ) : current === "social-hub" ? (
             <SocialHubAdminConnected />
           ) : current === "publish" ? (
@@ -14985,6 +14990,32 @@ function BusLinesAdmin() {
   );
 }
 
+
+
+function RahatCityAdminConnected() {
+  const {
+    residents,
+    setResidents,
+    landmarks,
+    setLandmarks,
+    settings,
+    setSettings,
+    saveToast,
+    syncCityToCloud,
+  } = useRahatCityState();
+  return (
+    <CityAdminPanelEmbedded
+      residents={residents}
+      setResidents={setResidents}
+      landmarks={landmarks}
+      setLandmarks={setLandmarks}
+      settings={settings}
+      setSettings={setSettings}
+      saveToast={saveToast}
+      syncCityToCloud={syncCityToCloud}
+    />
+  );
+}
 
 function SocialHubAdminConnected() {
   const settings = useSiteSettings();

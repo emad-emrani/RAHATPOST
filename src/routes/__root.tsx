@@ -131,6 +131,7 @@ function GlobalCustomBottomBar() {
 
   // Hide on admin, login, reset-password, and app-auth screens
   const isSystemScreen =
+    pathname.startsWith("/city") ||
     pathname.startsWith("/admin") ||
     pathname.startsWith("/login") ||
     pathname.startsWith("/reset-password") ||
