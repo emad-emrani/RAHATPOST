@@ -6,6 +6,12 @@ import { Shell } from "@/components/shell";
 import { seo } from "@/lib/seo";
 import { tr } from "@/lib/i18n/core";
 
+import CityPage from './pages/CityPage';
+
+// داخل <Routes>:
+<Route path="/city" element={<CityPage />} />
+
+
 export const Route = createFileRoute("/app")({
   head: () =>
     seo({
