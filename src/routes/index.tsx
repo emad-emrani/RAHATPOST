@@ -573,7 +573,14 @@ function Home() {
   }, [query, news.items, places, classifieds, israelItems]);
 
   const filteredStoreProducts = useMemo(
-    () => store.products.filter((p) => p.slug !== "hub-cfg-main" && !p.slug.startsWith("offer-")),
+    () =>
+      store.products.filter(
+        (p) =>
+          p.slug !== "hub-cfg-main" &&
+          !p.slug.startsWith("offer-") &&
+          !p.slug.startsWith("sample-") &&
+          !/^(مثال|منتج تجريبي)/i.test(p.name.trim()),
+      ),
     [store.products],
   );
   const directoryPreview = (
@@ -4959,6 +4966,7 @@ const DEFAULT_TOP_TILES: { icon: string; label: string; to: string }[] = [
   { icon: "bus", label: "الباصات", to: "/buses" },
   { icon: "store", label: "المتجر", to: "/store" },
   { icon: "pin", label: "الدليل", to: "/directory" },
+  { icon: "sparkles", label: "مدينة رهط 3D", to: "/city" },
 ];
 
 const DEFAULT_BOT_TILES: { icon: string; label: string; to: string }[] = [
@@ -5183,6 +5191,7 @@ function HomeQuickLinks() {
   const links = (useSiteSettings().quickLinks ?? []).filter(
     (l) =>
       !isInternalQuickLinkConfig(l) &&
+      !String(l.url ?? "").startsWith("/__") &&
       l.subtitle !== " مَخفي" &&
       !l.subtitle?.includes("مَخفي"),
   );

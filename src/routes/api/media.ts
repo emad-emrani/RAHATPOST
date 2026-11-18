@@ -380,7 +380,7 @@ async function loadAllShopConfigs(): Promise<Record<string, ShopHubEntryConfig>>
     const keysToHydrate = new Set<string>();
 
     for (const r of rows) {
-      if (r.slug === GLOBAL_SETTINGS_SLUG) continue;
+      if (r.slug === GLOBAL_SETTINGS_SLUG || r.slug === MAINTENANCE_STATE_SLUG || r.slug === "__rahat_city_data__") continue;
       const parsed = typeof r.data === "string" ? JSON.parse(r.data) : r.data;
       const cfg = normalizeShopConfig(r.slug, parsed);
       out[r.slug] = cfg;
@@ -744,6 +744,19 @@ export const Route = createFileRoute("/api/media")({
           }
           return new Response("Not found", { status: 404 });
         }
+        if (u.searchParams.get("kind") === "rahat-city") {
+          try {
+            const sql = await ensureShopHubTable();
+            const rows = await sql<{ data: unknown }>`
+              SELECT data FROM shop_hub_configs WHERE slug = '__rahat_city_data__' LIMIT 1
+            `;
+            const raw = rows[0]?.data;
+            const cityData = raw ? (typeof raw === "string" ? JSON.parse(raw) : raw) : null;
+            return json(200, { ok: true, cityData, ts: Date.now() });
+          } catch {
+            return json(200, { ok: true, cityData: null, ts: Date.now() });
+          }
+        }
         if (u.searchParams.get("kind") === "maintenance-status") {
           const maintenance = await loadMaintenanceState();
           return json(200, { ok: true, maintenance, buildId: SERVER_BUILD_ID, ts: Date.now() });
@@ -838,6 +851,24 @@ export const Route = createFileRoute("/api/media")({
             previousBuildId: SERVER_BUILD_ID,
           });
           return json(200, { ok: true, maintenance, buildId: SERVER_BUILD_ID, ts: now });
+        }
+        if (kind === "rahat-city") {
+          try {
+            const body = await request.json().catch(() => ({}));
+            const cityData = body?.cityData ?? body;
+            const sql = await ensureShopHubTable();
+            await sql`
+              INSERT INTO shop_hub_configs (slug, data, updated_at)
+              VALUES ('__rahat_city_data__', ${JSON.stringify(cityData)}::jsonb, now())
+              ON CONFLICT (slug) DO UPDATE
+                SET data = EXCLUDED.data,
+                    updated_at = now()
+            `;
+            return json(200, { ok: true, cityData, ts: Date.now() });
+          } catch (e) {
+            console.error("[rahat-city] POST failed", e);
+            return json(500, { ok: false, message: "تعذّر حفظ بيانات المدينة." });
+          }
         }
         if (kind === "live-settings") {
           const viewer = await checkViewerRoles(request);

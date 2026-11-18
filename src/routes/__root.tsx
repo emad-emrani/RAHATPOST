@@ -74,6 +74,7 @@ const NAV_TO_BOT_ITEM: Record<string, { icon: string; label: string; to: string 
   "/directory": { icon: "pin", label: "الدليل", to: "/directory" },
   "/haraj": { icon: "ad", label: "حراج", to: "/haraj" },
   "/social": { icon: "globe", label: "تواصل", to: "/social" },
+  "/city": { icon: "sparkles", label: "مدينة رهط", to: "/city" },
   "/today": { icon: "siren", label: "اليوم", to: "/today" },
   "/store": { icon: "store", label: "المتجر", to: "/store" },
 };

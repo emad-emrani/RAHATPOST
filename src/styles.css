@@ -9,7 +9,7 @@
  * on yellow — and a muted amber reserved for breaking news and civic alerts.
  */
 @theme {
-  --font-sans: "IBM Plex Sans Arabic", "Segoe UI", Tahoma, sans-serif;
+  --font-sans: "IBM Plex Sans Arabic", "Segoe UI", "Noto Sans Hebrew", "Arial Hebrew", "Rubik", Tahoma, sans-serif;
   --color-primary: #f2c94c; /* calm yellow: buttons, active states, banners (ink text) */
   --color-primary-hover: #e9bb35;
   --color-primary-deep: #d9a92a; /* borders/outlines on yellow, pressed */

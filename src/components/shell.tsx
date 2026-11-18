@@ -18,6 +18,7 @@ const NAV = [
   { to: "/directory", label: "الدليل", icon: MapPin, exact: false },
   { to: "/haraj", label: "حراج", icon: Megaphone, exact: false },
   { to: "/social", label: "تواصل", icon: Globe, exact: true },
+  { to: "/city", label: "مدينة رهط", icon: Sparkles, exact: true },
   { to: "/today", label: "اليوم", icon: Siren, exact: true },
   { to: "/store", label: "المتجر", icon: Store, exact: false },
 ] as const;
@@ -134,6 +135,7 @@ export function Shell({ children, wide = false }: { children: ReactNode; wide?: 
                 { kw: "حراج رهط والنقب للبيع", to: "/haraj" as const },
                 { kw: "إعلانات مبوبة رهط", to: "/haraj" as const },
                 { kw: "تواصل رهط والنقب", to: "/social" as const },
+                { kw: "مدينة رهط بوست التفاعلية 3D", to: "/city" as const },
                 { kw: "لوحة اليوم وطقس رهط", to: "/today" as const },
                 { kw: "أوقات الصلاة وصيدلية المناوبة رهط", to: "/today" as const },
                 { kw: "متجر رهط بوست", to: "/store" as const },
@@ -217,6 +219,7 @@ export function SectionTitle({
     | "/sports-news"
     | "/tech-news"
     | "/social"
+    | "/city"
     | "/today"
     | "/buses"
     | "/directory"

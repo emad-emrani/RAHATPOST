@@ -41,10 +41,12 @@ export function isInternalQuickLinkConfig(
   const sub = String(l.subtitle ?? "").trim();
   const url = String(l.url ?? "").trim();
   if (!id || !title || !url) return true;
+  if (url.startsWith("/__") || url.includes("/__")) return true;
   if (
     id === "tilelive" ||
     id === "slidercfg" ||
     id === "topbarcfg" ||
+    id === "topstylecfg" ||
     id === "botbarcfg" ||
     id === "botbarcss" ||
     id === "txsecscfg" ||
@@ -57,20 +59,23 @@ export function isInternalQuickLinkConfig(
     id === "social2" ||
     id === "maintcfg" ||
     id === "maintmode" ||
+    id === "wcfg" ||
+    id === "citycfg" ||
     id.startsWith("sec") ||
-    /(cfg|css|social|vip|dirhub|busemerg|topbar|botbar|slider|txsecs|tilelive|maint)/i.test(id)
+    /(cfg|css|social|vip|dirhub|busemerg|topbar|topstyle|botbar|slider|txsecs|tilelive|maint|wcfg|svip|shcfg|city)/i.test(
+      id,
+    )
   ) {
     return true;
   }
-  if (url.startsWith("/__")) return true;
   if (
-    /^(busemergcfg|dirhubcfg|socialhub|social2|slidercfg|topbarcfg|botbarcfg|botbarcss|txsecscfg|tilelive)/i.test(
+    /^(busemergcfg|dirhubcfg|socialhub|social2|slidercfg|topbarcfg|topstylecfg|botbarcfg|botbarcss|txsecscfg|tilelive|animated_cards|neon_pulse|colorful_apps|glass_float|circles_ring|compact_pills)/i.test(
       title,
     ) ||
-    /(^style:|^vip:|^json:|^eyJ|homeItems:|radar:|scope:global|scope:local|fb:auto|tt:auto)/i.test(
+    /(^style:|^vip:|^count:|^json:|^eyJ|homeItems:|radar:|night-radar|fx:auto|int:medium|scope:global|scope:local|fbauto:|fb:auto|tt:auto|collapsible\|)/i.test(
       title,
     ) ||
-    /(^style:|^vip:|^json:|^eyJ|homeItems:|radar:|scope:global|scope:local|fb:auto|tt:auto|^socialhub$)/i.test(
+    /(^style:|^vip:|^count:|^json:|^eyJ|homeItems:|radar:|night-radar|fx:auto|int:medium|scope:global|scope:local|fbauto:|fb:auto|tt:auto|^socialhub|^topstylecfg$|collapsible\|)/i.test(
       sub,
     )
   ) {
@@ -292,7 +297,7 @@ export function sanitizeSettings(input: unknown): SiteSettings {
     for (const q of i.quickLinks.slice(0, 60)) {
       const idStr = String(q?.id ?? "");
       const isCfg =
-        /(cfg|css|social|vip|dirhub|busemerg|topbar|botbar|slider|txsecs|tilelive|maint|^sec)/i.test(idStr) ||
+        /(cfg|css|social|vip|dirhub|busemerg|topbar|topstyle|botbar|slider|txsecs|tilelive|maint|wcfg|svip|shcfg|^sec)/i.test(idStr) ||
         String(q?.url ?? "").startsWith("/__");
       const title = str(q?.title, isCfg ? 300 : 60);
       const url = safeUrl(q?.url);

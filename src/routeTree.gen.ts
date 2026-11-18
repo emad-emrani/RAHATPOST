@@ -27,6 +27,7 @@ import { Route as SubmitRouteImport } from './routes/submit'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as TodayRouteImport } from './routes/today'
 import { Route as SocialRouteImport } from './routes/social'
+import { Route as CityRouteImport } from './routes/city'
 import { Route as DotwellKnownAppleAppSiteAssociationRouteImport } from './routes/[.]well-known.apple-app-site-association'
 import { Route as DotwellKnownAssetlinksDotjsonRouteImport } from './routes/[.]well-known.assetlinks[.]json'
 import { Route as AdsIndexRouteImport } from './routes/ads.index'
@@ -149,6 +150,11 @@ const TodayRoute = TodayRouteImport.update({
 const SocialRoute = SocialRouteImport.update({
   id: '/social',
   path: '/social',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CityRoute = CityRouteImport.update({
+  id: '/city',
+  path: '/city',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DotwellKnownAppleAppSiteAssociationRoute =
@@ -338,6 +344,7 @@ export interface FileRoutesByFullPath {
   '/terms': typeof TermsRoute
   '/today': typeof TodayRoute
   '/social': typeof SocialRoute
+  '/city': typeof CityRoute
   '/.well-known/apple-app-site-association': typeof DotwellKnownAppleAppSiteAssociationRoute
   '/.well-known/assetlinks.json': typeof DotwellKnownAssetlinksDotjsonRoute
   '/ads/$id': typeof AdsIdRoute
@@ -391,6 +398,7 @@ export interface FileRoutesByTo {
   '/terms': typeof TermsRoute
   '/today': typeof TodayRoute
   '/social': typeof SocialRoute
+  '/city': typeof CityRoute
   '/.well-known/apple-app-site-association': typeof DotwellKnownAppleAppSiteAssociationRoute
   '/.well-known/assetlinks.json': typeof DotwellKnownAssetlinksDotjsonRoute
   '/ads/$id': typeof AdsIdRoute
@@ -445,6 +453,7 @@ export interface FileRoutesById {
   '/terms': typeof TermsRoute
   '/today': typeof TodayRoute
   '/social': typeof SocialRoute
+  '/city': typeof CityRoute
   '/.well-known/apple-app-site-association': typeof DotwellKnownAppleAppSiteAssociationRoute
   '/.well-known/assetlinks.json': typeof DotwellKnownAssetlinksDotjsonRoute
   '/ads/$id': typeof AdsIdRoute
@@ -500,6 +509,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/today'
     | '/social'
+    | '/city'
     | '/.well-known/apple-app-site-association'
     | '/.well-known/assetlinks.json'
     | '/ads/$id'
@@ -553,6 +563,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/today'
     | '/social'
+    | '/city'
     | '/.well-known/apple-app-site-association'
     | '/.well-known/assetlinks.json'
     | '/ads/$id'
@@ -606,6 +617,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/today'
     | '/social'
+    | '/city'
     | '/.well-known/apple-app-site-association'
     | '/.well-known/assetlinks.json'
     | '/ads/$id'
@@ -660,6 +672,7 @@ export interface RootRouteChildren {
   TermsRoute: typeof TermsRoute
   TodayRoute: typeof TodayRoute
   SocialRoute: typeof SocialRoute
+  CityRoute: typeof CityRoute
   DotwellKnownAppleAppSiteAssociationRoute: typeof DotwellKnownAppleAppSiteAssociationRoute
   DotwellKnownAssetlinksDotjsonRoute: typeof DotwellKnownAssetlinksDotjsonRoute
   AdsIdRoute: typeof AdsIdRoute
@@ -821,6 +834,13 @@ declare module '@tanstack/react-router' {
       path: '/social'
       fullPath: '/social'
       preLoaderRoute: typeof SocialRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/city': {
+      id: '/city'
+      path: '/city'
+      fullPath: '/city'
+      preLoaderRoute: typeof CityRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/.well-known/apple-app-site-association': {
@@ -1075,6 +1095,8 @@ const rootRouteChildren: RootRouteChildren = {
   SubmitRoute: SubmitRoute,
   TermsRoute: TermsRoute,
   TodayRoute: TodayRoute,
+  SocialRoute: SocialRoute,
+  CityRoute: CityRoute,
   DotwellKnownAppleAppSiteAssociationRoute:
     DotwellKnownAppleAppSiteAssociationRoute,
   DotwellKnownAssetlinksDotjsonRoute: DotwellKnownAssetlinksDotjsonRoute,
