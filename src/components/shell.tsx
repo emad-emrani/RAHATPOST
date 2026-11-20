@@ -18,7 +18,6 @@ const NAV = [
   { to: "/directory", label: "الدليل", icon: MapPin, exact: false },
   { to: "/haraj", label: "حراج", icon: Megaphone, exact: false },
   { to: "/social", label: "تواصل", icon: Globe, exact: true },
-  { to: "/city", label: "مدينة رهط", icon: Sparkles, exact: true },
   { to: "/today", label: "اليوم", icon: Siren, exact: true },
   { to: "/store", label: "المتجر", icon: Store, exact: false },
 ] as const;
