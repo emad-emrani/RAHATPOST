@@ -852,9 +852,8 @@ function Home() {
     let working: ExtendedHomeSectionId[] =
       customConfiguredOrder.length > 0 ? [...customConfiguredOrder] : [...rawOrder];
 
-    // Append any visible built-in sections that were not in customConfiguredOrder (except matches & social which are positioned near the top below)
+    // Append any visible built-in sections that were not in customConfiguredOrder
     for (const bId of rawOrder) {
-      if (bId === "matches" || bId === "social") continue;
       if (!working.includes(bId)) working.push(bId);
     }
 
@@ -872,24 +871,16 @@ function Home() {
       }
     }
 
-    // Always display Today's Match (مباراة اليوم) prominently at the top of the homepage (right above آخر الأخبار / news)
-    const existingMatchesIdx = working.indexOf("matches");
-    const newsIdxForMatches = working.indexOf("news");
-    if (existingMatchesIdx === -1) {
-      if (newsIdxForMatches !== -1) {
-        working.splice(newsIdxForMatches, 0, "matches");
+    // Respect exact Admin Panel order & visibility for matches
+    const matchesToggle = settings.home.find((h) => h.id === "matches");
+    const matchesVisible = matchesToggle ? matchesToggle.visible : true;
+    if (!working.includes("matches") && !hiddenByHord.has("matches") && matchesVisible) {
+      const newsIdx = working.indexOf("news");
+      if (newsIdx !== -1) {
+        working.splice(newsIdx + 1, 0, "matches");
       } else {
-        const tilesIdx = working.indexOf("tiles");
-        if (tilesIdx !== -1) {
-          working.splice(tilesIdx + 1, 0, "matches");
-        } else {
-          working.unshift("matches");
-        }
+        working.push("matches");
       }
-    } else if (newsIdxForMatches !== -1 && existingMatchesIdx > newsIdxForMatches + 1) {
-      working.splice(existingMatchesIdx, 1);
-      const updatedNewsIdx = working.indexOf("news");
-      working.splice(updatedNewsIdx !== -1 ? updatedNewsIdx : 0, 0, "matches");
     }
     const socialToggle = settings.home.find((h) => h.id === "social");
     const socialVisible = socialToggle ? socialToggle.visible : true;
@@ -4996,7 +4987,6 @@ const DEFAULT_TOP_TILES: { icon: string; label: string; to: string }[] = [
   { icon: "bus", label: "الباصات", to: "/buses" },
   { icon: "store", label: "المتجر", to: "/store" },
   { icon: "pin", label: "الدليل", to: "/directory" },
-  { icon: "sparkles", label: "مدينة رهط 3D", to: "/city" },
 ];
 
 const DEFAULT_BOT_TILES: { icon: string; label: string; to: string }[] = [
