@@ -67,39 +67,12 @@ function extractZipBufferInNode(buf, destDir) {
   return count;
 }
 
-function triggerBuildMaintenanceMode() {
-  if (process.argv[2] !== "vite" || process.argv[3] !== "build") return;
-  const payload = JSON.stringify({
-    action: "enable",
-    mode: "auto",
-    token: "rp-auto-deploy-maint-2026",
-    durationSec: 95,
-    reason: "جاري رفع وتطبيق تحديثات جديدة على منصة رهط بوست... سيعود الموقع تلقائياً خلال لحظات",
-  });
-  for (const u of [
-    "https://www.rahatpost.com/api/media?kind=maintenance-status",
-    "https://rahatpost.com/api/media?kind=maintenance-status",
-  ]) {
-    fetch(u, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: payload,
-      signal: AbortSignal.timeout(4000),
-    }).catch(() => {});
-  }
-}
-
 function autoUnpackUploadedZips(root) {
   try {
-    const staleSrcZip = join(root, "src/rahatpost-sync-all.zip");
-    if (existsSync(staleSrcZip)) {
-      try { rmSync(staleSrcZip); } catch {}
-    }
-    const dirsToScan = [join(root, "src"), join(root, "src/routes"), join(root, "mobile"), root];
+    const dirsToScan = [root, join(root, "src"), join(root, "src/routes"), join(root, "mobile")];
     for (const d of dirsToScan) {
       if (!existsSync(d)) continue;
-      const sortedNames = readdirSync(d).sort((a, b) => a.replace(/\.zip$/i, "").localeCompare(b.replace(/\.zip$/i, ""), undefined, { numeric: true }));
-      for (const name of sortedNames) {
+      for (const name of readdirSync(d)) {
         if (!name.toLowerCase().endsWith(".zip")) continue;
         const fullZip = join(d, name);
         const lower = name.toLowerCase();
@@ -111,11 +84,6 @@ function autoUnpackUploadedZips(root) {
           console.log(`[auto-unpack] Extracted ${n} files from ${name} into root`);
         }
       }
-    }
-    const datBundle = join(root, "src/lib/sync/latest-routes-bundle.dat");
-    if (existsSync(datBundle)) {
-      const n = extractZipBufferInNode(readFileSync(datBundle), root);
-      console.log(`[auto-unpack] Restored ${n} files from latest-routes-bundle.dat`);
     }
   } catch (e) {
     console.warn("[auto-unpack] warning:", e?.message || e);
@@ -209,7 +177,6 @@ function main(argv) {
     console.error("usage: node scripts/with-app-env.mjs <command> [args…]");
     process.exit(2);
   }
-  triggerBuildMaintenanceMode();
   autoUnpackUploadedZips(projectRoot());
   const env = mergeAppEnv(readAppEnv(projectRoot()), process.env);
   const child = spawn(command, args, { stdio: "inherit", env });

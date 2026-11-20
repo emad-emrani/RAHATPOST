@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Shell } from "@/components/shell";
-import { HomepageNewsSectionsBar } from "./news.index";
 import {
   IsraelNewsCredit,
   IsraelNewsLead,
@@ -34,10 +33,9 @@ function IsraelNewsPage() {
   return (
     <Shell>
       <h1 className="mb-1 text-2xl font-bold">{tr("أخبار إسرائيل")}</h1>
-      <p className="mb-3 text-sm font-semibold text-muted">
+      <p className="mb-4 font-semibold text-muted">
         {tr("من المواقع الإخبارية العبرية، مترجمة آلياً إلى العربية")}
       </p>
-      <HomepageNewsSectionsBar activeKey="israel" />
       {lead ? (
         <>
           <IsraelNewsLead item={lead} now={now} />

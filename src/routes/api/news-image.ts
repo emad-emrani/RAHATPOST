@@ -566,69 +566,10 @@ export const Route = createFileRoute("/api/news-image")({
         const title = (q.get("t") ?? "").slice(0, 220);
         const section = (q.get("s") ?? "news").slice(0, 12);
         const source = (q.get("src") ?? "").slice(0, 40);
-        const slug = (q.get("slug") ?? "").slice(0, 120);
-
-        if (q.get("ai_test") === "1" && title.trim()) {
-          const prov = (q.get("prov") || "auto") as "auto" | "gemini" | "grok" | "flux";
-          const { getOrCreateAiImageByTitle } = await import("@/lib/news/ai-images.server");
-          const aiRes = await getOrCreateAiImageByTitle({
-            title,
-            section,
-            source,
-            slug: slug || undefined,
-            forceProvider: prov,
-            bypassCache: true,
-          });
-          if (q.get("json") === "1") {
-            if (aiRes) {
-              return Response.json(
-                { ok: true, url: `/api/news-image?ai=${aiRes.key}`, provider: aiRes.provider || prov },
-                { headers: { "cache-control": "no-store" } },
-              );
-            }
-            return Response.json(
-              { ok: false, error: "تعذّر توليد الصورة حالياً" },
-              { status: 500, headers: { "cache-control": "no-store" } },
-            );
-          }
-          if (aiRes) {
-            return new Response(aiRes.bytes as BodyInit, {
-              headers: { "content-type": aiRes.type, "cache-control": "no-store" },
-            });
-          }
-        }
-
-        if (title.trim() && q.get("card") !== "1") {
-          try {
-            const { getOrCreateAiImageByTitle } = await import("@/lib/news/ai-images.server");
-            const aiRes = await getOrCreateAiImageByTitle({
-              title,
-              section,
-              source,
-              slug: slug || undefined,
-            });
-            if (aiRes) {
-              return new Response(aiRes.bytes as BodyInit, {
-                headers: {
-                  "content-type": aiRes.type,
-                  "cache-control": "public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400",
-                },
-              });
-            }
-          } catch (error) {
-            console.error("[news-image] on-demand ai fallback", error);
-          }
-        }
-
         try {
           const { renderNewsCard } = await import("@/lib/news/card-image.server");
           const png = await renderNewsCard({ title, section, source });
-          return new Response(new Uint8Array(png), {
-            headers: {
-              "content-type": "image/png",
-              "cache-control": "public, max-age=300, s-maxage=600, stale-while-revalidate=1800",
-            },
-          });
+          return new Response(new Uint8Array(png), { headers: { "content-type": "image/png", "cache-control": IMMUTABLE } });
         } catch (error) {
           console.error("[news-image] render", error);
           return new Response("Error", { status: 500, headers: { "cache-control": "no-store" } });
