@@ -72,9 +72,27 @@ jobs:
           cd ios/App
           pod install
 
-      - name: Initialize keychain & automatically create/fetch Apple Distribution Certificate and Profile
+      - name: Clean old temporary Distribution certificates & create fresh signing files
         run: |
           keychain initialize
+          python3 - << 'PYEOF'
+          import json, subprocess
+          for ctype in ("DISTRIBUTION", "IOS_DISTRIBUTION"):
+              out = subprocess.run(
+                  ["app-store-connect", "certificates", "list", "--type", ctype, "--json"],
+                  capture_output=True, text=True
+              )
+              if out.returncode == 0 and out.stdout.strip():
+                  try:
+                      certs = json.loads(out.stdout)
+                      for c in certs:
+                          cid = c.get("id")
+                          if cid:
+                              print(f"Revoking old {ctype} certificate: {cid}")
+                              subprocess.run(["app-store-connect", "certificates", "delete", cid], check=False)
+                  except Exception as e:
+                      print("Note:", e)
+          PYEOF
           openssl genrsa -out /tmp/cert_key.pem 2048
           app-store-connect fetch-signing-files "$BUNDLE_ID" \
             --platform IOS \
