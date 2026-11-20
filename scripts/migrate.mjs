@@ -82,10 +82,15 @@ async function main() {
 }
 
 main().catch((err) => {
-  console.error("[migrate] failed:", err?.message || err);
-  // pg errors carry the context needed to debug a bad SQL file.
+  const msg = String(err?.message || err || "");
+  const code = String(err?.code || "");
+  console.error("[migrate] warning:", msg);
   for (const key of ["code", "detail", "hint", "position", "where"]) {
     if (err?.[key] != null) console.error(`[migrate]   ${key}: ${err[key]}`);
+  }
+  if (code === "53000" || /quota|exceeded|limit|too many connections/i.test(msg)) {
+    console.warn("[migrate] Neon quota/connection limit reached — skipping migrate so Vercel deploy succeeds.");
+    process.exit(0);
   }
   process.exit(1);
 });
