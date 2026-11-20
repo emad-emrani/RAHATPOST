@@ -38,7 +38,12 @@ export type HouseStyleId =
   | "tower"
   | "garden_house"
   | "commercial_shop"
-  | "classic_arab";
+  | "classic_arab"
+  | "burj_khalifa"
+  | "eiffel_tower"
+  | "skyscraper";
+
+export type PlotSizeId = "normal" | "double" | "landmark";
 
 export type HouseColorId =
   | "yellow"
@@ -57,9 +62,10 @@ export interface Resident {
   username: string;
   display_name: string;
   neighborhood: string;
-  tier: "founder" | "pioneer" | "resident" | "vip";
+  tier: "founder" | "admin" | "pioneer" | "resident" | "vip";
   house_style: HouseStyleId;
   house_color?: HouseColorId;
+  plot_size?: PlotSizeId;
   custom_url?: string;
   grid_x: number;
   grid_y: number;
@@ -109,6 +115,9 @@ export const HOUSE_STYLES_CATALOG: {
   { id: "garden_house", label: "بيت بحديقة وأشجار نخيل", shortLabel: "بيت بحديقة", emoji: "🌴", desc: "منزل عائلي دافئ محاط بأشجار النخيل والزيتون" },
   { id: "commercial_shop", label: "متجر / معرض تجاري", shortLabel: "متجر تجاري", emoji: "🏪", desc: "مبنى تجاري مع لافتة مضيئة لأصحاب المصالح" },
   { id: "classic_arab", label: "بيت عربي أصيل بقناطر", shortLabel: "بيت عربي", emoji: "🕌", desc: "عمارة عربية تقليدية مع أقواس وقناطر جميلة" },
+  { id: "burj_khalifa", label: "برج خليفة (مساحة خاصة)", shortLabel: "برج خليفة", emoji: "🏙️", desc: "أيقونة شاهقة الارتفاع بتدرجات زجاجية وقمة مضيئة" },
+  { id: "eiffel_tower", label: "برج إيفل (مساحة خاصة)", shortLabel: "برج إيفل", emoji: "🗼", desc: "برج معدني كلاسيكي مميز بإضاءة ذهبية فاخرة" },
+  { id: "skyscraper", label: "عمارة شاهقة (ناطحات سحاب)", shortLabel: "عمارة شاهقة", emoji: "🏢", desc: "برج زجاجي ضخم متعدد الطوابق للمساحات الكبيرة" },
 ];
 
 export const HOUSE_COLORS_CATALOG: {
@@ -577,6 +586,62 @@ export function ArchitecturalHouse3D({
             <path d="M 48 94 L 48 56 Q 57 44 66 56 L 66 94 Z" fill={palette.doorHex} stroke="#78350f" strokeWidth="2" />
             <path d="M 69 90 L 69 60 Q 78 48 87 60 L 87 90 Z" fill="#fef08a" stroke="#78350f" strokeWidth="2" />
           </g>
+        ) : styleId === "burj_khalifa" ? (
+          /* 🏙️ برج خليفة (مساحة خاصة شاهقة) */
+          <g>
+            {/* Spire Needle */}
+            <line x1="65" y1="2" x2="65" y2="22" stroke="#f2c94c" strokeWidth="2.5" strokeLinecap="round" />
+            <circle cx="65" cy="3" r="2.5" fill="#fde047" />
+            {/* Tiered Stepped Wings */}
+            <polygon points="59,22 71,22 75,46 55,46" fill="#e0f2fe" stroke="#0284c7" strokeWidth="1.8" />
+            <polygon points="50,46 80,46 86,70 44,70" fill="#bae6fd" stroke="#0284c7" strokeWidth="1.8" />
+            <polygon points="40,70 90,70 98,96 32,96" fill={palette.wallHex} stroke="#0369a1" strokeWidth="2" />
+            {/* 3D Side Shaded Facade */}
+            <polygon points="65,22 71,22 75,46 80,46 86,70 90,70 98,96 65,96" fill={palette.sideHex} opacity="0.55" />
+            {/* Vertical Glass Lines */}
+            <line x1="65" y1="22" x2="65" y2="96" stroke="#38bdf8" strokeWidth="1.8" />
+            <line x1="53" y1="48" x2="53" y2="96" stroke="#38bdf8" strokeWidth="1.2" />
+            <line x1="77" y1="48" x2="77" y2="96" stroke="#38bdf8" strokeWidth="1.2" />
+            {/* Golden Entrance */}
+            <rect x="57" y="80" width="16" height="16" rx="2" fill={palette.roofHex} stroke="#78350f" strokeWidth="1.5" />
+          </g>
+        ) : styleId === "eiffel_tower" ? (
+          /* 🗼 برج إيفل (مساحة خاصة أيقونية) */
+          <g>
+            {/* Beacon Top */}
+            <circle cx="65" cy="8" r="3" fill="#fde047" stroke="#b45309" strokeWidth="1.5" />
+            <line x1="65" y1="10" x2="65" y2="18" stroke="#92400e" strokeWidth="2.5" />
+            {/* Upper Tapered Lattice */}
+            <polygon points="61,18 69,18 76,52 54,52" fill="#d97706" stroke="#78350f" strokeWidth="2" />
+            <rect x="50" y="50" width="30" height="5" rx="1.5" fill="#f2c94c" stroke="#78350f" strokeWidth="1.5" />
+            {/* Mid Level */}
+            <polygon points="52,55 78,55 88,74 42,74" fill="#b45309" stroke="#78350f" strokeWidth="2" />
+            <rect x="38" y="72" width="54" height="6" rx="2" fill="#f2c94c" stroke="#78350f" strokeWidth="1.5" />
+            {/* Base Legs & Iconic Arch */}
+            <path d="M 32 96 L 42 78 L 88 78 L 98 96 L 82 96 Q 65 78 48 96 Z" fill="#92400e" stroke="#f2c94c" strokeWidth="2" />
+            {/* Cross Lattice Highlights */}
+            <line x1="58" y1="34" x2="72" y2="34" stroke="#fef08a" strokeWidth="1.5" />
+            <line x1="48" y1="64" x2="82" y2="64" stroke="#fef08a" strokeWidth="1.5" />
+          </g>
+        ) : styleId === "skyscraper" ? (
+          /* 🏢 عمارة شاهقة (ناطحات سحاب) */
+          <g>
+            {/* 3D Side Wall */}
+            <polygon points="86,12 108,22 108,96 86,96" fill={`url(#shade-${styleId}-${colorId})`} stroke="#1e293b" strokeWidth="2" />
+            {/* Main Tall Glass Tower */}
+            <rect x="24" y="12" width="62" height="84" rx="3" fill={palette.wallHex} stroke="#1e293b" strokeWidth="2.2" />
+            <rect x="22" y="8" width="66" height="6" rx="2" fill={palette.roofHex} stroke="#1e293b" strokeWidth="1.8" />
+            <line x1="55" y1="1" x2="55" y2="8" stroke="#f2c94c" strokeWidth="2.5" />
+            {/* 5 Floors of Panoramic Glass */}
+            {[18, 31, 44, 57, 70].map((wy) => (
+              <g key={wy}>
+                <rect x="29" y={wy} width="24" height="9" rx="1.5" fill={`url(#glass-${styleId}-${colorId})`} stroke="#0284c7" strokeWidth="1" />
+                <rect x="57" y={wy} width="24" height="9" rx="1.5" fill="#fef08a" stroke="#ca8a04" strokeWidth="1" />
+                <polygon points={`90,${wy + 2} 104,${wy + 6} 104,${wy + 12} 90,${wy + 8}`} fill="#38bdf8" opacity="0.75" />
+              </g>
+            ))}
+            <rect x="44" y="82" width="22" height="14" rx="2" fill={palette.doorHex} stroke="#f2c94c" strokeWidth="1.5" />
+          </g>
         ) : (
           /* 🏡 فيلا ملكية بطابقين ثلاثية الأبعاد (Default villa) */
           <g>
@@ -825,6 +890,7 @@ export function CityAdminPanelEmbedded({
   const [displayName, setDisplayName] = useState("");
   const [neighborhood, setNeighborhood] = useState(CITY_STREETS_NEIGHBORHOODS[0]);
   const [houseStyle, setHouseStyle] = useState<HouseStyleId>(settings.default_house_style ?? "villa");
+  const [plotSize, setPlotSize] = useState<PlotSizeId>("normal");
   const [houseColor, setHouseColor] = useState<HouseColorId>(settings.default_house_color ?? "yellow");
   const [tierInput, setTierInput] = useState<Resident["tier"]>("founder");
   const [platform, setPlatform] = useState<SocialPlatformId>("instagram");
@@ -849,6 +915,7 @@ export function CityAdminPanelEmbedded({
       tier: tierInput,
       house_style: houseStyle,
       house_color: houseColor,
+      plot_size: plotSize,
       custom_url: parsed.customUrl,
       grid_x: nextCoord.x,
       grid_y: nextCoord.y,
@@ -1153,8 +1220,9 @@ export function CityAdminPanelEmbedded({
               </label>
               <div className="flex flex-wrap gap-2">
                 {[
-                  { id: "founder" as const, label: "⭐ بيت مؤسس" },
-                  { id: "vip" as const, label: "👑 قصر / VIP" },
+                  { id: "founder" as const, label: "⭐ مؤسس (ظاهر للجميع)" },
+                  { id: "admin" as const, label: "🛡️ إداري (ظاهر للجميع)" },
+                  { id: "vip" as const, label: "👑 VIP (ظاهر للجميع)" },
                   { id: "resident" as const, label: "🏠 مواطن" },
                 ].map((t) => (
                   <button
@@ -1173,6 +1241,33 @@ export function CityAdminPanelEmbedded({
               </div>
             </div>
           </div>
+
+
+            <div className="sm:col-span-2">
+              <label className="mb-2 block text-xs font-black text-[#263238]">
+                6. اختيار حجم المساحة على الخريطة (لتغيير البيت إلى برج خليفة أو إيفل أو عمارة شاهقة):
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { id: "normal" as const, label: "📐 مساحة عادية (1x1)" },
+                  { id: "double" as const, label: "📐 مساحة مزدوجة (2x2)" },
+                  { id: "landmark" as const, label: "🏗️ مساحة برج / معلم شاهق (3x3)" },
+                ].map((ps) => (
+                  <button
+                    key={ps.id}
+                    type="button"
+                    onClick={() => setPlotSize(ps.id)}
+                    className={`rounded-xl border-2 px-3.5 py-2 text-xs font-extrabold transition ${
+                      plotSize === ps.id
+                        ? "border-[#263238] bg-[#f2c94c] text-[#263238]"
+                        : "border-slate-200 bg-white text-slate-700"
+                    }`}
+                  >
+                    {ps.label}
+                  </button>
+                ))}
+              </div>
+            </div>
 
           <button
             type="submit"
@@ -1276,8 +1371,8 @@ export function CityAdminPanelEmbedded({
                     </div>
                   </div>
 
-                  {/* Direct Instant Controls for House Shape, Color & Platform */}
-                  <div className="grid grid-cols-3 gap-2 border-t border-slate-100 pt-2.5 text-xs">
+                  {/* Direct Instant Controls for House Shape, Color, Plot Size, Tier & Platform */}
+                  <div className="grid grid-cols-2 gap-2 border-t border-slate-100 pt-2.5 text-xs sm:grid-cols-5">
                     <div>
                       <label className="mb-1 block text-[10px] font-bold text-slate-500">
                         شكل البيت:
@@ -1338,6 +1433,45 @@ export function CityAdminPanelEmbedded({
                         <option value="tiktok">🎵 تيك توك</option>
                         <option value="x">𝕏 إكس</option>
                         <option value="app">📱 رهط بوست</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="mb-1 block text-[10px] font-bold text-slate-500">
+                        المساحة:
+                      </label>
+                      <select
+                        value={r.plot_size ?? "normal"}
+                        onChange={(e) =>
+                          void handleUpdateResidentField(r.id, {
+                            plot_size: e.target.value as PlotSizeId,
+                          })
+                        }
+                        className="w-full rounded-xl border border-slate-200 bg-slate-50 px-2 py-1.5 text-[11px] font-extrabold text-[#263238]"
+                      >
+                        <option value="normal">📐 عادية 1x1</option>
+                        <option value="double">📐 مزدوجة 2x2</option>
+                        <option value="landmark">🏗️ شاهقة 3x3</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="mb-1 block text-[10px] font-bold text-slate-500">
+                        الصفة:
+                      </label>
+                      <select
+                        value={r.tier}
+                        onChange={(e) =>
+                          void handleUpdateResidentField(r.id, {
+                            tier: e.target.value as Resident["tier"],
+                          })
+                        }
+                        className="w-full rounded-xl border border-slate-200 bg-slate-50 px-2 py-1.5 text-[11px] font-extrabold text-[#263238]"
+                      >
+                        <option value="founder">⭐ مؤسس</option>
+                        <option value="admin">🛡️ إداري</option>
+                        <option value="vip">👑 VIP</option>
+                        <option value="resident">🏠 مواطن</option>
                       </select>
                     </div>
                   </div>
@@ -1538,852 +1672,6 @@ export function CityAdminPanelEmbedded({
   );
 }
 
-
-// ============================================================================
-// REALISTIC 3D ISOMETRIC CANVAS CITY ENGINE (60fps, High-DPI, Zero External Deps)
-// ============================================================================
-
-type TimeOfDayMode = "day" | "sunset" | "night";
-
-function shadeHex(hex: string, factor: number): string {
-  const clean = hex.replace("#", "");
-  if (clean.length !== 6) return hex;
-  const r = Math.min(255, Math.max(0, Math.round(parseInt(clean.slice(0, 2), 16) * factor)));
-  const g = Math.min(255, Math.max(0, Math.round(parseInt(clean.slice(2, 4), 16) * factor)));
-  const b = Math.min(255, Math.max(0, Math.round(parseInt(clean.slice(4, 6), 16) * factor)));
-  return `rgb(${r},${g},${b})`;
-}
-
-interface HitTarget {
-  kind: "resident" | "landmark";
-  id: number;
-  cx: number;
-  cy: number;
-  r: number;
-  wx: number;
-  wy: number;
-}
-
-function RealisticCity3DCanvas({
-  residents,
-  landmarks,
-  settings,
-  camOffset,
-  setCamOffset,
-  camZoom,
-  setCamZoom,
-  camYaw,
-  camPitch,
-  timeOfDay,
-  selectedResidentId,
-  selectedLandmarkId,
-  onSelectResident,
-  onSelectLandmark,
-}: {
-  residents: Resident[];
-  landmarks: Landmark[];
-  settings: CitySettings;
-  camOffset: { x: number; y: number };
-  setCamOffset: React.Dispatch<React.SetStateAction<{ x: number; y: number }>>;
-  camZoom: number;
-  setCamZoom: React.Dispatch<React.SetStateAction<number>>;
-  camYaw: number;
-  camPitch: number;
-  timeOfDay: TimeOfDayMode;
-  selectedResidentId: number | null;
-  selectedLandmarkId: number | null;
-  onSelectResident: (r: Resident, wx: number, wy: number) => void;
-  onSelectLandmark: (l: Landmark, wx: number, wy: number) => void;
-}) {
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const hitTargetsRef = useRef<HitTarget[]>([]);
-  const pointersRef = useRef<Map<number, { x: number; y: number }>>(new Map());
-  const dragRef = useRef<{
-    startX: number;
-    startY: number;
-    origX: number;
-    origY: number;
-    moved: boolean;
-  } | null>(null);
-  const pinchRef = useRef<{ dist: number; zoom: number } | null>(null);
-
-  // Smoothly animated camera values
-  const animCamRef = useRef({ x: camOffset.x, y: camOffset.y, zoom: camZoom, yaw: camYaw, pitch: camPitch });
-  const targetCamRef = useRef({ x: camOffset.x, y: camOffset.y, zoom: camZoom, yaw: camYaw, pitch: camPitch });
-  targetCamRef.current = { x: camOffset.x, y: camOffset.y, zoom: camZoom, yaw: camYaw, pitch: camPitch };
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    let rafId = 0;
-    const startTime = performance.now();
-
-    const getResPos = (idx: number) => {
-      const row = Math.floor(idx / 4);
-      const col = idx % 4;
-      const xMap = [-2.4, -1.0, 1.0, 2.4];
-      return { wx: xMap[col] ?? 1.0, wy: 1.1 + row * 1.45 };
-    };
-
-    const getLandPos = (l: Landmark, idx: number) => {
-      const wx = l.grid_x === 0 ? 0 : l.grid_x < 0 ? -1.95 : l.grid_x > 0 ? 1.95 : (idx - 1) * 1.95;
-      return { wx, wy: -1.1 };
-    };
-
-    const renderFrame = (nowMs: number) => {
-      const t = (nowMs - startTime) / 1000;
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      const rect = canvas.getBoundingClientRect();
-      const W = Math.max(1, Math.floor(rect.width));
-      const H = Math.max(1, Math.floor(rect.height));
-      if (canvas.width !== Math.floor(W * dpr) || canvas.height !== Math.floor(H * dpr)) {
-        canvas.width = Math.floor(W * dpr);
-        canvas.height = Math.floor(H * dpr);
-      }
-
-      // Smooth lerp toward target camera
-      const lerp = 0.16;
-      const ac = animCamRef.current;
-      const tc = targetCamRef.current;
-      ac.x += (tc.x - ac.x) * lerp;
-      ac.y += (tc.y - ac.y) * lerp;
-      ac.zoom += (tc.zoom - ac.zoom) * lerp;
-      ac.yaw += (tc.yaw - ac.yaw) * lerp;
-      ac.pitch += (tc.pitch - ac.pitch) * lerp;
-
-      ctx.save();
-      ctx.scale(dpr, dpr);
-
-      // 1. REALISTIC SKY & ATMOSPHERE GRADIENT
-      const skyGrad = ctx.createLinearGradient(0, 0, 0, H);
-      if (timeOfDay === "night") {
-        skyGrad.addColorStop(0, "#020617");
-        skyGrad.addColorStop(0.55, "#0f172a");
-        skyGrad.addColorStop(1, "#1e293b");
-      } else if (timeOfDay === "sunset") {
-        skyGrad.addColorStop(0, "#1e3a8a");
-        skyGrad.addColorStop(0.35, "#fb923c");
-        skyGrad.addColorStop(0.7, "#fde68a");
-        skyGrad.addColorStop(1, "#fef9c3");
-      } else {
-        skyGrad.addColorStop(0, "#7dd3fc");
-        skyGrad.addColorStop(0.38, "#e0f2fe");
-        skyGrad.addColorStop(0.75, "#fffdf7");
-        skyGrad.addColorStop(1, "#fef9c3");
-      }
-      ctx.fillStyle = skyGrad;
-      ctx.fillRect(0, 0, W, H);
-
-      // Sun / Moon & Drifting Clouds
-      if (timeOfDay === "night") {
-        ctx.fillStyle = "rgba(255,255,255,0.75)";
-        for (let i = 0; i < 24; i++) {
-          const sx = ((i * 137) % W);
-          const sy = ((i * 61) % Math.max(80, H * 0.35));
-          ctx.beginPath();
-          ctx.arc(sx, sy, (i % 2) + 0.8, 0, Math.PI * 2);
-          ctx.fill();
-        }
-        ctx.fillStyle = "#fef08a";
-        ctx.beginPath();
-        ctx.arc(W * 0.15, 58, 22, 0, Math.PI * 2);
-        ctx.fill();
-      } else {
-        const sunGrad = ctx.createRadialGradient(W * 0.14, 56, 4, W * 0.14, 56, 48);
-        sunGrad.addColorStop(0, "#fef08a");
-        sunGrad.addColorStop(0.45, "rgba(250,204,21,0.55)");
-        sunGrad.addColorStop(1, "rgba(250,204,21,0)");
-        ctx.fillStyle = sunGrad;
-        ctx.beginPath();
-        ctx.arc(W * 0.14, 56, 48, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Soft drifting clouds
-        ctx.fillStyle = "rgba(255,255,255,0.68)";
-        for (let c = 0; c < 3; c++) {
-          const cxCloud = ((t * (10 + c * 4) + c * 260) % (W + 180)) - 90;
-          const cyCloud = 36 + c * 22;
-          ctx.beginPath();
-          ctx.arc(cxCloud, cyCloud, 18, 0, Math.PI * 2);
-          ctx.arc(cxCloud + 16, cyCloud - 6, 22, 0, Math.PI * 2);
-          ctx.arc(cxCloud + 34, cyCloud, 16, 0, Math.PI * 2);
-          ctx.fill();
-        }
-      }
-
-      // 3D Projection Helper (world x, y, z -> screen sx, sy, depth)
-      const scale = 115 * ac.zoom;
-      const cosA = Math.cos(ac.yaw);
-      const sinA = Math.sin(ac.yaw);
-      const pitch = ac.pitch;
-      const originX = W * 0.5 + ac.x;
-      const originY = H * 0.46 + ac.y;
-
-      const proj = (wx: number, wy: number, wz = 0) => {
-        const rx = wx * cosA - wy * sinA;
-        const ry = wx * sinA + wy * cosA;
-        const sx = originX + rx * scale;
-        const sy = originY + ry * scale * pitch - wz * scale * 0.92;
-        return { sx, sy, depth: ry };
-      };
-
-      const fillPoly = (pts: { sx: number; sy: number }[], fill: string | CanvasGradient, stroke?: string, lw = 1) => {
-        if (pts.length < 3) return;
-        ctx.beginPath();
-        ctx.moveTo(pts[0].sx, pts[0].sy);
-        for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].sx, pts[i].sy);
-        ctx.closePath();
-        ctx.fillStyle = fill;
-        ctx.fill();
-        if (stroke) {
-          ctx.strokeStyle = stroke;
-          ctx.lineWidth = lw;
-          ctx.stroke();
-        }
-      };
-
-      const drawBox3D = (
-        cx: number,
-        cy: number,
-        z0: number,
-        w: number,
-        d: number,
-        h: number,
-        topCol: string,
-        frontCol: string,
-        sideCol: string,
-        strokeCol = "rgba(15,23,42,0.28)",
-      ) => {
-        const hw = w / 2;
-        const hd = d / 2;
-        // Bottom & top corners
-        const b00 = proj(cx - hw, cy - hd, z0);
-        const b10 = proj(cx + hw, cy - hd, z0);
-        const b11 = proj(cx + hw, cy + hd, z0);
-        const b01 = proj(cx - hw, cy + hd, z0);
-
-        const t00 = proj(cx - hw, cy - hd, z0 + h);
-        const t10 = proj(cx + hw, cy - hd, z0 + h);
-        const t11 = proj(cx + hw, cy + hd, z0 + h);
-        const t01 = proj(cx - hw, cy + hd, z0 + h);
-
-        // Determine visible vertical faces based on camera yaw
-        const faces = [
-          { pts: [b01, b11, t11, t01], col: frontCol, depth: (b01.depth + b11.depth) / 2 }, // South
-          { pts: [b10, b11, t11, t10], col: sideCol, depth: (b10.depth + b11.depth) / 2 },  // East
-          { pts: [b00, b01, t01, t00], col: sideCol, depth: (b00.depth + b01.depth) / 2 },  // West
-          { pts: [b00, b10, t10, t00], col: frontCol, depth: (b00.depth + b10.depth) / 2 }, // North
-        ].sort((a, b) => a.depth - b.depth);
-
-        // Draw back-most 2 then front-most 2? Only front-facing 2 need to be drawn (or all sorted back-to-front!)
-        for (const f of faces) {
-          fillPoly(f.pts, f.col, strokeCol, 1);
-        }
-        // Top roof
-        fillPoly([t00, t10, t11, t01], topCol, strokeCol, 1.2);
-      };
-
-      const totalRows = Math.max(3, Math.ceil(residents.length / 4));
-      const maxWy = 0.65 + totalRows * 1.45;
-      const minWy = -2.1;
-      const minWx = -3.6;
-      const maxWx = 3.6;
-
-      // 2. REALISTIC 3D RAISED CITY BASE SLAB (EARTH + SAND + CURB)
-      const slabThickness = 0.28;
-      const sb00 = proj(minWx, minWy, -slabThickness);
-      const sb10 = proj(maxWx, minWy, -slabThickness);
-      const sb11 = proj(maxWx, maxWy, -slabThickness);
-      const sb01 = proj(minWx, maxWy, -slabThickness);
-      const st00 = proj(minWx, minWy, 0);
-      const st10 = proj(maxWx, minWy, 0);
-      const st11 = proj(maxWx, maxWy, 0);
-      const st01 = proj(minWx, maxWy, 0);
-
-      // Soft ground drop shadow under whole city slab
-      ctx.save();
-      ctx.fillStyle = "rgba(15,23,42,0.18)";
-      ctx.beginPath();
-      ctx.moveTo(sb00.sx + 8, sb00.sy + 18);
-      ctx.lineTo(sb10.sx + 8, sb10.sy + 18);
-      ctx.lineTo(sb11.sx + 8, sb11.sy + 18);
-      ctx.lineTo(sb01.sx + 8, sb01.sy + 18);
-      ctx.closePath();
-      ctx.fill();
-      ctx.restore();
-
-      const slabSideColor = timeOfDay === "night" ? "#334155" : "#cbd5e1";
-      const slabFrontColor = timeOfDay === "night" ? "#1e293b" : "#94a3b8";
-      const terrainTopColor =
-        timeOfDay === "night"
-          ? "#1e293b"
-          : settings.map_theme === "desert_sand"
-            ? "#fef3c7"
-            : "#f8fafc";
-
-      const slabFaces = [
-        { pts: [sb01, sb11, st11, st01], col: slabFrontColor, d: (sb01.depth + sb11.depth) / 2 },
-        { pts: [sb10, sb11, st11, st10], col: slabSideColor, d: (sb10.depth + sb11.depth) / 2 },
-        { pts: [sb00, sb01, st01, st00], col: slabSideColor, d: (sb00.depth + sb01.depth) / 2 },
-        { pts: [sb00, sb10, st10, st00], col: slabFrontColor, d: (sb00.depth + sb10.depth) / 2 },
-      ].sort((a, b) => a.d - b.d);
-      for (const sf of slabFaces) fillPoly(sf.pts, sf.col, "#eab308", 1.5);
-      fillPoly([st00, st10, st11, st01], terrainTopColor, "#eab308", 3);
-
-      // 3. REALISTIC ASPHALT STREETS, SIDEWALK CURBS, CROSSWALKS & ROUNDABOUT
-      const drawRoadRect = (x1: number, y1: number, x2: number, y2: number, isMain = false) => {
-        // Raised light sidewalk border
-        const pad = isMain ? 0.08 : 0.05;
-        const p0 = proj(x1 - pad, y1 - pad, 0.005);
-        const p1 = proj(x2 + pad, y1 - pad, 0.005);
-        const p2 = proj(x2 + pad, y2 + pad, 0.005);
-        const p3 = proj(x1 - pad, y2 + pad, 0.005);
-        fillPoly([p0, p1, p2, p3], timeOfDay === "night" ? "#475569" : "#e2e8f0", "#f2c94c", 1.2);
-
-        // Dark asphalt surface
-        const a0 = proj(x1, y1, 0.01);
-        const a1 = proj(x2, y1, 0.01);
-        const a2 = proj(x2, y2, 0.01);
-        const a3 = proj(x1, y2, 0.01);
-        fillPoly([a0, a1, a2, a3], "#1e293b", "#f2c94c", 1.6);
-      };
-
-      // North-South Main Boulevard: شارع صلاح الدين
-      drawRoadRect(-0.32, minWy + 0.1, 0.32, maxWy - 0.1, true);
-      // Dashed yellow centerline along N-S road
-      ctx.strokeStyle = "#f2c94c";
-      ctx.lineWidth = Math.max(1.5, 2.5 * ac.zoom);
-      ctx.setLineDash([8 * ac.zoom, 7 * ac.zoom]);
-      const nsStart = proj(0, minWy + 0.15, 0.015);
-      const nsEnd = proj(0, maxWy - 0.15, 0.015);
-      ctx.beginPath();
-      ctx.moveTo(nsStart.sx, nsStart.sy);
-      ctx.lineTo(nsEnd.sx, nsEnd.sy);
-      ctx.stroke();
-      ctx.setLineDash([]);
-
-      // East-West Main Boulevard: شارع السلام الرئيسي (y = -0.15..0.35)
-      drawRoadRect(minWx + 0.15, -0.22, maxWx - 0.15, 0.28, true);
-      ctx.strokeStyle = "#f2c94c";
-      ctx.lineWidth = Math.max(1.5, 2.5 * ac.zoom);
-      ctx.setLineDash([8 * ac.zoom, 7 * ac.zoom]);
-      const ewStart = proj(minWx + 0.2, 0.03, 0.015);
-      const ewEnd = proj(maxWx - 0.2, 0.03, 0.015);
-      ctx.beginPath();
-      ctx.moveTo(ewStart.sx, ewStart.sy);
-      ctx.lineTo(ewEnd.sx, ewEnd.sy);
-      ctx.stroke();
-      ctx.setLineDash([]);
-
-      // Horizontal Residential Streets
-      const streetNames = ["شارع عمر المختار", "شارع النقب", "شارع السوق البلدي", "شارع الأمل", "شارع الياسمين"];
-      for (let r = 0; r < totalRows; r++) {
-        const sy = 1.78 + r * 1.45;
-        drawRoadRect(minWx + 0.15, sy - 0.17, maxWx - 0.15, sy + 0.17, false);
-        ctx.strokeStyle = "#f2c94c";
-        ctx.lineWidth = Math.max(1, 1.8 * ac.zoom);
-        ctx.setLineDash([6 * ac.zoom, 6 * ac.zoom]);
-        const rs0 = proj(minWx + 0.2, sy, 0.015);
-        const rs1 = proj(maxWx - 0.2, sy, 0.015);
-        ctx.beginPath();
-        ctx.moveTo(rs0.sx, rs0.sy);
-        ctx.lineTo(rs1.sx, rs1.sy);
-        ctx.stroke();
-        ctx.setLineDash([]);
-      }
-
-      // Central Roundabout (دوار التقوى)
-      const rbCenter = proj(0, 0.03, 0.02);
-      ctx.save();
-      ctx.fillStyle = "#1e293b";
-      ctx.strokeStyle = "#f2c94c";
-      ctx.lineWidth = 2.5;
-      ctx.beginPath();
-      ctx.ellipse(rbCenter.sx, rbCenter.sy, 0.45 * scale, 0.45 * scale * pitch, 0, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.stroke();
-
-      ctx.fillStyle = "#16a34a";
-      ctx.strokeStyle = "#ffffff";
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.ellipse(rbCenter.sx, rbCenter.sy - 3 * ac.zoom, 0.24 * scale, 0.24 * scale * pitch, 0, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.stroke();
-      ctx.restore();
-
-      // 4. ANIMATED 3D CARS & BUSES DRIVING ALONG THE ROADS
-      const drawCar3D = (wx: number, wy: number, color: string, isVertical: boolean) => {
-        const cw = isVertical ? 0.13 : 0.24;
-        const cd = isVertical ? 0.24 : 0.13;
-        // Shadow
-        const sh = proj(wx + 0.03, wy + 0.03, 0.015);
-        ctx.fillStyle = "rgba(0,0,0,0.28)";
-        ctx.beginPath();
-        ctx.ellipse(sh.sx, sh.sy, cw * scale * 0.65, cd * scale * pitch * 0.65, 0, 0, Math.PI * 2);
-        ctx.fill();
-        // Car chassis + cabin
-        drawBox3D(wx, wy, 0.02, cw, cd, 0.07, color, shadeHex(color, 0.85), shadeHex(color, 0.72), "#0f172a");
-        drawBox3D(wx, wy, 0.09, cw * 0.75, cd * 0.65, 0.06, "#e0f2fe", "#38bdf8", "#0284c7", "#0f172a");
-
-        if (timeOfDay === "night") {
-          const hl = proj(isVertical ? wx : wx + cw * 0.6, isVertical ? wy + cd * 0.6 : wy, 0.04);
-          const beam = ctx.createRadialGradient(hl.sx, hl.sy, 1, hl.sx, hl.sy, 22 * ac.zoom);
-          beam.addColorStop(0, "rgba(254,240,138,0.8)");
-          beam.addColorStop(1, "rgba(254,240,138,0)");
-          ctx.fillStyle = beam;
-          ctx.beginPath();
-          ctx.arc(hl.sx, hl.sy, 22 * ac.zoom, 0, Math.PI * 2);
-          ctx.fill();
-        }
-      };
-
-      const carX1 = -3.2 + ((t * 0.75) % 6.4);
-      const carX2 = 3.2 - ((t * 0.55) % 6.4);
-      const carY1 = minWy + 0.3 + ((t * 0.65) % (maxWy - minWy - 0.6));
-      drawCar3D(carX1, 0.14, "#f2c94c", false); // Yellow Rahat taxi/bus
-      drawCar3D(carX2, -0.09, "#ef4444", false); // Red sedan
-      drawCar3D(0.14, carY1, "#38bdf8", true); // Blue car on Salah al-Din
-
-      // 5. COLLECT ALL 3D OBJECTS (HOUSES, LANDMARKS, TREES, TRAFFIC LIGHTS, STREET SIGNS) & DEPTH-SORT BACK-TO-FRONT
-      type SceneObj = {
-        depth: number;
-        draw: () => void;
-      };
-      const objs: SceneObj[] = [];
-      const newHitTargets: HitTarget[] = [];
-
-      // Helper: Draw 3D Tree
-      const pushTree = (wx: number, wy: number, isPalm: boolean) => {
-        const p = proj(wx, wy, 0);
-        objs.push({
-          depth: p.depth,
-          draw: () => {
-            // Ground shadow
-            ctx.fillStyle = "rgba(15,23,42,0.22)";
-            ctx.beginPath();
-            ctx.ellipse(p.sx + 6 * ac.zoom, p.sy + 2 * ac.zoom, 13 * ac.zoom, 7 * ac.zoom, 0, 0, Math.PI * 2);
-            ctx.fill();
-            // Trunk
-            drawBox3D(wx, wy, 0, 0.08, 0.08, isPalm ? 0.42 : 0.24, "#78350f", "#78350f", "#451a03", "#451a03");
-            const top = proj(wx, wy, isPalm ? 0.46 : 0.32);
-            if (isPalm) {
-              ctx.fillStyle = "#16a34a";
-              ctx.strokeStyle = "#14532d";
-              ctx.lineWidth = 1.2;
-              for (let a = 0; a < 5; a++) {
-                const ang = (a * Math.PI * 2) / 5 + 0.3;
-                ctx.beginPath();
-                ctx.ellipse(
-                  top.sx + Math.cos(ang) * 10 * ac.zoom,
-                  top.sy + Math.sin(ang) * 6 * ac.zoom,
-                  11 * ac.zoom,
-                  4.5 * ac.zoom,
-                  ang,
-                  0,
-                  Math.PI * 2,
-                );
-                ctx.fill();
-                ctx.stroke();
-              }
-            } else {
-              const g = ctx.createRadialGradient(top.sx - 4, top.sy - 4, 2, top.sx, top.sy, 16 * ac.zoom);
-              g.addColorStop(0, "#4ade80");
-              g.addColorStop(1, "#15803d");
-              ctx.fillStyle = g;
-              ctx.beginPath();
-              ctx.arc(top.sx, top.sy, 14 * ac.zoom, 0, Math.PI * 2);
-              ctx.fill();
-            }
-          },
-        });
-      };
-
-      // Place realistic 3D trees along boulevards
-      for (const tx of [-3.15, -0.55, 0.55, 3.15]) {
-        pushTree(tx, -0.42, tx < 0);
-        pushTree(tx, 0.45, tx > 0);
-      }
-      for (let r = 0; r < totalRows; r++) {
-        pushTree(-3.2, 1.1 + r * 1.45, r % 2 === 0);
-        pushTree(3.2, 1.1 + r * 1.45, r % 2 !== 0);
-      }
-
-      // Helper: Draw 3D Traffic Light
-      const pushTrafficLight = (wx: number, wy: number) => {
-        const p = proj(wx, wy, 0);
-        const phase = Math.floor(t / 2.6) % 3;
-        objs.push({
-          depth: p.depth,
-          draw: () => {
-            drawBox3D(wx, wy, 0, 0.05, 0.05, 0.34, "#475569", "#334155", "#1e293b");
-            drawBox3D(wx, wy, 0.34, 0.13, 0.1, 0.24, "#1e293b", "#0f172a", "#334155", "#f2c94c");
-            const cRed = proj(wx, wy, 0.52);
-            const cYel = proj(wx, wy, 0.46);
-            const cGrn = proj(wx, wy, 0.40);
-            const lamps = [
-              { pt: cRed, active: phase === 0, col: "#ef4444" },
-              { pt: cYel, active: phase === 1, col: "#fbbf24" },
-              { pt: cGrn, active: phase === 2, col: "#22c55e" },
-            ];
-            for (const lmp of lamps) {
-              ctx.fillStyle = lmp.active ? lmp.col : "rgba(255,255,255,0.15)";
-              ctx.beginPath();
-              ctx.arc(lmp.pt.sx, lmp.pt.sy, 3 * ac.zoom, 0, Math.PI * 2);
-              ctx.fill();
-            }
-          },
-        });
-      };
-
-      if (settings.show_traffic_lights !== false) {
-        pushTrafficLight(0.42, -0.35);
-        pushTrafficLight(-0.42, 0.4);
-        pushTrafficLight(0.42, 1.48);
-      }
-
-      // Helper: Draw Floating Crisp Badge on Canvas
-      const drawNameplate = (sx: number, sy: number, line1: string, line2: string | null, isSelected: boolean, accentBg = "#ffffff") => {
-        ctx.save();
-        ctx.font = `900 ${Math.max(10, Math.round(11 * ac.zoom))}px system-ui, -apple-system, sans-serif`;
-        const w1 = ctx.measureText(line1).width;
-        const w2 = line2 ? ctx.measureText(line2).width : 0;
-        const bw = Math.max(w1, w2) + 20 * ac.zoom;
-        const bh = (line2 ? 32 : 21) * ac.zoom;
-        const bx = sx - bw / 2;
-        const by = sy - bh;
-
-        ctx.fillStyle = isSelected ? "#f2c94c" : accentBg;
-        ctx.strokeStyle = isSelected ? "#263238" : "#eab308";
-        ctx.lineWidth = isSelected ? 2.5 : 1.6;
-        ctx.beginPath();
-        ctx.roundRect(bx, by, bw, bh, 9 * ac.zoom);
-        ctx.fill();
-        ctx.stroke();
-
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillStyle = "#263238";
-        if (line2) {
-          ctx.fillText(line1, sx, by + 10 * ac.zoom);
-          ctx.font = `800 ${Math.max(9, Math.round(9.5 * ac.zoom))}px system-ui, -apple-system, sans-serif`;
-          ctx.fillStyle = "#b45309";
-          ctx.fillText(line2, sx, by + 23 * ac.zoom);
-        } else {
-          ctx.fillText(line1, sx, by + bh / 2);
-        }
-        ctx.restore();
-      };
-
-      // Street Signs
-      if (settings.show_street_signs !== false) {
-        const pushSign = (wx: number, wy: number, text: string, bg = "#f2c94c") => {
-          const p = proj(wx, wy, 0.14);
-          objs.push({
-            depth: p.depth + 0.05,
-            draw: () => drawNameplate(p.sx, p.sy, `🪧 ${text}`, null, false, bg),
-          });
-        };
-        pushSign(-2.7, 0.03, "شارع السلام الرئيسي");
-        pushSign(2.7, 0.03, "شارع صلاح الدين");
-        for (let r = 0; r < Math.min(3, totalRows); r++) {
-          pushSign(-2.7, 1.78 + r * 1.45, streetNames[r % streetNames.length], "#ffffff");
-        }
-      }
-
-      // 6. PUSH CENTRAL 3D LANDMARKS
-      landmarks
-        .filter((l) => l.is_active)
-        .forEach((l, idx) => {
-          const { wx, wy } = getLandPos(l, idx);
-          const p = proj(wx, wy, 0);
-          const isSel = selectedLandmarkId === l.id;
-          objs.push({
-            depth: p.depth,
-            draw: () => {
-              // Garden / Stone Courtyard Base
-              drawBox3D(wx, wy, 0, 1.15, 0.92, 0.04, "#fef9c3", "#eab308", "#ca8a04");
-
-              if (l.landmark_type === "mosque") {
-                // Main Prayer Hall
-                drawBox3D(wx + 0.06, wy, 0.04, 0.78, 0.62, 0.42, "#fef3c7", "#ffffff", "#e2e8f0", "#92400e");
-                // Tall Minaret
-                drawBox3D(wx - 0.42, wy - 0.18, 0.04, 0.18, 0.18, 0.85, "#f2c94c", "#ffffff", "#e2e8f0", "#92400e");
-                const minTop = proj(wx - 0.42, wy - 0.18, 0.92);
-                ctx.fillStyle = "#f2c94c";
-                ctx.strokeStyle = "#92400e";
-                ctx.lineWidth = 1.5;
-                ctx.beginPath();
-                ctx.moveTo(minTop.sx - 10 * ac.zoom, minTop.sy + 10 * ac.zoom);
-                ctx.lineTo(minTop.sx, minTop.sy - 14 * ac.zoom);
-                ctx.lineTo(minTop.sx + 10 * ac.zoom, minTop.sy + 10 * ac.zoom);
-                ctx.closePath();
-                ctx.fill();
-                ctx.stroke();
-
-                // Grand Golden Dome
-                const domeBase = proj(wx + 0.06, wy, 0.46);
-                const dg = ctx.createRadialGradient(domeBase.sx - 6 * ac.zoom, domeBase.sy - 10 * ac.zoom, 2, domeBase.sx, domeBase.sy, 26 * ac.zoom);
-                dg.addColorStop(0, "#fef08a");
-                dg.addColorStop(0.5, "#f2c94c");
-                dg.addColorStop(1, "#b45309");
-                ctx.fillStyle = dg;
-                ctx.strokeStyle = "#78350f";
-                ctx.lineWidth = 1.5;
-                ctx.beginPath();
-                ctx.arc(domeBase.sx, domeBase.sy, 24 * ac.zoom, Math.PI, 0);
-                ctx.closePath();
-                ctx.fill();
-                ctx.stroke();
-              } else if (l.landmark_type === "heritage_council") {
-                // Realistic 3D Bedouin Heritage Tent (الشق)
-                drawBox3D(wx, wy, 0.04, 0.86, 0.62, 0.24, "#44403c", "#292524", "#1c1917", "#f2c94c");
-                const peak = proj(wx, wy, 0.56);
-                const c0 = proj(wx - 0.45, wy + 0.32, 0.26);
-                const c1 = proj(wx + 0.45, wy + 0.32, 0.26);
-                const c2 = proj(wx + 0.45, wy - 0.32, 0.26);
-                fillPoly([c0, c1, peak], "#292524", "#f2c94c", 1.5);
-                fillPoly([c1, c2, peak], "#1c1917", "#eab308", 1.2);
-                // Warm interior fire glow
-                const fire = proj(wx, wy + 0.34, 0.12);
-                ctx.fillStyle = "#f59e0b";
-                ctx.beginPath();
-                ctx.arc(fire.sx, fire.sy, 7 * ac.zoom, 0, Math.PI * 2);
-                ctx.fill();
-              } else {
-                // Sponsor Shop (دكان الأسبوع)
-                drawBox3D(wx, wy, 0.04, 0.84, 0.66, 0.48, "#f2c94c", "#ffffff", "#e2e8f0", "#263238");
-                drawBox3D(wx, wy + 0.34, 0.22, 0.78, 0.14, 0.08, "#eab308", "#f2c94c", "#ca8a04", "#263238");
-                drawBox3D(wx, wy, 0.52, 0.55, 0.18, 0.14, "#263238", "#263238", "#0f172a", "#f2c94c");
-              }
-
-              const labelPt = proj(wx, wy, l.landmark_type === "mosque" ? 1.05 : 0.74);
-              drawNameplate(labelPt.sx, labelPt.sy, l.title, l.badge_text, isSel, "#ffffff");
-              newHitTargets.push({
-                kind: "landmark",
-                id: l.id,
-                cx: p.sx,
-                cy: p.sy - 20 * ac.zoom,
-                r: 48 * ac.zoom,
-                wx,
-                wy,
-              });
-            },
-          });
-        });
-
-      // 7. PUSH ALL RESIDENTIAL 3D HOUSES (ALL 8 ARCHITECTURAL STYLES + 7 COLORS)
-      residents.forEach((r, idx) => {
-        const { wx, wy } = getResPos(idx);
-        const p = proj(wx, wy, 0);
-        const isSel = selectedResidentId === r.id;
-        const pal = HOUSE_COLORS_CATALOG.find((c) => c.id === (r.house_color ?? "yellow")) ?? HOUSE_COLORS_CATALOG[0];
-        const plat = PLATFORM_BADGE[r.social_platform] ?? PLATFORM_BADGE.app;
-
-        objs.push({
-          depth: p.depth,
-          draw: () => {
-            // Green Lawn & Fence Plot Base
-            drawBox3D(wx, wy, 0, 0.96, 0.86, 0.035, "#bbf7d0", "#86efac", "#4ade80", "#eab308");
-            // Ground building shadow
-            const sh = proj(wx + 0.06, wy + 0.06, 0.04);
-            ctx.fillStyle = "rgba(15,23,42,0.22)";
-            ctx.beginPath();
-            ctx.ellipse(sh.sx, sh.sy, 32 * ac.zoom, 18 * ac.zoom, 0, 0, Math.PI * 2);
-            ctx.fill();
-
-            const wall = pal.wallHex;
-            const side = pal.sideHex;
-            const roof = pal.roofHex;
-
-            if (r.house_style === "tower") {
-              drawBox3D(wx, wy, 0.04, 0.56, 0.52, 0.78, roof, wall, side, "#1e293b");
-              drawBox3D(wx, wy, 0.82, 0.6, 0.56, 0.08, "#263238", roof, shadeHex(roof, 0.85), "#1e293b");
-            } else if (r.house_style === "palace") {
-              drawBox3D(wx, wy, 0.04, 0.76, 0.62, 0.36, side, wall, side, "#92400e");
-              drawBox3D(wx, wy, 0.4, 0.46, 0.42, 0.24, roof, side, shadeHex(side, 0.9), "#92400e");
-              const dp = proj(wx, wy, 0.64);
-              ctx.fillStyle = roof;
-              ctx.strokeStyle = "#78350f";
-              ctx.lineWidth = 1.5;
-              ctx.beginPath();
-              ctx.arc(dp.sx, dp.sy, 17 * ac.zoom, Math.PI, 0);
-              ctx.closePath();
-              ctx.fill();
-              ctx.stroke();
-            } else if (r.house_style === "heritage_tent") {
-              drawBox3D(wx, wy, 0.04, 0.72, 0.54, 0.16, "#44403c", "#292524", "#1c1917", roof);
-              const pk = proj(wx, wy, 0.46);
-              const t0 = proj(wx - 0.36, wy + 0.27, 0.2);
-              const t1 = proj(wx + 0.36, wy + 0.27, 0.2);
-              const t2 = proj(wx + 0.36, wy - 0.27, 0.2);
-              fillPoly([t0, t1, pk], "#292524", roof, 1.5);
-              fillPoly([t1, t2, pk], "#1c1917", roof, 1.2);
-            } else if (r.house_style === "modern") {
-              drawBox3D(wx, wy, 0.04, 0.68, 0.56, 0.28, side, wall, side, "#1e293b");
-              drawBox3D(wx - 0.04, wy - 0.02, 0.32, 0.72, 0.5, 0.24, roof, wall, side, "#1e293b");
-            } else if (r.house_style === "commercial_shop") {
-              drawBox3D(wx, wy, 0.04, 0.7, 0.58, 0.42, roof, wall, side, "#1e293b");
-              drawBox3D(wx, wy + 0.3, 0.2, 0.66, 0.12, 0.07, roof, shadeHex(roof, 0.9), shadeHex(roof, 0.8), "#1e293b");
-            } else {
-              // Villa / Garden House / Classic Arab with 3D pitched or crowned roof
-              drawBox3D(wx, wy, 0.04, 0.66, 0.56, 0.32, side, wall, side, "#1e293b");
-              if (r.house_style === "classic_arab") {
-                drawBox3D(wx, wy, 0.36, 0.7, 0.6, 0.08, roof, shadeHex(roof, 0.9), shadeHex(roof, 0.8), "#78350f");
-              } else {
-                const pk = proj(wx, wy, 0.58);
-                const r0 = proj(wx - 0.36, wy + 0.3, 0.36);
-                const r1 = proj(wx + 0.36, wy + 0.3, 0.36);
-                const r2 = proj(wx + 0.36, wy - 0.3, 0.36);
-                const r3 = proj(wx - 0.36, wy - 0.3, 0.36);
-                fillPoly([r0, r1, pk], roof, "#1e293b", 1.3);
-                fillPoly([r1, r2, pk], shadeHex(roof, 0.85), "#1e293b", 1.3);
-                fillPoly([r2, r3, pk], shadeHex(roof, 0.75), "#1e293b", 1);
-                fillPoly([r3, r0, pk], shadeHex(roof, 0.92), "#1e293b", 1);
-              }
-            }
-
-            // Glowing Night Windows
-            if (timeOfDay === "night") {
-              const winPt = proj(wx, wy + 0.29, 0.22);
-              ctx.fillStyle = "#fde047";
-              ctx.fillRect(winPt.sx - 10 * ac.zoom, winPt.sy, 7 * ac.zoom, 7 * ac.zoom);
-              ctx.fillRect(winPt.sx + 3 * ac.zoom, winPt.sy, 7 * ac.zoom, 7 * ac.zoom);
-            }
-
-            const topH = r.house_style === "tower" ? 1.0 : r.house_style === "palace" ? 0.85 : 0.68;
-            const lblPt = proj(wx, wy, topH);
-            const crown = r.tier === "vip" ? "👑 " : "";
-            drawNameplate(
-              lblPt.sx,
-              lblPt.sy,
-              `${crown}#${r.resident_number} ${r.display_name} ${plat.icon}`,
-              null,
-              isSel,
-              "#ffffff",
-            );
-
-            newHitTargets.push({
-              kind: "resident",
-              id: r.id,
-              cx: p.sx,
-              cy: p.sy - 18 * ac.zoom,
-              r: 38 * ac.zoom,
-              wx,
-              wy,
-            });
-          },
-        });
-      });
-
-      // Painter's Algorithm Depth Sort
-      objs.sort((a, b) => a.depth - b.depth);
-      for (const obj of objs) obj.draw();
-
-      hitTargetsRef.current = newHitTargets;
-      ctx.restore();
-      rafId = requestAnimationFrame(renderFrame);
-    };
-
-    rafId = requestAnimationFrame(renderFrame);
-    return () => cancelAnimationFrame(rafId);
-  }, [
-    residents,
-    landmarks,
-    settings,
-    timeOfDay,
-    selectedResidentId,
-    selectedLandmarkId,
-  ]);
-
-  const handleTap = (clientX: number, clientY: number) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const rect = canvas.getBoundingClientRect();
-    const x = clientX - rect.left;
-    const y = clientY - rect.top;
-
-    // Check closest hit target within radius (reverse order = front-most first)
-    const targets = hitTargetsRef.current;
-    for (let i = targets.length - 1; i >= 0; i--) {
-      const t = targets[i];
-      if (Math.hypot(x - t.cx, y - t.cy) <= t.r) {
-        if (t.kind === "landmark") {
-          const found = landmarks.find((l) => l.id === t.id);
-          if (found) onSelectLandmark(found, t.wx, t.wy);
-          return;
-        }
-        const found = residents.find((r) => r.id === t.id);
-        if (found) onSelectResident(found, t.wx, t.wy);
-        return;
-      }
-    }
-  };
-
-  return (
-    <canvas
-      ref={canvasRef}
-      className="h-full w-full touch-none cursor-grab active:cursor-grabbing"
-      onPointerDown={(e) => {
-        (e.currentTarget as HTMLCanvasElement).setPointerCapture(e.pointerId);
-        pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
-        if (pointersRef.current.size === 1) {
-          dragRef.current = {
-            startX: e.clientX,
-            startY: e.clientY,
-            origX: camOffset.x,
-            origY: camOffset.y,
-            moved: false,
-          };
-        } else if (pointersRef.current.size === 2) {
-          const pts = Array.from(pointersRef.current.values());
-          pinchRef.current = {
-            dist: Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y),
-            zoom: camZoom,
-          };
-          dragRef.current = null;
-        }
-      }}
-      onPointerMove={(e) => {
-        if (!pointersRef.current.has(e.pointerId)) return;
-        pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
-        if (pointersRef.current.size === 2 && pinchRef.current) {
-          const pts = Array.from(pointersRef.current.values());
-          const dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
-          const ratio = dist / Math.max(1, pinchRef.current.dist);
-          setCamZoom(Math.min(1.9, Math.max(0.42, Number((pinchRef.current.zoom * ratio).toFixed(2)))));
-        } else if (pointersRef.current.size === 1 && dragRef.current) {
-          const dx = e.clientX - dragRef.current.startX;
-          const dy = e.clientY - dragRef.current.startY;
-          if (Math.hypot(dx, dy) > 6) dragRef.current.moved = true;
-          setCamOffset({
-            x: dragRef.current.origX + dx,
-            y: dragRef.current.origY + dy,
-          });
-        }
-      }}
-      onPointerUp={(e) => {
-        const wasTap = dragRef.current && !dragRef.current.moved && pointersRef.current.size === 1;
-        pointersRef.current.delete(e.pointerId);
-        if (pointersRef.current.size < 2) pinchRef.current = null;
-        if (pointersRef.current.size === 0) dragRef.current = null;
-        if (wasTap) handleTap(e.clientX, e.clientY);
-      }}
-      onPointerCancel={(e) => {
-        pointersRef.current.delete(e.pointerId);
-        pinchRef.current = null;
-        dragRef.current = null;
-      }}
-      onWheel={(e) => {
-        setCamZoom((z) => Math.min(1.9, Math.max(0.42, Number((z - e.deltaY * 0.0008).toFixed(2)))));
-      }}
-    />
-  );
-}
-
 export function CityPage() {
   const {
     residents,
@@ -2396,7 +1684,7 @@ export function CityPage() {
     syncCityToCloud,
   } = useRahatCityState();
 
-  const [timeOfDay, setTimeOfDay] = useState<TimeOfDayMode>("day");
+  const [viewMode, setViewMode] = useState<"3D" | "2.5D">("3D");
   const [searchQuery, setSearchQuery] = useState("");
   const [notFoundAlert, setNotFoundAlert] = useState(false);
   const [selectedResident, setSelectedResident] = useState<Resident | null>(null);
@@ -2404,14 +1692,36 @@ export function CityPage() {
   const [showAdmin, setShowAdmin] = useState(false);
   const [adminUnlocked, setAdminUnlocked] = useState(false);
   const [pinInput, setPinInput] = useState("");
+  const [myUsername, setMyUsername] = useState<string>(() => {
+    if (typeof window === "undefined") return "";
+    try {
+      return window.localStorage.getItem("rp_city_my_username") || "";
+    } catch {
+      return "";
+    }
+  });
+  const setAsMyHouse = useCallback((uname: string) => {
+    const clean = uname.replace(/^@/, "").trim().toLowerCase();
+    setMyUsername(clean);
+    if (typeof window !== "undefined") {
+      try {
+        window.localStorage.setItem("rp_city_my_username", clean);
+      } catch {}
+    }
+  }, []);
 
-  // 3D Camera Pan, Zoom, Yaw Rotation & Pitch Tilt
-  const [camOffset, setCamOffset] = useState<{ x: number; y: number }>({ x: 0, y: -10 });
+  // Smooth Camera Pan, Zoom, 3D Tilt & Rotation State
+  const [camOffset, setCamOffset] = useState<{ x: number; y: number }>({ x: 0, y: -20 });
   const [camZoom, setCamZoom] = useState<number>(() =>
-    typeof window !== "undefined" && window.innerWidth < 640 ? 0.62 : 0.92,
+    typeof window !== "undefined" && window.innerWidth < 640 ? 0.64 : 0.92,
   );
-  const [camYaw, setCamYaw] = useState<number>(-0.24);
-  const [camPitch, setCamPitch] = useState<number>(0.58);
+  const [camRotateZ, setCamRotateZ] = useState<number>(-10);
+  const [isDragging, setIsDragging] = useState(false);
+
+  const pointersRef = useRef<Map<number, { x: number; y: number }>>(new Map());
+  const pinchStartDistRef = useRef<number | null>(null);
+  const pinchStartZoomRef = useRef<number>(0.8);
+  const dragStartRef = useRef<{ x: number; y: number; origX: number; origY: number } | null>(null);
 
   useEffect(() => {
     void adminWhoami()
@@ -2426,19 +1736,37 @@ export function CityPage() {
     [residents],
   );
 
+  const getResidentWorldPos = useCallback((index: number) => {
+    const row = Math.floor(index / 4);
+    const col = index % 4;
+    const xMap = [-305, -120, 120, 305];
+    const wx = xMap[col] ?? 120;
+    const wy = 120 + row * 190;
+    return { wx, wy, row, col };
+  }, []);
+
+  const getLandmarkWorldPos = useCallback((l: Landmark, idx: number) => {
+    const xPositions = [0, -255, 255];
+    const wx =
+      l.grid_x === 0
+        ? 0
+        : l.grid_x < 0
+          ? -255
+          : l.grid_x > 0
+            ? 255
+            : (xPositions[idx % 3] ?? 0);
+    const wy = -135;
+    return { wx, wy };
+  }, []);
+
   const focusWorldPos = useCallback(
     (wx: number, wy: number) => {
-      const scale = 115 * camZoom;
-      const cosA = Math.cos(camYaw);
-      const sinA = Math.sin(camYaw);
-      const rx = wx * cosA - wy * sinA;
-      const ry = wx * sinA + wy * cosA;
       setCamOffset({
-        x: -rx * scale,
-        y: -ry * scale * camPitch,
+        x: -wx * camZoom,
+        y: -wy * camZoom,
       });
     },
-    [camZoom, camYaw, camPitch],
+    [camZoom],
   );
 
   const panBy = useCallback((dx: number, dy: number) => {
@@ -2457,18 +1785,26 @@ export function CityPage() {
     );
     if (idx !== -1) {
       const found = visibleResidents[idx];
-      const row = Math.floor(idx / 4);
-      const col = idx % 4;
-      const xMap = [-2.4, -1.0, 1.0, 2.4];
+      const pos = getResidentWorldPos(idx);
       setSelectedLandmark(null);
       setSelectedResident(found);
       setNotFoundAlert(false);
-      focusWorldPos(xMap[col] ?? 1.0, 1.1 + row * 1.45);
+      focusWorldPos(pos.wx, pos.wy);
     } else {
       setSelectedResident(null);
       setNotFoundAlert(true);
     }
   };
+
+  const totalRows = Math.max(3, Math.ceil(visibleResidents.length / 4));
+  const mapTheme = settings.map_theme ?? "rahat_light";
+
+  const skyBgStyle =
+    mapTheme === "night_gold"
+      ? "linear-gradient(180deg, #020617 0%, #0f172a 45%, #1e293b 100%)"
+      : mapTheme === "desert_sand"
+        ? "linear-gradient(180deg, #bae6fd 0%, #fef3c7 40%, #fde68a 100%)"
+        : "linear-gradient(180deg, #e0f2fe 0%, #fffdf7 45%, #fef9c3 100%)";
 
   if (showAdmin) {
     const requiredPin = "2026";
@@ -2542,6 +1878,21 @@ export function CityPage() {
       dir="rtl"
       className="fixed inset-0 z-50 flex h-[100dvh] w-[100dvw] flex-col overflow-hidden bg-[#fffdf7] text-[#263238] select-none"
     >
+      <style>{`
+        @keyframes rpCarDriveX {
+          0% { transform: translateX(-460px); }
+          100% { transform: translateX(460px); }
+        }
+        @keyframes rpCarDriveXRev {
+          0% { transform: translateX(460px) scaleX(-1); }
+          100% { transform: translateX(-460px) scaleX(-1); }
+        }
+        @keyframes rpCarDriveY {
+          0% { transform: translateY(-240px); }
+          100% { transform: translateY(580px); }
+        }
+      `}</style>
+
       {/* Top Header Bar */}
       <header className="z-30 flex flex-wrap items-center justify-between gap-2 border-b-2 border-[#f2c94c] bg-white/95 px-3 py-2 shadow-xs backdrop-blur-md sm:px-5">
         <div className="flex items-center gap-2">
@@ -2562,11 +1913,11 @@ export function CityPage() {
               <h1 className="text-xs font-black text-[#263238] sm:text-sm">
                 مدينة رهط بوست 3D{" "}
                 <span className="rounded-md bg-[#f2c94c] px-1.5 py-0.5 text-[9px] font-black text-[#263238]">
-                  3D واقعي
+                  واقعي
                 </span>
               </h1>
               <p className="text-[10px] font-extrabold text-[#b45309]">
-                {visibleResidents.length} بيت · اسحب ودوّر الخريطة بحرية
+                {visibleResidents.length} بيت · اسحب بإصبعك للتجول
               </p>
             </div>
           </div>
@@ -2592,16 +1943,17 @@ export function CityPage() {
         </form>
 
         <div className="flex items-center gap-1.5">
-          {/* Day / Sunset / Night Lighting Toggle */}
           <button
             type="button"
-            onClick={() =>
-              setTimeOfDay((m) => (m === "day" ? "sunset" : m === "sunset" ? "night" : "day"))
-            }
+            onClick={() => {
+              const next = viewMode === "3D" ? "2.5D" : "3D";
+              setViewMode(next);
+              if (next === "2.5D") setCamRotateZ(0);
+              else setCamRotateZ(-10);
+            }}
             className="rounded-xl border border-[#263238] bg-[#fef9c3] px-2.5 py-1.5 text-[11px] font-black text-[#263238]"
-            title="تبديل إضاءة المدينة (نهار / غروب / ليل)"
           >
-            {timeOfDay === "day" ? "☀️ نهار" : timeOfDay === "sunset" ? "🌅 غروب" : "🌙 ليل"}
+            {viewMode === "2.5D" ? "🎲 3D واقعي" : "🗺️ 2.5D"}
           </button>
           <button
             type="button"
@@ -2614,35 +1966,33 @@ export function CityPage() {
         </div>
       </header>
 
-      {/* Quick-Jump Places Bar */}
+      {/* Quick-Jump Places Bar so users can fly directly to any landmark or house! */}
       <div className="z-20 flex items-center gap-1.5 overflow-x-auto border-b border-[#eab308]/40 bg-gradient-to-l from-[#fef9c3] via-white to-[#fef9c3] px-3 py-1.5 text-[11px] font-black text-[#263238] no-scrollbar">
         <span className="shrink-0 text-[#b45309]">📍 انتقل إلى:</span>
         {landmarks
           .filter((l) => l.is_active)
-          .map((l, idx) => {
-            const wx = l.grid_x === 0 ? 0 : l.grid_x < 0 ? -1.95 : l.grid_x > 0 ? 1.95 : (idx - 1) * 1.95;
-            return (
-              <button
-                key={`jump-l-${l.id}`}
-                type="button"
-                onClick={() => {
-                  setSelectedResident(null);
-                  setSelectedLandmark(l);
-                  focusWorldPos(wx, -1.1);
-                }}
-                className="shrink-0 rounded-full border border-[#eab308] bg-white px-2.5 py-0.5 text-[11px] font-extrabold hover:bg-[#f2c94c] transition"
-              >
-                {l.landmark_type === "mosque" ? "🕌" : l.landmark_type === "heritage_council" ? "⛺" : "🏪"}{" "}
-                {l.title.split("(")[0].trim()}
-              </button>
-            );
-          })}
+          .map((l, idx) => (
+            <button
+              key={`jump-l-${l.id}`}
+              type="button"
+              onClick={() => {
+                const pos = getLandmarkWorldPos(l, idx);
+                setSelectedResident(null);
+                setSelectedLandmark(l);
+                focusWorldPos(pos.wx, pos.wy);
+              }}
+              className="shrink-0 rounded-full border border-[#eab308] bg-white px-2.5 py-0.5 text-[11px] font-extrabold hover:bg-[#f2c94c] transition"
+            >
+              {l.landmark_type === "mosque" ? "🕌" : l.landmark_type === "heritage_council" ? "⛺" : "🏪"}{" "}
+              {l.title.split("(")[0].trim()}
+            </button>
+          ))}
         <button
           type="button"
           onClick={() => {
             setSelectedLandmark(null);
             setSelectedResident(null);
-            focusWorldPos(0, 1.3);
+            focusWorldPos(0, 140);
           }}
           className="shrink-0 rounded-full border border-[#263238] bg-[#f2c94c] px-2.5 py-0.5 text-[11px] font-black"
         >
@@ -2655,37 +2005,395 @@ export function CityPage() {
         ) : null}
       </div>
 
-      {/* Main Realistic 3D Isometric Canvas Viewport */}
-      <main className="relative flex-1 overflow-hidden">
-        <RealisticCity3DCanvas
-          residents={visibleResidents}
-          landmarks={landmarks}
-          settings={settings}
-          camOffset={camOffset}
-          setCamOffset={setCamOffset}
-          camZoom={camZoom}
-          setCamZoom={setCamZoom}
-          camYaw={camYaw}
-          camPitch={camPitch}
-          timeOfDay={timeOfDay}
-          selectedResidentId={selectedResident?.id ?? null}
-          selectedLandmarkId={selectedLandmark?.id ?? null}
-          onSelectResident={(r, wx, wy) => {
-            setSelectedLandmark(null);
-            setSelectedResident(r);
-            focusWorldPos(wx, wy);
-          }}
-          onSelectLandmark={(l, wx, wy) => {
-            setSelectedResident(null);
-            setSelectedLandmark(l);
-            focusWorldPos(wx, wy);
-          }}
-        />
+      {/* Interactive 3D / 2.5D Realistic Diorama Map (Full Touch-Pan + Pinch-Zoom + Orbit) */}
+      <main
+        className="relative flex-1 touch-none overflow-hidden cursor-grab active:cursor-grabbing"
+        style={{ background: skyBgStyle }}
+        onPointerDown={(e) => {
+          if ((e.target as HTMLElement).closest("[data-city-ui]")) return;
+          (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+          pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+          if (pointersRef.current.size === 1) {
+            setIsDragging(true);
+            dragStartRef.current = {
+              x: e.clientX,
+              y: e.clientY,
+              origX: camOffset.x,
+              origY: camOffset.y,
+            };
+          } else if (pointersRef.current.size === 2) {
+            setIsDragging(true);
+            const pts = Array.from(pointersRef.current.values());
+            pinchStartDistRef.current = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+            pinchStartZoomRef.current = camZoom;
+          }
+        }}
+        onPointerMove={(e) => {
+          if (!pointersRef.current.has(e.pointerId)) return;
+          pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+          if (pointersRef.current.size === 2 && pinchStartDistRef.current) {
+            const pts = Array.from(pointersRef.current.values());
+            const dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+            const ratio = dist / pinchStartDistRef.current;
+            setCamZoom(
+              Math.min(1.75, Math.max(0.4, Number((pinchStartZoomRef.current * ratio).toFixed(2)))),
+            );
+          } else if (pointersRef.current.size === 1 && dragStartRef.current) {
+            const dx = e.clientX - dragStartRef.current.x;
+            const dy = e.clientY - dragStartRef.current.y;
+            setCamOffset({
+              x: dragStartRef.current.origX + dx,
+              y: dragStartRef.current.origY + dy,
+            });
+          }
+        }}
+        onPointerUp={(e) => {
+          pointersRef.current.delete(e.pointerId);
+          if (pointersRef.current.size < 2) pinchStartDistRef.current = null;
+          if (pointersRef.current.size === 0) {
+            dragStartRef.current = null;
+            setIsDragging(false);
+          }
+        }}
+        onPointerCancel={(e) => {
+          pointersRef.current.delete(e.pointerId);
+          pinchStartDistRef.current = null;
+          dragStartRef.current = null;
+          setIsDragging(false);
+        }}
+        onWheel={(e) => {
+          setCamZoom((z) =>
+            Math.min(1.75, Math.max(0.4, Number((z - e.deltaY * 0.0008).toFixed(2)))),
+          );
+        }}
+      >
+        {/* Subtle Realistic Sun & Clouds in Sky Horizon */}
+        <div className="pointer-events-none absolute top-4 left-8 size-16 rounded-full bg-gradient-to-br from-[#fde047] to-[#f59e0b] opacity-80 blur-[1px] shadow-[0_0_45px_#facc15]" />
+        <div className="pointer-events-none absolute top-7 right-12 h-7 w-28 rounded-full bg-white/80 blur-[2px]" />
 
-        {/* Left Side: Easy Directional D-Pad */}
+        {/* World Origin Container with Realistic 3D Diorama Tilt & Smooth Transitions */}
+        <div
+          className={`pointer-events-none absolute left-1/2 top-1/2 ${
+            isDragging ? "" : "transition-transform duration-300 ease-out"
+          }`}
+          style={{
+            transform: `translate(${camOffset.x}px, ${camOffset.y}px) scale(${camZoom}) ${
+              viewMode === "3D"
+                ? `perspective(1250px) rotateX(32deg) rotateZ(${camRotateZ}deg)`
+                : ""
+            }`,
+            transformOrigin: "center center",
+            transformStyle: "preserve-3d",
+          }}
+        >
+          {/* ==================== 1. REALISTIC 3D TERRAIN SLAB & SIDEWALKS ==================== */}
+          <div
+            className="absolute -left-[540px] -top-[285px] w-[1080px] rounded-[48px] border-4 border-[#eab308] bg-gradient-to-b from-[#f8fafc] via-[#f1f5f9] to-[#e2e8f0]"
+            style={{
+              height: `${Math.max(820, 350 + totalRows * 195)}px`,
+              boxShadow:
+                "0 22px 0 #cbd5e1, 0 28px 0 #94a3b8, 0 42px 60px rgba(15,23,42,0.35)",
+            }}
+          />
+
+          {/* Green Park Patches & Trees Around Central Plaza */}
+          {[
+            { left: -475, top: -235 },
+            { left: 375, top: -235 },
+            { left: -475, top: 80 },
+            { left: 410, top: 80 },
+            { left: -475, top: 270 },
+            { left: 410, top: 270 },
+          ].map((tree, idx) => (
+            <div
+              key={`tree-${idx}`}
+              style={{ left: `${tree.left}px`, top: `${tree.top}px` }}
+              className="absolute z-10 flex flex-col items-center"
+            >
+              <span className="text-3xl drop-shadow-[0_6px_4px_rgba(15,23,42,0.28)]">
+                {idx % 2 === 0 ? "🌴" : "🌳"}
+              </span>
+            </div>
+          ))}
+
+          {/* Main North-South Boulevard: شارع صلاح الدين with Sidewalk Curbs */}
+          <div
+            className="absolute -left-[46px] -top-[265px] w-[92px] rounded-2xl bg-[#cbd5e1] p-[8px] shadow-inner"
+            style={{ height: `${Math.max(770, 320 + totalRows * 195)}px` }}
+          >
+            <div className="relative h-full w-full overflow-hidden rounded-xl bg-[#1e293b] border-x-4 border-[#f2c94c]">
+              <div
+                className="mx-auto h-full w-1.5"
+                style={{
+                  backgroundImage:
+                    "repeating-linear-gradient(to bottom, #f2c94c 0px, #f2c94c 20px, transparent 20px, transparent 36px)",
+                }}
+              />
+              {/* Animated Car driving South along شارع صلاح الدين */}
+              <div
+                className="absolute left-2 text-lg drop-shadow"
+                style={{ animation: "rpCarDriveY 9s linear infinite" }}
+              >
+                🚕
+              </div>
+            </div>
+          </div>
+
+          {/* Main East-West Boulevard: شارع السلام الرئيسي with Sidewalk Curbs & Animated Cars */}
+          <div className="absolute -left-[510px] -top-[30px] h-[72px] w-[1020px] rounded-2xl bg-[#cbd5e1] p-[8px] shadow-inner">
+            <div className="relative flex h-full w-full items-center overflow-hidden rounded-xl bg-[#1e293b] border-y-4 border-[#f2c94c]">
+              <div
+                className="h-1.5 w-full"
+                style={{
+                  backgroundImage:
+                    "repeating-linear-gradient(to right, #f2c94c 0px, #f2c94c 22px, transparent 22px, transparent 40px)",
+                }}
+              />
+              <div
+                className="absolute top-1 text-lg drop-shadow"
+                style={{ animation: "rpCarDriveX 11s linear infinite" }}
+              >
+                🚗
+              </div>
+              <div
+                className="absolute bottom-1 text-lg drop-shadow"
+                style={{ animation: "rpCarDriveXRev 14s linear infinite" }}
+              >
+                🚌
+              </div>
+            </div>
+          </div>
+
+          {/* Central 3D Roundabout (دوار التقوى) */}
+          <div className="absolute -left-[62px] -top-[56px] size-[124px] rounded-full border-4 border-[#f2c94c] bg-[#1e293b] shadow-xl flex items-center justify-center">
+            <div className="size-[68px] rounded-full border-4 border-white bg-gradient-to-b from-emerald-500 to-emerald-700 flex flex-col items-center justify-center text-white shadow-[0_6px_12px_rgba(0,0,0,0.3)]">
+              <span className="text-lg">🌴</span>
+              <span className="text-[9px] font-black">دوار التقوى</span>
+            </div>
+          </div>
+
+          {/* Zebra Crosswalks */}
+          <div
+            className="absolute -left-[28px] top-[70px] h-4 w-[56px]"
+            style={{
+              backgroundImage:
+                "repeating-linear-gradient(to right, #ffffff 0px, #ffffff 6px, transparent 6px, transparent 11px)",
+            }}
+          />
+
+          {/* Horizontal Residential Streets */}
+          {Array.from({ length: totalRows }).map((_, rIdx) => {
+            const streetY = 195 + rIdx * 190;
+            const streetNames = [
+              "شارع عمر المختار",
+              "شارع النقب",
+              "شارع السوق البلدي",
+              "شارع الأمل",
+              "شارع الياسمين",
+            ];
+            const sName = streetNames[rIdx % streetNames.length];
+            return (
+              <React.Fragment key={`hstreet-${rIdx}`}>
+                <div
+                  className="absolute -left-[510px] h-[52px] w-[1020px] rounded-xl bg-[#cbd5e1] p-[6px]"
+                  style={{ top: `${streetY}px` }}
+                >
+                  <div className="relative flex h-full w-full items-center overflow-hidden rounded-lg bg-[#1e293b] border-y-2 border-[#f2c94c]">
+                    <div
+                      className="h-1 w-full"
+                      style={{
+                        backgroundImage:
+                          "repeating-linear-gradient(to right, #f2c94c 0px, #f2c94c 16px, transparent 16px, transparent 32px)",
+                      }}
+                    />
+                    {rIdx === 0 ? (
+                      <div
+                        className="absolute top-0.5 text-base"
+                        style={{ animation: "rpCarDriveX 13s linear infinite" }}
+                      >
+                        🚙
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+
+                {settings.show_street_signs !== false ? (
+                  <>
+                    <div
+                      style={{ top: `${streetY + 12}px`, left: "-465px" }}
+                      className="absolute z-10 flex items-center gap-1 rounded-lg border-2 border-[#f2c94c] bg-white px-2.5 py-0.5 text-[10px] font-black text-[#263238] shadow-md whitespace-nowrap"
+                    >
+                      <span>🪧</span>
+                      <span>{sName}</span>
+                    </div>
+                    <div
+                      style={{ top: `${streetY + 12}px`, left: "330px" }}
+                      className="absolute z-10 flex items-center gap-1 rounded-lg border-2 border-[#f2c94c] bg-white px-2.5 py-0.5 text-[10px] font-black text-[#263238] shadow-md whitespace-nowrap"
+                    >
+                      <span>🪧</span>
+                      <span>حي {rIdx + 1} · رهط</span>
+                    </div>
+                  </>
+                ) : null}
+
+                {settings.show_traffic_lights !== false && rIdx < 3 ? (
+                  <div
+                    style={{ top: `${streetY - 40}px`, left: rIdx % 2 === 0 ? "48px" : "-76px" }}
+                    className="absolute z-20"
+                  >
+                    <TrafficLightWidget />
+                  </div>
+                ) : null}
+              </React.Fragment>
+            );
+          })}
+
+          {settings.show_street_signs !== false ? (
+            <>
+              <div
+                style={{ top: "-10px", left: "-470px" }}
+                className="absolute z-10 flex items-center gap-1 rounded-xl border-2 border-[#263238] bg-[#f2c94c] px-3 py-1 text-[11px] font-black text-[#263238] shadow-md whitespace-nowrap"
+              >
+                🪧 شارع السلام الرئيسي
+              </div>
+              <div
+                style={{ top: "-10px", left: "305px" }}
+                className="absolute z-10 flex items-center gap-1 rounded-xl border-2 border-[#263238] bg-[#f2c94c] px-3 py-1 text-[11px] font-black text-[#263238] shadow-md whitespace-nowrap"
+              >
+                🪧 شارع صلاح الدين
+              </div>
+            </>
+          ) : null}
+
+          {settings.show_traffic_lights !== false ? (
+            <>
+              <div style={{ top: "-82px", left: "66px" }} className="absolute z-20">
+                <TrafficLightWidget label="إشارة المركز" />
+              </div>
+              <div style={{ top: "36px", left: "-96px" }} className="absolute z-20">
+                <TrafficLightWidget />
+              </div>
+            </>
+          ) : null}
+
+          {/* ==================== 2. REALISTIC 3D CENTRAL LANDMARKS ==================== */}
+          {landmarks
+            .filter((l) => l.is_active)
+            .map((l, idx) => {
+              const { wx, wy } = getLandmarkWorldPos(l, idx);
+              const isSel = selectedLandmark?.id === l.id;
+              return (
+                <div
+                  key={`landmark-${l.id}`}
+                  data-city-ui
+                  onClick={() => {
+                    setSelectedResident(null);
+                    setSelectedLandmark(l);
+                    focusWorldPos(wx, wy);
+                  }}
+                  style={{
+                    position: "absolute",
+                    left: `${wx}px`,
+                    top: `${wy}px`,
+                    transform: "translate(-50%, -50%)",
+                    zIndex: 25,
+                  }}
+                  className="pointer-events-auto flex w-[205px] cursor-pointer flex-col items-center group"
+                >
+                  <Landmark3D type={l.landmark_type} />
+                  <div
+                    className={`mt-1 flex w-full flex-col items-center rounded-2xl border-2 px-3 py-1.5 text-center shadow-md transition ${
+                      isSel
+                        ? "border-[#263238] bg-[#f2c94c] text-[#263238]"
+                        : "border-[#f2c94c] bg-white text-[#263238] group-hover:bg-[#fef9c3]"
+                    }`}
+                  >
+                    <span className="text-[10px] font-black text-[#b45309]">{l.badge_text}</span>
+                    <span className="truncate w-full text-xs font-black text-[#263238]">
+                      {l.title}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+
+          {/* ==================== 3. REALISTIC 3D RESIDENTIAL HOUSES ==================== */}
+          {visibleResidents.map((r, idx) => {
+            const { wx, wy } = getResidentWorldPos(idx);
+            const isSel = selectedResident?.id === r.id;
+            const plat = PLATFORM_BADGE[r.social_platform] ?? PLATFORM_BADGE.app;
+
+            return (
+              <div
+                key={`res-${r.id}`}
+                data-city-ui
+                onClick={() => {
+                  setSelectedLandmark(null);
+                  setSelectedResident(r);
+                  focusWorldPos(wx, wy);
+                }}
+                style={{
+                  position: "absolute",
+                  left: `${wx}px`,
+                  top: `${wy}px`,
+                  transform: "translate(-50%, -50%)",
+                  zIndex: 20 + Math.floor(idx / 4),
+                }}
+                className="pointer-events-auto flex w-[168px] cursor-pointer flex-col items-center group"
+              >
+                <ArchitecturalHouse3D
+                  styleId={r.house_style}
+                  colorId={r.house_color ?? settings.default_house_color ?? "yellow"}
+                  tier={r.tier}
+                  is3D={viewMode === "3D"}
+                  size={
+                    r.plot_size === "landmark" ||
+                    r.house_style === "burj_khalifa" ||
+                    r.house_style === "eiffel_tower" ||
+                    r.house_style === "skyscraper"
+                      ? 122
+                      : r.plot_size === "double"
+                        ? 106
+                        : 88
+                  }
+                />
+
+                {/* Founders, Admins, VIPs, Selected House, and User's Own House show sleek compact nameplates; other citizens show name professionally on tap */}
+                {r.tier === "founder" ||
+                r.tier === "admin" ||
+                r.tier === "vip" ||
+                isSel ||
+                (myUsername && r.username.toLowerCase() === myUsername) ? (
+                  <div
+                    className={`mt-0.5 inline-flex max-w-[152px] items-center justify-center gap-1 rounded-full border px-2 py-0.5 text-center shadow-xs transition group-hover:scale-105 ${
+                      isSel
+                        ? "border-[#263238] bg-[#f2c94c] text-[#263238] ring-2 ring-[#f2c94c]/50"
+                        : "border-[#f2c94c] bg-white/95 text-[#263238]"
+                    }`}
+                  >
+                    <span className="font-mono text-[9px] font-black text-[#b45309]">
+                      #{r.resident_number}
+                    </span>
+                    <span className="truncate text-[10px] font-black text-[#263238]">
+                      {r.display_name}
+                    </span>
+                    <span className="shrink-0 text-[10px]">{plat.icon}</span>
+                  </div>
+                ) : (
+                  <div className="mt-0.5 inline-flex items-center gap-1 rounded-full border border-[#eab308]/50 bg-white/90 px-2 py-0.5 text-[9px] font-extrabold text-slate-600 shadow-2xs group-hover:border-[#263238] group-hover:bg-[#fef9c3]">
+                    <span>🏠 #{r.resident_number}</span>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Left Side: Easy Directional D-Pad so users can move smoothly in any direction! */}
         <div
           data-city-ui
           className="pointer-events-auto absolute start-3 bottom-5 z-30 grid grid-cols-3 gap-1 rounded-2xl border-2 border-[#f2c94c] bg-white/90 p-1.5 shadow-xl backdrop-blur-md"
+          title="التحرك في الخريطة"
         >
           <div />
           <button
@@ -2708,10 +2416,9 @@ export function CityPage() {
           <button
             type="button"
             onClick={() => {
-              setCamOffset({ x: 0, y: -10 });
-              setCamZoom(typeof window !== "undefined" && window.innerWidth < 640 ? 0.62 : 0.92);
-              setCamYaw(-0.24);
-              setCamPitch(0.58);
+              setCamOffset({ x: 0, y: -20 });
+              setCamZoom(typeof window !== "undefined" && window.innerWidth < 640 ? 0.64 : 0.92);
+              setCamRotateZ(viewMode === "3D" ? -10 : 0);
             }}
             className="grid size-8 place-items-center rounded-xl bg-[#f2c94c] text-xs font-black text-[#263238]"
             title="وسط المدينة"
@@ -2738,42 +2445,38 @@ export function CityPage() {
           <div />
         </div>
 
-        {/* Right Side: Zoom + 3D Orbit Rotate + Pitch Tilt */}
+        {/* Right Side: Zoom & 3D Orbit Rotation Controls */}
         <div
           data-city-ui
           className="pointer-events-auto absolute end-3 bottom-5 z-30 flex flex-col gap-2"
         >
           <button
             type="button"
-            onClick={() => setCamZoom((z) => Math.min(1.9, Number((z + 0.16).toFixed(2))))}
+            onClick={() =>
+              setCamZoom((z) => Math.min(1.75, Number((z + 0.15).toFixed(2))))
+            }
             className="grid size-10 place-items-center rounded-2xl border-2 border-[#f2c94c] bg-white text-[#263238] shadow-lg hover:bg-[#fef9c3]"
-            title="تكبير"
+            title="تكبير الخريطة"
           >
             <ZoomIn className="size-5" />
           </button>
           <button
             type="button"
-            onClick={() => setCamZoom((z) => Math.max(0.42, Number((z - 0.16).toFixed(2))))}
-            className="grid size-10 place-items-center rounded-2xl border-2 border-[#f2c94c] bg-white text-[#263238] shadow-lg hover:bg-[#fef9c3]"
-            title="تصغير"
+            onClick={() =>
+              setCamZoom((z) => Math.max(0.4, Number((z - 0.15).toFixed(2))))
+            }
+            className="grid size-10 place-items-center rounded-2xl border-2 border-[#f2c94c] bg-white text-[#263238] shadow-lg hover:bg-[#fef9c9]"
+            title="تصغير الخريطة"
           >
             <ZoomOut className="size-5" />
           </button>
           <button
             type="button"
-            onClick={() => setCamYaw((y) => y + Math.PI / 6)}
+            onClick={() => setCamRotateZ((r) => (r === -10 ? 10 : r === 10 ? 0 : -10))}
             className="grid size-10 place-items-center rounded-2xl border-2 border-[#263238] bg-[#fef9c3] text-[10px] font-black text-[#263238] shadow-lg"
-            title="تدوير الكاميرا 3D"
+            title="تغيير زاوية 3D"
           >
             🔄 3D
-          </button>
-          <button
-            type="button"
-            onClick={() => setCamPitch((p) => (p < 0.65 ? 0.78 : p > 0.7 ? 0.45 : 0.58))}
-            className="grid size-10 place-items-center rounded-2xl border-2 border-[#f2c94c] bg-white text-[10px] font-black text-[#263238] shadow-lg"
-            title="تغيير زاوية الميلان"
-          >
-            📐 ميل
           </button>
         </div>
 
@@ -2820,7 +2523,7 @@ export function CityPage() {
               </button>
             </div>
 
-            <div className="mt-3.5 flex gap-2">
+            <div className="mt-3 flex flex-wrap gap-2">
               <a
                 href={getSocialProfileUrl(
                   selectedResident.social_platform,
@@ -2829,14 +2532,24 @@ export function CityPage() {
                 )}
                 target="_blank"
                 rel="noreferrer"
-                className="flex flex-1 items-center justify-center gap-2 rounded-2xl border-2 border-[#263238] bg-[#f2c94c] py-2.5 text-xs font-black text-[#263238] shadow-xs transition hover:brightness-95"
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-2xl border-2 border-[#263238] bg-[#f2c94c] px-3 py-2 text-xs font-black text-[#263238] shadow-xs transition hover:brightness-95"
               >
                 <span>
-                  {PLATFORM_BADGE[selectedResident.social_platform]?.icon} زيارة الحساب على{" "}
-                  {PLATFORM_BADGE[selectedResident.social_platform]?.label}
+                  {PLATFORM_BADGE[selectedResident.social_platform]?.icon} زيارة الحساب
                 </span>
                 <ExternalLink className="size-3.5" />
               </a>
+              <button
+                type="button"
+                onClick={() => setAsMyHouse(selectedResident.username)}
+                className={`rounded-2xl border-2 px-3 py-2 text-xs font-black transition ${
+                  myUsername === selectedResident.username.toLowerCase()
+                    ? "border-emerald-600 bg-emerald-50 text-emerald-800"
+                    : "border-slate-200 bg-slate-50 text-[#263238] hover:border-[#f2c94c]"
+                }`}
+              >
+                {myUsername === selectedResident.username.toLowerCase() ? "✓ هذا بيتي" : "🏠 تحديد كبيتي"}
+              </button>
             </div>
           </div>
         ) : null}
