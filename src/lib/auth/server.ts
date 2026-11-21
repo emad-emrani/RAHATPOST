@@ -100,7 +100,11 @@ function secret(): string {
 }
 
 const database = databaseUrl
-  ? new Pool({ connectionString: databaseUrl, max: 3 })
+  ? new Pool({
+      connectionString: databaseUrl.replace(/([?&])sslmode=[^&]+(&?)/i, (_, p1, p2) => (p2 ? p1 : "")).replace(/[?&]$/, ""),
+      max: 3,
+      ...(!/localhost|127\.0\.0\.1/i.test(databaseUrl) ? { ssl: { rejectUnauthorized: false } } : {}),
+    })
   : { dialect: pgliteDialect(() => getPglite()), type: "postgres" as const };
 
 export const auth = betterAuth({

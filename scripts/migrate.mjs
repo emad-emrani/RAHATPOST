@@ -19,7 +19,8 @@ import pg from "pg";
 import { pendingMigrations } from "./migration-plan.mjs";
 
 // Prefer the direct (unpooled) Neon endpoint for DDL; fall back to the pooled URL.
-const databaseUrl = process.env.DATABASE_URL_UNPOOLED?.trim() || process.env.DATABASE_URL;
+const rawDbUrl = process.env.DATABASE_URL?.trim() || process.env.DATABASE_URL_UNPOOLED?.trim() || "";
+const databaseUrl = rawDbUrl.replace(/([?&])sslmode=[^&]+(&?)/i, (_, p1, p2) => (p2 ? p1 : "")).replace(/[?&]$/, "");
 if (!databaseUrl) {
   console.log(
     "[migrate] DATABASE_URL not set — skipping (the PGLite fallback migrates itself).",
@@ -43,7 +44,8 @@ async function main() {
     return;
   }
 
-  const pool = new pg.Pool({ connectionString: databaseUrl, max: 1 });
+  const useSsl = !/localhost|127\.0\.0\.1/i.test(databaseUrl);
+  const pool = new pg.Pool({ connectionString: databaseUrl, max: 1, ...(useSsl ? { ssl: { rejectUnauthorized: false } } : {}) });
   const client = await pool.connect();
   try {
     await client.query(

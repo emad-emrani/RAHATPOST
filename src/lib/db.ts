@@ -93,7 +93,12 @@ function createNeonSql(): Promise<Sql> {
     types.setTypeParser(OID_INT8, Number);
     types.setTypeParser(OID_DATE, identity);
     types.setTypeParser(OID_INTERVAL, identity);
-    const pool = new Pool({ connectionString: databaseUrl });
+    const cleanUrl = (databaseUrl ?? "").replace(/([?&])sslmode=[^&]+(&?)/i, (_, p1, p2) => (p2 ? p1 : "")).replace(/[?&]$/, "");
+    const useSsl = !/localhost|127\.0\.0\.1/i.test(cleanUrl);
+    const pool = new Pool({
+      connectionString: cleanUrl,
+      ...(useSsl ? { ssl: { rejectUnauthorized: false } } : {}),
+    });
     return toSql(async <T>(text: string, params: unknown[]) => {
       const res = await pool.query(text, params);
       return res.rows as T[];

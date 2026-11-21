@@ -1181,7 +1181,7 @@ function RootComponent() {
     // Poll every 4s while visible so maintenance mode & admin changes sync immediately
     const pollTimer = window.setInterval(() => {
       if (document.visibilityState === "visible") refreshLive();
-    }, 4000);
+    }, 45000);
 
     const onCustomUpdate = (e: Event) => {
       const detail = (e as CustomEvent).detail;
