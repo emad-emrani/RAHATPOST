@@ -19,12 +19,14 @@ import {
   THEME_PRESETS,
   TILE_ITEMS,
   normalizeAdsensePub,
+  syncHomeOrderToSliderCfg,
   themeVars,
   type AdPlacement,
   type SiteSettings,
   type Toggle,
 } from "@/lib/site-settings/types";
 import { tr, trv } from "@/lib/i18n/core";
+import { broadcastSiteSettingsUpdate } from "@/lib/site-settings/context";
 
 const PARTS = {
   theme: "المظهر والألوان",
@@ -92,12 +94,17 @@ export function SiteSettingsAdmin({ only }: { only?: Part } = {}) {
 
   const save = async () => {
     setSaving(true);
-    const res = await adminSaveSiteSettings({ data: s });
+    const syncedPayload: SiteSettings = {
+      ...s,
+      quickLinks: syncHomeOrderToSliderCfg(s.quickLinks, s.home),
+    };
+    const res = await adminSaveSiteSettings({ data: syncedPayload });
     setSaving(false);
     if (!res.ok || !res.settings) return setMsg(res.message || tr("تعذّر الحفظ."));
     setS(res.settings);
     setDirty(false);
-    setMsg(tr("تم الحفظ ✓ تظهر التغييرات في الموقع خلال دقيقة تقريباً."));
+    broadcastSiteSettingsUpdate(res.settings);
+    setMsg(tr("تم الحفظ ✓ تُطبّق التغييرات فوراً على الموقع وتطبيقي أندرويد وآبل."));
     await router.invalidate();
   };
 
@@ -107,7 +114,8 @@ export function SiteSettingsAdmin({ only }: { only?: Part } = {}) {
     if (!res.ok) return setMsg(tr("تعذّر الاستعادة."));
     setS(DEFAULT_SETTINGS);
     setDirty(false);
-    setMsg(tr("تمت استعادة الإعدادات الافتراضية ✓"));
+    broadcastSiteSettingsUpdate(DEFAULT_SETTINGS);
+    setMsg(tr("تمت استعادة الإعدادات الافتراضية ✓ على الموقع والتطبيق."));
     await router.invalidate();
   };
 

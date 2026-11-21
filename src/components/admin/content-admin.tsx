@@ -16,6 +16,7 @@ import { adminListReports, adminResolveReport } from "@/lib/reports/api";
 import { TARGET_LABEL, type ReportGroup } from "@/lib/reports/types";
 import { tr, trv } from "@/lib/i18n/core";
 import { adminGetSiteSettings, adminSaveSiteSettings } from "@/lib/site-settings/api";
+import { broadcastSiteSettingsUpdate } from "@/lib/site-settings/context";
 import type { Announcement } from "@/lib/site-settings/types";
 
 const DATETIME = new Intl.DateTimeFormat("ar-u-nu-latn", {
@@ -318,7 +319,8 @@ export function AnnounceBarAdmin() {
       if (res.ok && res.settings) {
         setBase(res.settings);
         setBar(res.settings.announce);
-        setMsg(tr("تم الحفظ. الشريط يظهر تحت ترويسة الموقع."));
+        broadcastSiteSettingsUpdate(res.settings);
+        setMsg(tr("تم الحفظ ✓ يظهر الشريط فوراً في الموقع وتطبيقي أندرويد وآبل."));
       } else setMsg(res.message ?? tr("تعذّر الحفظ."));
     } catch {
       setMsg(tr("تعذّر الحفظ."));

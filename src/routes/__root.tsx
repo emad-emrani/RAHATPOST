@@ -1194,7 +1194,48 @@ function RootComponent() {
     const onFocusOrVis = () => {
       if (document.visibilityState === "visible") refreshLive();
     };
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === "rp_latest_site_settings" && e.newValue) {
+        try {
+          const parsed = JSON.parse(e.newValue);
+          if (parsed && Array.isArray(parsed.home)) applyFresh(parsed);
+        } catch {}
+      }
+    };
+    let removeCapAppListener: (() => void) | null = null;
+    try {
+      const capApp = (
+        window as unknown as {
+          Capacitor?: {
+            Plugins?: {
+              App?: {
+                addListener?: (
+                  eventName: string,
+                  cb: (state: { isActive?: boolean }) => void,
+                ) => Promise<{ remove?: () => Promise<void> }> | { remove?: () => void };
+              };
+            };
+          };
+        }
+      ).Capacitor?.Plugins?.App;
+      if (capApp?.addListener) {
+        const handleOrPromise = capApp.addListener("appStateChange", (state) => {
+          if (state?.isActive) refreshLive();
+        });
+        Promise.resolve(handleOrPromise)
+          .then((h) => {
+            if (h && typeof h.remove === "function") {
+              removeCapAppListener = () => {
+                void Promise.resolve(h.remove?.()).catch(() => {});
+              };
+            }
+          })
+          .catch(() => {});
+      }
+    } catch {}
+
     window.addEventListener("rp-site-settings-updated", onCustomUpdate);
+    window.addEventListener("storage", onStorage);
     window.addEventListener("focus", onFocusOrVis);
     window.addEventListener("resume", refreshLive);
     window.addEventListener("pageshow", refreshLive);
@@ -1202,7 +1243,9 @@ function RootComponent() {
     return () => {
       active = false;
       window.clearInterval(pollTimer);
+      removeCapAppListener?.();
       window.removeEventListener("rp-site-settings-updated", onCustomUpdate);
+      window.removeEventListener("storage", onStorage);
       window.removeEventListener("focus", onFocusOrVis);
       window.removeEventListener("resume", refreshLive);
       window.removeEventListener("pageshow", refreshLive);

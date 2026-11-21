@@ -70,7 +70,16 @@ import {
 } from "lucide-react";
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { createMiddleware } from "@tanstack/react-start";
-import { adminGetSiteSettings, adminResetSiteSettings, adminSaveSiteSettings } from "@/lib/site-settings/api";
+import { adminGetSiteSettings, adminResetSiteSettings, adminSaveSiteSettings as rawAdminSaveSiteSettings } from "@/lib/site-settings/api";
+import { broadcastSiteSettingsUpdate } from "@/lib/site-settings/context";
+
+async function adminSaveSiteSettings(args: Parameters<typeof rawAdminSaveSiteSettings>[0]) {
+  const res = await rawAdminSaveSiteSettings(args);
+  if (res?.ok && res.settings) {
+    broadcastSiteSettingsUpdate(res.settings);
+  }
+  return res;
+}
 import {
   AD_PLACEMENTS,
   BUILTIN_SLIDES,

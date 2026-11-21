@@ -845,12 +845,18 @@ function Home() {
       }
     }
 
+    const hiddenInSettingsHome = new Set<string>(
+      settings.home.filter((h) => !h.visible).map((h) => h.id),
+    );
     const rawOrder = settings.home
       .filter((h) => h.visible && !hiddenByHord.has(h.id))
       .map((h) => h.id as ExtendedHomeSectionId);
 
+    const filteredCustomOrder = customConfiguredOrder.filter(
+      (id) => !hiddenInSettingsHome.has(id),
+    );
     let working: ExtendedHomeSectionId[] =
-      customConfiguredOrder.length > 0 ? [...customConfiguredOrder] : [...rawOrder];
+      filteredCustomOrder.length > 0 ? [...filteredCustomOrder] : [...rawOrder];
 
     // Append any visible built-in sections that were not in customConfiguredOrder
     for (const bId of rawOrder) {
@@ -943,7 +949,7 @@ function Home() {
               {order
                 .filter((id) => TOP.includes(id))
                 .map((id) => (
-                  <Fragment key={id}>{trv(blocks[id])}</Fragment>
+                  <Fragment key={id}>{blocks[id]}</Fragment>
                 ))}
               {order.includes("search") ? null : blocks.search}
               <SearchResults query={query} results={results} />
@@ -951,7 +957,7 @@ function Home() {
           ) : (
             <>
               {order.map((id) => (
-                <Fragment key={id}>{trv(blocks[id])}</Fragment>
+                <Fragment key={id}>{blocks[id]}</Fragment>
               ))}
             </>
           )}
@@ -8976,12 +8982,22 @@ function InteractiveEmergencyHomeSection() {
 
 function HomeAppAndNotifySection() {
   const [dismissedInApp, setDismissedInApp] = useState(false);
+  const [isNative, setIsNative] = useState(false);
+
+  useEffect(() => {
+    try {
+      const w = window as Window & { Capacitor?: { isNativePlatform?: () => boolean } };
+      if (w.Capacitor?.isNativePlatform?.() || /RahatPostApp\//i.test(navigator.userAgent)) {
+        setIsNative(true);
+      }
+    } catch {}
+  }, []);
 
   return (
     <div className="space-y-2.5">
       <InstallBanner />
       <NotifyPrompt />
-      {!dismissedInApp ? (
+      {!dismissedInApp && !isNative ? (
         <section
           className="stamp border-2 border-primary/80 bg-gradient-to-l from-primary-soft/75 via-paper to-paper p-3.5 shadow-2xs"
           aria-label={tr("تثبيت التطبيق والإشعارات")}

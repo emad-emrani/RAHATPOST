@@ -94,7 +94,7 @@ export const builtinSources = (section: string): FeedSource[] =>
 
 /** Feeds are re-checked every 4 minutes; the last good list is always served instantly meanwhile. */
 const TTL_MS = 4 * 60_000;
-const FEED_TIMEOUT_MS = 4_500;
+const FEED_TIMEOUT_MS = 6_000;
 const DEFAULT_MAX_AGE_MS = 21 * 24 * 60 * 60_000;
 export const USER_AGENT = "Mozilla/5.0 (compatible; RahatPostBot/2.0; +https://rahatpost.com)";
 

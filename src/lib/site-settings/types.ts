@@ -141,6 +141,46 @@ export type GoogleSettings = {
   gscCode: string;
 };
 
+export type Announcement = {
+  enabled: boolean;
+  text: string;
+  link: string;
+  kind: "info" | "warning" | "urgent";
+  scope: "all" | "buses";
+  rev: string;
+};
+
+export const DEFAULT_ANNOUNCE: Announcement = {
+  enabled: false,
+  text: "",
+  link: "",
+  kind: "info",
+  scope: "all",
+  rev: "",
+};
+
+/** Keep slidercfg (/ __hord?) in sync whenever settings.home is updated from any Admin panel. */
+export function syncHomeOrderToSliderCfg(
+  quickLinks: QuickLink[] | undefined,
+  home: Toggle<HomeSectionId>[],
+): QuickLink[] {
+  const list = Array.isArray(quickLinks) ? [...quickLinks] : [];
+  const idx = list.findIndex((q) => q.id === "slidercfg");
+  if (idx === -1) return list;
+  const cur = list[idx];
+  const existingCustomTokens: string[] = [];
+  if (cur.url?.startsWith("/__hord?")) {
+    for (const token of cur.url.slice(8).split("|").filter(Boolean)) {
+      if (token.startsWith("csec~")) existingCustomTokens.push(token);
+    }
+  }
+  const builtInTokens = home.map((h) => `${h.id}:${h.visible ? "1" : "0"}`);
+  const mergedTokens = [...builtInTokens, ...existingCustomTokens];
+  const nextUrl = ("/__hord?" + mergedTokens.join("|")).slice(0, 1200);
+  list[idx] = { ...cur, url: nextUrl };
+  return list;
+}
+
 export type SiteSettings = {
   google: GoogleSettings;
   theme: { primary: string; accent: string; background: string; ink: string };
@@ -160,6 +200,7 @@ export type SiteSettings = {
   nav: Toggle<NavId>[];
   tiles: Toggle<TileId>[];
   quickLinks: QuickLink[];
+  announce: Announcement;
 };
 
 export const THEME_DEFAULT = {
@@ -218,6 +259,7 @@ export const DEFAULT_SETTINGS: SiteSettings = {
   nav: (Object.keys(NAV_ITEMS) as NavId[]).map((id) => ({ id, visible: true })),
   tiles: (Object.keys(TILE_ITEMS) as TileId[]).map((id) => ({ id, visible: true })),
   quickLinks: [],
+  announce: DEFAULT_ANNOUNCE,
 };
 
 const HEX = /^#[0-9a-f]{6}$/i;
@@ -356,6 +398,17 @@ export function sanitizeSettings(input: unknown): SiteSettings {
     nav: toggles(i.nav, Object.keys(NAV_ITEMS) as NavId[]),
     tiles: toggles(i.tiles, Object.keys(TILE_ITEMS) as TileId[]),
     quickLinks,
+    announce: {
+      enabled: i.announce?.enabled === true,
+      text: str(i.announce?.text, 240),
+      link: safeUrl(i.announce?.link),
+      kind:
+        i.announce?.kind === "warning" || i.announce?.kind === "urgent"
+          ? i.announce.kind
+          : "info",
+      scope: i.announce?.scope === "buses" ? "buses" : "all",
+      rev: str(i.announce?.rev, 32),
+    },
   };
 }
 
