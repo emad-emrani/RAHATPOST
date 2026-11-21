@@ -47,7 +47,15 @@ export const adminSaveSiteSettings = createServerFn({ method: "POST" })
         return { ok: true, settings };
       } catch (error) {
         console.error("[settings] save failed", error);
-        return { ok: false, message: "تعذّر الحفظ." };
+        const errMsg = error instanceof Error ? error.message : String(error ?? "");
+        const errCode = (error as { code?: string })?.code ?? "";
+        if (errCode === "53000" || /quota|compute time|transfer|storage limit|exceeded/i.test(errMsg)) {
+          return {
+            ok: false,
+            message: "تعذّر الحفظ: قاعدة البيانات (Neon) وصلت للحد المجاني — افتح لوحة Neon للتحقق من الحصة.",
+          };
+        }
+        return { ok: false, message: `تعذّر الحفظ في قاعدة البيانات (${errCode || errMsg.slice(0, 80) || "خطأ غير معروف"}).` };
       }
     },
   );
