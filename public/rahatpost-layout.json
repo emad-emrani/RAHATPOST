@@ -1,0 +1,329 @@
+{
+  "version": 1,
+  "status": "published",
+  "updatedAt": "2026-11-22T00:00:00.000Z",
+  "storageMode": "json-zero-db",
+  "compatibility": {
+    "preserveOriginalDesign": true,
+    "applyToWeb": false,
+    "applyToAndroid": false,
+    "applyToIos": false,
+    "cacheTtlSeconds": 60
+  },
+  "appearance": {
+    "brandPrimary": "#FACC15",
+    "brandSecondary": "#0F172A",
+    "themeMode": "auto",
+    "borderRadius": "balanced",
+    "density": "comfortable",
+    "showBreakingTicker": true,
+    "stickyHeader": true,
+    "showQuickSearch": true,
+    "showCityWeatherWidget": true,
+    "customHeaderNotice": ""
+  },
+  "sections": [
+    {
+      "id": "news",
+      "title": "الأخبار",
+      "subtitle": "أخبار رهط والنقب العاجلة والمحلية",
+      "badge": "عاجل",
+      "order": 1,
+      "visible": true,
+      "layoutStyle": "featured",
+      "itemsLimit": 12,
+      "showOnWeb": true,
+      "showOnAndroid": true,
+      "showOnIos": true
+    },
+    {
+      "id": "buses",
+      "title": "الباصات",
+      "subtitle": "مواعيد وخطوط المواصلات العامة من وإلى رهط",
+      "badge": "محدّث",
+      "order": 2,
+      "visible": true,
+      "layoutStyle": "list",
+      "itemsLimit": 10,
+      "showOnWeb": true,
+      "showOnAndroid": true,
+      "showOnIos": true
+    },
+    {
+      "id": "services",
+      "title": "الخدمات",
+      "subtitle": "الخدمات البلدية، الطوارئ، والمؤسسات المحلية",
+      "badge": "",
+      "order": 3,
+      "visible": true,
+      "layoutStyle": "grid",
+      "itemsLimit": 8,
+      "showOnWeb": true,
+      "showOnAndroid": true,
+      "showOnIos": true
+    },
+    {
+      "id": "directory",
+      "title": "الدليل",
+      "subtitle": "دليل المحلات، المصالح التجارية، والمهنيين في رهط والنقب",
+      "badge": "شامل",
+      "order": 4,
+      "visible": true,
+      "layoutStyle": "grid",
+      "itemsLimit": 12,
+      "showOnWeb": true,
+      "showOnAndroid": true,
+      "showOnIos": true
+    },
+    {
+      "id": "haraj",
+      "title": "الحراج",
+      "subtitle": "إعلانات البيع والشراء، السيارات، العقارات، والمستعمل",
+      "badge": "جديد",
+      "order": 5,
+      "visible": true,
+      "layoutStyle": "carousel",
+      "itemsLimit": 10,
+      "showOnWeb": true,
+      "showOnAndroid": true,
+      "showOnIos": true
+    },
+    {
+      "id": "menus",
+      "title": "القوائم",
+      "subtitle": "روابط التنقل السريع، الشريط العلوي، وقائمة الجوال",
+      "badge": "",
+      "order": 6,
+      "visible": true,
+      "layoutStyle": "list",
+      "itemsLimit": 8,
+      "showOnWeb": true,
+      "showOnAndroid": true,
+      "showOnIos": true
+    }
+  ],
+  "menus": [
+    {
+      "id": "m-1",
+      "label": "الرئيسية",
+      "url": "/",
+      "sectionRef": "news",
+      "location": "header",
+      "order": 1,
+      "visible": true,
+      "openInNewTab": false
+    },
+    {
+      "id": "m-2",
+      "label": "أخبار رهط والنقب",
+      "url": "/news",
+      "sectionRef": "news",
+      "location": "header",
+      "order": 2,
+      "visible": true,
+      "openInNewTab": false
+    },
+    {
+      "id": "m-3",
+      "label": "مواعيد الباصات",
+      "url": "/buses",
+      "sectionRef": "buses",
+      "location": "header",
+      "order": 3,
+      "visible": true,
+      "openInNewTab": false,
+      "badge": "مباشر"
+    },
+    {
+      "id": "m-4",
+      "label": "الخدمات",
+      "url": "/services",
+      "sectionRef": "services",
+      "location": "header",
+      "order": 4,
+      "visible": true,
+      "openInNewTab": false
+    },
+    {
+      "id": "m-5",
+      "label": "الدليل التجاري",
+      "url": "/directory",
+      "sectionRef": "directory",
+      "location": "header",
+      "order": 5,
+      "visible": true,
+      "openInNewTab": false
+    },
+    {
+      "id": "m-6",
+      "label": "الحراج",
+      "url": "/haraj",
+      "sectionRef": "haraj",
+      "location": "header",
+      "order": 6,
+      "visible": true,
+      "openInNewTab": false,
+      "badge": "جديد"
+    },
+    {
+      "id": "mb-1",
+      "label": "الأخبار",
+      "url": "/",
+      "sectionRef": "news",
+      "location": "mobile_bottom",
+      "order": 1,
+      "visible": true,
+      "openInNewTab": false
+    },
+    {
+      "id": "mb-2",
+      "label": "الباصات",
+      "url": "/buses",
+      "sectionRef": "buses",
+      "location": "mobile_bottom",
+      "order": 2,
+      "visible": true,
+      "openInNewTab": false
+    },
+    {
+      "id": "mb-3",
+      "label": "الدليل",
+      "url": "/directory",
+      "sectionRef": "directory",
+      "location": "mobile_bottom",
+      "order": 3,
+      "visible": true,
+      "openInNewTab": false
+    },
+    {
+      "id": "mb-4",
+      "label": "الحراج",
+      "url": "/haraj",
+      "sectionRef": "haraj",
+      "location": "mobile_bottom",
+      "order": 4,
+      "visible": true,
+      "openInNewTab": false
+    },
+    {
+      "id": "dr-1",
+      "label": "الخدمات البلدية والطوارئ",
+      "url": "/services",
+      "sectionRef": "services",
+      "location": "drawer",
+      "order": 1,
+      "visible": true,
+      "openInNewTab": false
+    },
+    {
+      "id": "dr-2",
+      "label": "أعلن معنا في رهط بوست",
+      "url": "/advertise",
+      "sectionRef": "custom",
+      "location": "drawer",
+      "order": 2,
+      "visible": true,
+      "openInNewTab": false
+    },
+    {
+      "id": "ft-1",
+      "label": "عن رهط بوست",
+      "url": "/about",
+      "sectionRef": "custom",
+      "location": "footer",
+      "order": 1,
+      "visible": true,
+      "openInNewTab": false
+    },
+    {
+      "id": "ft-2",
+      "label": "سياسة الخصوصية",
+      "url": "/privacy",
+      "sectionRef": "custom",
+      "location": "footer",
+      "order": 2,
+      "visible": true,
+      "openInNewTab": false
+    }
+  ],
+  "sectionItems": [
+    {
+      "id": "bus-465",
+      "sectionKey": "buses",
+      "title": "خط 465 — رهط ⇄ بئر السبع",
+      "subtitle": "يمر بالمدخل الرئيسي، السوق البلدي، ومحطة القطار",
+      "category": "خطوط خارجية",
+      "badge": "يعمل الآن",
+      "phoneOrRoute": "خط 465",
+      "priceOrTime": "كل 20 دقيقة (05:30 - 23:00)",
+      "isFeatured": true,
+      "isActive": true,
+      "sortOrder": 1
+    },
+    {
+      "id": "bus-1",
+      "sectionKey": "buses",
+      "title": "خط 1 — دائري داخل أحياء رهط",
+      "subtitle": "الحارات 1 - 15، المركز الجماهيري، العيادات",
+      "category": "خطوط داخلية",
+      "badge": "منتظم",
+      "phoneOrRoute": "خط 1",
+      "priceOrTime": "كل 15 دقيقة",
+      "isFeatured": false,
+      "isActive": true,
+      "sortOrder": 2
+    },
+    {
+      "id": "srv-1",
+      "sectionKey": "services",
+      "title": "مركز الطوارئ والبلدية 106",
+      "subtitle": "استقبال البلاغات والخدمات البلدية على مدار الساعة",
+      "category": "طوارئ وبلدية",
+      "badge": "24/7",
+      "phoneOrRoute": "106 / 08-9914800",
+      "priceOrTime": "متاح يومياً",
+      "isFeatured": true,
+      "isActive": true,
+      "sortOrder": 1
+    },
+    {
+      "id": "dir-1",
+      "sectionKey": "directory",
+      "title": "سوق رهط المركزي للمصالح التجارية",
+      "subtitle": "مطاعم، محلات إلكترونيات، وورش صيانة سيارات",
+      "category": "تجارة ومطاعم",
+      "badge": "موثّق",
+      "phoneOrRoute": "الشارع الرئيسي - رهط",
+      "priceOrTime": "08:00 - 22:00",
+      "isFeatured": true,
+      "isActive": true,
+      "sortOrder": 1
+    },
+    {
+      "id": "hrj-1",
+      "sectionKey": "haraj",
+      "title": "قسم السيارات والعقارات — حراج رهط",
+      "subtitle": "إعلانات يومية محدثة مباشرة من أهل المدينة والنقب",
+      "category": "سيارات وعقار",
+      "badge": "نشط",
+      "phoneOrRoute": "تواصل عبر واتساب",
+      "priceOrTime": "محدّث اليوم",
+      "isFeatured": true,
+      "isActive": true,
+      "sortOrder": 1
+    },
+    {
+      "id": "nws-1",
+      "sectionKey": "news",
+      "title": "تغطية مباشرة لأهم أخبار رهط وبلدات النقب",
+      "subtitle": "تحديثات فورية للمشاريع البلدية، التعليم، والفعاليات",
+      "category": "أخبار محلية",
+      "badge": "رئيسي",
+      "phoneOrRoute": "تحرير رهط بوست",
+      "priceOrTime": "تحديث تلقائي",
+      "isFeatured": true,
+      "isActive": true,
+      "sortOrder": 1
+    }
+  ]
+}
