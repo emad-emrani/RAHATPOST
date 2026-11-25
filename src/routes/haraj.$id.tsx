@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { MessageCircle } from "lucide-react";
 import { AdGallery } from "@/components/ad-gallery";
-import { BlockSellerButton, SellerCard, SpecsTable } from "@/components/haraj";
+import { SellerCard, SpecsTable } from "@/components/haraj";
 import { catName, findCat } from "@/lib/market/categories";
 import { RevealPhone } from "@/components/phone";
 import { ReportButton } from "@/components/report";
@@ -108,9 +108,8 @@ function ItemPage() {
       </article>
       <h2 className="mb-2 mt-5 font-bold">{tr("البائع")}</h2>
       <SellerCard seller={l.seller} />
-      <div className="mt-4 flex flex-col items-center">
-        <ReportButton type="ad" id={l.id} label={tr("إبلاغ عن إعلان")} />
-        {!l.sample ? <BlockSellerButton sellerId={l.seller.id} /> : null}
+      <div className="mt-4 flex justify-center">
+        <ReportButton type="ad" id={l.id} label={tr("إبلاغ عن الإعلان")} />
       </div>
     </Shell>
   );
