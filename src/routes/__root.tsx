@@ -24,6 +24,9 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useRef, type CSSProperties } from "react";
 import { AuthProvider } from "@/lib/auth/provider";
+import { getNativeShell } from "@/lib/auth/api";
+import { isDigitalStoreHref, NativeShellProvider, useNativeShell } from "@/components/native-shell";
+import { isArtFashionNav } from "@/lib/site-settings/types";
 import { PreviewHostBridge } from "@/components/preview-host-bridge";
 import { ServiceWorkerRegistration } from "@/components/install-app";
 import { SiteAnalytics } from "@/components/analytics";
@@ -120,6 +123,7 @@ function trSecLabel(raw: string): string {
 
 function GlobalCustomBottomBar() {
   const st = useSiteSettings();
+  const nativeShell = useNativeShell();
   const location = useLocation();
   const pathname = location.pathname || "/";
 
@@ -200,6 +204,10 @@ function GlobalCustomBottomBar() {
     return { bg, fg, ab, af, r, m, rawCss };
   }, [cssItem]);
 
+  const shownBtns = btns.filter(
+    (item) => !isArtFashionNav(item) && !(nativeShell && isDigitalStoreHref(item.to)),
+  );
+
   if (isSystemScreen) return null;
 
   const hideLegacyCss = `
@@ -256,7 +264,7 @@ function GlobalCustomBottomBar() {
         aria-label={tr("التنقل السفلي")}
       >
         <div className="mx-auto flex max-w-xl items-center justify-around">
-          {btns.map((item, idx) => {
+          {shownBtns.map((item, idx) => {
             const Icon = BOT_ICON_MAP[item.icon] ?? House;
             const hasQuery = item.to.includes("?q=");
             const linkTo = (hasQuery ? item.to.split("?q=")[0] || "/" : item.to) as "/";
@@ -400,12 +408,13 @@ function GlobalCustomBottomBar() {
 export const Route = createRootRoute({
   loader: async ({ location }) => {
     const want = new URLSearchParams(location.searchStr ?? "").get("lang") ?? "";
-    const [settings, i18n] = await Promise.all([
+    const [settings, i18n, nativeShell] = await Promise.all([
       getSiteSettings().catch(() => DEFAULT_SETTINGS),
       getI18n({ data: want }).catch(() => ARABIC_STATE),
+      getNativeShell().catch(() => false),
     ]);
     setI18nState(i18n);
-    return { settings, i18n };
+    return { settings, i18n, nativeShell };
   },
   staleTime: 30_000,
   shouldReload: false,
@@ -614,7 +623,7 @@ function GoogleMobileAdsBridge({
 }
 
 function RootComponent() {
-  const { settings, i18n } = Route.useLoaderData();
+  const { settings, i18n, nativeShell } = Route.useLoaderData();
   const location = useLocation();
   const pathname = location.pathname || "/";
   setI18nState(i18n);
@@ -659,6 +668,7 @@ function RootComponent() {
           <amp-auto-ads type="adsense" data-ad-client={adsensePub} />
         ) : null}
         <SiteSettingsProvider value={settings}>
+          <NativeShellProvider value={nativeShell}>
           <PreviewHostBridge />
           <ServiceWorkerRegistration />
           <GoogleMobileAdsBridge
@@ -672,6 +682,7 @@ function RootComponent() {
           </AuthProvider>
           <SiteAnalytics />
           {allowAdsOnPage ? <GoogleServices /> : null}
+          </NativeShellProvider>
         </SiteSettingsProvider>
         <Scripts />
       </body>

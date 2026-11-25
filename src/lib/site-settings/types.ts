@@ -120,6 +120,81 @@ export type Slide =
   | { type: "custom"; id: string; title: string; subtitle: string; link: string; imageKey: string };
 
 export type QuickLink = { id: string; title: string; subtitle: string; url: string; emoji: string };
+
+export type EmergencyNumber = { name: string; phone: string };
+
+/** Numbers saved in the admin as quick-link `busemergcfg`. Empty when unset. */
+export function parseEmergencyNumbers(links: QuickLink[] | undefined): EmergencyNumber[] {
+  const q = (links ?? []).find((l) => l.id === "busemergcfg");
+  if (!q) return [];
+  const rawUrl = (q.url ?? "").replace(/^\/__em\?/, "");
+  const phones = rawUrl
+    .split("|")
+    .map((s) => {
+      try {
+        return decodeURIComponent(s).trim();
+      } catch {
+        return s.trim();
+      }
+    })
+    .filter((s) => /\d/.test(s));
+  const names = (q.subtitle ?? "").split("|");
+  return phones.slice(0, 16).map((phone, i) => ({
+    phone,
+    name: names[i]?.trim() || phone,
+  }));
+}
+
+export type DirectoryHubDisplay = {
+  title: string;
+  showOnHome: boolean;
+  hiddenCategories: string[];
+};
+
+const DIRECTORY_HUB_FALLBACK: DirectoryHubDisplay = {
+  title: "دليل محلات وخدمات رهط",
+  showOnHome: true,
+  hiddenCategories: [],
+};
+
+/** Public directory title, home visibility, and hidden categories from `dirhubcfg`. */
+export function parseDirectoryHub(links: QuickLink[] | undefined): DirectoryHubDisplay {
+  const q = (links ?? []).find((l) => l.id === "dirhubcfg");
+  if (!q) return DIRECTORY_HUB_FALLBACK;
+  let showOnHome = true;
+  const hiddenCategories: string[] = [];
+  for (const part of (q.subtitle ?? "").split("|")) {
+    if (part === "home:0") showOnHome = false;
+    else if (part === "home:1") showOnHome = true;
+    else if (part.startsWith("hide:")) {
+      hiddenCategories.push(
+        ...part
+          .slice(5)
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean),
+      );
+    }
+  }
+  const title = (q.title ?? "").trim();
+  const usable = Boolean(title) && title !== "dirhubcfg" && !/^showcase$/i.test(title);
+  return {
+    title: usable ? title : DIRECTORY_HUB_FALLBACK.title,
+    showOnHome,
+    hiddenCategories,
+  };
+}
+
+/** Bottom-nav item the owner asked to drop (art & fashion). */
+export function isArtFashionNav(item: { label: string; to: string }): boolean {
+  let to = item.to;
+  try {
+    to = decodeURIComponent(item.to);
+  } catch {
+    /* keep the raw path */
+  }
+  return /فن\s*و\s*موضة/.test(`${item.label} ${to}`);
+}
 export type Toggle<T extends string> = { id: T; visible: boolean };
 
 /** A charging point the owner added. The public page also keeps the OpenStreetMap point. */

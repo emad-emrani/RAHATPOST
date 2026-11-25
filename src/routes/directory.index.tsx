@@ -11,6 +11,8 @@ import { getApprovedEntries } from "@/lib/directory/api";
 import { categoryOrder, osmEntries } from "@/lib/directory/types";
 import { breadcrumbLd, seo } from "@/lib/seo";
 import { tr, trv } from "@/lib/i18n/core";
+import { useSiteSettings } from "@/lib/site-settings/context";
+import { parseDirectoryHub } from "@/lib/site-settings/types";
 
 export const Route = createFileRoute("/directory/")({
   head: () =>
@@ -37,7 +39,11 @@ export const Route = createFileRoute("/directory/")({
 
 function DirectoryPage() {
   const approved = Route.useLoaderData();
-  const all = useMemo(() => [...approved.entries, ...osmEntries()], [approved.entries]);
+  const hub = parseDirectoryHub(useSiteSettings().quickLinks);
+  const all = useMemo(() => {
+    const hidden = new Set(hub.hiddenCategories);
+    return [...approved.entries, ...osmEntries()].filter((item) => !hidden.has(item.category));
+  }, [approved.entries, hub.hiddenCategories]);
   const cats = useMemo(
     () => [tr("الكل"), ...categoryOrder.filter((c) => all.some((e) => e.category === c))],
     [all],
@@ -62,7 +68,7 @@ function DirectoryPage() {
 
   return (
     <Shell>
-      <h1 className="mb-1 text-2xl font-bold">{tr("الدليل")}</h1>
+      <h1 className="mb-1 text-2xl font-bold">{trv(hub.title)}</h1>
       <p className="mb-3 font-semibold text-muted">{trv(all.length)} {tr("مكاناً ونشاطاً في رهط.")}</p>
       <ul className="mb-4 flex flex-col gap-3" aria-label={tr("أدلة الخدمات")}>
         {guides.map((g) => (
