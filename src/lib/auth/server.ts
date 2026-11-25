@@ -82,12 +82,8 @@ const previewOrigins =
     ? [env("VERCEL_URL"), env("VERCEL_BRANCH_URL")].filter(Boolean).map((h) => `https://${h}`)
     : [];
 const trustedOrigins = onVercel
-  ? [explicitBaseURL ?? SITE_URL, "https://www.rahatpost.com", ...previewOrigins, ...(apple ? [APPLE_ORIGIN] : [])]
-  : [
-      ...(explicitBaseURL ? [explicitBaseURL] : []),
-      ...LOCAL_ORIGINS,
-      ...(apple ? [APPLE_ORIGIN] : []),
-    ];
+  ? [explicitBaseURL ?? SITE_URL, "https://www.rahatpost.com", APPLE_ORIGIN, ...previewOrigins]
+  : [...(explicitBaseURL ? [explicitBaseURL] : []), ...LOCAL_ORIGINS, APPLE_ORIGIN];
 
 const globalRef = globalThis as typeof globalThis & { __rpLocalAuthSecret__?: string };
 function secret(): string {

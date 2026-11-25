@@ -11,6 +11,8 @@ export type AuthConfig = {
   email?: boolean;
   /** «نسيت كلمة المرور» (needs a mail sender on the server). */
   resetEmail?: boolean;
+  /** True inside the store app (RahatPostApp user agent). */
+  nativeShell?: boolean;
 };
 
 function GoogleMark() {
@@ -81,7 +83,10 @@ export function SignInButtons({
     }
   };
 
-  const none = !config.google && !config.facebook && !config.apple && !config.devLogin && !config.email;
+  const otherSocial = !config.nativeShell || Boolean(config.apple);
+  const showGoogle = Boolean(config.google) && otherSocial;
+  const showFacebook = Boolean(config.facebook) && otherSocial;
+  const none = !showGoogle && !showFacebook && !config.apple && !config.devLogin && !config.email;
   return (
     <>
       {config.apple ? (
@@ -96,7 +101,7 @@ export function SignInButtons({
           {busy === "apple" ? tr("جاري التحويل…") : tr("المتابعة باستخدام Apple")}
         </button>
       ) : null}
-      {config.google ? (
+      {showGoogle ? (
         <button
           type="button"
           className="btn btn-ghost"
@@ -107,7 +112,7 @@ export function SignInButtons({
           {busy === "google" ? tr("جاري التحويل…") : tr("المتابعة باستخدام Google")}
         </button>
       ) : null}
-      {config.facebook ? (
+      {showFacebook ? (
         <button
           type="button"
           className="btn btn-ghost"
@@ -120,7 +125,7 @@ export function SignInButtons({
       ) : null}
       {config.email ? (
         <>
-          {config.google || config.facebook || config.apple ? (
+          {showGoogle || showFacebook || config.apple ? (
             <p className="flex items-center gap-2 text-sm font-bold text-muted" aria-hidden>
               <span className="h-px flex-1 bg-line" />
               {tr("أو بالبريد الإلكتروني")}

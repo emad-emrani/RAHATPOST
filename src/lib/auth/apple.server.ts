@@ -20,12 +20,9 @@ const env = (key: string): string | undefined => {
 };
 
 export function appleConfigured(): boolean {
-  return Boolean(
-    env("APPLE_CLIENT_ID") &&
-    env("APPLE_TEAM_ID") &&
-    env("APPLE_KEY_ID") &&
-    env("APPLE_PRIVATE_KEY"),
-  );
+  if (!env("APPLE_CLIENT_ID")) return false;
+  if (env("APPLE_CLIENT_SECRET")) return true;
+  return Boolean(env("APPLE_TEAM_ID") && env("APPLE_KEY_ID") && env("APPLE_PRIVATE_KEY"));
 }
 
 const b64url = (input: Buffer | string) => Buffer.from(input).toString("base64url");
@@ -67,8 +64,11 @@ export function appleClientSecret(
  */
 export function appleProvider() {
   if (!appleConfigured()) return undefined;
+  const clientId = env("APPLE_CLIENT_ID") as string;
+  const staticSecret = env("APPLE_CLIENT_SECRET");
+  if (staticSecret) return { clientId, clientSecret: staticSecret };
   try {
-    return { clientId: env("APPLE_CLIENT_ID") as string, clientSecret: appleClientSecret() };
+    return { clientId, clientSecret: appleClientSecret() };
   } catch (error) {
     console.error("[auth] Sign in with Apple disabled: bad APPLE_* configuration", error);
     return undefined;

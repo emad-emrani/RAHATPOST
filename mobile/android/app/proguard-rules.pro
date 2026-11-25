@@ -19,3 +19,11 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+# Capacitor bridge and AdMob. minifyEnabled is off; these rules are ready if it is turned on.
+-keep class com.getcapacitor.** { *; }
+-keep class com.rahatpost.app.** { *; }
+-keep class com.google.android.gms.ads.** { *; }
+-keepclassmembers class * {
+    @android.webkit.JavascriptInterface <methods>;
+}

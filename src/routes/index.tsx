@@ -10,6 +10,7 @@ import { getGuide } from "@/data/guides";
 import { CommentCount } from "@/components/comment-count";
 import { HomeCarousel, HomeTiles, QuickLinks, type SectionSlide } from "@/components/home-parts";
 import { SectionTitle, Shell } from "@/components/shell";
+import { isDigitalStoreHref, useNativeShell } from "@/components/native-shell";
 import { AlertsBanner, DutyCard } from "@/components/duty";
 import { getBoard } from "@/lib/board/api";
 import { InstallBanner } from "@/components/install-app";
@@ -131,6 +132,7 @@ function staggerSectionItems<T extends { slug: string; publishedAt: string; read
 }
 
 function Home() {
+  const nativeShell = useNativeShell();
   const loaderData = Route.useLoaderData();
   const { approved, ads: adsData, weather, board, store, flags, matches } = loaderData;
   const [news, setNews] = useState(loaderData.news);
@@ -762,7 +764,7 @@ function Home() {
     ),
     directory: (
       <>
-        {store.products.filter((p) => p.slug !== "hub-cfg-main" && !p.slug.startsWith("offer-")).length ? (
+        {!nativeShell && store.products.filter((p) => p.slug !== "hub-cfg-main" && !p.slug.startsWith("offer-")).length ? (
           <section>
             <SectionTitle title={tr("من المتجر الرسمي")} to="/store" more={tr("كل المتجر")} />
             <ul className="scroll-row -mx-4 px-4 pb-2 sm:mx-0 sm:px-0">
@@ -3377,6 +3379,7 @@ function HomeTilesBar({
   customSections?: { id: string; rawName: string; name: string; icon: string; url?: string }[];
 }) {
   const st = useSiteSettings();
+  const nativeShell = useNativeShell();
   const topCfgItem = (st.quickLinks ?? []).find((q) => q.id === "topbarcfg");
   const liveTileCfg = (st.quickLinks ?? []).find((q) => q.id === "tilelive");
   const showLiveTile = liveTileCfg ? !liveTileCfg.subtitle?.includes("مَخفي") : true;
@@ -3408,9 +3411,10 @@ function HomeTilesBar({
       return visibleIds.size === 0 || visibleIds.has(t.to as "/news");
     }).map((t) => (t.to === "/sports-news" ? { ...t, label: liveTileLabel } : t));
   }, [topCfgItem, st.tiles, showLiveTile, liveTileLabel]);
+  const visibleTiles = nativeShell ? configuredList.filter((t) => !isDigitalStoreHref(t.to)) : configuredList;
 
   // Include all custom sections from database (e.g. "فن و موضة") and quickLinks in the Top Menu!
-  const combined = [...configuredList];
+  const combined = [...visibleTiles];
   for (const cs of customSections) {
     const cleanLabel = cs.rawName.trim();
     if (!cleanLabel) continue;
@@ -3418,6 +3422,7 @@ function HomeTilesBar({
       (q) => q.title.trim() === cleanLabel && q.subtitle?.includes("مَخفي_علوي"),
     );
     if (hiddenByAdmin) continue;
+    if (nativeShell && cs.url && isDigitalStoreHref(cs.url)) continue;
     if (!combined.some((c) => c.label.trim() === cleanLabel)) {
       combined.push({
         icon: cs.icon || (/فن|موضة|ثقافة/.test(cleanLabel) ? "sparkles" : "news"),
@@ -3473,6 +3478,7 @@ function HomeTilesBar({
 }
 
 function HomeQuickLinks() {
+  const nativeShell = useNativeShell();
   const links = (useSiteSettings().quickLinks ?? []).filter(
     (l) =>
       l.id !== "tilelive" &&
@@ -3482,7 +3488,8 @@ function HomeQuickLinks() {
       l.id !== "botbarcss" &&
       l.id !== "txsecscfg" &&
       !l.id.startsWith("sec") &&
-      l.subtitle !== " مَخفي",
+      l.subtitle !== " مَخفي" &&
+      !(nativeShell && isDigitalStoreHref(l.url)),
   );
   if (!links.length) return null;
   return (
@@ -3689,6 +3696,7 @@ const HOME_NAV_TO_BOT: Record<string, { icon: string; label: string; to: string 
 
 function CustomBottomBar() {
   const st = useSiteSettings();
+  const nativeShell = useNativeShell();
   const botItem = (st.quickLinks ?? []).find((q) => q.id === "botbarcfg");
   const cssItem = (st.quickLinks ?? []).find((q) => q.id === "botbarcss");
 
@@ -3733,6 +3741,7 @@ function CustomBottomBar() {
       btns: parsedBtns.length > 0 ? parsedBtns : DEFAULT_BOT_TILES,
     };
   }, [botItem, st.nav]);
+  const visibleBtns = nativeShell ? btns.filter((b) => !isDigitalStoreHref(b.to)) : btns;
 
   const customCfg = useMemo(() => {
     let bg = "#111827";
@@ -3805,7 +3814,7 @@ function CustomBottomBar() {
 ${userExtraCss}`}</style>
       <nav className={navWrapCls} style={customNavStyle} aria-label={tr("التنقل السفلي")}>
         <div className="mx-auto flex max-w-xl items-center justify-around">
-          {btns.map((item, idx) => {
+          {visibleBtns.map((item, idx) => {
             const Icon = ICON_MAP[item.icon] ?? House;
             const hasQuery = item.to.includes("?q=");
             const linkTo = (hasQuery ? item.to.split("?q=")[0] || "/" : item.to) as "/";

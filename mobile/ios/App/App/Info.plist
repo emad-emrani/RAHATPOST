@@ -48,6 +48,12 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<!-- Default ATS: HTTPS only. No arbitrary loads. -->
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<false/>
+	</dict>
 	<!-- No custom encryption: only HTTPS through the system (exempt). Skips the export question on every upload. -->
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>

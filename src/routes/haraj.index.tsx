@@ -13,6 +13,7 @@ import {
 import { useMemo, useState } from "react";
 import { ListingCard, useHarajName } from "@/components/haraj";
 import { Shell } from "@/components/shell";
+import { useNativeShell } from "@/components/native-shell";
 import { tr, trv } from "@/lib/i18n/core";
 import { localized } from "@/lib/i18n/localize";
 import { getHarajCategories, getListings } from "@/lib/market/api";
@@ -205,6 +206,7 @@ function HarajPage() {
             <Plus className="size-4" aria-hidden />
             {tr("أضف إعلان")}
           </Link>
+          {useNativeShell() ? null : (
           <Link
             to="/store"
             className="inline-flex items-center gap-1.5 rounded-2xl border border-line bg-surface px-3.5 py-2 text-xs font-extrabold text-ink hover:bg-primary-soft"
@@ -212,6 +214,7 @@ function HarajPage() {
             <ShoppingBag className="size-4 text-primary-ink" aria-hidden />
             {tr("المتجر الرسمي")}
           </Link>
+          )}
           <Link
             to="/my-orders"
             className="inline-flex items-center gap-1.5 rounded-2xl border border-line bg-surface px-3 py-2 text-xs font-extrabold text-ink hover:bg-primary-soft"

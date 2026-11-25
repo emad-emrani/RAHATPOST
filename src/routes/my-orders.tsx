@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Shell } from "@/components/shell";
+import { useNativeShell } from "@/components/native-shell";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { tr, trv } from "@/lib/i18n/core";
 import { confirmMyPayment, getStore, listMyOrders } from "@/lib/store/api";
@@ -142,6 +143,8 @@ export function ManualContact({
   s: PublicStoreSettings;
   orderCode?: string;
 }) {
+  const nativeShell = useNativeShell();
+  if (nativeShell) return null;
   const waText = orderCode
     ? `مرحباً إدارة متجر رهط بوست، أتابع طلبي رقم: #${orderCode}`
     : "مرحباً إدارة متجر رهط بوست، أتابع طلبي في المتجر.";
@@ -177,6 +180,7 @@ export function ManualContact({
 }
 
 function MyOrdersPage() {
+  const nativeShell = useNativeShell();
   const { user, isPending } = useCurrentUserState();
   const search = Route.useSearch();
   const [orders, setOrders] = useState<Order[] | null>(null);
@@ -284,6 +288,7 @@ function MyOrdersPage() {
             </div>
           </div>
 
+          {nativeShell ? null : (
           <div className="flex flex-wrap items-center gap-2">
             <Link
               to="/store"
@@ -300,6 +305,7 @@ function MyOrdersPage() {
               {tr("سلة المشتريات")}
             </Link>
           </div>
+          )}
         </div>
 
         {/* Filter Chips for Order Stages */}
@@ -347,9 +353,11 @@ function MyOrdersPage() {
         <div className="stamp flex flex-col items-center gap-3 p-8 text-center">
           <Package className="size-10 text-primary-ink" aria-hidden />
           <p className="font-bold">{tr("لا توجد طلبات في هذا القسم حالياً.")}</p>
+          {nativeShell ? null : (
           <Link to="/store" className="btn">
             {tr("تصفّح المتجر الرسمي")}
           </Link>
+          )}
         </div>
       ) : (
         <ul className="flex flex-col gap-4">

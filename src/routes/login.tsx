@@ -358,14 +358,29 @@ function SocialCircleButtons({
   onSocialClick: (provider: SocialProvider) => void;
   label: string;
 }) {
+  const showGoogle = Boolean(config.google) && (!config.nativeShell || config.apple);
+  const showFacebook = Boolean(config.facebook) && (!config.nativeShell || config.apple);
+  if (!showGoogle && !showFacebook && !config.apple) return null;
   return (
     <div className="mt-4 flex flex-col items-center gap-3">
+      {config.apple ? (
+        <button
+          type="button"
+          onClick={() => onSocialClick("apple")}
+          disabled={Boolean(busyProvider)}
+          className="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-black px-4 text-sm font-semibold text-white disabled:opacity-50"
+        >
+          <AppleMark />
+          {busyProvider === "apple" ? tr("جاري التحويل…") : tr("المتابعة باستخدام Apple")}
+        </button>
+      ) : null}
       <div className="flex w-full items-center gap-2 text-xs font-bold text-muted">
         <span className="h-px flex-1 bg-line" />
         <span>{label}</span>
         <span className="h-px flex-1 bg-line" />
       </div>
       <div className="flex items-center justify-center gap-3">
+        {showGoogle ? (
         <button
           type="button"
           onClick={() => onSocialClick("google")}
@@ -376,6 +391,8 @@ function SocialCircleButtons({
         >
           <GoogleMark />
         </button>
+        ) : null}
+        {showFacebook ? (
         <button
           type="button"
           onClick={() => onSocialClick("facebook")}
@@ -386,17 +403,6 @@ function SocialCircleButtons({
         >
           <FacebookMark />
         </button>
-        {config.apple ? (
-          <button
-            type="button"
-            onClick={() => onSocialClick("apple")}
-            disabled={Boolean(busyProvider)}
-            title={tr("المتابعة باستخدام Apple")}
-            aria-label={tr("المتابعة باستخدام Apple")}
-            className="flex size-11 items-center justify-center rounded-full border border-ink bg-ink text-paper shadow-xs transition hover:-translate-y-0.5 hover:opacity-90 disabled:opacity-50"
-          >
-            <AppleMark />
-          </button>
         ) : null}
       </div>
     </div>
