@@ -1,0 +1,5 @@
+"CFBundleDisplayName" = "Rahat Post";
+"NSLocationWhenInUseUsageDescription" = "Your location is used only to find the nearest bus stop when you tap it. It is not stored or tracked.";
+"NSPhotoLibraryUsageDescription" = "To pick photos for your ad, news post, or business listing.";
+"NSCameraUsageDescription" = "To take a photo for your ad, news post, or business listing.";
+"NSUserTrackingUsageDescription" = "This identifier is used to deliver ads that match your interests and keep Rahat Post free.";

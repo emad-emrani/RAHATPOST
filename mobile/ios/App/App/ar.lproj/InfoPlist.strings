@@ -1,0 +1,5 @@
+"CFBundleDisplayName" = "رهط بوست";
+"NSLocationWhenInUseUsageDescription" = "نستخدم موقعك فقط لإيجاد أقرب محطة باص عندما تضغط «أقرب محطة لي». لا نحفظه ولا نتتبعك.";
+"NSPhotoLibraryUsageDescription" = "لاختيار صور تضيفها إلى إعلانك أو خبرك أو نشاطك.";
+"NSCameraUsageDescription" = "لتصوير صورة تضيفها إلى إعلانك أو خبرك أو نشاطك.";
+"NSUserTrackingUsageDescription" = "نستخدم هذا المعرّف لعرض إعلانات ملائمة لاهتماماتك ودعم استمرار خدمات رهط بوست مجاناً.";

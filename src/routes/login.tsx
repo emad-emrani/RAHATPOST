@@ -358,6 +358,9 @@ function SocialCircleButtons({
   onSocialClick: (provider: SocialProvider) => void;
   label: string;
 }) {
+  const showGoogle = Boolean(config.google) && (!config.nativeShell || config.apple);
+  const showFacebook = Boolean(config.facebook) && (!config.nativeShell || config.apple);
+  if (!showGoogle && !showFacebook && !config.apple) return null;
   return (
     <div className="mt-4 flex flex-col items-center gap-3">
       <div className="flex w-full items-center gap-2 text-xs font-bold text-muted">
@@ -366,6 +369,7 @@ function SocialCircleButtons({
         <span className="h-px flex-1 bg-line" />
       </div>
       <div className="flex items-center justify-center gap-3">
+        {showGoogle ? (
         <button
           type="button"
           onClick={() => onSocialClick("google")}
@@ -376,6 +380,8 @@ function SocialCircleButtons({
         >
           <GoogleMark />
         </button>
+        ) : null}
+        {showFacebook ? (
         <button
           type="button"
           onClick={() => onSocialClick("facebook")}
@@ -386,6 +392,7 @@ function SocialCircleButtons({
         >
           <FacebookMark />
         </button>
+        ) : null}
         {config.apple ? (
           <button
             type="button"
