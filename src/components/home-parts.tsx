@@ -8,6 +8,7 @@ import type { NewsItem } from "@/lib/news/types";
 import { mediaUrl } from "@/lib/media/types";
 import { useSiteSettings } from "@/lib/site-settings/context";
 import { tr, trv } from "@/lib/i18n/core";
+import { isDigitalStoreHref, useNativeShell } from "@/components/native-shell";
 
 const tiles = [
   { to: "/news", label: "الأخبار", icon: Newspaper },
@@ -22,11 +23,13 @@ const tiles = [
 /** Horizontally scrolling category tiles on mobile, full balanced row on desktop. */
 export function HomeTiles() {
   const st = useSiteSettings();
+  const nativeShell = useNativeShell();
   const order = st.tiles;
   const list = order
     .filter((o) => o.visible)
     .map((o) => tiles.find((t) => t.to === o.id))
-    .filter((t): t is (typeof tiles)[number] => Boolean(t));
+    .filter((t): t is (typeof tiles)[number] => Boolean(t))
+    .filter((t) => !(nativeShell && isDigitalStoreHref(t.to)));
   if (!list.length) return null;
   return (
     <nav className="scroll-row -mx-4 px-4 sm:mx-0 sm:grid sm:grid-cols-7 sm:gap-3 sm:px-0" aria-label={tr("الأقسام")}>
@@ -315,7 +318,8 @@ function CustomSlide({
 
 /** Owner-defined quick link cards («روابط سريعة» in إعدادات الموقع). */
 export function QuickLinks() {
-  const links = (useSiteSettings().quickLinks ?? []).filter((l) => !isInternalQuickLinkConfig(l) && l.subtitle !== " مَخفي" && !l.subtitle?.includes("مَخفي"));
+  const nativeShell = useNativeShell();
+  const links = (useSiteSettings().quickLinks ?? []).filter((l) => !isInternalQuickLinkConfig(l) && l.subtitle !== " مَخفي" && !l.subtitle?.includes("مَخفي") && !(nativeShell && isDigitalStoreHref(l.url)));
   if (!links.length) return null;
   return (
     <section aria-label={tr("روابط سريعة")}>

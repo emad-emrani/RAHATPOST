@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Minus, Plus, ShoppingCart, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Shell } from "@/components/shell";
+import { HideDigitalStore } from "@/components/store-in-app";
 import { ProductImage, WhatsAppCashButton } from "@/components/store-parts";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { checkout, getCartProducts } from "@/lib/store/api";
@@ -20,6 +21,14 @@ export const Route = createFileRoute("/cart")({
 });
 
 function CartPage() {
+  return (
+    <HideDigitalStore>
+      <CartPageBody />
+    </HideDigitalStore>
+  );
+}
+
+function CartPageBody() {
   const lines = useCart();
   const { user, isPending } = useCurrentUserState();
   const navigate = useNavigate();

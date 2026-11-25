@@ -1,5 +1,6 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { Shell } from "@/components/shell";
+import { HideDigitalStore } from "@/components/store-in-app";
 import {
   Badges,
   Breadcrumbs,
@@ -79,6 +80,14 @@ export const Route = createFileRoute("/store/$slug")({
 });
 
 function ProductPage() {
+  return (
+    <HideDigitalStore>
+      <ProductPageBody />
+    </HideDigitalStore>
+  );
+}
+
+function ProductPageBody() {
   const { product: p, categories, settings } = Route.useLoaderData();
   if (!p) return null;
   const cat = categories.find((c) => c.id === p.categoryId);

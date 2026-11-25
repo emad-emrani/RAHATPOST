@@ -50,8 +50,15 @@ function cap(): CapacitorGlobal | undefined {
   return (window as Window & { Capacitor?: CapacitorGlobal }).Capacitor;
 }
 
+/** Capacitor appends this to the WebView user agent (see mobile/capacitor.config.ts). */
+export function isNativeUserAgent(ua: string | null | undefined): boolean {
+  return /RahatPostApp\//.test(ua ?? "");
+}
+
 export function isNativeApp(): boolean {
-  return Boolean(cap()?.isNativePlatform?.());
+  if (cap()?.isNativePlatform?.()) return true;
+  if (typeof navigator === "undefined") return false;
+  return isNativeUserAgent(navigator.userAgent);
 }
 
 /** Same-site relative path only (defaults to /my-posts). */
