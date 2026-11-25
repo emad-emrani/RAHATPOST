@@ -1,57 +1,50 @@
-name: Auto Unpack Uploaded ZIPs & Maintenance Mode
+name: Unpack uploaded ZIPs
+
+# Manual only. Unpacks zip archives already committed in the repo and opens a
+# pull request. It does not push to main, and it does not put the live site
+# into maintenance mode.
 
 on:
-  push:
-    branches:
-      - main
-      - master
   workflow_dispatch:
 
 permissions:
   contents: write
+  pull-requests: write
 
 jobs:
   unpack:
-    if: "!contains(github.event.head_commit.message, '[skip-unpack]')"
     runs-on: ubuntu-latest
     steps:
-      - name: Activate Automatic Maintenance Mode on Live Site
-        run: |
-          echo "Activating automatic maintenance mode on Rahat Post..."
-          PAYLOAD='{"action":"enable","mode":"auto","token":"rp-auto-deploy-maint-2026","durationSec":110,"reason":"جاري رفع وتطبيق تحديثات جديدة على منصة رهط بوست... سيعود الموقع تلقائياً خلال لحظات"}'
-          curl -s -m 8 -X POST "https://www.rahatpost.com/api/media?kind=maintenance-status" -H "content-type: application/json" -d "$PAYLOAD" || true
-          curl -s -m 8 -X POST "https://rahatpost.com/api/media?kind=maintenance-status" -H "content-type: application/json" -d "$PAYLOAD" || true
-
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Find, unpack, and remove any .zip archives
-        id: unzip_step
+      - name: Unpack zip archives onto a pull request
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          set -euo pipefail
           shopt -s nullglob
           ZIPS=(*.zip mobile/*.zip public/*.zip)
           if [ ${#ZIPS[@]} -eq 0 ]; then
             echo "No .zip files found to unpack."
-            echo "unpacked=false" >> $GITHUB_OUTPUT
             exit 0
           fi
 
           for z in "${ZIPS[@]}"; do
-            echo "=========================================="
             echo "Processing archive: $z"
             TMP_DIR=$(mktemp -d)
             unzip -q -o "$z" -d "$TMP_DIR"
             rm -rf "$TMP_DIR/.github/workflows"
 
             SUBDIRS=("$TMP_DIR"/*)
-            if [ ${#SUBDIRS[@]} -eq 1 ] && [ -d "${SUBDIRS[0]}" ] && ( [ -f "${SUBDIRS[0]}/package.json" ] || [ -d "${SUBDIRS[0]}/src" ] ); then
-              echo "Detected wrapped root folder inside $z — flattening to repo root..."
+            if [ ${#SUBDIRS[@]} -eq 1 ] && [ -d "${SUBDIRS[0]}" ] && { [ -f "${SUBDIRS[0]}/package.json" ] || [ -d "${SUBDIRS[0]}/src" ]; }; then
+              echo "Detected a wrapped root folder inside $z — flattening to the repo root."
               cp -rf "${SUBDIRS[0]}"/. .
             else
               TARGET_DIR=$(dirname "$z")
-              echo "Extracting contents of $z into $TARGET_DIR..."
+              echo "Extracting $z into $TARGET_DIR."
               cp -rf "$TMP_DIR"/. "$TARGET_DIR"/
             fi
 
@@ -61,26 +54,19 @@ jobs:
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          BRANCH="chore/unpack-zips-${GITHUB_RUN_ID}"
+          git checkout -b "$BRANCH"
           git add -A
           git reset HEAD .github/workflows/ 2>/dev/null || true
           git checkout -- .github/workflows/ 2>/dev/null || true
           if git diff --cached --quiet; then
             echo "No file changes after unpacking."
-            echo "unpacked=false" >> $GITHUB_OUTPUT
-          else
-            git commit -m "chore: auto-unpack uploaded zip archive [skip-unpack]"
-            git pull --rebase origin "${GITHUB_REF_NAME}" || true
-            git push origin "HEAD:${GITHUB_REF_NAME}"
-            echo "Successfully unpacked and pushed!"
-            echo "unpacked=true" >> $GITHUB_OUTPUT
+            exit 0
           fi
-
-      - name: Wait for Deployment & Automatically Restore Live Site
-        if: always()
-        run: |
-          echo "Waiting 45 seconds for Vercel build & deployment to complete..."
-          sleep 45
-          OFF_PAYLOAD='{"action":"disable","token":"rp-auto-deploy-maint-2026"}'
-          curl -s -m 8 -X POST "https://www.rahatpost.com/api/media?kind=maintenance-status" -H "content-type: application/json" -d "$OFF_PAYLOAD" || true
-          curl -s -m 8 -X POST "https://rahatpost.com/api/media?kind=maintenance-status" -H "content-type: application/json" -d "$OFF_PAYLOAD" || true
-          echo "Maintenance mode disabled — live site restored!"
+          git commit -m "chore: unpack uploaded zip archive"
+          git push origin "HEAD:${BRANCH}"
+          gh pr create \
+            --base main \
+            --head "$BRANCH" \
+            --title "Unpack uploaded zip archive" \
+            --body "Opened by the manual unpack workflow. Review the diff before merging. This workflow does not push to main."

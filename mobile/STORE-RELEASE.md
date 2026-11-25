@@ -29,6 +29,8 @@ cd mobile && npx cap sync android && cd android && ./gradlew bundleRelease assem
 ```
 Without `RAHATPOST_KEYSTORE_PROPERTIES` the release outputs are unsigned.
 
+GitHub Actions (`.github/workflows/android-google-play.yml`) signs the same way from four Actions secrets, not from anything committed in the repo: `ANDROID_KEYSTORE_BASE64` (base64 of the `.jks`), `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, and `ANDROID_KEY_PASSWORD`. The job builds `app-release.aab` / `app-release.apk` and attaches them to GitHub release `v1.0.0`. It does not upload to the Play Console by itself, and it does not push commits. Until those secrets are set, the job stops before Gradle.
+
 ### App Links fingerprints
 `/.well-known/assetlinks.json` (website, `src/lib/app-links.server.ts`) always contains the upload
 key SHA-256 and adds every fingerprint in the Vercel env var `ASSETLINKS_SHA256` (comma-separated).
