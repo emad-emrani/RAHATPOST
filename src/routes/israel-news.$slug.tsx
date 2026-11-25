@@ -198,7 +198,7 @@ export const Route = createFileRoute("/israel-news/$slug")({
       now: Date.now(),
       fetchedAt: null,
       failedSources: [],
-      mode: "mymemory",
+      translation: "off",
     });
 
     let rawData: { result: IsraelNewsResult; item: IsraelNewsItem | null };

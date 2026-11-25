@@ -11425,7 +11425,7 @@ function StorePaySettingsAdmin() {
 /* -------------------------------------------------------------------------- */
 /* Helper for Per-Section Homepage Translation ON/OFF stored in siteSettings  */
 /* -------------------------------------------------------------------------- */
-function parseAdminTxSecsMap(quickLinks: SiteSettings["quickLinks"]): Record<string, boolean> {
+function parseAdminTxSecsMap(quickLinks: SiteSettings["quickLinks"] | undefined): Record<string, boolean> {
   const item = (quickLinks ?? []).find((q) => q.id === "txsecscfg");
   const map: Record<string, boolean> = {};
   if (!item?.subtitle) return map;
