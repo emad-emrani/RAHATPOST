@@ -59,6 +59,10 @@
                 <data android:pathPrefix="/my-ads" />
                 <data android:pathPrefix="/privacy" />
                 <data android:pathPrefix="/terms" />
+                <data android:pathPrefix="/support" />
+                <data android:pathPrefix="/contact" />
+                <data android:pathPrefix="/haraj" />
+                <data android:pathPrefix="/store" />
             </intent-filter>
         </activity>
 

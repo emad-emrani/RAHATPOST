@@ -24,6 +24,28 @@ const inflight = new Set<string>();
 const inflightByKey = new Map<string, Promise<{ bytes: Uint8Array; type: string; key: string } | null>>();
 let known: { at: number; map: Map<string, string | null> } | null = null;
 
+async function mediaBytes(body: ReadableStream<Uint8Array> | Uint8Array): Promise<Uint8Array> {
+  if (body instanceof Uint8Array) return body;
+  const reader = body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    if (value) {
+      chunks.push(value);
+      total += value.byteLength;
+    }
+  }
+  const out = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    out.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return out;
+}
+
 export function titleSlugKey(title: string): string {
   const clean = title.replace(/\s+/g, " ").trim().toLowerCase();
   return `t-${createHash("sha256").update(clean).digest("hex").slice(0, 24)}`;
@@ -202,7 +224,7 @@ export async function getOrCreateAiImageByTitle(opts: {
         const file = await getMedia(`ai/${existingKey}`);
         if (file) {
           return {
-            bytes: new Uint8Array(file.body),
+            bytes: await mediaBytes(file.body),
             type: existingKey.endsWith(".png") ? "image/png" : existingKey.endsWith(".webp") ? "image/webp" : "image/jpeg",
             key: existingKey,
           };

@@ -613,3 +613,21 @@ html[lang="he"] body {
 
 /* Softer, cleaner OSM basemap under bus routes */
 .rp-soft-tiles { filter: saturate(0.45) brightness(1.06) contrast(0.95); }
+
+.rp-side {
+  background: #141210;
+  color: #f6f1e4;
+}
+.rp-console[data-theme="dark"] {
+  --color-ink: #f6f1e4;
+  --color-paper: #1e1b16;
+  --color-surface: #141210;
+  --color-line: #3a342b;
+  --color-muted: #c9beab;
+  --color-primary-soft: #3a3114;
+  --color-primary-ink: #fdb700;
+  --color-brand: #fdb700;
+  --color-primary: #fdb700;
+  background: #100e0c;
+  color: var(--color-ink);
+}

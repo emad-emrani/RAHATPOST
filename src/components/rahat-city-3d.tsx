@@ -1726,7 +1726,7 @@ export function CityPage() {
   useEffect(() => {
     void adminWhoami()
       .then((r) => {
-        if (r?.level === "owner" || r?.level === "admin") setAdminUnlocked(true);
+        if (r?.level === "owner") setAdminUnlocked(true);
       })
       .catch(() => {});
   }, []);
