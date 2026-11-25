@@ -8,6 +8,7 @@ import { busLines } from "@/data/buses";
 import { getArrivals, getLineVehicles } from "@/lib/buses/api";
 import { gmapsTransitRoute, shapeFile, type LineShapes } from "@/lib/buses/map";
 import { GmapsStopButtons } from "@/components/gmaps-buttons";
+import { MapChoices } from "@/components/map-links";
 import { lineInfo, stopName } from "@/lib/buses/schedule";
 import type { ArrivalsResult } from "@/lib/buses/types";
 import { breadcrumbLd, seo } from "@/lib/seo";
@@ -272,14 +273,14 @@ function BusMapPage() {
       </header>
       {d && busSchedule.stops[d.from] && busSchedule.stops[d.to] ? (
         <div className="px-3 pt-2">
-          <a
-            href={gmapsTransitRoute(busSchedule.stops[d.from], busSchedule.stops[d.to])}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="btn btn-ghost w-full px-3 text-sm"
-          >
-            {tr("المسار في خرائط جوجل (من")} {stopName(d.from)} {tr("إلى")} {stopName(d.to)})
-          </a>
+          <MapChoices
+            target={{
+              lat: busSchedule.stops[d.to].lat,
+              lon: busSchedule.stops[d.to].lon,
+              origin: busSchedule.stops[d.from],
+            }}
+            googleUrl={gmapsTransitRoute(busSchedule.stops[d.from], busSchedule.stops[d.to])}
+          />
         </div>
       ) : null}
       {info.dirs.length > 1 ? (

@@ -1,5 +1,6 @@
 import { ExternalLink, MapPin, Phone, Pill, Siren, TriangleAlert } from "lucide-react";
 import { useEffect, useState } from "react";
+import { MapChoices } from "@/components/map-links";
 import { directionsUrl, type CivicAlert, type DutyShift } from "@/lib/board/types";
 import { tr, trv } from "@/lib/i18n/core";
 
@@ -48,15 +49,9 @@ export function DutyCard({
           <Phone className="size-4" aria-hidden />
           {tr("اتصال")}
         </a>
-        <a
-          className="btn btn-ghost"
-          href={directionsUrl(duty)}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <MapPin className="size-4" aria-hidden />
-          {tr("الاتجاهات")}
-        </a>
+        <div className="col-span-2">
+          <MapChoices googleUrl={directionsUrl(duty)} />
+        </div>
       </div>
     </section>
   );

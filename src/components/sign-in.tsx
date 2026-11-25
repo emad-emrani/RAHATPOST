@@ -13,6 +13,8 @@ export type AuthConfig = {
   resetEmail?: boolean;
   /** True inside the store app (RahatPostApp user agent). */
   nativeShell?: boolean;
+  /** iPhone or iPad wrapper. Google and Facebook are hidden unless Apple is shown. */
+  iosApp?: boolean;
 };
 
 function GoogleMark() {

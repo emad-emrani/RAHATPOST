@@ -1,29 +1,12 @@
-import { ExternalLink, Navigation } from "lucide-react";
+import { MapChoices } from "@/components/map-links";
 import { gmapsPlace, gmapsTransitTo } from "@/lib/buses/map";
-import { tr } from "@/lib/i18n/core";
 
-/** «افتح في خرائط جوجل» + transit directions to a stop. */
+/** Apple Maps, Google Maps, and Waze for a bus stop. */
 export function GmapsStopButtons({ lat, lon }: { lat: number; lon: number }) {
   return (
-    <div className="mt-2 grid grid-cols-2 gap-2">
-      <a
-        href={gmapsPlace(lat, lon)}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="btn btn-ghost px-2 text-sm"
-      >
-        <ExternalLink className="size-4" aria-hidden />
-        {tr("افتح في خرائط جوجل")}
-      </a>
-      <a
-        href={gmapsTransitTo(lat, lon)}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="btn btn-ghost px-2 text-sm"
-      >
-        <Navigation className="size-4" aria-hidden />
-        {tr("الاتجاهات إلى المحطة")}
-      </a>
+    <div className="mt-2 flex flex-col gap-2">
+      <MapChoices target={{ lat, lon }} googleUrl={gmapsPlace(lat, lon)} />
+      <MapChoices target={{ lat, lon }} googleUrl={gmapsTransitTo(lat, lon)} />
     </div>
   );
 }

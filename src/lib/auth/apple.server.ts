@@ -66,9 +66,16 @@ export function appleProvider() {
   if (!appleConfigured()) return undefined;
   const clientId = env("APPLE_CLIENT_ID") as string;
   const staticSecret = env("APPLE_CLIENT_SECRET");
-  if (staticSecret) return { clientId, clientSecret: staticSecret };
+  const bundleId = env("APPLE_APP_BUNDLE_ID") || "com.rahatpost.app";
+  // Web sign-in uses the Services ID. Native Sign in with Apple tokens use the bundle id as `aud`.
+  const shared = {
+    clientId,
+    appBundleIdentifier: bundleId,
+    audience: [clientId, bundleId],
+  };
+  if (staticSecret) return { ...shared, clientSecret: staticSecret };
   try {
-    return { clientId, clientSecret: appleClientSecret() };
+    return { ...shared, clientSecret: appleClientSecret() };
   } catch (error) {
     console.error("[auth] Sign in with Apple disabled: bad APPLE_* configuration", error);
     return undefined;

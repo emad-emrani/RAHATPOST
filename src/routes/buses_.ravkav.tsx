@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowRight, CreditCard, ExternalLink, MapPin } from "lucide-react";
 import { useEffect, useRef } from "react";
 import "leaflet/dist/leaflet.css";
+import { MapChoices } from "@/components/map-links";
 import { Shell } from "@/components/shell";
 import { gmapsPlace } from "@/lib/buses/map";
 import { useSiteSettings } from "@/lib/site-settings/context";
@@ -64,7 +65,7 @@ function RavKavPage() {
                   {p.address ? <p className="text-sm font-semibold text-muted">{trv(p.address)}</p> : null}
                   {p.hours ? <p className="text-sm font-semibold">{trv(p.hours)}</p> : null}
                 </div>
-                <a className="btn btn-ghost shrink-0 px-3 py-1.5 text-sm" href={gmapsPlace(p.lat, p.lon)} target="_blank" rel="noopener noreferrer">{tr("الاتجاهات")}</a>
+                <MapChoices target={{ lat: p.lat, lon: p.lon }} googleUrl={gmapsPlace(p.lat, p.lon)} />
               </li>
             ))}
           </ul>

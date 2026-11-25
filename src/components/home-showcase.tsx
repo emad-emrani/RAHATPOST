@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import { MapChoices } from "@/components/map-links";
 import {
   Bus,
   ChevronDown,
@@ -487,14 +488,9 @@ export function InteractiveRahatServicesHub({ now = Date.now() }: { now?: number
 
                 {/* Action Buttons */}
                 <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-                  <a
-                    href={activeBranch.directionsUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="btn py-2 text-xs font-extrabold"
-                  >
-                    📍 {tr("الاتجاهات للفرع")}
-                  </a>
+                  <div className="sm:col-span-2">
+                    <MapChoices googleUrl={activeBranch.directionsUrl} />
+                  </div>
                   {activeBranch.appointmentUrl ? (
                     <a
                       href={activeBranch.appointmentUrl}
@@ -831,14 +827,7 @@ export function InteractiveRahatServicesHub({ now = Date.now() }: { now?: number
                 {tr("دورات تعليمية ورياضية، فعاليات ثقافية وشبابية وبرامج للأطفال والعائلات في مركز المدينة.")}
               </p>
               <div className="mt-2 flex gap-2">
-                <a
-                  href="https://www.google.com/maps/dir/?api=1&destination=31.3925,34.7544"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn py-1.5 text-xs font-extrabold"
-                >
-                  📍 {tr("الاتجاهات للمركز الجماهيري")}
-                </a>
+                <MapChoices googleUrl="https://www.google.com/maps/dir/?api=1&destination=31.3925,34.7544" />
                 <Link
                   to="/directory/guide/$guide"
                   params={{ guide: "municipality" }}
@@ -857,14 +846,7 @@ export function InteractiveRahatServicesHub({ now = Date.now() }: { now?: number
                 {tr("وسط المدينة — يضم المحلات التجارية، البريد المركزي (237)، البنوك والمطاعم والخدمات.")}
               </p>
               <div className="mt-2 flex gap-2">
-                <a
-                  href="https://www.google.com/maps/dir/?api=1&destination=31.394647,34.758378"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn py-1.5 text-xs font-extrabold"
-                >
-                  📍 {tr("الاتجاهات للسوق البلدي")}
-                </a>
+                <MapChoices googleUrl="https://www.google.com/maps/dir/?api=1&destination=31.394647,34.758378" />
                 <a
                   href="https://rahat-muni.com/%D9%82%D8%B3%D9%85-%D8%A7%D9%84%D8%AC%D8%A8%D8%A7%D9%8A%D9%87/"
                   target="_blank"
@@ -916,14 +898,7 @@ export function InteractiveRahatServicesHub({ now = Date.now() }: { now?: number
               <p className="mt-0.5 text-[11px] font-semibold text-muted">
                 {tr("طب عائلة وأطفال، عيادات تخصصية، مختبر وصيدلية.")}
               </p>
-              <a
-                href="https://www.google.com/maps/dir/?api=1&destination=31.394985,34.754784"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn mt-2 w-full py-1.5 text-xs font-extrabold"
-              >
-                📍 {tr("الاتجاهات للعيادة")}
-              </a>
+              <MapChoices googleUrl="https://www.google.com/maps/dir/?api=1&destination=31.394985,34.754784" />
             </div>
 
             <div className="rounded-2xl border border-line bg-paper p-3">
@@ -933,14 +908,7 @@ export function InteractiveRahatServicesHub({ now = Date.now() }: { now?: number
               <p className="mt-0.5 text-[11px] font-semibold text-muted">
                 {tr("تطعيمات الأطفال والرضّع ومتابعة نمو الطفل وصحة الأم.")}
               </p>
-              <a
-                href="https://www.google.com/maps/dir/?api=1&destination=31.392461,34.751015"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn mt-2 w-full py-1.5 text-xs font-extrabold"
-              >
-                📍 {tr("الاتجاهات لقطرة حليب")}
-              </a>
+              <MapChoices googleUrl="https://www.google.com/maps/dir/?api=1&destination=31.392461,34.751015" />
             </div>
 
             <div className="rounded-2xl border-2 border-primary bg-primary-soft/60 p-3">
