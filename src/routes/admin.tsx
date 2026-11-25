@@ -92,6 +92,7 @@ import { AuthLayout } from "@/components/auth-layout";
 import { adminDecideListing, adminListListings, adminSamples } from "@/lib/market/api";
 import { priceLabel, STATUS_LABEL, type ListingStatus, type OwnListing } from "@/lib/market/types";
 import { adminDecide, adminList, adminLogin, adminLogout } from "@/lib/directory/api";
+import { DirectoryHubEditor } from "@/components/admin/hub-settings";
 import type { BusinessSubmission } from "@/lib/directory/types";
 import { adminGate, adminWhoami } from "@/lib/team/api";
 import type { AdminLevel } from "@/lib/admin-auth";
@@ -2944,6 +2945,7 @@ function AdminPage() {
             <NewsAdmin />
           ) : (
             <>
+              <DirectoryHubEditor />
               <div className="scroll-row mb-4">
                 {(Object.keys(STATUS) as BusinessSubmission["status"][]).map((s) => (
                   <button
@@ -11425,7 +11427,7 @@ function StorePaySettingsAdmin() {
 /* -------------------------------------------------------------------------- */
 /* Helper for Per-Section Homepage Translation ON/OFF stored in siteSettings  */
 /* -------------------------------------------------------------------------- */
-function parseAdminTxSecsMap(quickLinks: SiteSettings["quickLinks"]): Record<string, boolean> {
+function parseAdminTxSecsMap(quickLinks: SiteSettings["quickLinks"] | undefined): Record<string, boolean> {
   const item = (quickLinks ?? []).find((q) => q.id === "txsecscfg");
   const map: Record<string, boolean> = {};
   if (!item?.subtitle) return map;

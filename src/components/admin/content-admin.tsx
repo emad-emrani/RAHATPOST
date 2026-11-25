@@ -18,6 +18,7 @@ import { tr, trv } from "@/lib/i18n/core";
 import { adminGetSiteSettings, adminSaveSiteSettings } from "@/lib/site-settings/api";
 import { broadcastSiteSettingsUpdate } from "@/lib/site-settings/context";
 import type { Announcement } from "@/lib/site-settings/types";
+import { EmergencyNumbersEditor } from "@/components/admin/hub-settings";
 
 const DATETIME = new Intl.DateTimeFormat("ar-u-nu-latn", {
   timeZone: "Asia/Jerusalem",
@@ -106,6 +107,7 @@ export function DutyAdmin() {
   return (
     <div className="flex flex-col gap-4">
       <DutyVisibleToggle />
+      <EmergencyNumbersEditor />
       <section className="stamp p-4">
         <p className="text-sm font-bold text-muted">{tr("اليوم (")}{trv(data.today)})</p>
         <p className="text-xl font-bold">{today ? today.name : tr("لم يُحدَّث جدول اليوم")}</p>

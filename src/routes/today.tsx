@@ -12,6 +12,8 @@ import {
 import { SectionTitle, Shell } from "@/components/shell";
 import { PrayerCard, WeatherCard } from "@/components/today-cards";
 import { emergency } from "@/data/content";
+import { useSiteSettings } from "@/lib/site-settings/context";
+import { parseEmergencyNumbers } from "@/lib/site-settings/types";
 import { guides } from "@/data/guides";
 import { useNow } from "@/lib/news/format";
 import { getIsraelNews } from "@/lib/news/israel-api";
@@ -80,6 +82,8 @@ const TODAY_ISRAEL_ITEMS = 7;
 function TodayPage() {
   const { israel, weather, board, now: loadedAt } = Route.useLoaderData();
   const now = useNow(israel.now);
+  const configuredEmergency = parseEmergencyNumbers(useSiteSettings().quickLinks);
+  const numbers = configuredEmergency.length ? configuredEmergency : emergency;
   const [lead, ...rest] = israel.items.slice(0, TODAY_ISRAEL_ITEMS);
   return (
     <Shell>
@@ -123,7 +127,7 @@ function TodayPage() {
         <section>
           <h2 className="mb-3 text-xl font-bold">{tr("أرقام الطوارئ")}</h2>
           <ul className="flex flex-col gap-2">
-            {emergency.map((item) => (
+            {numbers.map((item) => (
               <li key={item.phone}>
                 <a
                   href={`tel:${item.phone}`}
