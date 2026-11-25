@@ -4009,9 +4009,6 @@ function AnimatedWeatherPrayerBar({
           0%, 100% { transform: translateX(-2px); opacity: 0.7; }
           50% { transform: translateX(3px); opacity: 1; }
         }
-        @media (prefers-reduced-motion: reduce) {
-          .rp-sky span { animation: none !important; }
-        }
       `}</style>
 
       <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-bold text-ink sm:text-sm">
@@ -4025,7 +4022,7 @@ function AnimatedWeatherPrayerBar({
               : tr("الطقس في رهط")
           }
         >
-          <span className="rp-sky relative inline-flex items-center justify-center text-lg leading-none">
+          <span className="relative inline-flex items-center justify-center text-lg leading-none">
             {isRainy ? (
               <span style={{ animation: "rpRainBounce 1.4s infinite ease-in-out" }}>🌧️</span>
             ) : isNight ? (

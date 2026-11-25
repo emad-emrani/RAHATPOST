@@ -134,9 +134,7 @@ import {
 } from "@/lib/i18n/api";
 import { getCustomSectionsNews, getSportsNews, getTechNews, type CustomSectionResult } from "@/lib/news/api";
 import { newsCategories } from "@/lib/news/types";
-import { CardBoundary, DashboardHome, ReviewQueue, Skeleton } from "@/components/admin/admin-v2";
-import { AdminChrome, allowedSections } from "@/components/admin/console";
-import { BlocksAdmin } from "@/components/admin/blocks-admin";
+import { AdminSearch, CardBoundary, DashboardHome, ReviewQueue, Skeleton } from "@/components/admin/admin-v2";
 import type { SiteSettingsPart } from "@/components/admin/site-settings-admin";
 import { LangSwitcher } from "@/components/lang-switcher";
 import logoUrl from "@/assets/logo.jpg";
@@ -757,7 +755,6 @@ type Section =
   | "members-roles"
   | "members-invite"
   | "members-methods"
-  | "members-blocks"
   | "emails"
   | "popups"
   | "news"
@@ -779,6 +776,319 @@ type Section =
   | "sec-sports"
   | "sec-tech"
   | "sec-weather";
+
+const ALL_TABS: { key: Section; label: string; icon: LucideIcon }[] = [
+  { key: "home", label: "نظرة عامة", icon: House },
+  { key: "matches", label: "البث المباشر والمباريات", icon: Trophy },
+  { key: "review", label: "طابور المراجعة", icon: ClipboardCheck },
+  { key: "stats", label: "الإحصائيات والزوار", icon: BarChart3 },
+  { key: "publish", label: "نشر خبر جديد", icon: PenSquare },
+  { key: "sec-add", label: "إضافة قسم جديد", icon: FolderPlus },
+  { key: "sec-manage", label: "إدارة الأقسام", icon: LayoutGrid },
+  { key: "auto", label: "الجلب التلقائي والترجمة", icon: Rss },
+  { key: "news", label: "أخبار القراء", icon: Newspaper },
+  { key: "sec-news", label: "مصادر الأخبار المحلية", icon: Newspaper },
+  { key: "sec-israel", label: "أخبار إسرائيل", icon: Globe },
+  { key: "sec-sports", label: "أخبار الرياضة", icon: Trophy },
+  { key: "sec-tech", label: "أخبار التقنية", icon: Cpu },
+  { key: "sec-weather", label: "حالة الطقس", icon: CloudSun },
+  { key: "buses", label: "الباصات", icon: Bus },
+  { key: "duty", label: "صيدلية المناوبة", icon: Pill },
+  { key: "directory", label: "طلبات دليل المصالح", icon: Store },
+  { key: "comments", label: "التعليقات", icon: MessageSquare },
+  { key: "reports", label: "البلاغات", icon: Flag },
+  { key: "ads", label: "إعلانات الحراج والمراجعة", icon: Megaphone },
+  { key: "haraj-cats", label: "أقسام الحراج الدائرية والفلاتر", icon: LayoutGrid },
+  { key: "store-orders", label: "طلباتي (متابعة الطلبات)", icon: Package },
+  { key: "store-cats", label: "أقسام المتجر (الذكاء ونتفليكس)", icon: LayoutGrid },
+  { key: "store", label: "منتجات المتجر والاشتراكات", icon: ShoppingBag },
+  { key: "store-offers", label: "عروض المتاجر والشريط الأخضر", icon: Store },
+  { key: "store-merchants", label: "صلاحية تاجر وباقات VIP", icon: Crown },
+  { key: "store-pay", label: "إعدادات الدفع وواتساب المتجر", icon: ShoppingCart },
+  { key: "alerts", label: "شريط التنبيهات العاجلة", icon: Siren },
+  { key: "push", label: "إشعارات الهواتف (Push)", icon: Bell },
+  { key: "popups", label: "النوافذ الترويجية (Popups)", icon: MonitorUp },
+  { key: "emails", label: "قوالب البريد الإلكتروني", icon: Mail },
+  { key: "set-google", label: "جوجل وSEO وAdSense", icon: Settings },
+  { key: "members-passwords", label: "كلمات المرور والمشتركين", icon: KeyRound },
+  { key: "members-list", label: "قائمة الأعضاء", icon: Users },
+  { key: "members-roles", label: "الأدوار والصلاحيات", icon: BadgeCheck },
+  { key: "members-invite", label: "دعوة عضو للفريق", icon: UserPlus },
+  { key: "members-methods", label: "طرق تسجيل الدخول", icon: KeyRound },
+  { key: "set-home", label: "ترتيب أقسام الرئيسية", icon: LayoutGrid },
+  { key: "set-menus", label: "القوائم والأيقونات", icon: Menu },
+  { key: "set-slider", label: "السلايدر الرئيسي", icon: GalleryHorizontal },
+  { key: "set-texts", label: "النصوص والشعار", icon: Type },
+  { key: "set-theme", label: "المظهر والألوان", icon: Palette },
+  { key: "set-links", label: "روابط سريعة", icon: Link2 },
+  { key: "languages", label: "اللغات والترجمة", icon: Globe },
+  { key: "gemini", label: "إعدادات الذكاء الاصطناعي", icon: Sparkles },
+];
+
+const GROUPS: { id: string; label: string; desc: string; icon: LucideIcon; keys: Section[] }[] = [
+  {
+    id: "main",
+    label: "لوحة المتابعة",
+    desc: "نظرة عامة، البث المباشر للمباريات، المراجعات، والإحصائيات",
+    icon: House,
+    keys: ["home", "matches", "review", "stats"],
+  },
+  {
+    id: "editorial",
+    label: "الأخبار والمحتوى",
+    desc: "نشر الأخبار، الجلب التلقائي، ومصادر الأخبار",
+    icon: Newspaper,
+    keys: ["publish", "auto", "news", "sec-news", "sec-israel", "sec-sports", "sec-tech", "sec-weather"],
+  },
+  {
+    id: "store-hub",
+    label: "إدارة المتجر والمتاجر",
+    desc: "متابعة الطلبات (طلباتي)، أقسام المتجر (الذكاء ونتفليكس)، المنتجات، عروض المتاجر والشريط الأخضر، وصلاحية تاجر",
+    icon: ShoppingBag,
+    keys: ["store-orders", "store-cats", "store", "store-offers", "store-merchants", "store-pay"],
+  },
+  {
+    id: "haraj-hub",
+    label: "إدارة سوق الحراج (منفصل)",
+    desc: "مراجعة إعلانات الأفراد والتحكم بأقسام الحراج الدائرية والفلاتر",
+    icon: Megaphone,
+    keys: ["ads", "haraj-cats"],
+  },
+  {
+    id: "community",
+    label: "الخدمات المحلية والدليل",
+    desc: "الباصات، دليل مصالح رهط، صيدلية المناوبة، التعليقات والبلاغات",
+    icon: Store,
+    keys: ["buses", "directory", "duty", "comments", "reports"],
+  },
+  {
+    id: "marketing",
+    label: "التنبيهات والتسويق وSEO",
+    desc: "الأخبار العاجلة، الإشعارات، وإعدادات جوجل",
+    icon: Siren,
+    keys: ["alerts", "push", "popups", "set-google", "emails"],
+  },
+  {
+    id: "members",
+    label: "الفريق والأعضاء والأقسام",
+    desc: "إدارة الأقسام، إضافة قسم جديد، وإدارة المشرفين والأعضاء",
+    icon: Users,
+    keys: ["members-passwords", "members-list", "sec-manage", "sec-add", "members-roles", "members-invite", "members-methods"],
+  },
+  {
+    id: "settings",
+    label: "تصميم وإعدادات الموقع",
+    desc: "ترتيب الصفحة الرئيسية، القوائم، السلايدر، الألوان، واللغات",
+    icon: Settings,
+    keys: ["set-home", "set-menus", "set-slider", "set-texts", "set-theme", "set-links", "languages", "gemini"],
+  },
+];
+
+const groupItems = (g: (typeof GROUPS)[number], tabs: typeof ALL_TABS) =>
+  g.keys.map((k) => tabs.find((t) => t.key === k)).filter((t): t is (typeof ALL_TABS)[number] => Boolean(t));
+
+function GroupLanding({ group, tabs, go }: { group: (typeof GROUPS)[number]; tabs: typeof ALL_TABS; go: (k: string) => void }) {
+  return (
+    <div className="space-y-3">
+      <div className="rounded-3xl bg-paper p-4 shadow-[0_1px_3px_rgba(16,24,40,0.06)]">
+        <h2 className="text-lg font-extrabold">{trv(group.label)}</h2>
+        <p className="text-xs font-semibold text-muted">{trv(group.desc)}</p>
+      </div>
+      <ul className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+        {groupItems(group, tabs).map(({ key, label, icon: Icon }) => (
+          <li key={key}>
+            <button
+              type="button"
+              onClick={() => go(key)}
+              className="flex w-full items-center gap-3 rounded-3xl bg-paper p-4 text-start shadow-[0_1px_3px_rgba(16,24,40,0.06)] transition hover:bg-primary-soft/40 active:scale-[0.99]"
+            >
+              <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-primary-soft text-primary-ink">
+                <Icon className="size-5" aria-hidden />
+              </span>
+              <span className="min-w-0 flex-1 font-bold">{trv(label)}</span>
+              <ChevronLeft className="size-5 text-muted ltr:rotate-180" aria-hidden />
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function AdminMenu({
+  tabs,
+  section,
+  reviewCount,
+  onSelect,
+  onLogout,
+}: {
+  tabs: typeof ALL_TABS;
+  section: Section;
+  reviewCount: number | null;
+  onSelect: (key: Section) => void;
+  onLogout: () => void;
+}) {
+  const activeGroupId = GROUPS.find((g) => g.keys.includes(section))?.id ?? "main";
+  const [expanded, setExpanded] = useState<Record<string, boolean>>(() => ({
+    main: true,
+    editorial: true,
+    [activeGroupId]: true,
+  }));
+
+  useEffect(() => {
+    if (activeGroupId) {
+      setExpanded((prev) => ({ ...prev, [activeGroupId]: true }));
+    }
+  }, [activeGroupId]);
+
+  return (
+    <nav aria-label={tr("أقسام الإدارة")} className="flex flex-col gap-2">
+      {/* Quick Action Buttons at Top of Sidebar */}
+      <div className="grid grid-cols-1 gap-1.5 pb-2 border-b border-line">
+        {tabs.some((t) => t.key === "publish") ? (
+          <button
+            type="button"
+            aria-current={section === "publish" ? "page" : undefined}
+            className={`flex w-full items-center justify-center gap-2 rounded-2xl bg-[#16A34A] px-3.5 py-2.5 text-sm font-extrabold text-white shadow-xs transition-colors hover:bg-[#15803D] ${
+              section === "publish" ? "ring-2 ring-[#16A34A]/40 ring-offset-2" : ""
+            }`}
+            onClick={() => onSelect("publish")}
+          >
+            <PenSquare className="size-4 shrink-0" aria-hidden />
+            {tr("نشر خبر جديد")}
+          </button>
+        ) : null}
+
+        {tabs.some((t) => t.key === "sec-add") ? (
+          <div className="grid grid-cols-2 gap-1.5">
+            <button
+              type="button"
+              aria-current={section === "sec-add" ? "page" : undefined}
+              className={`flex items-center justify-center gap-1.5 rounded-2xl px-2.5 py-2.5 text-xs font-extrabold transition-colors ${
+                section === "sec-add"
+                  ? "bg-ink text-paper"
+                  : "bg-brand text-ink hover:opacity-90"
+              }`}
+              onClick={() => onSelect("sec-add")}
+            >
+              <FolderPlus className="size-4 shrink-0" aria-hidden />
+              {tr("+ إضافة قسم")}
+            </button>
+            <button
+              type="button"
+              aria-current={section === "sec-manage" ? "page" : undefined}
+              className={`flex items-center justify-center gap-1.5 rounded-2xl px-2.5 py-2.5 text-xs font-extrabold transition-colors ${
+                section === "sec-manage"
+                  ? "bg-ink text-paper"
+                  : "border border-line bg-surface text-ink hover:bg-primary-soft"
+              }`}
+              onClick={() => onSelect("sec-manage")}
+            >
+              <LayoutGrid className="size-4 shrink-0" aria-hidden />
+              {tr("إدارة الأقسام")}
+            </button>
+          </div>
+        ) : null}
+
+        {tabs.some((t) => t.key === "matches") ? (
+          <button
+            type="button"
+            aria-current={section === "matches" ? "page" : undefined}
+            className={`flex w-full items-center justify-center gap-2 rounded-2xl px-3.5 py-2.5 text-sm font-extrabold transition-colors ${
+              section === "matches"
+                ? "bg-ink text-paper"
+                : "bg-surface text-ink border border-line hover:bg-primary-soft"
+            }`}
+            onClick={() => onSelect("matches")}
+          >
+            <Trophy className="size-4 shrink-0 text-primary-ink" aria-hidden />
+            {tr("⚽ المباريات والليغا")}
+          </button>
+        ) : null}
+      </div>
+
+      {/* Collapsible Structured Groups */}
+      <div className="flex flex-col gap-1.5">
+        {GROUPS.map((g) => {
+          const items = groupItems(g, tabs);
+          if (!items.length) return null;
+          const active = g.keys.includes(section);
+          const isOpen = expanded[g.id] ?? active;
+          const Icon = g.icon;
+
+          return (
+            <div key={g.id} className="rounded-2xl bg-surface/60 p-1">
+              <button
+                type="button"
+                aria-expanded={isOpen}
+                className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-start text-sm font-extrabold transition-colors ${
+                  active ? "bg-brand text-ink shadow-2xs" : "text-ink hover:bg-surface"
+                }`}
+                onClick={() => {
+                  setExpanded((prev) => ({ ...prev, [g.id]: !isOpen }));
+                  if (!isOpen && !active) {
+                    const first = items[0]?.key;
+                    if (first) onSelect(first);
+                  }
+                }}
+              >
+                <Icon className="size-4 shrink-0" aria-hidden />
+                <span className="flex-1 truncate">{trv(g.label)}</span>
+                <ChevronDown
+                  className={`size-4 shrink-0 transition-transform duration-150 ${isOpen ? "rotate-180" : ""}`}
+                  aria-hidden
+                />
+              </button>
+
+              {isOpen ? (
+                <ul className="mt-1 flex flex-col gap-0.5 ps-2 pe-1 pb-1">
+                  {items.map(({ key, label, icon: SubIcon }) => {
+                    const isSubActive = section === key;
+                    return (
+                      <li key={key}>
+                        <button
+                          type="button"
+                          aria-current={isSubActive ? "page" : undefined}
+                          onClick={() => onSelect(key)}
+                          className={`flex w-full items-center gap-2 rounded-xl px-2.5 py-2 text-start text-xs font-bold transition-colors ${
+                            isSubActive
+                              ? "bg-ink text-paper shadow-2xs"
+                              : "text-muted hover:bg-paper hover:text-ink"
+                          }`}
+                        >
+                          <SubIcon className="size-3.5 shrink-0 opacity-80" aria-hidden />
+                          <span className="flex-1 truncate">{trv(label)}</span>
+                          {key === "review" && reviewCount ? (
+                            <span className="rounded-full bg-[#DC2626] px-1.5 py-0.5 text-[10px] font-extrabold text-white">
+                              {reviewCount}
+                            </span>
+                          ) : null}
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              ) : null}
+            </div>
+          );
+        })}
+      </div>
+
+      <button
+        type="button"
+        className="mt-2 flex w-full items-center gap-3 rounded-2xl border border-line px-3 py-2.5 text-start text-xs font-extrabold text-muted transition hover:bg-surface hover:text-ink"
+        onClick={onLogout}
+      >
+        <LogOut className="size-4 shrink-0" aria-hidden />
+        {tr("تسجيل الخروج")}
+      </button>
+    </nav>
+  );
+}
+
+const isDesktop = () => typeof window !== "undefined" && window.matchMedia("(min-width: 1024px)").matches;
+
+
 
 type ManagedMember = {
   id: string;
@@ -2222,6 +2532,15 @@ function AdminPage() {
   const [reviewCount, setReviewCount] = useState<number | null>(null);
   const [level, setLevel] = useState<AdminLevel | null>(null);
   const [perms, setPerms] = useState<string[]>([]);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [sideCollapsed, setSideCollapsed] = useState(false);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setMenuOpen(false);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [menuOpen]);
   const [who, setWho] = useState({ name: "", signedIn: false });
 
   const refresh = useCallback(async () => {
@@ -2297,38 +2616,192 @@ function AdminPage() {
     "sec-add": "moderate_news",
     "sec-manage": "moderate_news",
     "sec-news": "moderate_news",
-    "sec-israel": "moderate_news",
-    "sec-sports": "moderate_news",
-    "sec-tech": "moderate_news",
-    "sec-weather": "moderate_news",
-    auto: "moderate_news",
     reports: "moderate_news",
     comments: "moderate_comments",
     directory: "moderate_directory",
     publish: "write_news",
   };
   const isMod = level === "moderator" && ["moderate_haraj", "moderate_news", "moderate_comments"].some((p) => perms.includes(p));
-  const allowed = allowedSections(level, perms, isMod, TAB_PERM);
-  const current: Section = (allowed.has(section) ? section : ([...allowed][0] as Section | undefined)) ?? "news";
+  const tabs = ALL_TABS.filter(({ key }) =>
+    level === "owner"
+      ? true
+      : level === "writer"
+        ? key === "publish"
+        : key === "home" || key === "review"
+          ? isMod
+          : Boolean(TAB_PERM[key] && perms.includes(TAB_PERM[key]!)),
+  );
+  const visibleGroups = GROUPS.filter((g) => groupItems(g, tabs).length);
+  const current: Section =
+    tabs.some((t) => t.key === section) || visibleGroups.some((g) => `grp-${g.id}` === section) ? section : (tabs[0]?.key ?? "news");
   const go = (k: string) => {
+    const g = k.startsWith("grp-") ? GROUPS.find((x) => `grp-${x.id}` === k) : undefined;
+    if (g) k = groupItems(g, tabs)[0]?.key ?? "home";
     setSection(k as Section);
+    setMenuOpen(false);
     if (typeof window !== "undefined") window.scrollTo({ top: 0 });
   };
+  const landing = undefined as (typeof GROUPS)[number] | undefined;
+  const curGroup = landing ?? GROUPS.find((g) => g.keys.includes(current));
+  const activeTabObj = tabs.find((t) => t.key === current);
   const logout = async () => {
+    setMenuOpen(false);
     await adminLogout();
     setState("login");
   };
 
   return (
-    <AdminChrome
-      level={level ?? "owner"}
-      name={who.name}
-      section={current}
-      allowed={allowed}
-      reviewCount={reviewCount}
-      onGo={go}
-      onLogout={() => void logout()}
-    >
+    <div className="min-h-screen bg-surface text-ink">
+      <div className={`mx-auto max-w-6xl lg:grid lg:gap-6 lg:px-6 lg:py-6 ${sideCollapsed ? "lg:grid-cols-[minmax(0,1fr)]" : "lg:grid-cols-[17.5rem_minmax(0,1fr)]"}`}>
+        <aside className={sideCollapsed ? "hidden" : "hidden lg:block"}>
+          <div className="sticky top-6 flex max-h-[calc(100vh-3rem)] flex-col gap-3 overflow-y-auto rounded-3xl bg-paper p-3.5 shadow-[0_1px_3px_rgba(16,24,40,0.06)]">
+            <div className="flex items-center justify-between px-2 pt-1">
+              <Link to="/" className="flex items-center gap-2 text-sm font-bold text-muted hover:text-ink">
+                <ArrowRight className="size-4 rtl:rotate-0 ltr:rotate-180" aria-hidden />
+                {tr("العودة للموقع")}
+              </Link>
+              <span className="rounded-full bg-primary-soft px-2.5 py-0.5 text-[11px] font-extrabold text-primary-ink">
+                {level === "owner" ? tr("المالك") : level === "moderator" ? tr("مشرف") : tr("كاتب")}
+              </span>
+            </div>
+            <AdminMenu tabs={tabs} section={current} reviewCount={reviewCount} onSelect={go} onLogout={logout} />
+          </div>
+        </aside>
+        <div className="min-w-0 px-4 pb-10 pt-4 lg:px-0 lg:pt-0">
+          {/* Tidy Header Bar */}
+          <header className="mb-4 flex flex-wrap items-center gap-3 rounded-3xl bg-paper p-3.5 shadow-[0_1px_3px_rgba(16,24,40,0.06)]">
+            <button
+              type="button"
+              className="grid size-10 shrink-0 place-items-center rounded-2xl bg-surface hover:bg-primary-soft"
+              aria-label={tr("فتح القائمة")}
+              aria-expanded={menuOpen || (!sideCollapsed && isDesktop())}
+              aria-controls="admin-drawer"
+              onClick={() => (isDesktop() ? setSideCollapsed((v) => !v) : setMenuOpen(true))}
+            >
+              <Menu className="size-5" aria-hidden />
+            </button>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-xs font-bold text-muted">
+                {tr("لوحة تحكم رهط بوست")} {curGroup ? `· ${trv(curGroup.label)}` : ""}
+              </p>
+              <h1 className="truncate text-xl font-extrabold sm:text-2xl">
+                {trv(activeTabObj?.label ?? curGroup?.label ?? "الإدارة")}
+              </h1>
+            </div>
+            <div className="flex items-center gap-2">
+              <LangSwitcher />
+              <span
+                className="grid size-10 shrink-0 place-items-center rounded-full bg-brand text-sm font-extrabold text-ink"
+                title={level === "owner" ? tr("المالك") : who.name}
+                aria-label={level === "owner" ? tr("المالك") : who.name}
+              >
+                {level === "owner" && !who.name ? <BadgeCheck className="size-5" aria-hidden /> : (who.name || "?").slice(0, 1)}
+              </span>
+            </div>
+          </header>
+
+          {/* Always-visible Mobile & Desktop Quick Control Bar */}
+          {level !== "writer" ? (
+            <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-5">
+              <button
+                type="button"
+                onClick={() => go("matches")}
+                className={`flex items-center justify-center gap-2 rounded-2xl px-3 py-3 text-xs font-extrabold shadow-xs transition ${
+                  current === "matches"
+                    ? "bg-ink text-paper ring-2 ring-ink/30"
+                    : "bg-[#DC2626] text-white hover:bg-[#B91C1C]"
+                }`}
+              >
+                <Trophy className="size-4 shrink-0" aria-hidden />
+                <span>{tr("🔴 البث والمباريات")}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => go("sec-add")}
+                className={`flex items-center justify-center gap-2 rounded-2xl px-3 py-3 text-xs font-extrabold shadow-xs transition ${
+                  current === "sec-add"
+                    ? "bg-ink text-paper ring-2 ring-ink/30"
+                    : "bg-brand text-ink hover:opacity-90"
+                }`}
+              >
+                <FolderPlus className="size-4 shrink-0" aria-hidden />
+                <span>{tr("+ إضافة قسم")}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => go("sec-manage")}
+                className={`flex items-center justify-center gap-2 rounded-2xl px-3 py-3 text-xs font-extrabold shadow-xs transition ${
+                  current === "sec-manage"
+                    ? "bg-ink text-paper ring-2 ring-ink/30"
+                    : "border border-line bg-paper text-ink hover:bg-primary-soft"
+                }`}
+              >
+                <LayoutGrid className="size-4 shrink-0" aria-hidden />
+                <span>{tr("إدارة الأقسام")}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => go("publish")}
+                className={`flex items-center justify-center gap-2 rounded-2xl px-3 py-3 text-xs font-extrabold shadow-xs transition ${
+                  current === "publish"
+                    ? "bg-ink text-paper ring-2 ring-ink/30"
+                    : "bg-[#16A34A] text-white hover:bg-[#15803D]"
+                }`}
+              >
+                <PenSquare className="size-4 shrink-0" aria-hidden />
+                <span>{tr("✍️ نشر خبر جديد")}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setMenuOpen(true)}
+                className=" col-span-2 sm:col-span-1 flex items-center justify-center gap-2 rounded-2xl border border-line bg-paper px-3 py-3 text-xs font-extrabold text-ink shadow-xs transition hover:bg-primary-soft lg:hidden"
+              >
+                <Menu className="size-4 shrink-0" aria-hidden />
+                <span>{tr("كل أقسام اللوحة")}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => go("home")}
+                className={`hidden lg:flex items-center justify-center gap-2 rounded-2xl border border-line px-3 py-3 text-xs font-extrabold shadow-xs transition ${
+                  current === "home" ? "bg-ink text-paper" : "bg-paper text-ink hover:bg-primary-soft"
+                }`}
+              >
+                <House className="size-4 shrink-0" aria-hidden />
+                <span>{tr("لوحة المتابعة")}</span>
+              </button>
+            </div>
+          ) : null}
+
+          {level !== "writer" ? (
+            <div className="mb-4">
+              <AdminSearch sections={tabs.map((t) => ({ key: t.key, label: t.label }))} go={go} />
+            </div>
+          ) : null}
+          {curGroup && groupItems(curGroup, tabs).length > 1 ? (
+            <div
+              className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4"
+              role="tablist"
+              aria-label={trv(curGroup.label)}
+            >
+              {groupItems(curGroup, tabs).map(({ key, label, icon: Icon }) => (
+                <button
+                  key={key}
+                  type="button"
+                  role="tab"
+                  aria-selected={current === key}
+                  onClick={() => go(key)}
+                  className={`flex items-center justify-center gap-2 rounded-2xl px-3 py-3 text-xs font-extrabold shadow-xs transition ${
+                    current === key
+                      ? "bg-ink text-paper ring-2 ring-ink/25"
+                      : "border border-line bg-paper text-ink hover:bg-primary-soft"
+                  }`}
+                >
+                  <Icon className="size-4 shrink-0" aria-hidden />
+                  <span className="truncate">{trv(label)}</span>
+                </button>
+              ))}
+            </div>
+          ) : null}
           <CardBoundary key={current}>
           <Suspense fallback={<Skeleton rows={4} />}>
           {current === "home" ? (
@@ -2398,6 +2871,8 @@ function AdminPage() {
               }
               isOwner={level === "owner"}
             />
+          ) : landing ? (
+            <GroupLanding group={landing} tabs={tabs} go={go} />
           ) : current.startsWith("set-") ? (
             <SiteSettingsAdmin key={current} only={current.slice(4) as SiteSettingsPart} />
           ) : current === "sec-add" ? (
@@ -2447,8 +2922,6 @@ function AdminPage() {
             <div className="space-y-6">
               <PasswordAndMembersManager />
             </div>
-          ) : current === "members-blocks" ? (
-            <BlocksAdmin />
           ) : current.startsWith("members-") ? (
             <MembersAdmin key={current} only={current.slice(8) as "list"} />
           ) : current === "comments" ? (
@@ -2542,7 +3015,39 @@ function AdminPage() {
           )}
           </Suspense>
           </CardBoundary>
-    </AdminChrome>
+        </div>
+      </div>
+      <div className={`fixed inset-0 z-50 lg:hidden ${menuOpen ? "" : "pointer-events-none"}`} aria-hidden={!menuOpen}>
+        <button
+          type="button"
+          tabIndex={menuOpen ? 0 : -1}
+          className={`absolute inset-0 h-full w-full bg-black/40 transition-opacity duration-200 ${menuOpen ? "opacity-100" : "opacity-0"}`}
+          aria-label={tr("إغلاق القائمة")}
+          onClick={() => setMenuOpen(false)}
+        />
+        <div
+          id="admin-drawer"
+          role="dialog"
+          aria-modal="true"
+          aria-label={tr("قائمة الإدارة")}
+          className={`absolute inset-y-0 start-0 flex w-72 max-w-[85vw] flex-col gap-3 overflow-y-auto bg-paper p-4 shadow-xl transition-transform duration-200 ${
+            menuOpen ? "translate-x-0" : "ltr:-translate-x-full rtl:translate-x-full"
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <p className="text-lg font-extrabold">{tr("لوحة الإدارة")}</p>
+            <button type="button" className="grid size-9 place-items-center rounded-full bg-surface" aria-label={tr("إغلاق")} onClick={() => setMenuOpen(false)}>
+              <X className="size-5" aria-hidden />
+            </button>
+          </div>
+          {menuOpen ? <AdminMenu tabs={tabs} section={current} reviewCount={reviewCount} onSelect={go} onLogout={logout} /> : null}
+          <Link to="/" className="mt-auto flex items-center gap-2 px-3 pt-2 text-sm font-bold text-muted">
+            <ArrowRight className="size-4 ltr:rotate-180" aria-hidden />
+            {tr("العودة للموقع")}
+          </Link>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -10920,7 +11425,7 @@ function StorePaySettingsAdmin() {
 /* -------------------------------------------------------------------------- */
 /* Helper for Per-Section Homepage Translation ON/OFF stored in siteSettings  */
 /* -------------------------------------------------------------------------- */
-function parseAdminTxSecsMap(quickLinks: SiteSettings["quickLinks"] | undefined): Record<string, boolean> {
+function parseAdminTxSecsMap(quickLinks: SiteSettings["quickLinks"]): Record<string, boolean> {
   const item = (quickLinks ?? []).find((q) => q.id === "txsecscfg");
   const map: Record<string, boolean> = {};
   if (!item?.subtitle) return map;
