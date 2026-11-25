@@ -1,5 +1,7 @@
 import { Component, useEffect, useState, type ReactNode } from "react";
 import { Check, ExternalLink, FolderPlus, LayoutGrid, PenSquare, Rss, Search, Settings, Trophy, X, type LucideIcon } from "lucide-react";
+import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { toast } from "sonner";
 import { tr, trv, getLang } from "@/lib/i18n/core";
 import { adminDashboard, adminReviewQueue, adminSearch, type Dashboard, type ReviewItem, type SearchHit } from "@/lib/admin/dashboard";
 import { adminDecideListing, getAllHarajCategories } from "@/lib/market/api";
@@ -95,24 +97,25 @@ function Bars({ days, values, highlightLast = true }: { days: string[]; values: 
   );
 }
 
-function Line({ days, a, b, la, lb }: { days: string[]; a: number[]; b: number[]; la: string; lb: string }) {
-  const max = Math.max(1, ...a, ...b);
-  const W = 300, H = 110;
-  const pts = (v: number[]) => v.map((x, i) => `${(i / Math.max(1, v.length - 1)) * W},${H - (x / max) * (H - 10) - 5}`).join(" ");
+function Trend({ days, a, b, la, lb }: { days: string[]; a: number[]; b: number[]; la: string; lb: string }) {
+  const rows = days.map((day, i) => ({ day: dayLabel(day), a: a[i] ?? 0, b: b[i] ?? 0 }));
   return (
     <div>
-      <svg viewBox={`0 0 ${W} ${H}`} className="h-32 w-full" preserveAspectRatio="none" aria-hidden>
-        <polyline points={pts(a)} fill="none" stroke="#FDB700" strokeWidth="3" strokeLinejoin="round" strokeLinecap="round" />
-        <polyline points={pts(b)} fill="none" stroke="#263238" strokeWidth="2" strokeDasharray="5 4" strokeLinejoin="round" />
-      </svg>
-      <div className="flex" dir="ltr">
-        {days.map((d) => (
-          <span key={d} className="flex-1 text-center text-[10px] font-semibold text-muted">{dayLabel(d)}</span>
-        ))}
+      <div className="h-44 w-full" dir="ltr">
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart data={rows} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+            <CartesianGrid stroke="var(--color-line)" vertical={false} />
+            <XAxis dataKey="day" tick={{ fontSize: 11, fill: "var(--color-muted)" }} axisLine={false} tickLine={false} />
+            <YAxis allowDecimals={false} width={28} tick={{ fontSize: 11, fill: "var(--color-muted)" }} axisLine={false} tickLine={false} />
+            <Tooltip />
+            <Area type="monotone" dataKey="a" name={la} stroke="var(--color-brand)" fill="var(--color-primary-soft)" strokeWidth={2} />
+            <Area type="monotone" dataKey="b" name={lb} stroke="var(--color-ink)" fill="transparent" strokeWidth={2} />
+          </AreaChart>
+        </ResponsiveContainer>
       </div>
       <div className="mt-2 flex gap-4 text-xs font-semibold">
-        <span className="flex items-center gap-1"><i className="inline-block h-1 w-4 rounded bg-brand" />{la} ({a.reduce((x, y) => x + y, 0)})</span>
-        <span className="flex items-center gap-1"><i className="inline-block h-1 w-4 rounded bg-ink" />{lb} ({b.reduce((x, y) => x + y, 0)})</span>
+        <span className="flex items-center gap-1"><i className="inline-block h-1 w-4 rounded bg-brand" />{la}</span>
+        <span className="flex items-center gap-1"><i className="inline-block h-1 w-4 rounded bg-ink" />{lb}</span>
       </div>
     </div>
   );
@@ -226,11 +229,7 @@ export function DashboardHome({ icons, go }: { icons: Record<string, LucideIcon>
       </div>
       {d.days.length && (d.listings7.length || d.members7.length) ? (
         <CardBoundary><Card title={tr("آخر 7 أيام")}>
-          {d.members7.length ? (
-            <Line days={d.days} a={d.listings7} b={d.members7} la={tr("إعلانات جديدة")} lb={tr("أعضاء جدد")} />
-          ) : (
-            <Bars days={d.days} values={d.listings7} />
-          )}
+          <Trend days={d.days} a={d.listings7} b={d.members7} la={tr("إعلانات جديدة")} lb={tr("أعضاء جدد")} />
         </Card></CardBoundary>
       ) : null}
       {d.visits ? (
@@ -266,6 +265,9 @@ const KIND_BADGE: Record<ReviewItem["type"], { label: string; cls: string }> = {
 export function ReviewQueue({ onCount }: { onCount?: (n: number) => void }) {
   const [items, setItems] = useState<ReviewItem[] | null>(null);
   const [filter, setFilter] = useState<"all" | ReviewItem["type"]>("all");
+  const [q, setQ] = useState("");
+  const [page, setPage] = useState(0);
+  const [pending, setPending] = useState<ReviewItem | null>(null);
   const [busy, setBusy] = useState<string>("");
 
   const load = () => {
@@ -278,7 +280,12 @@ export function ReviewQueue({ onCount }: { onCount?: (n: number) => void }) {
   useEffect(load, []);
 
   if (!items) return <Skeleton rows={3} />;
-  const shown = filter === "all" ? items : items.filter((i) => i.type === filter);
+  const needle = q.trim();
+  const shown = items.filter((i) => (filter === "all" || i.type === filter) && (!needle || `${i.title} ${i.body} ${i.author}`.includes(needle)));
+  const pageSize = 8;
+  const pages = Math.max(1, Math.ceil(shown.length / pageSize));
+  const pageSafe = Math.min(page, pages - 1);
+  const slice = shown.slice(pageSafe * pageSize, pageSafe * pageSize + pageSize);
 
   const act = async (it: ReviewItem, ok: boolean) => {
     const key = `${it.type}:${it.id}`;
@@ -290,6 +297,7 @@ export function ReviewQueue({ onCount }: { onCount?: (n: number) => void }) {
       const next = items.filter((x) => !(x.type === it.type && x.id === it.id));
       setItems(next);
       onCount?.(next.length);
+      toast.success(tr(ok ? "تمت الموافقة" : it.type === "comment" ? "حُذف التعليق" : "تم الرفض"));
     } finally {
       setBusy("");
     }
@@ -297,6 +305,7 @@ export function ReviewQueue({ onCount }: { onCount?: (n: number) => void }) {
 
   return (
     <div className="flex flex-col gap-3">
+      <input type="search" value={q} onChange={(e) => { setQ(e.target.value); setPage(0); }} placeholder={tr("ابحث في طابور المراجعة…")} className="field" />
       <div className="scroll-row gap-2">
         {([
           ["all", `الكل (${items.length})`],
@@ -304,7 +313,7 @@ export function ReviewQueue({ onCount }: { onCount?: (n: number) => void }) {
           ["news", `أخبار القراء (${items.filter((i) => i.type === "news").length})`],
           ["comment", `التعليقات (${items.filter((i) => i.type === "comment").length})`],
         ] as const).map(([k, l]) => (
-          <button key={k} type="button" onClick={() => setFilter(k)} className={filter === k ? "chip chip-ink shrink-0" : "chip shrink-0 bg-paper"}>
+          <button key={k} type="button" onClick={() => { setFilter(k); setPage(0); }} className={filter === k ? "chip chip-ink shrink-0" : "chip shrink-0 bg-paper"}>
             {trv(l)}
           </button>
         ))}
@@ -313,7 +322,7 @@ export function ReviewQueue({ onCount }: { onCount?: (n: number) => void }) {
         <Card><p className="py-6 text-center font-bold text-muted">{tr("لا عناصر بانتظار المراجعة 🎉")}</p></Card>
       ) : (
         <ul className="flex flex-col gap-3">
-          {shown.map((it) => {
+          {slice.map((it) => {
             const key = `${it.type}:${it.id}`;
             const b = KIND_BADGE[it.type];
             return (
@@ -338,7 +347,7 @@ export function ReviewQueue({ onCount }: { onCount?: (n: number) => void }) {
                   <button type="button" disabled={busy === key} onClick={() => act(it, true)} className="flex items-center justify-center gap-1.5 rounded-2xl bg-[#16A34A] py-2.5 text-sm font-bold text-white disabled:opacity-50">
                     <Check className="size-4" /> {tr("موافقة")}
                   </button>
-                  <button type="button" disabled={busy === key} onClick={() => act(it, false)} className="flex items-center justify-center gap-1.5 rounded-2xl bg-[#DC2626] py-2.5 text-sm font-bold text-white disabled:opacity-50">
+                  <button type="button" disabled={busy === key} onClick={() => setPending(it)} className="flex items-center justify-center gap-1.5 rounded-2xl bg-[#DC2626] py-2.5 text-sm font-bold text-white disabled:opacity-50">
                     <X className="size-4" /> {tr(it.type === "comment" ? "حذف" : "رفض")}
                   </button>
                 </div>
@@ -347,6 +356,25 @@ export function ReviewQueue({ onCount }: { onCount?: (n: number) => void }) {
           })}
         </ul>
       )}
+      {pages > 1 ? (
+        <div className="flex items-center justify-between gap-2 text-sm font-bold">
+          <button type="button" className="btn btn-ghost" disabled={pageSafe === 0} onClick={() => setPage(pageSafe - 1)}>{tr("السابق")}</button>
+          <span className="text-muted">{pageSafe + 1} / {pages}</span>
+          <button type="button" className="btn btn-ghost" disabled={pageSafe >= pages - 1} onClick={() => setPage(pageSafe + 1)}>{tr("التالي")}</button>
+        </div>
+      ) : null}
+      {pending ? (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" role="dialog" aria-modal="true">
+          <div className="w-full max-w-sm rounded-2xl bg-paper p-4">
+            <p className="font-extrabold">{tr(pending.type === "comment" ? "حذف هذا التعليق؟" : "رفض هذا العنصر؟")}</p>
+            <p className="mt-1 line-clamp-3 text-sm font-semibold text-muted">{pending.title || pending.body}</p>
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              <button type="button" className="btn btn-ghost" onClick={() => setPending(null)}>{tr("تراجع")}</button>
+              <button type="button" className="btn" onClick={() => { const it = pending; setPending(null); void act(it, false); }}>{tr("تأكيد")}</button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -391,7 +419,7 @@ export function AdminSearch({ sections, go }: { sections: { key: string; label: 
             </button>
           ))}
           {hits.map((h) => (
-            <button key={`${h.type}:${h.id}`} type="button" onClick={() => { go(h.section); setQ(""); }} className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-start text-sm hover:bg-primary-soft">
+            <button key={`${h.type}:${h.id}`} type="button" onClick={() => { go(h.section === "members" ? "members-list" : h.section); setQ(""); }} className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-start text-sm hover:bg-primary-soft">
               <span className="truncate font-semibold">{h.title}</span>
               <span className="ms-2 shrink-0 text-xs text-muted">{h.meta}</span>
             </button>
