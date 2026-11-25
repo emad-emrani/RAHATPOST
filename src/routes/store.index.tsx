@@ -20,7 +20,6 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react";
 import { HomePostCard } from "@/components/guide";
 import { Shell } from "@/components/shell";
-import { HideDigitalStore } from "@/components/store-in-app";
 import {
   ProductCard,
   SectionCover,
@@ -293,14 +292,6 @@ function HorizontalProductSlider({
 }
 
 function StorePage() {
-  return (
-    <HideDigitalStore>
-      <StorePageBody />
-    </HideDigitalStore>
-  );
-}
-
-function StorePageBody() {
   const { products: rawProducts, categories, settings, ok, harajCats } =
     Route.useLoaderData();
   const navigate = useNavigate();

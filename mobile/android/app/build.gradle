@@ -19,13 +19,9 @@ android {
         applicationId "com.rahatpost.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        // Codemagic sets BUILD_NUMBER (1, 2, 3…). A local build without it stays at 1.
-        versionCode (System.getenv("BUILD_NUMBER") ?: "1").toInteger()
+        versionCode 1
         versionName "1.0.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
-        ndk {
-            abiFilters 'armeabi-v7a', 'arm64-v8a'
-        }
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
              // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
@@ -47,8 +43,6 @@ android {
             if (keystoreProps['storeFile']) {
                 signingConfig signingConfigs.release
             }
-            // R8 stays off: this is a WebView shell, and shrinking the Capacitor bridge
-            // without a device test can blank the app. Play does not require minify.
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }

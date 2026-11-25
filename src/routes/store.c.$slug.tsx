@@ -1,6 +1,5 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { Shell } from "@/components/shell";
-import { HideDigitalStore } from "@/components/store-in-app";
 import { Breadcrumbs, ProductCard, SectionCover, SectionTile } from "@/components/store-parts";
 import { getStoreSection } from "@/lib/store/api";
 import { seo } from "@/lib/seo";
@@ -40,14 +39,6 @@ export const Route = createFileRoute("/store/c/$slug")({
 });
 
 function SectionPage() {
-  return (
-    <HideDigitalStore>
-      <SectionPageBody />
-    </HideDigitalStore>
-  );
-}
-
-function SectionPageBody() {
   const { section, parent, children, products: rawProducts, settings } = Route.useLoaderData();
   const products = (rawProducts ?? []).filter((p) => p.slug !== "hub-cfg-main" && !p.slug.startsWith("offer-"));
   if (!section) return null;

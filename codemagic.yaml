@@ -40,15 +40,13 @@ workflows:
         script: cd mobile/ios/App && pod install
       - name: Use the App Store provisioning profile
         script: xcode-project use-profiles
-      - name: Build number = latest TestFlight build + 1 (never reuse 1.0.0 build 6, already in review)
+      - name: Build number = latest TestFlight build + 1 (or Codemagic's counter)
         script: |
-          FLOOR=7
-          NEXT="${BUILD_NUMBER:-$FLOOR}"
+          NEXT="$BUILD_NUMBER"
           if [ -n "$APP_STORE_APPLE_ID" ]; then
             LATEST=$(app-store-connect get-latest-testflight-build-number "$APP_STORE_APPLE_ID" || echo 0)
             NEXT=$((LATEST + 1))
           fi
-          if [ "$NEXT" -lt "$FLOOR" ]; then NEXT=$FLOOR; fi
           cd mobile/ios/App && agvtool new-version -all "$NEXT"
       - name: Build IPA
         script: |
@@ -88,6 +86,6 @@ workflows:
           PROPS
           echo "RAHATPOST_KEYSTORE_PROPERTIES=$CM_BUILD_DIR/keystore.properties" >> "$CM_ENV"
       - name: Build AAB
-        script: cd mobile/android && bash ./gradlew bundleRelease
+        script: cd mobile/android && ./gradlew bundleRelease
     artifacts:
       - mobile/android/app/build/outputs/bundle/release/*.aab

@@ -7,7 +7,6 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:usesCleartextTraffic="false"
-        android:networkSecurityConfig="@xml/network_security_config"
         android:theme="@style/AppTheme">
         <!-- Google Mobile Ads SDK (AdMob) Application ID & Optimization Flags -->
         <meta-data
@@ -82,8 +81,6 @@
          it; the WebView prompt is bridged to the Android runtime permission. Never in background. -->
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-    <!-- Photo capture for classifieds / news. Gallery picking uses the system photo picker and needs no storage permission. -->
-    <uses-permission android:name="android.permission.CAMERA" />
     <uses-feature android:name="android.hardware.location.gps" android:required="false" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
 </manifest>
