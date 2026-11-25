@@ -26,7 +26,7 @@ import { useEffect, useMemo, useRef, type CSSProperties } from "react";
 import { AuthProvider } from "@/lib/auth/provider";
 import { getNativeShell } from "@/lib/auth/api";
 import { isDigitalStoreHref, NativeShellProvider, useNativeShell } from "@/components/native-shell";
-import { isArtFashionNav } from "@/lib/site-settings/types";
+import { isArtFashionNav, isHomeStoreVisible } from "@/lib/site-settings/types";
 import { PreviewHostBridge } from "@/components/preview-host-bridge";
 import { ServiceWorkerRegistration } from "@/components/install-app";
 import { SiteAnalytics } from "@/components/analytics";
@@ -205,7 +205,9 @@ function GlobalCustomBottomBar() {
   }, [cssItem]);
 
   const shownBtns = btns.filter(
-    (item) => !isArtFashionNav(item) && !(nativeShell && isDigitalStoreHref(item.to)),
+    (item) =>
+      !isArtFashionNav(item) &&
+      !((nativeShell || !isHomeStoreVisible(st.quickLinks)) && isDigitalStoreHref(item.to)),
   );
 
   if (isSystemScreen) return null;

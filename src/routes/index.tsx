@@ -4,15 +4,19 @@ import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from "
 import { useSiteSettings } from "@/lib/site-settings/context";
 import {
   isArtFashionNav,
+  isHomeStoreVisible,
   isInternalQuickLinkConfig,
   parseDirectoryHub,
-  parseEmergencyNumbers,
   type HomeSectionId,
 } from "@/lib/site-settings/types";
 import { isDigitalStoreHref, useNativeShell } from "@/components/native-shell";
+import {
+  InteractiveEmergencyHomeSection,
+  InteractiveGalimBusesHomeSection,
+  InteractiveRahatServicesHub,
+} from "@/components/home-showcase";
 import { AdSlots } from "@/components/google-services";
 import { NewsImage } from "@/components/news-image";
-import { HomePostCard } from "@/components/guide";
 import { getGuide } from "@/data/guides";
 import { CommentCount } from "@/components/comment-count";
 import { HomeCarousel, HomeTiles, QuickLinks, type SectionSlide } from "@/components/home-parts";
@@ -33,7 +37,6 @@ import { newsByline, relativeTimeAr, useNow } from "@/lib/news/format";
 import type { IsraelNewsItem, IsraelNewsResult, NewsItem } from "@/lib/news/types";
 import { getIsraelNews } from "@/lib/news/israel-api";
 import { IsraelNewsCredit, IsraelNewsLead, IsraelNewsRow, IsraelTitle } from "@/components/israel-news";
-import { emergency } from "@/data/content";
 import { getListings } from "@/lib/market/api";
 import { priceLabel } from "@/lib/market/types";
 import { getStore } from "@/lib/store/api";
@@ -231,9 +234,8 @@ function Home() {
 
   const settings = useSiteSettings();
   const nativeShell = useNativeShell();
+  const showHomeStore = isHomeStoreVisible(settings.quickLinks);
   const dirHub = parseDirectoryHub(settings.quickLinks);
-  const configuredEmergency = parseEmergencyNumbers(settings.quickLinks);
-  const emergencyItems = configuredEmergency.length ? configuredEmergency : emergency;
   const visibleCustomSections = useMemo(() => {
     const out: {
       id: string;
@@ -345,7 +347,7 @@ function Home() {
     }
 
     // 3. Also discover any custom section present in topbarcfg or slidercfg (/csec~.../) or default "فن و موضة"
-    const extraCustomNames = new Set<string>(["فن و موضة"]);
+    const extraCustomNames = new Set<string>();
     const topCfg = (settings.quickLinks ?? []).find((q) => q.id === "topbarcfg");
     if (topCfg && topCfg.url.startsWith("/__top?")) {
       const labels = (topCfg.subtitle ?? "").split("|");
@@ -754,7 +756,7 @@ function Home() {
     post: postGuide ? (
       <section>
         <SectionTitle title={tr("دليل البريد والخدمات في رهط")} to="/directory/guide/$guide" params={{ guide: "post" }} more={tr("الدليل الكامل")} />
-        <HomePostCard guide={postGuide} />
+        <InteractiveRahatServicesHub now={now} />
       </section>
     ) : null,
     install: (
@@ -763,26 +765,10 @@ function Home() {
         <NotifyPrompt />
       </>
     ),
-    buses: (
-      <section>
-        <SectionTitle title={tr("باصات غاليم")} to="/buses" more={tr("كل المواعيد")} />
-        <Link to="/buses" className="stamp press flex items-center gap-3 p-4">
-          <span className="icon-badge">
-            <Bus className="size-6" aria-hidden />
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="block font-bold">{tr("خطوط المدينة 1 حتى 6، وبئر السبع وما حولها")}</span>
-            <span className="text-sm font-semibold text-muted">
-              {tr("شركة גלים · أوقات مباشرة وجدول اليوم")}
-            </span>
-          </span>
-          <ChevronLeft className="size-5 text-muted" aria-hidden />
-        </Link>
-      </section>
-    ),
+    buses: <InteractiveGalimBusesHomeSection />,
     directory: (
       <>
-        {!nativeShell && store.products.filter((p) => p.slug !== "hub-cfg-main" && !p.slug.startsWith("offer-")).length ? (
+        {showHomeStore && !nativeShell && store.products.filter((p) => p.slug !== "hub-cfg-main" && !p.slug.startsWith("offer-")).length ? (
           <section>
             <SectionTitle title={tr("من المتجر الرسمي")} to="/store" more={tr("كل المتجر")} />
             <ul className="scroll-row -mx-4 px-4 pb-2 sm:mx-0 sm:px-0">
@@ -839,23 +825,7 @@ function Home() {
       </section>
     ),
     duty: board.dutyVisible === false ? null : <DutyCard duty={board.duty} />,
-    emergency: (
-      <section>
-        <SectionTitle title={tr("أرقام الطوارئ في رهط")} to="/today" more={tr("كل الأرقام")} />
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {emergencyItems.slice(0, 4).map((item) => (
-            <a
-              key={item.phone}
-              href={`tel:${item.phone}`}
-              className="stamp press flex flex-col items-center px-3 py-3.5 text-center"
-            >
-              <span className="text-2xl font-extrabold leading-none text-primary-ink">{trv(item.phone)}</span>
-              <span className="mt-1.5 text-sm font-bold">{trv(item.name)}</span>
-            </a>
-          ))}
-        </div>
-      </section>
-    ),
+    emergency: <InteractiveEmergencyHomeSection />,
   };
 
   // Build the homepage section order from slidercfg (/hord) + settings.home + all visibleCustomSections
@@ -3436,7 +3406,7 @@ function HomeTilesBar({
   const combined = configuredList.filter((t) => {
     const blob = `${t.label} ${t.to}`.toLowerCase();
     if (/dirhubcfg|showcase|busemergcfg/.test(blob)) return false;
-    if (nativeShell && isDigitalStoreHref(t.to)) return false;
+    if ((nativeShell || !isHomeStoreVisible(st.quickLinks)) && isDigitalStoreHref(t.to)) return false;
     return true;
   });
 
@@ -3486,8 +3456,13 @@ function HomeTilesBar({
 }
 
 function HomeQuickLinks() {
-  const links = (useSiteSettings().quickLinks ?? []).filter(
-    (l) => !isInternalQuickLinkConfig(l) && l.subtitle !== " مَخفي",
+  const settings = useSiteSettings();
+  const showHomeStore = isHomeStoreVisible(settings.quickLinks);
+  const links = (settings.quickLinks ?? []).filter(
+    (l) =>
+      !isInternalQuickLinkConfig(l) &&
+      l.subtitle !== " مَخفي" &&
+      (showHomeStore || !isDigitalStoreHref(l.url)),
   );
   if (!links.length) return null;
   return (
@@ -3765,7 +3740,9 @@ function CustomBottomBar() {
   }, [cssItem]);
 
   const shownBtns = btns.filter(
-    (item) => !isArtFashionNav(item) && !(nativeShell && isDigitalStoreHref(item.to)),
+    (item) =>
+      !isArtFashionNav(item) &&
+      !((nativeShell || !isHomeStoreVisible(st.quickLinks)) && isDigitalStoreHref(item.to)),
   );
 
   if (style === "hidden") {

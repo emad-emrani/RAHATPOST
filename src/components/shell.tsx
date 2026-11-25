@@ -11,6 +11,7 @@ import { cartCount, useCart } from "@/lib/store/cart";
 import { tr, trv } from "@/lib/i18n/core";
 import { AnnounceBar } from "@/components/announce-bar";
 import { isDigitalStoreHref, useNativeShell } from "@/components/native-shell";
+import { isHomeStoreVisible } from "@/lib/site-settings/types";
 
 const NAV = [
   { to: "/", label: "الرئيسية", icon: House, exact: true },
@@ -26,12 +27,13 @@ const NAV = [
 export function Shell({ children, wide = false }: { children: ReactNode; wide?: boolean }) {
   const st = useSiteSettings();
   const nativeShell = useNativeShell();
+  const showHomeStore = isHomeStoreVisible(st.quickLinks);
   const t = st.texts;
   const nav = st.nav
     .filter((n) => n.visible)
     .map((n) => NAV.find((x) => x.to === n.id))
     .filter((x): x is (typeof NAV)[number] => Boolean(x))
-    .filter((x) => !(nativeShell && isDigitalStoreHref(x.to)));
+    .filter((x) => !((nativeShell || !showHomeStore) && isDigitalStoreHref(x.to)));
 
   // Keep mobile bottom bar comfortable with the 5 most essential destinations
   const mobilePriority = ["/", "/news", "/social", "/today", "/buses", "/directory", "/haraj"];
@@ -140,7 +142,7 @@ export function Shell({ children, wide = false }: { children: ReactNode; wide?: 
                 { kw: "مدينة رهط بوست التفاعلية 3D", to: "/city" as const },
                 { kw: "لوحة اليوم وطقس رهط", to: "/today" as const },
                 { kw: "أوقات الصلاة وصيدلية المناوبة رهط", to: "/today" as const },
-                ...(nativeShell ? [] : [{ kw: "متجر رهط بوست", to: "/store" as const }]),
+                ...(nativeShell || !showHomeStore ? [] : [{ kw: "متجر رهط بوست", to: "/store" as const }]),
               ].map((tag) => (
                 <Link
                   key={tag.kw}
@@ -277,8 +279,9 @@ export function SectionTitle({
 
 function CartButton() {
   const nativeShell = useNativeShell();
+  const showHomeStore = isHomeStoreVisible(useSiteSettings().quickLinks);
   const n = cartCount(useCart());
-  if (nativeShell || !n) return null;
+  if (nativeShell || !showHomeStore || !n) return null;
   return (
     <Link to="/cart" className="btn btn-ghost relative size-11 shrink-0 p-0" aria-label={tr("السلة ({0})", n)}>
       <ShoppingCart className="size-5" aria-hidden />
