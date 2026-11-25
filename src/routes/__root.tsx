@@ -31,6 +31,8 @@ import appCss from "../styles.css?url";
 import { GoogleServices } from "@/components/google-services";
 import { getSiteSettings } from "@/lib/site-settings/api";
 import { SiteSettingsProvider, useSiteSettings } from "@/lib/site-settings/context";
+import { isDigitalStoreHref, NativeShellProvider, useNativeShell } from "@/components/native-shell";
+import { getNativeShell } from "@/lib/auth/api";
 import { DEFAULT_ADSENSE_PUB, DEFAULT_SETTINGS, themeCss } from "@/lib/site-settings/types";
 import { mediaUrl } from "@/lib/media/types";
 import { getI18n } from "@/lib/i18n/api";
@@ -120,6 +122,7 @@ function trSecLabel(raw: string): string {
 
 function GlobalCustomBottomBar() {
   const st = useSiteSettings();
+  const nativeShell = useNativeShell();
   const location = useLocation();
   const pathname = location.pathname || "/";
 
@@ -256,7 +259,7 @@ function GlobalCustomBottomBar() {
         aria-label={tr("التنقل السفلي")}
       >
         <div className="mx-auto flex max-w-xl items-center justify-around">
-          {btns.map((item, idx) => {
+          {(nativeShell ? btns.filter((item) => !isDigitalStoreHref(item.to)) : btns).map((item, idx) => {
             const Icon = BOT_ICON_MAP[item.icon] ?? House;
             const hasQuery = item.to.includes("?q=");
             const linkTo = (hasQuery ? item.to.split("?q=")[0] || "/" : item.to) as "/";
@@ -405,7 +408,8 @@ export const Route = createRootRoute({
       getI18n({ data: want }).catch(() => ARABIC_STATE),
     ]);
     setI18nState(i18n);
-    return { settings, i18n };
+    const nativeShell = await getNativeShell().catch(() => false);
+    return { settings, i18n, nativeShell };
   },
   staleTime: 30_000,
   shouldReload: false,
@@ -614,7 +618,7 @@ function GoogleMobileAdsBridge({
 }
 
 function RootComponent() {
-  const { settings, i18n } = Route.useLoaderData();
+  const { settings, i18n, nativeShell } = Route.useLoaderData();
   const location = useLocation();
   const pathname = location.pathname || "/";
   setI18nState(i18n);
@@ -659,6 +663,7 @@ function RootComponent() {
           <amp-auto-ads type="adsense" data-ad-client={adsensePub} />
         ) : null}
         <SiteSettingsProvider value={settings}>
+          <NativeShellProvider value={Boolean(nativeShell)}>
           <PreviewHostBridge />
           <ServiceWorkerRegistration />
           <GoogleMobileAdsBridge
@@ -672,6 +677,7 @@ function RootComponent() {
           </AuthProvider>
           <SiteAnalytics />
           {allowAdsOnPage ? <GoogleServices /> : null}
+          </NativeShellProvider>
         </SiteSettingsProvider>
         <Scripts />
       </body>
