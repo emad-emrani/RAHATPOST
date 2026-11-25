@@ -152,6 +152,9 @@ export function Shell({ children, wide = false }: { children: ReactNode; wide?: 
 
           <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-3 text-xs">
             <nav className="flex flex-wrap gap-x-4 gap-y-1" aria-label={tr("روابط الموقع")}>
+              <Link to="/support" className="underline-offset-4 hover:underline">
+                {tr("الدعم والمساعدة")}
+              </Link>
               <Link to="/privacy" className="underline-offset-4 hover:underline">
                 {tr("سياسة الخصوصية")}
               </Link>

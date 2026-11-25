@@ -111,6 +111,7 @@ async function entries(): Promise<Entry[]> {
       priority: 0.8,
     })),
     { path: "/app", changefreq: "monthly", priority: 0.4 },
+    { path: "/support", changefreq: "yearly", priority: 0.3 },
     { path: "/privacy", changefreq: "yearly", priority: 0.2 },
     { path: "/terms", changefreq: "yearly", priority: 0.2 },
     ...staffNews.map((n) => ({

@@ -15,6 +15,8 @@ import { Route as AdsDottxtRouteImport } from './routes/ads[.]txt'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as BusesRouteImport } from './routes/buses'
 import { Route as CartRouteImport } from './routes/cart'
+import { Route as CityRouteImport } from './routes/city'
+import { Route as ContactRouteImport } from './routes/contact'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as MyAdsRouteImport } from './routes/my-ads'
 import { Route as MyOrdersRouteImport } from './routes/my-orders'
@@ -23,11 +25,11 @@ import { Route as NewsSitemapDotxmlRouteImport } from './routes/news-sitemap[.]x
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as SocialRouteImport } from './routes/social'
 import { Route as SubmitRouteImport } from './routes/submit'
+import { Route as SupportRouteImport } from './routes/support'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as TodayRouteImport } from './routes/today'
-import { Route as SocialRouteImport } from './routes/social'
-import { Route as CityRouteImport } from './routes/city'
 import { Route as DotwellKnownAppleAppSiteAssociationRouteImport } from './routes/[.]well-known.apple-app-site-association'
 import { Route as DotwellKnownAssetlinksDotjsonRouteImport } from './routes/[.]well-known.assetlinks[.]json'
 import { Route as AdsIndexRouteImport } from './routes/ads.index'
@@ -92,6 +94,16 @@ const CartRoute = CartRouteImport.update({
   path: '/cart',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CityRoute = CityRouteImport.update({
+  id: '/city',
+  path: '/city',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ContactRoute = ContactRouteImport.update({
+  id: '/contact',
+  path: '/contact',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -132,9 +144,19 @@ const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   path: '/sitemap.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SocialRoute = SocialRouteImport.update({
+  id: '/social',
+  path: '/social',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SubmitRoute = SubmitRouteImport.update({
   id: '/submit',
   path: '/submit',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SupportRoute = SupportRouteImport.update({
+  id: '/support',
+  path: '/support',
   getParentRoute: () => rootRouteImport,
 } as any)
 const TermsRoute = TermsRouteImport.update({
@@ -145,16 +167,6 @@ const TermsRoute = TermsRouteImport.update({
 const TodayRoute = TodayRouteImport.update({
   id: '/today',
   path: '/today',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SocialRoute = SocialRouteImport.update({
-  id: '/social',
-  path: '/social',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CityRoute = CityRouteImport.update({
-  id: '/city',
-  path: '/city',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DotwellKnownAppleAppSiteAssociationRoute =
@@ -332,6 +344,8 @@ export interface FileRoutesByFullPath {
   '/app': typeof AppRoute
   '/buses': typeof BusesRoute
   '/cart': typeof CartRoute
+  '/city': typeof CityRoute
+  '/contact': typeof ContactRoute
   '/login': typeof LoginRoute
   '/my-ads': typeof MyAdsRoute
   '/my-orders': typeof MyOrdersRoute
@@ -340,11 +354,11 @@ export interface FileRoutesByFullPath {
   '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/social': typeof SocialRoute
   '/submit': typeof SubmitRoute
+  '/support': typeof SupportRoute
   '/terms': typeof TermsRoute
   '/today': typeof TodayRoute
-  '/social': typeof SocialRoute
-  '/city': typeof CityRoute
   '/.well-known/apple-app-site-association': typeof DotwellKnownAppleAppSiteAssociationRoute
   '/.well-known/assetlinks.json': typeof DotwellKnownAssetlinksDotjsonRoute
   '/ads/$id': typeof AdsIdRoute
@@ -386,6 +400,8 @@ export interface FileRoutesByTo {
   '/app': typeof AppRoute
   '/buses': typeof BusesRoute
   '/cart': typeof CartRoute
+  '/city': typeof CityRoute
+  '/contact': typeof ContactRoute
   '/login': typeof LoginRoute
   '/my-ads': typeof MyAdsRoute
   '/my-orders': typeof MyOrdersRoute
@@ -394,11 +410,11 @@ export interface FileRoutesByTo {
   '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/social': typeof SocialRoute
   '/submit': typeof SubmitRoute
+  '/support': typeof SupportRoute
   '/terms': typeof TermsRoute
   '/today': typeof TodayRoute
-  '/social': typeof SocialRoute
-  '/city': typeof CityRoute
   '/.well-known/apple-app-site-association': typeof DotwellKnownAppleAppSiteAssociationRoute
   '/.well-known/assetlinks.json': typeof DotwellKnownAssetlinksDotjsonRoute
   '/ads/$id': typeof AdsIdRoute
@@ -441,6 +457,8 @@ export interface FileRoutesById {
   '/app': typeof AppRoute
   '/buses': typeof BusesRoute
   '/cart': typeof CartRoute
+  '/city': typeof CityRoute
+  '/contact': typeof ContactRoute
   '/login': typeof LoginRoute
   '/my-ads': typeof MyAdsRoute
   '/my-orders': typeof MyOrdersRoute
@@ -449,11 +467,11 @@ export interface FileRoutesById {
   '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/social': typeof SocialRoute
   '/submit': typeof SubmitRoute
+  '/support': typeof SupportRoute
   '/terms': typeof TermsRoute
   '/today': typeof TodayRoute
-  '/social': typeof SocialRoute
-  '/city': typeof CityRoute
   '/.well-known/apple-app-site-association': typeof DotwellKnownAppleAppSiteAssociationRoute
   '/.well-known/assetlinks.json': typeof DotwellKnownAssetlinksDotjsonRoute
   '/ads/$id': typeof AdsIdRoute
@@ -497,6 +515,8 @@ export interface FileRouteTypes {
     | '/app'
     | '/buses'
     | '/cart'
+    | '/city'
+    | '/contact'
     | '/login'
     | '/my-ads'
     | '/my-orders'
@@ -505,11 +525,11 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/reset-password'
     | '/sitemap.xml'
+    | '/social'
     | '/submit'
+    | '/support'
     | '/terms'
     | '/today'
-    | '/social'
-    | '/city'
     | '/.well-known/apple-app-site-association'
     | '/.well-known/assetlinks.json'
     | '/ads/$id'
@@ -551,6 +571,8 @@ export interface FileRouteTypes {
     | '/app'
     | '/buses'
     | '/cart'
+    | '/city'
+    | '/contact'
     | '/login'
     | '/my-ads'
     | '/my-orders'
@@ -559,11 +581,11 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/reset-password'
     | '/sitemap.xml'
+    | '/social'
     | '/submit'
+    | '/support'
     | '/terms'
     | '/today'
-    | '/social'
-    | '/city'
     | '/.well-known/apple-app-site-association'
     | '/.well-known/assetlinks.json'
     | '/ads/$id'
@@ -605,6 +627,8 @@ export interface FileRouteTypes {
     | '/app'
     | '/buses'
     | '/cart'
+    | '/city'
+    | '/contact'
     | '/login'
     | '/my-ads'
     | '/my-orders'
@@ -613,11 +637,11 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/reset-password'
     | '/sitemap.xml'
+    | '/social'
     | '/submit'
+    | '/support'
     | '/terms'
     | '/today'
-    | '/social'
-    | '/city'
     | '/.well-known/apple-app-site-association'
     | '/.well-known/assetlinks.json'
     | '/ads/$id'
@@ -660,6 +684,8 @@ export interface RootRouteChildren {
   AppRoute: typeof AppRoute
   BusesRoute: typeof BusesRoute
   CartRoute: typeof CartRoute
+  CityRoute: typeof CityRoute
+  ContactRoute: typeof ContactRoute
   LoginRoute: typeof LoginRoute
   MyAdsRoute: typeof MyAdsRoute
   MyOrdersRoute: typeof MyOrdersRoute
@@ -668,11 +694,11 @@ export interface RootRouteChildren {
   PrivacyRoute: typeof PrivacyRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  SocialRoute: typeof SocialRoute
   SubmitRoute: typeof SubmitRoute
+  SupportRoute: typeof SupportRoute
   TermsRoute: typeof TermsRoute
   TodayRoute: typeof TodayRoute
-  SocialRoute: typeof SocialRoute
-  CityRoute: typeof CityRoute
   DotwellKnownAppleAppSiteAssociationRoute: typeof DotwellKnownAppleAppSiteAssociationRoute
   DotwellKnownAssetlinksDotjsonRoute: typeof DotwellKnownAssetlinksDotjsonRoute
   AdsIdRoute: typeof AdsIdRoute
@@ -752,6 +778,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CartRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/city': {
+      id: '/city'
+      path: '/city'
+      fullPath: '/city'
+      preLoaderRoute: typeof CityRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/contact': {
+      id: '/contact'
+      path: '/contact'
+      fullPath: '/contact'
+      preLoaderRoute: typeof ContactRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
@@ -808,11 +848,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SitemapDotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/social': {
+      id: '/social'
+      path: '/social'
+      fullPath: '/social'
+      preLoaderRoute: typeof SocialRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/submit': {
       id: '/submit'
       path: '/submit'
       fullPath: '/submit'
       preLoaderRoute: typeof SubmitRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/support': {
+      id: '/support'
+      path: '/support'
+      fullPath: '/support'
+      preLoaderRoute: typeof SupportRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/terms': {
@@ -827,20 +881,6 @@ declare module '@tanstack/react-router' {
       path: '/today'
       fullPath: '/today'
       preLoaderRoute: typeof TodayRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/social': {
-      id: '/social'
-      path: '/social'
-      fullPath: '/social'
-      preLoaderRoute: typeof SocialRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/city': {
-      id: '/city'
-      path: '/city'
-      fullPath: '/city'
-      preLoaderRoute: typeof CityRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/.well-known/apple-app-site-association': {
@@ -1084,6 +1124,8 @@ const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRoute,
   BusesRoute: BusesRoute,
   CartRoute: CartRoute,
+  CityRoute: CityRoute,
+  ContactRoute: ContactRoute,
   LoginRoute: LoginRoute,
   MyAdsRoute: MyAdsRoute,
   MyOrdersRoute: MyOrdersRoute,
@@ -1092,11 +1134,11 @@ const rootRouteChildren: RootRouteChildren = {
   PrivacyRoute: PrivacyRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  SocialRoute: SocialRoute,
   SubmitRoute: SubmitRoute,
+  SupportRoute: SupportRoute,
   TermsRoute: TermsRoute,
   TodayRoute: TodayRoute,
-  SocialRoute: SocialRoute,
-  CityRoute: CityRoute,
   DotwellKnownAppleAppSiteAssociationRoute:
     DotwellKnownAppleAppSiteAssociationRoute,
   DotwellKnownAssetlinksDotjsonRoute: DotwellKnownAssetlinksDotjsonRoute,

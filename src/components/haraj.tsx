@@ -1,6 +1,9 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useRouter } from "@tanstack/react-router";
 import { ImageOff, UserRound } from "lucide-react";
 import { useEffect, useState } from "react";
+import { ReportButton } from "@/components/report";
+import { useCurrentUserState } from "@/lib/auth/use-current-user";
+import { blockListingSeller } from "@/lib/market/api";
 import { PhotoPicker } from "@/components/photo-picker";
 import { tr, trv } from "@/lib/i18n/core";
 import { MAX_AD_PHOTOS, mediaUrl } from "@/lib/media/types";
@@ -46,7 +49,8 @@ export function SellerCard({ seller }: { seller: Seller }) {
 
 export function ListingCard({ item }: { item: Listing }) {
   return (
-    <Link to="/haraj/$id" params={{ id: item.id }} className="stamp press relative block overflow-hidden">
+    <article className="stamp relative overflow-hidden">
+    <Link to="/haraj/$id" params={{ id: item.id }} className="press relative block overflow-hidden">
       <div className="relative aspect-square bg-surface">
         {item.photos[0] ? (
           <img src={mediaUrl(item.photos[0])} alt="" className="size-full object-cover" loading="lazy" decoding="async" />
@@ -76,6 +80,42 @@ export function ListingCard({ item }: { item: Listing }) {
         </p>
       </div>
     </Link>
+      <div className="border-t border-line px-2 py-1">
+        <ReportButton type="ad" id={item.id} label={tr("إبلاغ عن إعلان")} compact />
+      </div>
+    </article>
+  );
+}
+
+/** Signed-in viewers can hide this seller's listings from their own screens. */
+export function BlockSellerButton({ sellerId }: { sellerId: string }) {
+  const { user, isPending } = useCurrentUserState();
+  const router = useRouter();
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+  if (isPending || !user || user.id === sellerId) return null;
+  return (
+    <div className="mt-3">
+      <button
+        type="button"
+        className="text-sm font-bold text-muted underline-offset-4 hover:underline"
+        disabled={busy}
+        onClick={async () => {
+          if (!confirm(tr("إخفاء كل إعلانات هذا العضو عنك؟ يمكنك ما زلت تبلغ الإدارة عن إعلان معيّن."))) return;
+          setBusy(true);
+          const res = await blockListingSeller({ data: { id: sellerId } });
+          setBusy(false);
+          if (!res.ok) {
+            setMsg(res.message ?? tr("تعذّر الإخفاء."));
+            return;
+          }
+          await router.navigate({ to: "/haraj" });
+        }}
+      >
+        {busy ? tr("جاري الإخفاء…") : tr("إخفاء إعلانات هذا العضو")}
+      </button>
+      {msg ? <p className="mt-1 text-sm font-bold text-red-700">{msg}</p> : null}
+    </div>
   );
 }
 
@@ -193,6 +233,11 @@ export function ListingForm({ cats, initial, submitLabel, onSubmit }: FormProps)
       </label>
       <input type="text" name="website" tabIndex={-1} autoComplete="off" className="hidden" aria-hidden />
       {error ? <p className="font-bold text-red-700" role="alert">{error}</p> : null}
+      <p className="text-sm font-semibold text-muted">
+        {tr("بالنشر أنت توافق على")}{" "}
+        <Link to="/terms" className="underline">{tr("شروط الاستخدام")}</Link>
+        {tr(". المحتوى المسيء أو غير القانوني يُحذف، ويمكن لأي زائر الإبلاغ عنه.")}
+      </p>
       <button className="btn btn-primary" disabled={busy}>{busy ? tr("جاري الإرسال…") : submitLabel}</button>
       <p className="text-sm font-semibold text-muted">{tr("يظهر الإعلان بعد مراجعة الإدارة، ويبقى 60 يوماً ويمكن تجديده.")}</p>
     </form>
