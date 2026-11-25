@@ -14,6 +14,7 @@ import {
   Receipt,
   TriangleAlert,
 } from "lucide-react";
+import { MapChoices } from "@/components/map-links";
 import type { Guide, GuideBlock, GuideBranch, GuideLink, GuideSection } from "@/data/guides/types";
 import { guides } from "@/data/guides";
 import { tr, trv } from "@/lib/i18n/core";
@@ -244,11 +245,8 @@ export function BranchCard({ branch }: { branch: GuideBranch }) {
           ) : null}
         </p>
       ) : null}
+      <MapChoices googleUrl={branch.directionsUrl} />
       <div className="grid grid-cols-2 gap-2">
-        <a className="btn" href={branch.directionsUrl} target="_blank" rel="noopener noreferrer">
-          <MapPin className="size-4" aria-hidden />
-          {tr("الاتجاهات")}
-        </a>
         {branch.appointmentUrl ? (
           <a
             className="btn btn-ghost"

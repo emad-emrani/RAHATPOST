@@ -264,6 +264,12 @@
 	<string>لاختيار صور تضيفها إلى إعلانك أو خبرك أو نشاطك. — To pick photos for your ad, news post or business listing.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>لتصوير صورة تضيفها إلى إعلانك أو خبرك أو نشاطك. — To take a photo for your ad, news post or business listing.</string>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>maps</string>
+		<string>comgooglemaps</string>
+		<string>waze</string>
+	</array>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>

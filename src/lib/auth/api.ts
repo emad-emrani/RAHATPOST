@@ -17,17 +17,23 @@ export const getAuthConfig = createServerFn({ method: "GET" }).handler(async () 
   const { getAuthMethods } = await import("./settings.server");
   const m = await getAuthMethods();
   let nativeShell = false;
+  let iosApp = false;
   try {
-    nativeShell = /RahatPostApp\//.test(getRequest()?.headers.get("user-agent") ?? "");
+    const ua = getRequest()?.headers.get("user-agent") ?? "";
+    nativeShell = /RahatPostApp\//.test(ua);
+    iosApp = nativeShell && !/Android/i.test(ua);
   } catch {
     nativeShell = false;
+    iosApp = false;
   }
   return {
     ...authProviders,
     google: authProviders.google && m.google,
     facebook: authProviders.facebook && m.facebook,
     email: m.email,
-    /** Capacitor store app. Guideline 4.8: no Google/Facebook button unless Apple is offered too. */
+    /** Capacitor store app. */
     nativeShell,
+    /** iPhone/iPad wrapper. Google and Facebook stay hidden here unless Apple is shown. */
+    iosApp,
   };
 });

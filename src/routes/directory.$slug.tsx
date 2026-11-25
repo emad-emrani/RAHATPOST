@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ExternalLink, Globe, MapPin } from "lucide-react";
+import { ExternalLink, Globe } from "lucide-react";
+import { MapChoices } from "@/components/map-links";
 import { OsmCredit } from "@/components/osm-credit";
 import { RevealPhone } from "@/components/phone";
 import { Shell } from "@/components/shell";
@@ -125,15 +126,9 @@ function BusinessPage() {
           <p className="mt-4 font-semibold text-muted">{tr("لا يوجد رقم هاتف مسجّل لهذا المكان.")}</p>
         )}
 
-        <a
-          className="btn btn-ghost mt-2 w-full"
-          href={mapsUrl(place)}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <MapPin className="size-4" aria-hidden />
-          {tr("الاتجاهات")}
-        </a>
+        <div className="mt-2">
+          <MapChoices googleUrl={mapsUrl(place)} />
+        </div>
         {place.website ? (
           <a
             className="btn btn-ghost mt-2 w-full"

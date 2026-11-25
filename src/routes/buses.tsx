@@ -20,6 +20,7 @@ import "leaflet/dist/leaflet.css";
 import type { LayerGroup, Map as LeafletMap } from "leaflet";
 import { Shell } from "@/components/shell";
 import { GmapsStopButtons } from "@/components/gmaps-buttons";
+import { MapChoices } from "@/components/map-links";
 import { busSchedule } from "@/data/bus-schedule";
 import { busLines, galimPhone, galimSource } from "@/data/buses";
 import { getArrivals, getLineVehicles, getStopLive } from "@/lib/buses/api";
@@ -1016,14 +1017,10 @@ function BusesPage() {
                         ? tr("قبل {0} ث", activeVehicle.signalAgeSec)
                         : tr("قبل {0} د", Math.round(activeVehicle.signalAgeSec / 60))}
                     </span>
-                    <a
-                      href={gmapsPlace(activeVehicle.lat, activeVehicle.lon)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-ink underline"
-                    >
-                      {tr("موقع الباص في جوجل")}
-                    </a>
+                    <MapChoices
+                      target={{ lat: activeVehicle.lat, lon: activeVehicle.lon }}
+                      googleUrl={gmapsPlace(activeVehicle.lat, activeVehicle.lon)}
+                    />
                   </div>
                 </div>
               </div>
@@ -1161,18 +1158,17 @@ function BusesPage() {
               </p>
             </div>
             {busSchedule.stops[currentDir.from] && busSchedule.stops[currentDir.to] ? (
-              <a
-                href={gmapsTransitRoute(
+              <MapChoices
+                target={{
+                  lat: busSchedule.stops[currentDir.to].lat,
+                  lon: busSchedule.stops[currentDir.to].lon,
+                  origin: busSchedule.stops[currentDir.from],
+                }}
+                googleUrl={gmapsTransitRoute(
                   busSchedule.stops[currentDir.from],
                   busSchedule.stops[currentDir.to],
                 )}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="chip text-xs font-bold"
-              >
-                <MapIcon className="size-3.5" aria-hidden />
-                {tr("المسار في خرائط جوجل")}
-              </a>
+              />
             ) : null}
           </div>
 

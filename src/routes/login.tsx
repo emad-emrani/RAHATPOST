@@ -365,40 +365,53 @@ function SocialCircleButtons({
         <span>{label}</span>
         <span className="h-px flex-1 bg-line" />
       </div>
-      <div className="flex items-center justify-center gap-3">
+      {config.apple ? (
         <button
           type="button"
-          onClick={() => onSocialClick("google")}
+          onClick={() => onSocialClick("apple")}
           disabled={Boolean(busyProvider)}
-          title={tr("المتابعة باستخدام Google")}
-          aria-label={tr("المتابعة باستخدام Google")}
-          className="flex size-11 items-center justify-center rounded-full border border-line bg-surface/80 text-ink shadow-xs transition hover:-translate-y-0.5 hover:border-primary hover:bg-primary/15 disabled:opacity-50"
+          title={tr("المتابعة باستخدام Apple")}
+          aria-label={tr("المتابعة باستخدام Apple")}
+          className={
+            config.iosApp
+              ? "flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-black px-4 text-sm font-semibold text-white disabled:opacity-50"
+              : "flex size-11 items-center justify-center rounded-full border border-ink bg-ink text-paper shadow-xs transition hover:-translate-y-0.5 hover:opacity-90 disabled:opacity-50"
+          }
         >
-          <GoogleMark />
+          <AppleMark />
+          {config.iosApp ? <span>{tr("تسجيل الدخول بحساب Apple")}</span> : null}
         </button>
-        <button
-          type="button"
-          onClick={() => onSocialClick("facebook")}
-          disabled={Boolean(busyProvider)}
-          title={tr("المتابعة باستخدام Facebook")}
-          aria-label={tr("المتابعة باستخدام Facebook")}
-          className="flex size-11 items-center justify-center rounded-full border border-line bg-surface/80 text-ink shadow-xs transition hover:-translate-y-0.5 hover:border-primary hover:bg-primary/15 disabled:opacity-50"
-        >
-          <FacebookMark />
-        </button>
-        {config.apple ? (
-          <button
-            type="button"
-            onClick={() => onSocialClick("apple")}
-            disabled={Boolean(busyProvider)}
-            title={tr("المتابعة باستخدام Apple")}
-            aria-label={tr("المتابعة باستخدام Apple")}
-            className="flex size-11 items-center justify-center rounded-full border border-ink bg-ink text-paper shadow-xs transition hover:-translate-y-0.5 hover:opacity-90 disabled:opacity-50"
-          >
-            <AppleMark />
-          </button>
-        ) : null}
-      </div>
+      ) : null}
+      {config.google || config.facebook ? (
+        config.iosApp && !config.apple ? null : (
+          <div className="flex items-center justify-center gap-3">
+            {config.google && (!config.iosApp || config.apple) ? (
+              <button
+                type="button"
+                onClick={() => onSocialClick("google")}
+                disabled={Boolean(busyProvider)}
+                title={tr("المتابعة باستخدام Google")}
+                aria-label={tr("المتابعة باستخدام Google")}
+                className="flex size-11 items-center justify-center rounded-full border border-line bg-surface/80 text-ink shadow-xs transition hover:-translate-y-0.5 hover:border-primary hover:bg-primary/15 disabled:opacity-50"
+              >
+                <GoogleMark />
+              </button>
+            ) : null}
+            {config.facebook && (!config.iosApp || config.apple) ? (
+              <button
+                type="button"
+                onClick={() => onSocialClick("facebook")}
+                disabled={Boolean(busyProvider)}
+                title={tr("المتابعة باستخدام Facebook")}
+                aria-label={tr("المتابعة باستخدام Facebook")}
+                className="flex size-11 items-center justify-center rounded-full border border-line bg-surface/80 text-ink shadow-xs transition hover:-translate-y-0.5 hover:border-primary hover:bg-primary/15 disabled:opacity-50"
+              >
+                <FacebookMark />
+              </button>
+            ) : null}
+          </div>
+        )
+      ) : null}
     </div>
   );
 }
@@ -538,7 +551,7 @@ function LoginPage() {
           /* Main Split Login / Welcome / Registration (or Owner Admin Login) Card */
           <div className="w-full max-w-5xl overflow-hidden rounded-[2.25rem] bg-paper shadow-[0_24px_70px_rgba(16,24,40,0.14)] ring-1 ring-black/5">
             {/* Mobile Top Switcher Banner (shown on < lg screens) */}
-            <div className="bg-primary px-5 py-5 text-ink lg:hidden">
+            <div className="bg-primary px-5 py-5 text-ink xl:hidden">
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
                   <img
@@ -587,12 +600,12 @@ function LoginPage() {
             </div>
 
             {/* 3-Column Desktop Layout: [Login Panel] | [Center Welcome Strip] | [Registration / Owner Panel] */}
-            <div className="grid grid-cols-1 lg:grid-cols-[1fr_250px_1fr]">
+            <div className="grid min-w-0 grid-cols-1 xl:grid-cols-[minmax(0,1fr)_250px_minmax(0,1fr)]">
               {/* ==================== COLUMN 1: LOGIN / FORGOT PASSWORD ==================== */}
               <section
                 aria-label={tr("تسجيل الدخول")}
                 className={`flex flex-col justify-between p-6 sm:p-8 lg:p-9 transition-opacity ${
-                  activeSide === "up" ? "hidden lg:flex lg:opacity-95" : "flex"
+                  activeSide === "up" ? "hidden xl:flex xl:opacity-95" : "flex"
                 }`}
               >
                 {activeSide === "forgot" ? (
@@ -904,7 +917,7 @@ function LoginPage() {
                     />
 
                     {/* Mobile Switch Prompt */}
-                    <p className="mt-5 text-center text-xs font-bold text-muted lg:hidden">
+                    <p className="mt-5 text-center text-xs font-bold text-muted xl:hidden">
                       {isAdminRedirect
                         ? tr("هل أنت مالك الموقع؟")
                         : tr("ليس لديك حساب بعد؟")}{" "}
@@ -923,7 +936,7 @@ function LoginPage() {
               </section>
 
               {/* ==================== COLUMN 2: CENTER BRAND WELCOME STRIP ==================== */}
-              <aside className="relative hidden flex-col items-center justify-between overflow-hidden bg-primary px-6 py-10 text-center text-ink lg:flex">
+              <aside className="relative hidden flex-col items-center justify-between overflow-hidden bg-primary px-6 py-10 text-center text-ink xl:flex">
                 <div
                   aria-hidden
                   className="pointer-events-none absolute -top-12 -left-12 size-36 rounded-full bg-paper/25"
@@ -1009,7 +1022,7 @@ function LoginPage() {
                   aria-label={tr("دخول مالك الموقع")}
                   className={`flex flex-col justify-between p-6 sm:p-8 lg:p-9 transition-opacity ${
                     activeSide !== "up"
-                      ? "hidden lg:flex lg:opacity-95"
+                      ? "hidden xl:flex xl:opacity-95"
                       : "flex"
                   }`}
                 >
@@ -1147,7 +1160,7 @@ function LoginPage() {
                       </button>
                     </form>
 
-                    <p className="mt-5 text-center text-xs font-bold text-muted lg:hidden">
+                    <p className="mt-5 text-center text-xs font-bold text-muted xl:hidden">
                       {tr("عضو في فريق التحرير؟")}{" "}
                       <button
                         type="button"
@@ -1164,7 +1177,7 @@ function LoginPage() {
                   aria-label={tr("إنشاء حساب جديد")}
                   className={`flex flex-col justify-between p-6 sm:p-8 lg:p-9 transition-opacity ${
                     activeSide !== "up"
-                      ? "hidden lg:flex lg:opacity-95"
+                      ? "hidden xl:flex xl:opacity-95"
                       : "flex"
                   }`}
                 >
@@ -1360,7 +1373,7 @@ function LoginPage() {
                     />
 
                     {/* Mobile Switch Prompt */}
-                    <p className="mt-5 text-center text-xs font-bold text-muted lg:hidden">
+                    <p className="mt-5 text-center text-xs font-bold text-muted xl:hidden">
                       {tr("لديك حساب بالفعل؟")}{" "}
                       <button
                         type="button"

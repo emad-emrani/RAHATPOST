@@ -61,6 +61,86 @@ export function isNativeApp(): boolean {
   return isNativeUserAgent(navigator.userAgent);
 }
 
+/** iOS/iPadOS store app. Android is excluded so Google sign-in can stay in the system browser there. */
+export function isIosNativeApp(): boolean {
+  if (!isNativeApp()) return false;
+  const platform = cap()?.getPlatform?.();
+  if (platform === "ios") return true;
+  if (platform === "android") return false;
+  if (typeof navigator === "undefined") return false;
+  return !/Android/i.test(navigator.userAgent);
+}
+
+type AppleSignInPlugin = {
+  authorize: (opts: {
+    clientId: string;
+    redirectURI: string;
+    scopes?: string;
+    state?: string;
+    nonce?: string;
+  }) => Promise<{
+    response: {
+      identityToken?: string;
+      email?: string | null;
+      givenName?: string | null;
+      familyName?: string | null;
+    };
+  }>;
+};
+
+function applePlugin(): AppleSignInPlugin | undefined {
+  const plugins = cap()?.Plugins as { SignInWithApple?: AppleSignInPlugin } | undefined;
+  return plugins?.SignInWithApple;
+}
+
+function randomNonce(): string {
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+/**
+ * Native Sign in with Apple (AuthenticationServices) when the iOS build includes the plugin.
+ * Returns null on the current App Store binary, which does not have the plugin yet.
+ */
+export async function nativeAppleSignIn(): Promise<{
+  identityToken: string;
+  nonce: string;
+  email?: string;
+  givenName?: string;
+  familyName?: string;
+} | null> {
+  const plugin = applePlugin();
+  if (!plugin || !isIosNativeApp()) return null;
+  const nonce = randomNonce();
+  try {
+    const result = await plugin.authorize({
+      clientId: "com.rahatpost.app",
+      redirectURI: `${window.location.origin}/api/auth/callback/apple`,
+      scopes: "email name",
+      state: nonce,
+      nonce,
+    });
+    const token = result.response.identityToken;
+    if (!token) return null;
+    return {
+      identityToken: token,
+      nonce,
+      email: result.response.email || undefined,
+      givenName: result.response.givenName || undefined,
+      familyName: result.response.familyName || undefined,
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error ?? "");
+    if (/cancel|1001|AuthorizationError/i.test(message)) {
+      const cancelled = new Error("cancelled");
+      cancelled.name = "AppleSignInCancelled";
+      throw cancelled;
+    }
+    return null;
+  }
+}
+
 /** Same-site relative path only (defaults to /my-posts). */
 export function safeAppRedirect(value: unknown): string {
   const s = typeof value === "string" ? value : "";
