@@ -25,13 +25,14 @@ export function reporterKey(identity: string): string {
   return createHash("sha256").update(`${salt}:report:${identity}`).digest("hex").slice(0, 32);
 }
 
-/** Only approved (public) posts can be reported. */
+/** Only public posts can be reported. Sample classifieds count so the report button is not a dead end. */
 export async function isPublicTarget(type: ReportTarget, id: string): Promise<boolean> {
   const sql = await getSql();
-  const rows = await sql.query(
-    `select 1 from ${TABLE[type]} where id = $1 and status = 'approved'`,
-    [id],
-  );
+  const where =
+    type === "ad"
+      ? `id = $1 and (status = 'approved' or is_sample)`
+      : `id = $1 and status = 'approved'`;
+  const rows = await sql.query(`select 1 from ${TABLE[type]} where ${where}`, [id]);
   return rows.length > 0;
 }
 

@@ -73,17 +73,61 @@ const SELECT = `select c.id, c.user_id, c.title, c.category, c.price_mode, c.pri
   from classifieds c join "user" u on u."id" = c.user_id`;
 const LIVE = `(c.status = 'approved' or c.is_sample) and coalesce(c.renewed_at, c.created_at) > now() - interval '${LISTING_DAYS} days'`;
 
-/** Public grid: approved, not expired; unsold first, newest first. */
+async function viewerId(): Promise<string | null> {
+  try {
+    const { getSessionUser } = await import("@/lib/auth/verify.server");
+    return (await getSessionUser())?.id ?? null;
+  } catch {
+    return null;
+  }
+}
+
+async function blockedSellerIds(viewer: string): Promise<string[]> {
+  const sql = await getSql();
+  const rows = await sql.query<{ blocked_id: string }>(
+    `select blocked_id from user_listing_blocks where blocker_id = $1`,
+    [viewer],
+  );
+  return rows.map((r) => r.blocked_id);
+}
+
+/** Public grid: approved, not expired; unsold first, newest first. Hides sellers the viewer blocked. */
 export async function listPublic(limit = 200): Promise<Listing[]> {
   const sql = await getSql();
-  const rows = await sql.query<Row>(`${SELECT} where ${LIVE} order by (c.sold_at is not null), coalesce(c.renewed_at, c.created_at) desc limit $1`, [limit]);
+  const viewer = await viewerId();
+  const blocked = viewer ? await blockedSellerIds(viewer) : [];
+  const rows = blocked.length
+    ? await sql.query<Row>(
+        `${SELECT} where ${LIVE} and not (c.user_id = any($2::text[])) order by (c.sold_at is not null), coalesce(c.renewed_at, c.created_at) desc limit $1`,
+        [limit, blocked],
+      )
+    : await sql.query<Row>(
+        `${SELECT} where ${LIVE} order by (c.sold_at is not null), coalesce(c.renewed_at, c.created_at) desc limit $1`,
+        [limit],
+      );
   return withPhotos(rows.map(toPublic));
 }
 
 export async function getPublic(id: string): Promise<Listing | null> {
   const sql = await getSql();
   const rows = await sql.query<Row>(`${SELECT} where c.id = $1 and (c.status = 'approved' or c.is_sample)`, [id]);
-  return rows[0] ? (await withPhotos([toPublic(rows[0])]))[0] : null;
+  if (!rows[0]) return null;
+  const viewer = await viewerId();
+  if (viewer) {
+    const blocked = await blockedSellerIds(viewer);
+    if (blocked.includes(rows[0].user_id)) return null;
+  }
+  return (await withPhotos([toPublic(rows[0])]))[0];
+}
+
+/** Signed-in member hides another member's حراج listings from their own screens. */
+export async function blockSeller(blockerId: string, blockedId: string): Promise<void> {
+  if (blockerId === blockedId) throw new Error("self");
+  const sql = await getSql();
+  await sql.query(
+    `insert into user_listing_blocks (blocker_id, blocked_id) values ($1, $2) on conflict do nothing`,
+    [blockerId, blockedId],
+  );
 }
 
 /** Only for the WhatsApp redirect (works even when the seller hides the number). */
@@ -95,6 +139,8 @@ export async function getPhone(id: string): Promise<{ phone: string; title: stri
 
 export async function listBySeller(userId: string): Promise<{ seller: Listing["seller"] | null; items: Listing[] }> {
   const sql = await getSql();
+  const viewer = await viewerId();
+  if (viewer && (await blockedSellerIds(viewer)).includes(userId)) return { seller: null, items: [] };
   const rows = await sql.query<Row>(`${SELECT} where c.user_id = $1 and ${LIVE} order by (c.sold_at is not null), coalesce(c.renewed_at, c.created_at) desc limit 100`, [userId]);
   let seller = rows[0] ? toOwn(rows[0]).seller : null;
   if (!seller) {

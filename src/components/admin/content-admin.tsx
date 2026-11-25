@@ -549,6 +549,7 @@ const TARGET_STATUS: Record<string, string> = {
   approved: "منشور",
   pending: "مخفي (بانتظار المراجعة)",
   rejected: "مرفوض",
+  hidden: "مخفي",
 };
 
 export function ReportsAdmin() {

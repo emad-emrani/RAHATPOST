@@ -47,6 +47,26 @@ export const getListing = createServerFn({ method: "GET" })
     }
   });
 
+/** Hide another member's classifieds from the signed-in viewer's own lists and listing pages. */
+export const blockListingSeller = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .inputValidator((input: { id?: string }) => {
+    const id = String(input?.id ?? "");
+    if (!/^[A-Za-z0-9_-]{6,64}$/.test(id)) throw new Error("bad user");
+    return { id };
+  })
+  .handler(async ({ data, context }): Promise<{ ok: boolean; message?: string }> => {
+    if (data.id === context.user.id) return { ok: false, message: "لا يمكنك إخفاء إعلاناتك عن نفسك." };
+    try {
+      const { blockSeller } = await import("./store.server");
+      await blockSeller(context.user.id, data.id);
+      return { ok: true };
+    } catch (error) {
+      console.error("[haraj] block seller failed", error);
+      return { ok: false, message: "تعذّر إخفاء إعلانات هذا العضو." };
+    }
+  });
+
 export const getSeller = createServerFn({ method: "GET" })
   .inputValidator(idOf)
   .handler(async ({ data }): Promise<{ seller: Seller | null; items: Listing[] }> => {
