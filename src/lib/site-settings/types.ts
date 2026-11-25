@@ -185,6 +185,11 @@ export function parseDirectoryHub(links: QuickLink[] | undefined): DirectoryHubD
   };
 }
 
+/** Homepage official-store links stay hidden until the owner turns this on. */
+export function isHomeStoreVisible(links: QuickLink[] | undefined): boolean {
+  return (links ?? []).some((q) => q.id === "homestorecfg" && q.subtitle === "visible");
+}
+
 /** Bottom-nav item the owner asked to drop (art & fashion). */
 export function isArtFashionNav(item: { label: string; to: string }): boolean {
   let to = item.to;

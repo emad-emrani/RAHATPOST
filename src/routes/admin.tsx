@@ -74,6 +74,7 @@ import {
   BUILTIN_SLIDES,
   DEFAULT_SETTINGS,
   HOME_SECTIONS,
+  isHomeStoreVisible,
   NAV_ITEMS,
   THEME_DEFAULT,
   THEME_PRESETS,
@@ -8398,6 +8399,37 @@ function MenusAndBarsPart({ s, set }: SettingsPartProps) {
 
   return (
     <div className="space-y-4">
+      <SettingsCard
+        title={tr("المتجر الرسمي في الصفحة الرئيسية")}
+        hint={tr("مخفي افتراضياً. صفحة المتجر نفسها تبقى موجودة. فعّل هذا الخيار ثم احفظ لإظهار قسم المتجر وأيقونته وروابطه في الرئيسية والقائمة.")}
+      >
+        <label className="flex items-center justify-between gap-3 rounded-2xl border border-line bg-surface p-3.5 font-extrabold">
+          <span>{isHomeStoreVisible(s.quickLinks) ? tr("ظاهر في الرئيسية") : tr("مخفي من الرئيسية")}</span>
+          <input
+            type="checkbox"
+            role="switch"
+            className="size-6 accent-[#F2C94C]"
+            checked={isHomeStoreVisible(s.quickLinks)}
+            onChange={(e) => {
+              const others = (s.quickLinks ?? []).filter((q) => q.id !== "homestorecfg");
+              set({
+                quickLinks: e.target.checked
+                  ? [
+                      {
+                        id: "homestorecfg",
+                        title: "المتجر في الرئيسية",
+                        subtitle: "visible",
+                        url: "/__storehome?",
+                        emoji: "",
+                      },
+                      ...others,
+                    ]
+                  : others,
+              });
+            }}
+          />
+        </label>
+      </SettingsCard>
       {/* 0. Eye-Friendly Glow Toggle for "بث مباريات" Icon */}
       <SettingsCard
         title={tr("أيقونة «بث مباريات» — التحكم بالتوهج وراحة العين")}
